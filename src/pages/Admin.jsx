@@ -8,7 +8,7 @@ import { pName, pCity } from '../lib/lang';
 import { normalize } from '../lib/geo';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
-import { ROLES } from '../lib/adminStore';
+import { ROLES, SUPER_ADMINS } from '../lib/adminStore';
 import AdminInsights from './AdminInsights';
 
 /* ------------------------------------------------------------------ */
@@ -50,7 +50,8 @@ export default function AdminPage() {
     );
 
   const openReports = (reports || []).filter((r) => r.status === 'open').length;
-  const data = { users, memories, reports, trips };
+  const people = mergePeople(users, trips, memories);
+  const data = { users: people, memories, reports, trips };
 
   return (
     <div className="page admin">
@@ -74,8 +75,8 @@ export default function AdminPage() {
         </nav>
         <section className="admin__body">
           {tab === 'dashboard' && <Dashboard data={data} go={setTab} />}
-          {tab === 'insights' && isAdmin && <AdminInsights users={users} trips={trips} />}
-          {tab === 'users' && <Users users={users} />}
+          {tab === 'insights' && isAdmin && <AdminInsights users={people} trips={trips} />}
+          {tab === 'users' && <Users users={people} />}
           {tab === 'content' && <Content memories={memories} reports={reports} />}
           {tab === 'reports' && <Reports reports={reports} />}
           {tab === 'places' && <PlacesAdmin />}
@@ -152,6 +153,43 @@ function Dashboard({ data, go }) {
 }
 
 /* ---------------------------- Người dùng ---------------------------- */
+/**
+ * Gộp hồ sơ người dùng với tên / ảnh trong chuyến đi và kỉ niệm công khai:
+ * hồ sơ tạo trước khi có trang quản trị chỉ có tên tự đặt (chưa có tên Google, email),
+ * và có người chưa có hồ sơ nào → vẫn hiện đúng tên / ảnh, chờ họ đăng nhập lại để có email.
+ */
+function mergePeople(users, trips, memories) {
+  if (!users) return null;
+  const extra = {};
+  const add = (uid, name, photo) => {
+    if (!uid) return;
+    const e = (extra[uid] ||= {});
+    if (name && !e.name) e.name = name;
+    if (photo && !e.photo) e.photo = photo;
+  };
+  (trips || []).forEach((tr) => Object.entries(tr.members || {}).forEach(([uid, m]) => add(uid, m?.name, m?.photo)));
+  (memories || []).forEach((m) => add(m.uid, m.authorName, m.authorPhoto));
+  const seen = new Set();
+  const list = users.map((u) => {
+    seen.add(u.uid);
+    const e = extra[u.uid] || {};
+    const owner = SUPER_ADMINS.includes((u.email || '').toLowerCase());
+    return {
+      ...u,
+      name: u.displayName || u.name || e.name || '',
+      photo: u.photo || u.googlePhoto || e.photo || '',
+      role: owner ? 'admin' : u.role || 'user',
+      owner,
+      partial: !u.email, // hồ sơ cũ: chưa có email / thông tin đăng nhập
+    };
+  });
+  Object.entries(extra).forEach(([uid, e]) => {
+    if (!seen.has(uid) && uid !== 'sample') list.push({ uid, name: e.name || '', photo: e.photo || '', role: 'user', partial: true, noDoc: true });
+  });
+  return list;
+}
+
+
 function Users({ users }) {
   const { t } = useI18n();
   const { isAdmin, user: me, adminApi, notify } = useApp();
@@ -193,17 +231,21 @@ function Users({ users }) {
         </div>
         {list.map((u) => {
           const self = u.uid === me.uid;
+          const locked = self || u.owner || u.noDoc; // không đổi quyền chính mình / chủ web / người chưa có hồ sơ
           return (
             <div key={u.uid} className={`admin-table__row ${u.banned ? 'is-banned' : ''}`}>
               <span className="user-cell">
-                <Avatar name={u.name} photo={u.photo} size={34} />
+                <Avatar name={u.name || '?'} photo={u.photo} size={34} />
                 <span>
-                  <b>{u.name || '—'}</b>
-                  <small>{u.email}</small>
+                  <b>
+                    {u.name || t('admin.unknownUser')}
+                    {u.owner && <span className="role role--admin"> {t('admin.ownerTag')}</span>}
+                  </b>
+                  <small>{u.email || (u.noDoc ? t('admin.noProfile') : t('admin.oldProfile'))}</small>
                 </span>
               </span>
               <span>
-                {isAdmin && !self ? (
+                {isAdmin && !locked ? (
                   <select value={u.role || 'user'} onChange={(e) => update(u, { role: e.target.value }, t('admin.roleChanged', { name: u.name, role: t('role.' + e.target.value) }))}>
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
@@ -215,10 +257,10 @@ function Users({ users }) {
                   <span className={`role role--${u.role || 'user'}`}>{t('role.' + (u.role || 'user'))}</span>
                 )}
               </span>
-              <span className="small">{formatDate(u.createdAt)}</span>
-              <span className="small">{formatDate(u.lastLoginAt)}</span>
+              <span className="small">{u.createdAt ? formatDate(u.createdAt) : '—'}</span>
+              <span className="small">{u.lastLoginAt ? formatDate(u.lastLoginAt) : '—'}</span>
               <span>
-                {isAdmin && !self ? (
+                {isAdmin && !locked ? (
                   <button
                     className={`btn btn--sm ${u.banned ? 'btn--soft' : 'btn--ghost danger'}`}
                     onClick={() => {

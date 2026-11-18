@@ -89,7 +89,9 @@ const fb = {
   watchReports: (cb) => onSnapshot(collection(db, 'reports'), (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt)), () => cb([])),
   updateReport: (id, patch) => updateDoc(doc(db, 'reports', id), patch),
   deleteReport: (id) => deleteDoc(doc(db, 'reports', id)),
-  watchUsers: (cb) => onSnapshot(collection(db, 'users'), (s) => cb(s.docs.map((d) => d.data()).sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0))), () => cb([])),
+  // uid lấy theo id của document (hồ sơ cũ chỉ có displayName / photo, chưa có uid)
+  watchUsers: (cb) =>
+    onSnapshot(collection(db, 'users'), (s) => cb(s.docs.map((d) => ({ ...d.data(), uid: d.id })).sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0))), () => cb([])),
   updateUser: (uid, patch) => updateDoc(doc(db, 'users', uid), patch),
   /** Kỉ niệm công khai + kỉ niệm đã bị ẩn (kiểm duyệt) — quản trị viên không xem được kỉ niệm riêng tư */
   watchModerationMemories(cb) {

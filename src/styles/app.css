@@ -4164,3 +4164,59 @@ img.is-loaded {
   opacity: 1;
   background: var(--honey-100);
 }
+
+/* ---------- Check-in card (place panel) ---------- */
+.checkin-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-radius: 20px;
+  background: var(--honey-50);
+  border: 2px solid var(--honey-200);
+}
+.checkin-card--done {
+  background: var(--mint-100);
+  border-color: #b9ead6;
+}
+.checkin-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.checkin-card__head b {
+  display: block;
+  font-size: 17px;
+}
+.checkin-card__head small {
+  display: block;
+  color: var(--ink-700);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.checkin-card__icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: var(--honey-400);
+}
+.checkin-card--done .checkin-card__icon {
+  background: var(--mint-500);
+  color: #fff;
+  font-weight: 800;
+}
+.checkin-card__cta {
+  min-height: 52px;
+  font-size: 17px;
+}
+.place-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--spacing-sm);
+}

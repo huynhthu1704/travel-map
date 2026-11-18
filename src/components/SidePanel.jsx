@@ -791,6 +791,19 @@ function PlacePanel() {
       )}
       {pDesc(p) && <p>{pDesc(p)}</p>}
 
+      <CheckinHistory place={p} saved={placeById[p.id]} mine={mine} tripId={tripId}>
+        <div className="place-actions">
+          <button className="btn btn--outline" onClick={() => setModal({ type: 'directions', place: p })}>
+            {t('common.directions')}
+          </button>
+          {st !== 'visited' && (
+            <button className={`btn ${st === 'wishlist' ? 'btn--coral' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'wishlist', tripId)}>
+              {st === 'wishlist' ? t('place.inWishlist') : t('place.addWishlist')}
+            </button>
+          )}
+        </div>
+      </CheckinHistory>
+
       {trips.length > 0 && (
         <label className="field">
           <span>{t('place.withTrip')}</span>
@@ -811,30 +824,11 @@ function PlacePanel() {
         </label>
       )}
 
-      <div className="grid-2">
-        <button className={`btn ${st === 'visited' ? 'btn--primary' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'visited', tripId)}>
-          👣 {st === 'visited' ? t('place.visited') : t('place.markVisited')}
-        </button>
-        <button className={`btn ${st === 'wishlist' ? 'btn--coral' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'wishlist', tripId)}>
-          {st === 'wishlist' ? t('place.inWishlist') : t('place.addWishlist')}
-        </button>
-        <button className="btn btn--dark" onClick={() => setModal({ type: 'directions', place: p })}>
-          {t('common.directions')}
-        </button>
-        <button
-          className="btn btn--primary"
-          onClick={() => requireLogin(() => setModal({ type: 'memory', place: p, tripId }), t('reason.saveMemory'))}
-        >
-          {t('place.addMemory')}
-        </button>
-      </div>
-
       {st && (
         <button className="btn btn--ghost btn--sm danger remove-btn" onClick={() => removePlace(placeById[p.id] || p)}>
           🗑️ {t(st === 'visited' ? 'remove.fromVisited' : 'remove.fromWish')}
         </button>
       )}
-      <CheckinHistory place={p} saved={placeById[p.id]} mine={mine} tripId={tripId} />
       <section>
         <h3 className="section-title">{t('place.others')}</h3>
         {pub.length ? <MemoryGrid items={pub} /> : <Empty emoji="🌱" title={t('place.noShares')} text={t('place.beFirst')} />}
@@ -889,7 +883,7 @@ function StickyBar({ watch, compact, children }) {
 }
 
 /** Lịch sử check-in tại 1 địa điểm: mỗi lần đến có ngày, dịp, ghi chú và ảnh riêng */
-function CheckinHistory({ place, saved, mine, tripId }) {
+function CheckinHistory({ place, saved, mine, tripId, children }) {
   const { t } = useI18n();
   const { setModal, api, notify, requireLogin, trips } = useApp();
   // Lần đến cũ chỉ có ngày / dịp (chưa có lần check-in nào) → hiện như 1 lần check-in.
@@ -907,17 +901,30 @@ function CheckinHistory({ place, saved, mine, tripId }) {
   const count = entries.length || (saved?.status === 'visited' ? 1 : 0);
   // Thêm lần mới: lần đến cũ (chỉ có ngày / dịp) được giữ lại thành 1 lần check-in riêng
   const add = () => requireLogin(() => setModal({ type: 'checkin', place, tripId, preserve: legacy || undefined }), t('reason.saveMemory'));
+  const been = count > 0;
+  const lastDate = entries.find((e) => e.date)?.date;
   return (
-    <section className="checkins">
-      <div className="trip-summary__head">
-        <h3 className="section-title">
-          👣 {t('checkin.history')} <span className="checkins__count">{t('checkin.times', { n: count })}</span>
-        </h3>
-        <button className="btn btn--sm btn--primary" onClick={add}>
-          ＋ {t('checkin.again')}
+    <>
+      <div className={`checkin-card ${been ? 'checkin-card--done' : ''}`}>
+        <div className="checkin-card__head">
+          <span className="checkin-card__icon">{been ? '✓' : '👣'}</span>
+          <div>
+            <b>{been ? t('checkin.been') : t('checkin.ask')}</b>
+            <small>
+              {been
+                ? [t('checkin.times', { n: count }), lastDate && t('checkin.last', { date: formatDate(lastDate) })].filter(Boolean).join(' · ')
+                : t('checkin.askHint')}
+            </small>
+          </div>
+        </div>
+        <button className="btn btn--primary btn--block checkin-card__cta" onClick={add}>
+          {been ? `＋ ${t('checkin.ctaAgain')}` : `👣 ${t('checkin.cta')}`}
         </button>
       </div>
-      {entries.length === 0 && <p className="small muted">{t('checkin.none')}</p>}
+      {children}
+      {entries.length > 0 && (
+    <section className="checkins">
+      <h3 className="section-title">📖 {t('checkin.log')}</h3>
       <ol className="checkins__list">
         {entries.map((e, i) => (
           <li key={e.key}>
@@ -971,6 +978,8 @@ function CheckinHistory({ place, saved, mine, tripId }) {
         ))}
       </ol>
     </section>
+      )}
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
-import { Modal, Avatar, formatDate, Loader, LoadingImage } from './ui';
+import { Modal, Avatar, formatDate, Loader, LoadingImage, OccasionField } from './ui';
 import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize, parseGoogleMapsInput, reverseGeocode, isGoogleMapsLink } from '../lib/geo';
 import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
@@ -221,10 +221,11 @@ function VisitDateModal({ place, tripId, onClose }) {
   const { t } = useI18n();
   const { saveVisited, notify, placeById } = useApp();
   const [date, setDate] = useState(placeById[place.id]?.visitedAt || today());
+  const [occasion, setOccasion] = useState(placeById[place.id]?.occasion || '');
   const [busy, setBusy] = useState(false);
   const save = async (value) => {
     setBusy(true);
-    await saveVisited(place, value, tripId);
+    await saveVisited(place, { visitedAt: value, occasion: occasion.trim() }, tripId);
     notify(t('toast.visited', { name: pName(place) }));
     onClose();
   };
@@ -236,6 +237,7 @@ function VisitDateModal({ place, tripId, onClose }) {
           <span>{t('visit.label')}</span>
           <input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
         </label>
+        <OccasionField value={occasion} onChange={setOccasion} />
         {busy ? (
           <Loader size="sm" />
         ) : (

@@ -200,6 +200,7 @@ function PlaceList({ items, onOpen, emptyText }) {
                 <small>
                   {flagOf(p.country)} {[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}
                   {p.visitedAt ? ` · 📅 ${formatDate(p.visitedAt)}` : ''}
+                  {p.occasion ? ` · ${p.occasion}` : ''}
                 </small>
               </button>
               <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: p })}>

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
-import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage } from './ui';
+import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage, OccasionField } from './ui';
 import { useI18n } from '../i18n';
 import { pName, pCity, pDesc } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
@@ -243,6 +243,7 @@ function CountryPanel() {
                   <small>
                     {pCity(p)}
                     {p.visitedAt ? ` · 📅 ${formatDate(p.visitedAt)}` : ''}
+                    {p.occasion ? ` · ${p.occasion}` : ''}
                   </small>
                 </span>
               </button>
@@ -298,7 +299,13 @@ export function PlaceCard({ place }) {
           {pName(place)}
         </button>
         <p className="muted small">{pCity(place)}{pDesc(place) ? ` · ${pDesc(place)}` : ''}</p>
-        {st === 'visited' && visitedAt && <p className="visit-date">{t('visit.on', { date: formatDate(visitedAt) })}</p>}
+        {st === 'visited' && (visitedAt || placeById[place.id]?.occasion) && (
+          <p className="visit-date">
+            {visitedAt && t('visit.on', { date: formatDate(visitedAt) })}
+            {visitedAt && placeById[place.id]?.occasion && ' · '}
+            {placeById[place.id]?.occasion}
+          </p>
+        )}
         <div className="row">
           <button className={`btn btn--sm ${st === 'wishlist' ? 'btn--coral' : 'btn--soft'}`} onClick={() => setPlaceStatus(place, 'wishlist')} aria-pressed={st === 'wishlist'}>
             {st === 'wishlist' ? t('card.liked') : t('card.wish')}
@@ -411,9 +418,10 @@ function PlacePanel() {
       {st === 'visited' && (
         <label className="field visit-field">
           <span>{t('visit.edit')}</span>
-          <input type="date" value={placeById[p.id]?.visitedAt || ''} onChange={(e) => saveVisited(p, e.target.value || null)} />
+          <input type="date" value={placeById[p.id]?.visitedAt || ''} onChange={(e) => saveVisited(p, { visitedAt: e.target.value || null })} />
         </label>
       )}
+      {st === 'visited' && <PlaceOccasion place={p} saved={placeById[p.id]?.occasion || ''} onSave={(occasion) => saveVisited(p, { occasion })} />}
       {mine.length > 0 && (
         <section>
           <h3 className="section-title">{t('place.yourMemories')}</h3>
@@ -471,4 +479,11 @@ function StickyBar({ watch, compact, children }) {
       </div>
     </div>
   );
+}
+
+/** Ghi chú "đến vì dịp gì" trong panel địa điểm — lưu khi chọn gợi ý hoặc rời ô */
+function PlaceOccasion({ place, saved, onSave }) {
+  const [value, setValue] = useState(saved);
+  useEffect(() => setValue(saved), [saved, place.id]);
+  return <OccasionField value={value} onChange={setValue} onCommit={(v) => v !== saved && onSave(v)} />;
 }

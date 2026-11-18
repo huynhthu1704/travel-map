@@ -1009,6 +1009,13 @@ button.list-item:hover,
   font-weight: 600;
   color: var(--honey-800);
 }
+.chip--sm {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.occasion__chips {
+  margin-top: 2px;
+}
 .visit-field input {
   max-width: 220px;
 }

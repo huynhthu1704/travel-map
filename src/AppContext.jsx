@@ -55,6 +55,9 @@ export function AppProvider({ children }) {
   const [pickDate, setPickDate] = useState('');
   const pickDateRef = useRef(pickDate);
   pickDateRef.current = pickDate;
+  const [pickOccasion, setPickOccasion] = useState('');
+  const pickOccasionRef = useRef(pickOccasion);
+  pickOccasionRef.current = pickOccasion;
   const [toast, setToast] = useState(null);
   const pendingAction = useRef(null);
 
@@ -177,10 +180,13 @@ export function AppProvider({ children }) {
 
   const placeStatus = useMemo(() => Object.fromEntries(places.map((p) => [p.id, p.status])), [places]);
   const placeById = useMemo(() => Object.fromEntries(places.map((p) => [p.id, p])), [places]);
-  /** Lưu "đã đến" kèm ngày (hoặc đổi ngày) */
+  /** Lưu "đã đến" kèm ngày / dịp. patch: { visitedAt?, occasion? } — phần không truyền thì giữ nguyên */
   const saveVisited = useCallback(
-    async (place, visitedAt, tripId) => {
-      await api.setPlace(userRef.current, place, 'visited', tripId ?? placeById[place.id]?.tripId, visitedAt);
+    async (place, patch = {}, tripId) => {
+      const prev = placeById[place.id] || {};
+      const visitedAt = 'visitedAt' in patch ? patch.visitedAt : prev.visitedAt;
+      const occasion = 'occasion' in patch ? patch.occasion : prev.occasion;
+      await api.setPlace(userRef.current, { ...prev, ...place }, 'visited', tripId ?? prev.tripId, visitedAt, occasion);
     },
     [placeById],
   );
@@ -282,8 +288,9 @@ export function AppProvider({ children }) {
       const geo = await reverseGeocode(lat, lng, getLang());
       const place = { ...draft, name: geo.name || t('pick.loading'), city: geo.city, country: geo.country };
       const date = status === 'visited' ? pickDateRef.current || null : null;
-      await api.setPlace(u, place, status, null, date);
-      setPicked((list) => list.map((x) => (x.place.id === id ? { place, status, date, loading: false } : x)));
+      const occasion = status === 'visited' ? pickOccasionRef.current.trim() : '';
+      await api.setPlace(u, place, status, null, date, occasion);
+      setPicked((list) => list.map((x) => (x.place.id === id ? { place, status, date, occasion, loading: false } : x)));
     },
     [],
   );
@@ -293,10 +300,10 @@ export function AppProvider({ children }) {
     setPicked((list) => list.filter((x) => x.place.id !== place.id));
     await api.setPlace(userRef.current, place, null);
   }, []);
-  const renamePicked = useCallback(async (place, name, status, date) => {
+  const renamePicked = useCallback(async (place, name, status, date, occasion) => {
     const next = { ...place, name };
     setPicked((list) => list.map((x) => (x.place.id === place.id ? { ...x, place: next } : x)));
-    await api.setPlace(userRef.current, next, status, null, date);
+    await api.setPlace(userRef.current, next, status, null, date, occasion);
   }, []);
   const finishPicking = useCallback(() => {
     setPickMode(null);
@@ -307,7 +314,7 @@ export function AppProvider({ children }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = {
-    loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
+    loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

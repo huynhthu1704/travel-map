@@ -68,6 +68,46 @@ export function LoadingImage({ src, alt, finding, fallback = null, loaderSize = 
   );
 }
 
+const OCCASIONS = {
+  vi: ['🏖️ Du lịch', '💼 Công tác', '💍 Trăng mật', '👨‍👩‍👧 Đi cùng gia đình', '👯 Đi cùng bạn bè', '💑 Hẹn hò', '🎂 Sinh nhật', '🎓 Học tập', '🎒 Phượt', '🎉 Lễ hội / Sự kiện'],
+  en: ['🏖️ Holiday', '💼 Business trip', '💍 Honeymoon', '👨‍👩‍👧 Family trip', '👯 With friends', '💑 Date', '🎂 Birthday', '🎓 Study', '🎒 Backpacking', '🎉 Festival / Event'],
+};
+
+/** Ô "Đến vì dịp gì?" (tuỳ chọn): gõ tự do hoặc bấm gợi ý. onCommit gọi khi chọn gợi ý / rời ô. */
+export function OccasionField({ value, onChange, onCommit }) {
+  const { t, lang } = useI18n();
+  const commit = (v) => onCommit?.(v);
+  return (
+    <div className="field occasion">
+      <span>{t('occasion.label')}</span>
+      <input
+        value={value}
+        maxLength={80}
+        placeholder={t('occasion.placeholder')}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => commit(e.target.value.trim())}
+        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+      />
+      <div className="chips chips--scroll occasion__chips">
+        {(OCCASIONS[lang] || OCCASIONS.vi).map((o) => (
+          <button
+            type="button"
+            key={o}
+            className={`chip chip--sm ${value === o ? 'chip--on' : ''}`}
+            onClick={() => {
+              const v = value === o ? '' : o;
+              onChange(v);
+              commit(v);
+            }}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Hiệu ứng loading chung: logo 📍 nhảy qua lại + "Chờ chút xíu nha" */
 export function Loader({ size = 'md', overlay, page, text }) {
   const { t } = useI18n();

@@ -55,11 +55,15 @@ const firebaseBackend = {
   watchPlaces(uid, cb) {
     return onSnapshot(collection(db, 'users', uid, 'places'), (s) => cb(s.docs.map((d) => d.data())));
   },
-  /** visitedAt: ngày đã đến ('YYYY-MM-DD'), tuỳ chọn */
-  async setPlace(user, place, status, tripId, visitedAt = null) {
+  /** visitedAt: ngày đã đến ('YYYY-MM-DD'); occasion: đến vì dịp gì — cả hai tuỳ chọn */
+  async setPlace(user, place, status, tripId, visitedAt = null, occasion = '') {
     const r = doc(db, 'users', user.uid, 'places', safeId(place.id));
     if (!status) return deleteDoc(r);
-    await setDoc(r, { ...pickPlace(place), status, tripId: tripId || null, visitedAt: status === 'visited' ? visitedAt || null : null, updatedAt: now() });
+    const visited = status === 'visited';
+    await setDoc(r, {
+      ...pickPlace(place), status, tripId: tripId || null,
+      visitedAt: visited ? visitedAt || null : null, occasion: visited ? occasion || '' : '', updatedAt: now(),
+    });
     if (tripId && status === 'visited') await this.addStop(user, tripId, { place, kind: 'place' });
   },
 
@@ -91,7 +95,11 @@ const firebaseBackend = {
       await setDoc(doc(db, 'memories', memRef.id, 'full', String(i)), { data: full[i], uid: user.uid, i });
     }
     // Đặt chân tới đây = đánh dấu "đã đến"
-    await setDoc(doc(db, 'users', user.uid, 'places', safeId(place.id)), { ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() });
+    await setDoc(
+      doc(db, 'users', user.uid, 'places', safeId(place.id)),
+      { ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() },
+      { merge: true }, // giữ lại "dịp" đã ghi trước đó
+    );
     if (tripId) await this.addStop(user, tripId, { place, kind: 'memory', photos: thumbs, caption, memoryId: memRef.id });
     return { id: memRef.id, ...data, fullPhotos: full };
   },
@@ -197,10 +205,11 @@ const localBackend = {
   watchPlaces(u, cb) {
     return sub(() => cb(Object.values(state.places[u] || {})));
   },
-  async setPlace(user, place, status, tripId, visitedAt = null) {
+  async setPlace(user, place, status, tripId, visitedAt = null, occasion = '') {
     const m = (state.places[user.uid] ||= {});
+    const visited = status === 'visited';
     if (!status) delete m[place.id];
-    else m[place.id] = { ...pickPlace(place), status, tripId: tripId || null, visitedAt: status === 'visited' ? visitedAt || null : null, updatedAt: now() };
+    else m[place.id] = { ...pickPlace(place), status, tripId: tripId || null, visitedAt: visited ? visitedAt || null : null, occasion: visited ? occasion || '' : '', updatedAt: now() };
     if (status === 'visited' && tripId) this.addStop(user, tripId, { place, kind: 'place' });
     save();
   },
@@ -218,7 +227,8 @@ const localBackend = {
       visibility, tripId: tripId || null, photos, createdAt: now(),
     };
     state.memories.push(mem);
-    (state.places[user.uid] ||= {})[place.id] = { ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() };
+    const prev = (state.places[user.uid] ||= {})[place.id] || {};
+    state.places[user.uid][place.id] = { ...prev, ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() };
     if (tripId) this.addStop(user, tripId, { place, kind: 'memory', photos, caption });
     save();
     return mem;

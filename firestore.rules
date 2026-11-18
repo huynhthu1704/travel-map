@@ -6,13 +6,66 @@ service cloud.firestore {
       return signedIn() && request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds;
     }
 
-    // Hồ sơ: tên hiển thị người dùng tự đặt
+    // ---- Quản trị: quản trị viên gốc (theo email) + vai trò lưu trong users/{uid}.role ----
+    function isSuper() {
+      return signedIn() && request.auth.token.email_verified == true
+        && request.auth.token.email in ['huynhthingocthu1704@gmail.com'];
+    }
+    function myRole() {
+      let p = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(p) ? get(p).data.get('role', 'user') : 'user';
+    }
+    function isAdmin() { return isSuper() || (signedIn() && myRole() == 'admin'); }
+    function isStaff() { return isSuper() || (signedIn() && myRole() in ['admin', 'editor']); }
+
+    // Hồ sơ: tên / ảnh tự đặt, thông tin đăng nhập, thống kê dùng cho trang quản trị.
+    // Người dùng không tự đổi được vai trò hay trạng thái khoá.
+    function validPhoto(d) {
+      return !('photo' in d) || d.photo == null || (d.photo is string && d.photo.size() < 120000);
+    }
     match /users/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow create, update: if signedIn() && request.auth.uid == uid
-                            && request.resource.data.keys().hasOnly(['displayName', 'photo', 'updatedAt'])
-                            && (!('photo' in request.resource.data) || request.resource.data.photo == null
-                                || (request.resource.data.photo is string && request.resource.data.photo.size() < 120000));
+      allow read: if (signedIn() && request.auth.uid == uid) || isStaff();
+      allow create: if signedIn() && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'role', 'banned', 'createdAt', 'lastLoginAt', 'updatedAt', 'stats'])
+                    && request.resource.data.get('role', 'user') == 'user'
+                    && request.resource.data.get('banned', false) == false
+                    && validPhoto(request.resource.data);
+      allow update: if (signedIn() && request.auth.uid == uid
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt'])
+                        && validPhoto(request.resource.data))
+                    || (isAdmin()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned'])
+                        && request.resource.data.get('role', 'user') in ['user', 'editor', 'admin']);
+    }
+
+    // Cài đặt trang: ai cũng đọc; chỉ quản trị viên sửa
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    // Chỉnh sửa / thêm địa điểm nổi tiếng: ai cũng đọc; biên tập viên trở lên sửa
+    match /placeOverrides/{id} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+    match /customPlaces/{id} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+    // Báo cáo nội dung: người đăng nhập gửi; biên tập viên trở lên xem và xử lý
+    match /reports/{id} {
+      allow create: if signedIn() && request.resource.data.byUid == request.auth.uid && request.resource.data.status == 'open';
+      allow read, update, delete: if isStaff();
+    }
+    // Đếm số mục kế hoạch / chi phí / checklist cho trang thống kê (chỉ quản trị viên)
+    match /{path=**}/plan/{itemId} {
+      allow read: if isAdmin();
+    }
+    match /{path=**}/costs/{costId} {
+      allow read: if isAdmin();
+    }
+    match /{path=**}/checklists/{listId} {
+      allow read: if isAdmin();
     }
 
     // Địa điểm đã đến / muốn đi của từng người
@@ -25,13 +78,18 @@ service cloud.firestore {
     function canReadMemory(m) {
       return m.visibility == 'public'
         || (signedIn() && m.uid == request.auth.uid)
-        || (m.tripId != null && isMember(m.tripId));
+        || (m.tripId != null && isMember(m.tripId))
+        || (m.get('moderated', false) == true && isStaff());
     }
     match /memories/{id} {
       allow read: if canReadMemory(resource.data);
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid
                     && request.resource.data.visibility in ['public', 'private'];
       allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      // Kiểm duyệt: biên tập viên trở lên ẩn / hiện lại / xoá
+      allow update: if isStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visibility', 'moderated', 'moderatedBy', 'moderatedAt', 'moderationNote']);
+      allow delete: if isStaff();
 
       // Ảnh độ phân giải đầy đủ (mỗi ảnh 1 document)
       // Ảnh độ phân giải vừa (cho mạng chậm) — cùng quyền với ảnh gốc
@@ -39,13 +97,13 @@ service cloud.firestore {
         allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
         allow create: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
-        allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
       }
       match /full/{photoId} {
         allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
         allow create: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
-        allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
       }
     }
 
@@ -63,7 +121,7 @@ service cloud.firestore {
         (request.auth.uid in resource.data.memberIds &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'emoji', 'startDate', 'endDate', 'kind', 'destinations', 'currency', 'rates', 'updatedAt']))
       );
-      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow delete: if (signedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
 
       // Kế hoạch: mọi thành viên cùng thêm / sắp xếp / đánh dấu
       match /plan/{itemId} {

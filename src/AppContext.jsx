@@ -1,13 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/store';
 import { loadCountries, bboxOf } from './lib/countries';
-import { fixPlace, fixMemory } from './lib/fixes';
 import { parseRoute, buildRoute } from './lib/route';
 import { loadFamousLive } from './lib/famousLive';
 import { famousIn } from './data/places';
+import { adminApi, SUPER_ADMINS, DEFAULT_SETTINGS } from './lib/adminStore';
+import { normalize } from './lib/geo';
+import { COORD_FIXES, fixPlace, fixMemory } from './lib/fixes';
 import { translate as t } from './i18n';
 import { pName, getLang } from './lib/lang';
-import { reverseGeocode } from './lib/geo';
+import { reverseGeocode, googleMapsUrl } from './lib/geo';
+
+const isDesktop = () =>
+  !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) && !(navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) && !window.matchMedia('(pointer: coarse)').matches;
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -47,16 +52,34 @@ export function AppProvider({ children }) {
   const viewRef = useRef(view);
   viewRef.current = view;
 
-  const [modal, setModal] = useState(null); // {type, ...props}
+  const [modal, setModalState] = useState(null); // {type, ...props}
+  // Chỉ đường trên máy tính: mở thẳng Google Maps (không hỏi Apple Maps / Google Maps)
+  const setModal = useCallback((m) => {
+    if (m?.type === 'directions' && m.place && isDesktop()) {
+      window.open(googleMapsUrl(m.place), '_blank', 'noopener');
+      return;
+    }
+    setModalState(m);
+  }, []);
   const [liveFamous, setLiveFamous] = useState({}); // cc → [places] | 'loading'
   // Quốc gia mặc định để hiện danh lam thắng cảnh (mặc định Việt Nam, người dùng đổi được)
-  const [homeCountry, setHomeCountryState] = useState(() => {
+  // --- Quản trị: hồ sơ / phân quyền, cài đặt trang, chỉnh sửa & thêm địa điểm nổi tiếng ---
+  const [profile, setProfile] = useState(null);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [overrides, setOverrides] = useState({});
+  const [customPlaces, setCustomPlaces] = useState([]);
+  useEffect(() => adminApi.watchSettings(setSettings), []);
+  useEffect(() => adminApi.watchOverrides(setOverrides), []);
+  useEffect(() => adminApi.watchCustomPlaces(setCustomPlaces), []);
+
+  const [homeChoice, setHomeCountryState] = useState(() => {
     try {
-      return localStorage.getItem('travel-map-home') || 'VN';
+      return localStorage.getItem('travel-map-home') || null;
     } catch {
-      return 'VN';
+      return null;
     }
   });
+  const homeCountry = homeChoice || settings.homeCountry || 'VN';
   const setHomeCountry = useCallback((cc) => {
     setHomeCountryState(cc);
     try {
@@ -78,16 +101,26 @@ export function AppProvider({ children }) {
   const pendingAction = useRef(null);
 
   useEffect(() => api.onAuth(setAuthUser), []);
+  // Hồ sơ người dùng: tên hiển thị tự đặt + quyền quản trị (tạo / cập nhật khi đăng nhập)
   useEffect(() => {
     if (!authUser) {
+      setProfile(null);
       setProfilePhoto(null);
-      return setDisplayName(null);
+      setDisplayName(null);
+      return;
     }
-    return api.watchProfile(authUser.uid, (p) => {
+    adminApi.upsertProfile(authUser).catch(() => {});
+    return adminApi.watchProfile(authUser.uid, (p) => {
+      setProfile(p);
       setDisplayName(p?.displayName || null);
       setProfilePhoto(p?.photo || null);
     });
   }, [authUser?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const isSuper = !!user && SUPER_ADMINS.includes((user.email || '').toLowerCase());
+  const role = isSuper ? 'admin' : profile?.role || 'user';
+  const isAdmin = role === 'admin';
+  const isStaff = role === 'admin' || role === 'editor';
+  const banned = !isSuper && !!profile?.banned;
   useEffect(() => {
     // Bản đồ quốc gia nhẹ trước để hiện nhanh, rồi thay bằng bản chi tiết khi trình duyệt rảnh
     let alive = true;
@@ -141,11 +174,13 @@ export function AppProvider({ children }) {
   }, [activeTripId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tải thêm địa điểm nổi tiếng (Wikidata) khi mở một quốc gia
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const liveRef = useRef(liveFamous);
   liveRef.current = liveFamous;
   const ensureFamous = useCallback(
     (cc) => {
-      if (!cc || !countries || liveRef.current[cc]) return;
+      if (!cc || !countries || liveRef.current[cc] || settingsRef.current.features?.wikidata === false) return;
       setLiveFamous((m) => ({ ...m, [cc]: 'loading' }));
       loadFamousLive(cc, bboxOf(cc)).then((list) => setLiveFamous((m) => ({ ...m, [cc]: list })));
     },
@@ -163,12 +198,31 @@ export function AppProvider({ children }) {
     else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
     else if (!r.trip) setFlyTarget({ country: homeCountry, t: Date.now() });
   }, [countries]); // eslint-disable-line react-hooks/exhaustive-deps
-  const famousFor = useCallback(
-    (cc) => {
-      const live = liveFamous[cc];
-      return [...famousIn(cc), ...(Array.isArray(live) ? live : [])];
+  /** Áp chỉnh sửa của quản trị viên (ẩn / đổi tên / mô tả / ảnh / toạ độ) lên một địa điểm */
+  const applyOverride = useCallback(
+    (p) => {
+      if (!p) return p;
+      const o = { ...(COORD_FIXES[p.id] || {}), ...(overrides[p.id] || {}) };
+      if (!Object.keys(o).length) return p;
+      if (o.lat != null && o.lng != null && o.lat !== '' && o.lng !== '') p = { ...p, lat: Number(o.lat), lng: Number(o.lng) };
+      if (!overrides[p.id]) return p;
+      const en = { ...(p.i18n?.en || {}), ...(o.nameEn ? { name: o.nameEn } : {}), ...(o.descEn ? { desc: o.descEn } : {}) };
+      return { ...p, name: o.nameVi || p.name, desc: o.descVi || p.desc, image: o.image || p.image, i18n: { ...(p.i18n || {}), en }, hidden: !!o.hidden };
     },
-    [liveFamous],
+    [overrides],
+  );
+  /** Địa điểm nổi tiếng của 1 quốc gia: do quản trị viên thêm + chọn sẵn + Wikidata, đã áp chỉnh sửa */
+  const famousFor = useCallback(
+    (cc, { includeHidden = false } = {}) => {
+      const live = liveFamous[cc];
+      const custom = customPlaces.filter((p) => p.country === cc);
+      const seen = new Set(custom.map((p) => normalize(p.name)));
+      const list = [...custom, ...famousIn(cc), ...(Array.isArray(live) ? live : [])]
+        .filter((p, i) => i < custom.length || !seen.has(normalize(p.name)))
+        .map(applyOverride);
+      return includeHidden ? list : list.filter((p) => !p.hidden);
+    },
+    [liveFamous, customPlaces, applyOverride],
   );
   const famousLoading = liveFamous[selectedCountry] === 'loading';
   const homeLoading = liveFamous[homeCountry] === 'loading';
@@ -184,11 +238,14 @@ export function AppProvider({ children }) {
   /** Chạy action nếu đã login, ngược lại mở hộp thoại login rồi chạy tiếp sau khi login. */
   const requireLogin = useCallback(
     (action, reason) => {
-      if (user) return action();
+      if (user) {
+        if (banned) return notify(t('admin.bannedNotice'), 'error');
+        return action();
+      }
       pendingAction.current = action;
       setModal({ type: 'login', reason });
     },
-    [user],
+    [user, banned, notify],
   );
 
   // Link mời tham gia chuyến đi: #join=CODE
@@ -440,7 +497,40 @@ export function AppProvider({ children }) {
     });
   }, [needPublic]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Thống kê hoạt động của chính người dùng → lưu vào hồ sơ để trang Thống kê (quản trị) tổng hợp,
+  // không cần đọc dữ liệu riêng tư của từng người. Chỉ ghi khi số liệu thay đổi.
+  const statsRef = useRef('');
+  useEffect(() => {
+    if (!user || !loaded.mine || !loaded.trips) return undefined;
+    const ts = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
+    const visited = places.filter((p) => p.status === 'visited');
+    const countriesSet = new Set([...visited.map((p) => p.country), ...memories.map((m) => m.place?.country)].filter(Boolean));
+    const created = memories.map((m) => ts(m.createdAt)).filter(Boolean);
+    const stats = {
+      visited: visited.length,
+      wishlist: places.filter((p) => p.status === 'wishlist').length,
+      countries: [...countriesSet].sort(),
+      memories: memories.length,
+      publicMemories: memories.filter((m) => m.visibility === 'public').length,
+      photos: memories.reduce((n, m) => n + (m.photoCount || m.photos?.length || 0), 0),
+      trips: trips.length,
+      tripsOwned: trips.filter((tr) => tr.ownerId === user.uid).length,
+      groupTrips: trips.filter((tr) => (tr.memberIds?.length || 0) > 1).length,
+      firstCheckinAt: created.length ? Math.min(...created) : null,
+      lastActionAt: Math.max(0, ...created, ...places.map((p) => ts(p.updatedAt))) || null,
+    };
+    const key = JSON.stringify(stats);
+    if (key === statsRef.current) return undefined;
+    const tm = setTimeout(() => {
+      statsRef.current = key;
+      adminApi.saveStats(user.uid, stats).catch(() => {});
+    }, 4000);
+    return () => clearTimeout(tm);
+  }, [user?.uid, places, memories, trips, loaded.mine, loaded.trips]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const value = {
+    profile, role, isAdmin, isStaff, isSuper, banned, settings, overrides, customPlaces, applyOverride, adminApi,
+    reportMemory: (m, reason) => adminApi.reportMemory(userRef.current, m, reason),
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     placeOrigin, setPlaceOrigin,

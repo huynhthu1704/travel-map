@@ -10,6 +10,7 @@ import { Avatar, Loader } from './components/ui';
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
 const MemoriesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.MemoriesPage })));
 const TripsPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.TripsPage })));
+const AdminPage = lazy(() => import('./pages/Admin'));
 import { firebaseEnabled } from './lib/firebase';
 import { useI18n, LANGS } from './i18n';
 
@@ -96,8 +97,15 @@ function UserMenu() {
 }
 
 function Shell() {
-  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user , goHome } = useApp();
-  const { t } = useI18n();
+  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user, isStaff, settings, banned, goHome } = useApp();
+  const { t, lang } = useI18n();
+  // Mục menu theo cài đặt trang (bật/tắt tính năng) và quyền quản trị
+  const nav = NAV.filter((n) => (n.id === 'explore' ? settings.features.explore !== false : n.id === 'trips' ? settings.features.trips !== false : true)).concat(
+    isStaff ? [{ id: 'admin', icon: '🛠️' }] : [],
+  );
+  const ann = settings.announcement;
+  const annText = ann?.active ? (lang === 'en' ? ann.en || ann.vi : ann.vi || ann.en) : '';
+  const [annClosed, setAnnClosed] = useState(() => sessionStorage.getItem('travel-map-ann') || '');
   const activeTrip = trips.find((t) => t.id === activeTripId);
   // Giữ các trang đã mở trong DOM để khi quay lại vẫn còn tab, bộ lọc và vị trí cuộn
   const [mounted, setMounted] = useState(() => new Set([view]));
@@ -114,7 +122,7 @@ function Shell() {
         </button>
         <SearchBox />
         <nav className="nav nav--top">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <button key={n.id} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
               {n.icon} {t('nav.' + n.id)}
             </button>
@@ -151,11 +159,12 @@ function Shell() {
           {mounted.has('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
           {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}
           {mounted.has('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
+          {mounted.has('admin') && view === 'admin' && <AdminPage />}
         </Suspense>
       </main>
 
       <nav className="nav nav--bottom">
-        {NAV.map((n) => (
+        {nav.map((n) => (
           <button key={n.id} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
             <span>{n.icon}</span>
             {t('nav.' + n.id)}
@@ -164,6 +173,21 @@ function Shell() {
       </nav>
 
       {!firebaseEnabled && <div className="demo-flag">{t('demo.flag')}</div>}
+      {annText && annClosed !== annText && (
+        <div className={`announce announce--floating announce--${ann.tone}`} role="status">
+          <span>{annText}</span>
+          <button
+            onClick={() => {
+              sessionStorage.setItem('travel-map-ann', annText);
+              setAnnClosed(annText);
+            }}
+            aria-label={t('common.close')}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {banned && <div className="announce announce--floating announce--warning">{t('admin.bannedNotice')}</div>}
       {toast && <div className={`toast toast--${toast.kind}`} key={toast.id}>{toast.msg}</div>}
       <Modals />
       {(!countries || user === undefined) && <Loader page size="md" />}

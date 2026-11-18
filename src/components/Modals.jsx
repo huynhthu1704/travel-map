@@ -48,6 +48,8 @@ function renderModal(modal, close) {
       return <MemoryViewer memory={modal.memory} onClose={close} />;
     case 'share':
       return <ShareStudio memory={modal.memory} onClose={close} />;
+    case 'report':
+      return <ReportModal memory={modal.memory} onClose={close} />;
     case 'recap':
       return <RecapStudio mode={modal.mode || 'year'} trip={modal.trip} stops={modal.stops} onClose={close} />;
     case 'confirmRemove':
@@ -232,6 +234,56 @@ const today = () => {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
+
+const REPORT_REASONS = ['inappropriate', 'spam', 'wrongPlace', 'copyright', 'privacy', 'other'];
+
+/** Báo cáo kỉ niệm công khai không phù hợp — gửi cho quản trị viên */
+function ReportModal({ memory, onClose }) {
+  const { t } = useI18n();
+  const { reportMemory, notify } = useApp();
+  const [reason, setReason] = useState('inappropriate');
+  const [busy, setBusy] = useState(false);
+  return (
+    <Modal title={`🚩 ${t('report.title')}`} onClose={onClose} className="modal--sm">
+      <div className="stack">
+        <p className="muted small">{t('report.text')}</p>
+        <div className="report-reasons">
+          {REPORT_REASONS.map((r) => (
+            <label key={r} className={`report-reason ${reason === r ? 'on' : ''}`}>
+              <input type="radio" name="reason" checked={reason === r} onChange={() => setReason(r)} />
+              {t('admin.reason.' + r)}
+            </label>
+          ))}
+        </div>
+        {busy ? (
+          <Loader size="sm" />
+        ) : (
+          <div className="grid-2">
+            <button className="btn btn--soft" onClick={onClose}>
+              {t('pick.cancel')}
+            </button>
+            <button
+              className="btn btn--danger"
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await reportMemory(memory, reason);
+                  notify(t('report.sent'));
+                  onClose();
+                } catch (e) {
+                  notify(t('admin.error', { msg: e.message }), 'error');
+                  setBusy(false);
+                }
+              }}
+            >
+              🚩 {t('report.send')}
+            </button>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 /** Xác nhận xoá địa điểm khỏi danh sách Đã đến / Muốn đi */
 function ConfirmRemoveModal({ place, onClose }) {
@@ -542,7 +594,7 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
 }
 
 function MemoryViewer({ memory: m, onClose }) {
-  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus } = useApp();
+  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin } = useApp();
   const st = placeStatus[m.place?.id];
   const { t } = useI18n();
   const [i, setI] = useState(0);
@@ -630,6 +682,11 @@ function MemoryViewer({ memory: m, onClose }) {
                 }}
               >
                 {m.visibility === 'public' ? t('mem.makePrivate') : t('mem.makePublic')}
+              </button>
+            )}
+            {!mine && m.visibility === 'public' && m.uid !== 'sample' && m.uid !== 'trip-stop' && (
+              <button className="btn btn--sm btn--ghost" onClick={() => requireLogin(() => setModal({ type: 'report', memory: m }), t('report.login'))}>
+                🚩 {t('report.button')}
               </button>
             )}
             {mine && (

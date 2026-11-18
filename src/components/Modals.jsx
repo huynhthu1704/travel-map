@@ -670,6 +670,11 @@ function MemoryViewer({ memory: m, onClose }) {
               </button>
             )}
             <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: m.place })}><DirectionsIcon /> {t('common.directions')}</button>
+            {mine && (
+              <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'checkin', place: m.place, memory: m, tripId: m.tripId || '' })}>
+                ✏️ {t('mem.edit')}
+              </button>
+            )}
             {mine && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: full ? { ...m, fullPhotos: full } : m })}>{t('mem.share')}</button>}
             {mine && (
               <button
@@ -835,7 +840,16 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
   const memThumbs = useThumbs(memory);
-  const hasPhotos = files.length > 0 || memThumbs.length > 0;
+  const [removed, setRemoved] = useState(() => new Set()); // vị trí ảnh cũ bị bỏ khi sửa
+  const keptCount = memThumbs.length - removed.size;
+  const hasPhotos = files.length > 0 || keptCount > 0;
+  const photosChanged = files.length > 0 || removed.size > 0;
+  const toggleRemove = (i) =>
+    setRemoved((s) => {
+      const n = new Set(s);
+      n.has(i) ? n.delete(i) : n.add(i);
+      return n;
+    });
 
   const submit = async (e) => {
     e.preventDefault();
@@ -847,6 +861,10 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
       const dates = [...others, ...(memories.some((m) => m.place?.id === place.id) ? [] : [placeById[place.id]?.visitedAt]), date].filter(Boolean).sort();
       const latest = dates[dates.length - 1] || date;
       if (memory) {
+        if (photosChanged) {
+          const keep = memThumbs.map((_, i) => i).filter((i) => !removed.has(i));
+          await api.updateMemoryPhotos(user, { ...memory, caption: caption.trim(), tripId: tripId || null }, { keep, files });
+        }
         await api.updateMemory(memory.id, { date, occasion, caption: caption.trim(), tripId: tripId || null, visibility: hasPhotos ? visibility : 'private' });
         await api.setPlace(user, { ...(placeById[place.id] || place) }, 'visited', placeById[place.id]?.tripId || tripId || null, latest, placeById[place.id]?.occasion || occasion);
       } else {
@@ -889,9 +907,14 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
         <div className="field">
           <span>📸 {t('checkin.photos')}</span>
           <div className="uploader">
-            {memThumbs.map((src) => (
-              <div className="uploader__thumb" key={src}>
+            {memThumbs.map((src, i) => (
+              <div className={`uploader__thumb ${removed.has(i) ? 'is-removed' : ''}`} key={`${i}-${src.slice(-24)}`}>
                 <img src={src} alt="" />
+                {memory && (
+                  <button type="button" onClick={() => toggleRemove(i)} aria-label={removed.has(i) ? t('mem.undoRemove') : t('mem.removePhoto')} title={removed.has(i) ? t('mem.undoRemove') : t('mem.removePhoto')}>
+                    {removed.has(i) ? '↺' : '✕'}
+                  </button>
+                )}
               </div>
             ))}
             {previews.map((src, i) => (
@@ -902,15 +925,15 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
                 </button>
               </div>
             ))}
-            {!memory && files.length < 10 && (
+            {keptCount + files.length < 10 && (
               <label className="uploader__add">
-                <input type="file" accept="image/*" multiple onChange={(e) => setFiles([...files, ...e.target.files].slice(0, 10))} />
+                <input type="file" accept="image/*" multiple onChange={(e) => setFiles([...files, ...e.target.files].slice(0, 10 - keptCount))} />
                 <span>＋</span>
                 <small>{t('mem.addPhoto')}</small>
               </label>
             )}
           </div>
-          {memory && <small className="muted">{t('checkin.photosLocked')}</small>}
+          {memory && photosChanged && <small className="muted">{t('checkin.photosEdited', { n: keptCount + files.length })}</small>}
         </div>
         {hasPhotos && (
           <div className="field">

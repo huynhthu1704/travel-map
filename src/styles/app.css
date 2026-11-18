@@ -4941,3 +4941,12 @@ img.is-loaded {
   color: var(--ink-500);
   font-size: 12px;
 }
+
+.uploader__thumb.is-removed img {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+.uploader__thumb.is-removed button {
+  background: var(--honey-400);
+  color: var(--ink-900);
+}

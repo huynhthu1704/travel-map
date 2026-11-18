@@ -102,13 +102,13 @@ service cloud.firestore {
       }
       match /mid/{photoId} {
         allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
-        allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
         allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
       }
       match /full/{photoId} {
         allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
-        allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
         allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
       }

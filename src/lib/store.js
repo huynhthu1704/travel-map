@@ -220,6 +220,53 @@ const firebaseBackend = {
     }
   },
   updateMemory: (id, patch) => updateDoc(doc(db, 'memories', id), patch),
+  /**
+   * Sửa ảnh của 1 kỉ niệm: keep = vị trí các ảnh cũ giữ lại (theo thứ tự), files = ảnh mới thêm vào cuối.
+   * Ghi lại cả 3 độ phân giải (thu nhỏ / vừa / gốc) và cập nhật ảnh trong hành trình chuyến đi.
+   */
+  async updateMemoryPhotos(user, mem, { keep = [], files = [] }) {
+    const id = mem.id;
+    const read = async (tier) => {
+      const s = await getDocs(collection(db, 'memories', id, tier));
+      return { refs: s.docs.map((d) => d.ref), list: s.docs.map((d) => d.data()).sort((a, b) => a.i - b.i).map((d) => d.data) };
+    };
+    const [T, M, F] = await Promise.all([read('thumbs'), read('mid'), read('full')]);
+    const thumbsOld = T.list.length ? T.list : mem.photos || [];
+    const fullOld = F.list.length ? F.list : thumbsOld;
+    const midOld = M.list.length ? M.list : fullOld;
+    const thumbs = keep.map((i) => thumbsOld[i]).filter(Boolean);
+    const mid = keep.map((i) => midOld[i] || fullOld[i] || thumbsOld[i]);
+    const full = keep.map((i) => fullOld[i] || thumbsOld[i]);
+    for (const f of files) {
+      thumbs.push(await compressToDataURL(f, 400, 0.72, 45_000));
+      mid.push(await compressToDataURL(f, 1000, 0.78, 220_000));
+      full.push(await compressToDataURL(f, 1600, 0.84, 750_000));
+    }
+    const n = thumbs.length;
+    const write = async (tier, list, old) => {
+      for (let i = 0; i < n; i++) await setDoc(doc(db, 'memories', id, tier, String(i)), { data: list[i], uid: user.uid, i });
+      for (const ref of old.refs) if (Number(ref.id) >= n) await deleteDoc(ref);
+    };
+    await write('thumbs', thumbs, T);
+    await write('mid', mid, M);
+    await write('full', full, F);
+    thumbCache.set(id, thumbs);
+    const patch = { photos: thumbs.slice(0, 1), photoCount: n, tiers: 3, thumbsMoved: true, ...(n ? {} : { visibility: 'private' }) };
+    await updateDoc(doc(db, 'memories', id), patch);
+    // Hành trình chuyến đi lưu sẵn ảnh thu nhỏ → thay bằng bộ ảnh mới
+    if (mem.tripId) {
+      try {
+        const s = await getDocs(query(collection(db, 'trips', mem.tripId, 'stops'), where('memoryId', '==', id)));
+        for (const d of s.docs) if (d.data().byUid === user.uid) await deleteDoc(d.ref);
+        await addDoc(collection(db, 'trips', mem.tripId, 'stops'), {
+          place: pickPlace(mem.place), kind: 'memory', photos: thumbs, caption: mem.caption || '', memoryId: id, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
+        });
+      } catch {
+        /* không phải thành viên nữa: bỏ qua */
+      }
+    }
+    return { ...patch, allThumbs: thumbs };
+  },
   async deleteMemory(mem) {
     const [snap, midSnap, thumbSnap] = await Promise.all([
       getDocs(collection(db, 'memories', mem.id, 'full')),
@@ -460,6 +507,14 @@ const localBackend = {
   },
   async getThumbs(mem) {
     return mem.photos || [];
+  },
+  async updateMemoryPhotos(user, mem, { keep = [], files = [] }) {
+    const old = mem.photos || [];
+    const added = await Promise.all(files.map((f) => compressToDataURL(f, 800, 0.8, 200_000)));
+    const photos = [...keep.map((i) => old[i]).filter(Boolean), ...added];
+    state.memories = state.memories.map((m) => (m.id === mem.id ? { ...m, photos, photoCount: photos.length, ...(photos.length ? {} : { visibility: 'private' }) } : m));
+    save();
+    return { photos, photoCount: photos.length };
   },
   async slimMemories() {},
   async updateMemory(id, patch) {

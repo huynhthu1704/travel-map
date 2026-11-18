@@ -5,7 +5,7 @@ export const FAQ = {
       group: '🌱 Bắt đầu',
       items: [
         ['Travel Map là gì?', 'Travel Map là bản đồ du lịch của riêng bạn: lưu những nơi đã đến và muốn đến, check-in kèm ảnh và ghi chú, lên lịch trình, chia chi phí và làm checklist cùng bạn bè trong một chỗ.'],
-        ['Có mất phí không?', 'Không. Mọi tính năng đều miễn phí. Nếu thấy hữu ích, bạn có thể ủng hộ người làm Travel Map ở mục “☕ Ủng hộ” (từ 5.000 ₫).'],
+        ['Có mất phí không?', 'Không. Mọi tính năng đều miễn phí. Nếu thấy hữu ích, bạn có thể ủng hộ người làm Travel Map ở mục “☕ Ủng hộ” — như mời người làm một ly cà phê.'],
         ['Có cần đăng nhập không?', 'Xem bản đồ, tìm kiếm và xem kỉ niệm công khai thì không cần. Để lưu địa điểm, check-in, tạo chuyến đi thì đăng nhập bằng tài khoản Google (chỉ mất vài giây).'],
         ['Dùng trên điện thoại được không?', 'Được. Mở website bằng trình duyệt trên điện thoại; bạn có thể chọn “Thêm vào màn hình chính” (Add to Home Screen) để mở nhanh như một ứng dụng.'],
       ],
@@ -50,7 +50,7 @@ export const FAQ = {
       group: '🌱 Getting started',
       items: [
         ['What is Travel Map?', 'Travel Map is your own travel map: save places you have been and want to go, check in with photos and notes, plan itineraries, split costs and share checklists with friends — all in one place.'],
-        ['Is it free?', 'Yes, every feature is free. If you find it useful you can support the creator under “☕ Support” (from 5,000 ₫).'],
+        ['Is it free?', 'Yes, every feature is free. If you find it useful you can support the creator under “☕ Support” — just buy them a coffee.'],
         ['Do I need to sign in?', 'Not to browse the map, search or view public memories. Sign in with Google (a few seconds) to save places, check in and create trips.'],
         ['Does it work on my phone?', 'Yes. Open the website in your phone’s browser; choose “Add to Home Screen” to open it like an app.'],
       ],

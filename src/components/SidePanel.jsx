@@ -535,20 +535,6 @@ function WorldPanel() {
           <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
             {t('world.addMemory')}
           </button>
-          <div className="btn-stack">
-            {user && (
-              <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'recap', mode: 'year' })}>
-                {t('recap.yearButton')}
-              </button>
-            )}
-            <button className="btn btn--outline btn--block" onClick={() => startPicking('place')}>
-              {t('pick.open')}
-            </button>
-            <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'addLink' })}>
-              {t('link.open')}
-            </button>
-          </div>
-          <p className="small muted">{t('pick.tip')}</p>
           <div className="help-links">
             <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'faq' })}>
               ❓ {t('faq.open')}

@@ -2,9 +2,10 @@
 // and ranked by how many Wikipedia language editions cover them. Cached in localStorage for 7 days.
 import { famousIn } from '../data/places';
 import { normalize } from './geo';
+import countriesLib from 'i18n-iso-countries';
 
 const ENDPOINT = 'https://qlever.cs.uni-freiburg.de/api/wikidata';
-const CACHE_KEY = (cc) => `travel-map-famous-v1-${cc}`;
+const CACHE_KEY = (cc) => `travel-map-famous-v2-${cc}`;
 const TTL = 7 * 24 * 3600 * 1000;
 
 // Wikidata classes we treat as "places worth visiting" → emoji
@@ -84,8 +85,14 @@ function toPlace(b, cc) {
   if (!pt || !en || NOT_A_PLACE.test(en)) return null;
   const qid = b.item.value.split('/').pop();
   const vi = b.vi?.value;
-  const cityEn = b.cityEn?.value && b.cityEn.value !== en ? b.cityEn.value : '';
-  const cityVi = b.cityVi?.value && b.cityVi.value !== vi ? b.cityVi.value : cityEn;
+  const type = b.type?.value.split('/').pop();
+  const countryEn = countriesLib.getName(cc, 'en') || '';
+  const clean = (s = '') => s.replace(/\s+(Prefecture|Province|Governorate|Oblast|Region|District|County)$/i, '').replace(/^(Tỉnh|Thành phố|Quận|Huyện)\s+/i, '');
+  const isCountry = (s) => !s || s === countryEn || s === countriesLib.getName(cc, 'vi');
+  const cityEn = !isCountry(b.cityEn?.value) && b.cityEn.value !== en ? clean(b.cityEn.value) : '';
+  const cityVi = !isCountry(b.cityVi?.value) && b.cityVi.value !== vi ? clean(b.cityVi.value) : cityEn;
+  // Đảo lớn trực thuộc thẳng quốc gia (Kyushu, Shikoku…) là vùng, không phải điểm tham quan
+  if (type === 'Q23442' && !cityEn) return null;
   return {
     id: `wd-${qid}`,
     name: cap(vi || en),
@@ -94,7 +101,7 @@ function toPlace(b, cc) {
     country: cc,
     lat: pt.lat,
     lng: pt.lng,
-    emoji: TYPES[b.type?.value.split('/').pop()] || '⭐',
+    emoji: TYPES[type] || '⭐',
     famous: true,
     rank: Number(b.links?.value || 0),
     wikidata: qid,

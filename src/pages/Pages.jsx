@@ -302,10 +302,12 @@ export function MemoriesPage() {
   const { user, memories, places, requireLogin, setModal, openPlace, loaded } = useApp();
   const [tab, setTab] = useState('memories');
   const { t } = useI18n();
-  const { filtered, ui } = useFilters(memories, memPlace);
+  const ts = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
+  // Kỉ niệm: theo ngày check-in, gần nhất trước (cùng ngày thì cái lưu sau đứng trước)
+  const byDate = useMemo(() => [...memories].sort((a, b) => ts(b.date) - ts(a.date) || ts(b.createdAt) - ts(a.createdAt)), [memories]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { filtered, ui } = useFilters(byDate, memPlace);
   const wish = places.filter((p) => p.status === 'wishlist');
   // Đã đến: mới nhất trước (theo ngày đến, chưa có ngày thì theo lần cập nhật)
-  const ts = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
   const visited = places
     .filter((p) => p.status === 'visited')
     .sort((a, b) => (ts(b.visitedAt) || 0) - (ts(a.visitedAt) || 0) || ts(b.updatedAt) - ts(a.updatedAt));

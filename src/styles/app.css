@@ -3810,3 +3810,59 @@ img.is-loaded {
 .route-list__note {
   font-size: 12px;
 }
+
+/* ---------- Bottom sheet trên điện thoại / tablet dọc ---------- */
+@media (max-width: 900px) {
+  .panel {
+    transition: height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 -8px 30px rgba(77, 53, 0, 0.18);
+  }
+  .panel.is-dragging {
+    transition: none;
+  }
+  .panel__handle {
+    touch-action: none;
+    cursor: grab;
+    padding: 10px 0 8px;
+  }
+  .panel__handle span {
+    width: 48px;
+    height: 5px;
+  }
+  .panel--peek .panel__scroll {
+    overflow: hidden;
+  }
+  .leaflet-bottom.leaflet-right {
+    bottom: var(--sheet-h, 44%);
+    transition: bottom 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+/* Nội dung bảng gọn hơn trên điện thoại để thấy nhiều bản đồ hơn */
+@media (max-width: 900px) {
+  .panel .stack {
+    gap: 12px;
+  }
+  .panel .place-hero__emoji {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    font-size: 24px;
+  }
+  .panel .place-hero .h2,
+  .panel .place-hero h1 {
+    font-size: 22px;
+  }
+  .panel .grid-2 > .btn,
+  .panel .grid-2 .btn {
+    padding: 10px 10px;
+    font-size: 14px;
+    min-height: 42px;
+  }
+  .panel .place-photo {
+    max-height: 160px;
+    overflow: hidden;
+  }
+  .panel .sticky-bar {
+    min-height: 36px;
+  }
+}

@@ -9,19 +9,94 @@ import { usePlaceImage } from '../lib/placeImage';
 import Combobox from './Combobox';
 import DateInput from './DateInput';
 
+/**
+ * Bảng dưới dạng "bottom sheet" trên điện thoại / máy tính bảng dọc:
+ * 3 mức cao (peek: chỉ thấy tiêu đề, half: nửa màn hình, full), kéo thanh nắm để đổi,
+ * chạm / kéo bản đồ thì tự thu nhỏ để xem bản đồ rộng hơn, mở địa điểm thì mở nửa màn hình.
+ */
+const SHEET_MQ = '(max-width: 900px)';
+const PEEK = 148;
+function useBottomSheet(placeId, country, tripId) {
+  const [mobile, setMobile] = useState(() => window.matchMedia(SHEET_MQ).matches);
+  const [state, setState] = useState('half');
+  const [drag, setDrag] = useState(null); // { startY, startH, h }
+  useEffect(() => {
+    const mq = window.matchMedia(SHEET_MQ);
+    const on = () => setMobile(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  // Mở địa điểm / quốc gia / lộ trình → hiện nửa màn hình
+  useEffect(() => {
+    if (mobile && (placeId || country || tripId)) setState('half');
+  }, [placeId, country, tripId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Người dùng kéo / chạm bản đồ → thu nhỏ bảng
+  useEffect(() => {
+    const onMap = () => mobile && setState((s) => (s === 'peek' ? s : 'peek'));
+    window.addEventListener('map:interact', onMap);
+    return () => window.removeEventListener('map:interact', onMap);
+  }, [mobile]);
+  const parentH = () => document.querySelector('aside.panel')?.parentElement?.clientHeight || window.innerHeight;
+  const heights = () => {
+    const H = parentH();
+    return { peek: PEEK, half: Math.round(H * 0.5), full: Math.round(H - 12) };
+  };
+  const height = drag ? drag.h : heights()[state];
+  // Cho các nút trên bản đồ (zoom…) nằm ngay trên bảng
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sheet-h', mobile ? `${height}px` : '0px');
+  }, [height, mobile]);
+  const handleProps = {
+    onPointerDown: (e) => {
+      if (!mobile) return;
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      setDrag({ startY: e.clientY, startH: height, h: height, moved: false });
+    },
+    onPointerMove: (e) => {
+      if (!drag) return;
+      const { full } = heights();
+      const h = Math.max(PEEK - 40, Math.min(full, drag.startH + (drag.startY - e.clientY)));
+      setDrag({ ...drag, h, moved: drag.moved || Math.abs(e.clientY - drag.startY) > 6 });
+    },
+    onPointerUp: () => {
+      if (!drag) return;
+      if (!drag.moved) {
+        // Chạm: peek → half → full → half
+        setState((s) => (s === 'peek' ? 'half' : s === 'half' ? 'full' : 'half'));
+      } else {
+        const hs = heights();
+        const nearest = Object.entries(hs).sort((a, b) => Math.abs(a[1] - drag.h) - Math.abs(b[1] - drag.h))[0][0];
+        setState(nearest);
+      }
+      setDrag(null);
+    },
+    onPointerCancel: () => setDrag(null),
+  };
+  return {
+    state: mobile ? state : 'desktop',
+    dragging: !!drag,
+    style: mobile ? { height: `${height}px` } : undefined,
+    handleProps,
+    // Đang thu nhỏ mà chạm vào nội dung → mở nửa màn hình
+    onContentPointer: () => mobile && state === 'peek' && setState('half'),
+  };
+}
+
 export default function SidePanel() {
   const { selectedPlace, selectedCountry, activeTripId, trips } = useApp();
-  const [expanded, setExpanded] = useState(false);
   const { t } = useI18n();
+  const sheet = useBottomSheet(selectedPlace?.id, selectedCountry, activeTripId);
   // Đang xem lộ trình 1 chuyến đi → bảng bên trái là danh sách địa điểm của chuyến đó
   const tripMode = activeTripId && trips.some((tr) => tr.id === activeTripId);
   const content = selectedPlace ? <PlacePanel /> : tripMode ? <TripRoutePanel /> : selectedCountry ? <CountryPanel /> : <WorldPanel />;
   return (
-    <aside className={`panel ${expanded ? 'panel--expanded' : ''}`}>
-      <button className="panel__handle" onClick={() => setExpanded((v) => !v)} aria-label={t('panel.toggle')}>
+    <aside className={`panel panel--${sheet.state} ${sheet.dragging ? 'is-dragging' : ''}`} style={sheet.style}>
+      <button className="panel__handle" {...sheet.handleProps} aria-label={t('panel.toggle')}>
         <span />
       </button>
-      <div className="panel__scroll">{content}</div>
+      <div className="panel__scroll" onPointerDownCapture={sheet.onContentPointer}>
+        {content}
+      </div>
     </aside>
   );
 }

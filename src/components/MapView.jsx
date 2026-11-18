@@ -13,6 +13,7 @@ import { pName, getLocale } from '../lib/lang';
 
 const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(getLocale(), { weekday: 'short', day: '2-digit', month: '2-digit' });
 
+const mobileSheet = () => window.matchMedia('(max-width: 900px)').matches;
 const iconCache = {};
 function pinIcon(kind, emoji) {
   const key = kind + emoji;
@@ -52,6 +53,16 @@ function FlyController({ countries }) {
   const map = useMap();
   const { flyTarget } = useApp();
   // Khi zoom gần (thành phố) làm nhạt lớp tô màu quốc gia để nhìn rõ đường phố
+  // Báo cho bảng dưới (điện thoại) thu nhỏ khi người dùng kéo / chạm bản đồ
+  useEffect(() => {
+    const ping = () => window.dispatchEvent(new Event('map:interact'));
+    map.on('dragstart', ping);
+    map.on('click', ping);
+    return () => {
+      map.off('dragstart', ping);
+      map.off('click', ping);
+    };
+  }, [map]);
   useEffect(() => {
     const sync = () => map.getContainer().classList.toggle('map--near', map.getZoom() >= 7);
     map.on('zoomend', sync);
@@ -67,11 +78,16 @@ function FlyController({ countries }) {
       const [s, n, w, e] = flyTarget.bbox;
       // Chừa chỗ cho bảng bên trái (máy tính) để không che mất điểm nào
       const wide = map.getSize().x >= 900;
-      map.flyToBounds([[s, w], [n, e]], { duration: 0.9, maxZoom: 13, paddingTopLeft: wide ? [440, 80] : [30, 80], paddingBottomRight: [40, 40] });
+      const bottom = mobileSheet() ? Math.round(map.getSize().y * 0.5) + 20 : 40;
+      map.flyToBounds([[s, w], [n, e]], { duration: 0.9, maxZoom: 13, paddingTopLeft: wide ? [440, 80] : [30, 80], paddingBottomRight: [40, bottom] });
     } else if (flyTarget.world) {
       map.flyTo([22, 15], map.getSize().x < 700 ? 1 : 2, { duration: 0.8 });
     } else if (flyTarget.lat != null) {
-      map.flyTo([flyTarget.lat, flyTarget.lng], flyTarget.zoom || 12, { duration: 0.9 });
+      const z = flyTarget.zoom || 12;
+      // Điện thoại: bảng dưới che nửa dưới bản đồ → đặt điểm vào giữa phần bản đồ còn thấy
+      const covered = mobileSheet() ? map.getSize().y * 0.5 : 0;
+      const target = covered ? map.unproject(map.project([flyTarget.lat, flyTarget.lng], z).add([0, covered / 2]), z) : [flyTarget.lat, flyTarget.lng];
+      map.flyTo(target, z, { duration: 0.9 });
     }
   }, [flyTarget, countries, map]);
   return null;

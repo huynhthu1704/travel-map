@@ -281,10 +281,31 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
 
 export function TripPlan({ trip }) {
   const { t } = useI18n();
-  const { api, user, notify, places, famousFor, ensureFamous, setActiveTripId, setView } = useApp();
+  const { api, user, notify, places, famousFor, ensureFamous, setActiveTripId, setView, placeById } = useApp();
   const [items, setItems] = useState(null);
   const [addDate, setAddDate] = useState('');
   useEffect(() => api.watchPlan(trip.id, setItems), [trip.id, api]);
+  // Đồng bộ 1 lần: địa điểm đã có trong Hành trình nhưng chưa có trong kế hoạch → thêm vào kế hoạch
+  const [stops, setStops] = useState(null);
+  useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
+  const synced = useRef(false);
+  useEffect(() => {
+    if (synced.current || !items || !stops || !user || !(trip.memberIds || []).includes(user.uid)) return;
+    synced.current = true;
+    const have = new Set(items.map((i) => i.place?.id));
+    const todo = [];
+    stops.forEach((s) => {
+      if (!s.place || have.has(s.place.id)) return;
+      have.add(s.place.id);
+      todo.push(s);
+    });
+    (async () => {
+      for (const s of todo) {
+        const mineSaved = s.byUid === user.uid ? placeById[s.place.id] : null;
+        await api.ensurePlanItem({ uid: s.byUid || user.uid, name: s.byName || user.name }, trip.id, s.place, { done: s.kind !== 'wishlist', date: mineSaved?.visitedAt || '' }).catch(() => {});
+      }
+    })();
+  }, [items, stops]); // eslint-disable-line react-hooks/exhaustive-deps
   const list = items || [];
   const planned = new Set(list.map((i) => i.place.id));
 

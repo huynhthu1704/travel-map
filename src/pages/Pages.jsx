@@ -575,9 +575,14 @@ function PlaceList({ items, onOpen, emptyText, groupByCountry, byRecent }) {
         <small>
           {flagOf(p.country)}{" "}
           {[pCity(p), countryName(p.country)].filter(Boolean).join(", ")}
-          {p.visitedAt ? ` · 📅 ${formatDate(p.visitedAt)}` : ""}
-          {p.occasion ? ` · ${p.occasion}` : ""}
         </small>
+        {(p.visitedAt || p.occasion) && (
+          <small className="list-item__meta">
+            {p.visitedAt ? `📅 ${formatDate(p.visitedAt)}` : ""}
+            {p.visitedAt && p.occasion ? " · " : ""}
+            {p.occasion || ""}
+          </small>
+        )}
       </AppLink>
       <div className="list-item__actions">
         <button

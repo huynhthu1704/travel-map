@@ -304,6 +304,18 @@ export function AppProvider({ children }) {
     const pad = 0.05;
     setFlyTarget({ bbox: [Math.min(...la) - pad, Math.max(...la) + pad, Math.min(...ln) - pad, Math.max(...ln) + pad], t: Date.now() });
   }, [activeTripId, tripStops, tripPlan, routeNonce]);
+  /** Bấm logo: về trang chủ ở chế độ mặc định (bản đồ thế giới, quốc gia mặc định, không xem chuyến / địa điểm nào) */
+  const goHome = useCallback(() => {
+    setPickMode(null);
+    setSelectedPlace(null);
+    setSelectedCountry(null);
+    setActiveTripId(null);
+    setOpenTripId(null);
+    setReturnView(null);
+    setModal(null);
+    setView('map');
+    setFlyTarget({ country: homeCountry, t: Date.now() });
+  }, [homeCountry]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Mở bản đồ ở chế độ lộ trình chuyến đi: bỏ địa điểm đang mở, thu phóng vừa toàn bộ lộ trình */
   const showTripOnMap = useCallback((id) => {
     fittedTrip.current = null;
@@ -404,7 +416,7 @@ export function AppProvider({ children }) {
 
   const value = {
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
-    api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, tripTab, setTripTab, tripPlan,
+    api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };

@@ -15,6 +15,24 @@ export function loadJsPdf() {
   });
 }
 
+// Logo (favicon) → ảnh PNG để chèn vào PDF
+let logoCache;
+async function loadLogo() {
+  if (logoCache !== undefined) return logoCache;
+  try {
+    const img = new Image();
+    img.src = `${BASE}favicon.svg`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    c.getContext('2d').drawImage(img, 0, 0, 128, 128);
+    logoCache = c.toDataURL('image/png');
+  } catch {
+    logoCache = null;
+  }
+  return logoCache;
+}
+
 let fontCache = null;
 async function loadFonts() {
   if (fontCache) return fontCache;
@@ -80,12 +98,38 @@ export async function exportPlanPdf(trip, items) {
     }
   };
 
-  // ---- Tiêu đề (gọn: tên chuyến + 2 dòng thông tin) ----
+  // ---- Thanh thương hiệu: logo + "Travel Map" bên trái, nút "Mở & sửa trên web" bên phải ----
+  const tripUrl = `${location.origin}${location.pathname}#/trips/${encodeURIComponent(trip.id)}`;
+  const logo = await loadLogo();
+  if (logo) doc.addImage(logo, 'PNG', M, y - 1, 7, 7);
+  else {
+    doc.setFillColor(...HONEY);
+    doc.roundedRect(M, y - 1, 7, 7, 2, 2, 'F');
+  }
+  font('bold', 11.5, INK);
+  doc.text('Travel', M + 9.5, y + 4.2);
+  const tw = doc.getTextWidth('Travel ');
+  doc.setTextColor(214, 150, 0);
+  doc.text('Map', M + 9.5 + tw, y + 4.2);
+  // nút liên kết
+  font('bold', 8.5, INK);
+  const btnLabel = plain(t('pdf.editOnWebBtn'));
+  const bw = doc.getTextWidth(btnLabel) + 10;
+  const bx = M + CW - bw;
   doc.setFillColor(...HONEY);
-  doc.rect(M, y, 3, 11, 'F');
-  font('bold', 17);
-  const title = doc.splitTextToSize(plain(trip.name) || t('plan.title'), CW - 8);
-  doc.text(title[0], M + 6, y + 5.5);
+  doc.roundedRect(bx, y - 1, bw, 7, 3.5, 3.5, 'F');
+  doc.textWithLink(btnLabel, bx + 5, y + 3.7, { url: tripUrl });
+  doc.link(bx, y - 1, bw, 7, { url: tripUrl });
+  y += 9;
+  doc.setDrawColor(235, 228, 216);
+  doc.line(M, y, M + CW, y);
+  y += 9;
+
+  // ---- Tiêu đề chuyến đi + 2 dòng thông tin ----
+  font('bold', 18, INK);
+  const title = doc.splitTextToSize(plain(trip.name) || t('plan.title'), CW);
+  doc.text(title[0], M, y);
+  y += 6;
   font('normal', 9, MUTED);
   const dateRange = trip.startDate
     ? `${shortDate(trip.startDate)}${trip.endDate && trip.endDate !== trip.startDate ? ` – ${shortDate(trip.endDate)}` : ''}`
@@ -95,20 +139,11 @@ export async function exportPlanPdf(trip, items) {
   const line1 = [dateRange, dests.join(' · '), members.length ? `${t('trip.members')}: ${members.join(', ')}` : ''].filter(Boolean).join('   |   ');
   const done = items.filter((i) => i.done).length;
   const line2 = `${t('pdf.summary', { n: items.length, done })} · ${t('pdf.exportedAt', { date: new Date().toLocaleString(getLocale()) })}`;
-  const l1 = doc.splitTextToSize(plain(line1), CW - 6).slice(0, 2);
-  doc.text(l1, M + 6, y + 10);
-  y += 14 + (l1.length - 1) * 3.8;
-  doc.text(plain(line2), M + 6, y);
-  // Link mở chuyến đi trên web để sửa kế hoạch và xuất lại bản mới
-  const tripUrl = `${location.origin}${location.pathname}#/trips/${encodeURIComponent(trip.id)}`;
-  y += 5;
-  font('bold', 9, LINK);
-  const linkLabel = plain(t('pdf.openTrip'));
-  doc.textWithLink(linkLabel, M + 6, y, { url: tripUrl });
-  const lw = doc.getTextWidth(linkLabel);
-  font('normal', 8, MUTED);
-  doc.textWithLink(plain(tripUrl), M + 8 + lw, y, { url: tripUrl });
-  y += 6;
+  const l1 = doc.splitTextToSize(plain(line1), CW).slice(0, 2);
+  doc.text(l1, M, y);
+  y += l1.length * 3.8 + 0.5;
+  doc.text(plain(line2), M, y);
+  y += 8;
 
   if (!items.length) {
     font('normal', 11, MUTED);

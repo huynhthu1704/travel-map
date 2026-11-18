@@ -75,7 +75,7 @@ function UserMenu() {
 }
 
 function Shell() {
-  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user } = useApp();
+  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user , goHome } = useApp();
   const { t } = useI18n();
   const activeTrip = trips.find((t) => t.id === activeTripId);
   // Giữ các trang đã mở trong DOM để khi quay lại vẫn còn tab, bộ lọc và vị trí cuộn
@@ -85,7 +85,7 @@ function Shell() {
   return (
     <div className={`app view-${view}`}>
       <header className="topbar">
-        <button className="logo" onClick={() => setView('map')}>
+        <button className="logo" onClick={goHome} title={t('app.home')}>
           <span className="logo__mark">📍</span>
           <span className="logo__text">
             {t('app.logo1')} <em>{t('app.logo2')}</em>

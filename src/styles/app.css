@@ -289,6 +289,22 @@ code {
 .chips--scroll::-webkit-scrollbar {
   display: none;
 }
+/* Máy tính dùng chuột: hiện thanh cuộn mảnh để biết còn lựa chọn phía sau */
+@media (pointer: fine) {
+  .chips--scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--honey-300) transparent;
+    padding-bottom: 8px;
+  }
+  .chips--scroll::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+  .chips--scroll::-webkit-scrollbar-thumb {
+    background: var(--honey-300);
+    border-radius: 3px;
+  }
+}
 .chip {
   border: 1.5px solid var(--color-border-default);
   background: var(--color-bg-surface);
@@ -1015,6 +1031,7 @@ button.list-item:hover,
 }
 .occasion__chips {
   margin-top: 2px;
+  gap: 6px;
 }
 .visit-field input {
   max-width: 220px;

@@ -88,7 +88,7 @@ export function OccasionField({ value, onChange, onCommit }) {
         onBlur={(e) => commit(e.target.value.trim())}
         onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
       />
-      <div className="chips chips--scroll occasion__chips">
+      <div className="chips occasion__chips">
         {(OCCASIONS[lang] || OCCASIONS.vi).map((o) => (
           <button
             type="button"

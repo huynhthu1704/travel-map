@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/store';
 import { loadCountries } from './lib/countries';
+import { translate as t } from './i18n';
+import { pName } from './lib/lang';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -19,6 +21,10 @@ export function AppProvider({ children }) {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [flyTarget, setFlyTarget] = useState(null);
+  // Trang danh sách đã mở địa điểm (để có nút quay lại danh sách)
+  const [returnView, setReturnView] = useState(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   const [modal, setModal] = useState(null); // {type, ...props}
   const [toast, setToast] = useState(null);
@@ -83,13 +89,13 @@ export function AppProvider({ children }) {
     history.replaceState(null, '', location.pathname + location.search);
     requireLogin(async () => {
       try {
-        const t = await api.joinTrip(userRef.current, code);
-        notify(`Đã tham gia chuyến đi “${t.name}” 🎉`);
+        const trip = await api.joinTrip(userRef.current, code);
+        notify(t('toast.joined', { name: trip.name }));
         setView('trips');
       } catch (e) {
         notify(e.message, 'error');
       }
-    }, 'Đăng nhập để tham gia chuyến đi cùng bạn bè');
+    }, t('reason.joinTrip'));
   }, [user === undefined]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const userRef = useRef(user);
@@ -111,9 +117,9 @@ export function AppProvider({ children }) {
         const next = current === status ? null : status;
         await api.setPlace(u, place, next, tripId);
         notify(
-          next === 'visited' ? `👣 Đã đặt chân tới ${place.name}` : next === 'wishlist' ? `💛 Đã thêm ${place.name} vào danh sách muốn đi` : 'Đã bỏ đánh dấu',
+          next === 'visited' ? t('toast.visited', { name: pName(place) }) : next === 'wishlist' ? t('toast.wish', { name: pName(place) }) : t('toast.unmarked'),
         );
-      }, 'Đăng nhập Google để lưu địa điểm của bạn'),
+      }, t('reason.savePlace')),
     [requireLogin, placeStatus, notify],
   );
 
@@ -128,6 +134,7 @@ export function AppProvider({ children }) {
   );
 
   const openPlace = useCallback((place, { fly = true } = {}) => {
+    setReturnView(viewRef.current !== 'map' ? viewRef.current : null);
     setView('map');
     setSelectedPlace(place);
     if (place.country) setSelectedCountry(place.country);
@@ -136,7 +143,7 @@ export function AppProvider({ children }) {
 
   const value = {
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
-    view, setView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
+    view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

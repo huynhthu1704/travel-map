@@ -3,6 +3,8 @@ import { useApp } from '../AppContext';
 import { ALL_FAMOUS } from '../data/places';
 import { countryName, flagOf } from '../lib/countries';
 import { normalize, searchNominatim } from '../lib/geo';
+import { useI18n } from '../i18n';
+import { getLang, pName, pCity } from '../lib/lang';
 
 /** Ô tìm kiếm: quốc gia, địa điểm nổi tiếng, kỉ niệm của tôi + mọi địa điểm trên OpenStreetMap */
 export default function SearchBox() {
@@ -12,21 +14,22 @@ export default function SearchBox() {
   const [osm, setOsm] = useState([]);
   const [loading, setLoading] = useState(false);
   const boxRef = useRef();
+  const { t, lang } = useI18n();
 
   const local = useMemo(() => {
     const n = normalize(q.trim());
     if (n.length < 1) return { countries: [], places: [] };
     const cs = (countries?.features || [])
-      .filter((f) => f.properties.cc && (normalize(f.properties.nameVi).includes(n) || normalize(f.properties.name).includes(n)))
+      .filter((f) => f.properties.cc && (normalize(countryName(f.properties.cc)).includes(n) || normalize(f.properties.nameVi).includes(n) || normalize(f.properties.name).includes(n)))
       .slice(0, 4)
       .map((f) => f.properties.cc);
     const seen = new Set();
     const ps = [...memories.map((m) => m.place), ...ALL_FAMOUS]
       .filter((p) => p && !seen.has(p.id) && seen.add(p.id))
-      .filter((p) => normalize(`${p.name} ${p.city} ${countryName(p.country)}`).includes(n))
+      .filter((p) => normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)}`).includes(n))
       .slice(0, 6);
     return { countries: cs, places: ps };
-  }, [q, countries, memories]);
+  }, [q, countries, memories, lang]);
 
   useEffect(() => {
     if (q.trim().length < 3) {
@@ -37,7 +40,7 @@ export default function SearchBox() {
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        setOsm(await searchNominatim(q.trim(), ctl.signal));
+        setOsm(await searchNominatim(q.trim(), ctl.signal, getLang()));
       } catch {
         /* bỏ qua */
       } finally {
@@ -74,29 +77,29 @@ export default function SearchBox() {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder="Tìm quốc gia, thành phố, địa điểm…"
-        aria-label="Tìm kiếm"
+        placeholder={t('search.placeholder')}
+        aria-label={t('search.label')}
       />
       {open && q.trim() && (
         <div className="search__dropdown">
-          {local.countries.length > 0 && <div className="search__group">Quốc gia</div>}
+          {local.countries.length > 0 && <div className="search__group">{t('search.countries')}</div>}
           {local.countries.map((cc) => (
             <button key={cc} className="search__item" onClick={() => pick(() => openCountry(cc))}>
               <span className="search__emoji">{flagOf(cc)}</span>
               <span>{countryName(cc)}</span>
             </button>
           ))}
-          {local.places.length > 0 && <div className="search__group">Địa điểm nổi bật</div>}
+          {local.places.length > 0 && <div className="search__group">{t('search.places')}</div>}
           {local.places.map((p) => (
             <button key={p.id} className="search__item" onClick={() => pick(() => openPlace(p))}>
               <span className="search__emoji">{p.emoji || '📍'}</span>
               <span>
-                {p.name}
-                <small>{[p.city, countryName(p.country)].filter(Boolean).join(', ')}</small>
+                {pName(p)}
+                <small>{[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}</small>
               </span>
             </button>
           ))}
-          {osm.length > 0 && <div className="search__group">Kết quả trên bản đồ</div>}
+          {osm.length > 0 && <div className="search__group">{t('search.osm')}</div>}
           {osm.map((p) => (
             <button
               key={p.id}
@@ -115,8 +118,8 @@ export default function SearchBox() {
               </span>
             </button>
           ))}
-          {loading && <div className="search__hint">Đang tìm…</div>}
-          {!loading && !hasResults && q.trim().length >= 3 && <div className="search__hint">Không tìm thấy kết quả 😢</div>}
+          {loading && <div className="search__hint">{t('search.loading')}</div>}
+          {!loading && !hasResults && q.trim().length >= 3 && <div className="search__hint">{t('search.empty')}</div>}
         </div>
       )}
     </div>

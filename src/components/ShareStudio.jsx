@@ -4,21 +4,23 @@ import { Modal } from './ui';
 import { loadImage } from '../lib/image';
 import { countryName, flagOf } from '../lib/countries';
 import { formatDate } from './ui';
+import { useI18n } from '../i18n';
+import { pName, pCity } from '../lib/lang';
 
 /* --------------------------------------------------------------- */
 /* Studio tạo ảnh / video chia sẻ mạng xã hội từ 1–4 tấm ảnh        */
 /* --------------------------------------------------------------- */
 
 const TEMPLATES = [
-  { id: 'polaroid', name: 'Polaroid', emoji: '📸' },
-  { id: 'postcard', name: 'Bưu thiếp', emoji: '💌' },
-  { id: 'film', name: 'Cuộn phim', emoji: '🎞️' },
-  { id: 'bento', name: 'Bento', emoji: '🍱' },
+  { id: 'polaroid', emoji: '📸' },
+  { id: 'postcard', emoji: '💌' },
+  { id: 'film', emoji: '🎞️' },
+  { id: 'bento', emoji: '🍱' },
 ];
 const FORMATS = [
-  { id: 'story', name: 'Story 9:16', w: 1080, h: 1920 },
-  { id: 'portrait', name: 'Post 4:5', w: 1080, h: 1350 },
-  { id: 'square', name: 'Vuông 1:1', w: 1080, h: 1080 },
+  { id: 'story', w: 1080, h: 1920 },
+  { id: 'portrait', w: 1080, h: 1350 },
+  { id: 'square', w: 1080, h: 1080 },
 ];
 
 const C = {
@@ -34,14 +36,17 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
 }
 
-function drawCover(ctx, img, x, y, w, h, r = 0, zoom = 1) {
-  const s = Math.max(w / img.width, h / img.height) * zoom;
+const DEFAULT_CROP = { x: 0.5, y: 0.5, z: 1 };
+
+/** Vẽ ảnh phủ kín khung. `crop` = điểm lấy nét (x, y: 0–1) + mức phóng (z ≥ 1) do người dùng chỉnh. */
+function drawCover(ctx, img, x, y, w, h, r = 0, zoom = 1, crop = DEFAULT_CROP) {
+  const s = Math.max(w / img.width, h / img.height) * zoom * crop.z;
   const iw = img.width * s;
   const ih = img.height * s;
   ctx.save();
   roundRect(ctx, x, y, w, h, r);
   ctx.clip();
-  ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+  ctx.drawImage(img, x + (w - iw) * crop.x, y + (h - ih) * crop.y, iw, ih);
   ctx.restore();
 }
 
@@ -91,7 +96,9 @@ function dots(ctx, W, H, color, step = 54) {
  * Vẽ 1 khung hình. `time` (giây) dùng cho video: ảnh xuất hiện lần lượt.
  * time = Infinity => ảnh tĩnh, mọi thứ đã hiện đủ.
  */
-function render(ctx, { tpl, W, H, imgs, title, sub, caption, date, flag }, time = Infinity) {
+function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, flag, watermark }, time = Infinity) {
+  const slots = []; // vùng hiển thị từng ảnh (toạ độ canvas) — dùng để kéo chỉnh vị trí
+  const crop = (i) => crops[i] || DEFAULT_CROP;
   const n = imgs.length;
   const appear = (i) => ease((time - 0.3 - i * 0.9) / 0.7);
   const zoomAt = (i) => (time === Infinity ? 1 : 1.12 - 0.12 * ease((time - i * 0.9) / 4));
@@ -132,7 +139,8 @@ function render(ctx, { tpl, W, H, imgs, title, sub, caption, date, flag }, time 
       ctx.fillStyle = C.white;
       ctx.fillRect(-fw / 2, -fh / 2, fw, fh);
       ctx.shadowColor = 'transparent';
-      drawCover(ctx, imgs[i], -fw / 2 + pad, -fh / 2 + pad, fw - pad * 2, fh - pad * 2 - 70, 4, zoomAt(i));
+      drawCover(ctx, imgs[i], -fw / 2 + pad, -fh / 2 + pad, fw - pad * 2, fh - pad * 2 - 70, 4, zoomAt(i), crop(i));
+      slots.push({ i, x: x + w / 2 - fw / 2 + pad, y: y + h / 2 - fh / 2 + pad, w: fw - pad * 2, h: fh - pad * 2 - 70 });
       ctx.fillStyle = C.ink2;
       ctx.font = font(BODY, 30);
       ctx.textAlign = 'center';
@@ -196,7 +204,8 @@ function render(ctx, { tpl, W, H, imgs, title, sub, caption, date, flag }, time 
       const a = appear(i);
       if (a <= 0) return;
       ctx.globalAlpha = a;
-      drawCover(ctx, imgs[i], x, y + (1 - a) * 40, w, h, 28, zoomAt(i));
+      drawCover(ctx, imgs[i], x, y + (1 - a) * 40, w, h, 28, zoomAt(i), crop(i));
+      slots.push({ i, x, y, w, h });
       ctx.globalAlpha = 1;
     });
     ctx.fillStyle = C.ink2;
@@ -228,7 +237,8 @@ function render(ctx, { tpl, W, H, imgs, title, sub, caption, date, flag }, time 
       const a = appear(i);
       if (a <= 0) return;
       ctx.globalAlpha = a;
-      drawCover(ctx, img, sx, top + i * (fh + 30), sw, fh, 6, zoomAt(i));
+      drawCover(ctx, img, sx, top + i * (fh + 30), sw, fh, 6, zoomAt(i), crop(i));
+      slots.push({ i, x: sx, y: top + i * (fh + 30), w: sw, h: fh });
       ctx.globalAlpha = 1;
       ctx.fillStyle = C.honey;
       ctx.font = font(BODY, 22);
@@ -274,7 +284,8 @@ function render(ctx, { tpl, W, H, imgs, title, sub, caption, date, flag }, time 
       const a = appear(i);
       if (a <= 0) return;
       ctx.globalAlpha = a;
-      drawCover(ctx, imgs[i], x, y, w, h, 44, zoomAt(i) * (0.94 + 0.06 * a));
+      drawCover(ctx, imgs[i], x, y, w, h, 44, zoomAt(i) * (0.94 + 0.06 * a), crop(i));
+      slots.push({ i, x, y, w, h });
       ctx.globalAlpha = 1;
     });
     if (caption) {
@@ -292,8 +303,9 @@ function render(ctx, { tpl, W, H, imgs, title, sub, caption, date, flag }, time 
   ctx.textAlign = 'center';
   ctx.font = font(BODY, 24);
   ctx.fillStyle = tpl === 'film' ? C.honey : tpl === 'postcard' ? C.ink : C.ink2;
-  ctx.fillText('🍯 Bản đồ du lịch', W / 2, H - (tpl === 'postcard' ? 18 : tpl === 'bento' ? 22 : 40));
+  ctx.fillText(watermark, W / 2, H - (tpl === 'postcard' ? 18 : tpl === 'bento' ? 22 : 40));
   ctx.globalAlpha = 1;
+  return slots;
 }
 
 function pickMime() {
@@ -303,10 +315,24 @@ function pickMime() {
 
 export default function ShareStudio({ memory, onClose }) {
   const { notify, api } = useApp();
+  const { t } = useI18n();
   const [extra, setExtra] = useState([]); // ảnh thêm từ thiết bị
   const [base, setBase] = useState(memory.fullPhotos || memory.photos || []);
   const sources = useMemo(() => [...base, ...extra], [base, extra]);
   const [selected, setSelected] = useState(() => base.slice(0, 4));
+  const [tpl, setTpl] = useState('polaroid');
+  const [fmt, setFmt] = useState('story');
+  const [caption, setCaption] = useState(memory.caption || '');
+  const [loaded, setLoaded] = useState([]); // [{src, img}] theo thứ tự đã chọn
+  const [crops, setCrops] = useState({}); // src → {x, y, z}
+  const [active, setActive] = useState(0); // ảnh đang chỉnh (index trong selected)
+  const [slots, setSlots] = useState([]);
+  const [busy, setBusy] = useState('');
+  const [tainted, setTainted] = useState(false);
+  const canvasRef = useRef();
+  const drag = useRef(null);
+  const F = FORMATS.find((f) => f.id === fmt);
+
   // Tải ảnh độ phân giải đầy đủ (ảnh trong danh sách chỉ là ảnh thu nhỏ)
   useEffect(() => {
     if (memory.fullPhotos) return;
@@ -316,18 +342,12 @@ export default function ShareStudio({ memory, onClose }) {
       setSelected((sel) => sel.map((s) => full[(memory.photos || []).indexOf(s)] || s));
     });
   }, [memory, api]);
-  const [tpl, setTpl] = useState('polaroid');
-  const [fmt, setFmt] = useState('story');
-  const [caption, setCaption] = useState(memory.caption || '');
-  const [imgs, setImgs] = useState([]);
-  const [busy, setBusy] = useState('');
-  const [tainted, setTainted] = useState(false);
-  const canvasRef = useRef();
-  const F = FORMATS.find((f) => f.id === fmt);
 
   useEffect(() => {
     let alive = true;
-    Promise.all(selected.map((s) => loadImage(s).catch(() => null))).then((list) => alive && setImgs(list.filter(Boolean)));
+    Promise.all(selected.map((src) => loadImage(src).then((img) => ({ src, img })).catch(() => null))).then(
+      (list) => alive && setLoaded(list.filter(Boolean)),
+    );
     return () => {
       alive = false;
     };
@@ -335,30 +355,77 @@ export default function ShareStudio({ memory, onClose }) {
 
   const opts = useMemo(
     () => ({
-      tpl, W: F.w, H: F.h, imgs, title: memory.place?.name || 'Chuyến đi', caption,
-      sub: [memory.place?.city, countryName(memory.place?.country)].filter(Boolean).join(', '),
-      date: formatDate(memory.date || memory.createdAt), flag: flagOf(memory.place?.country),
+      tpl, W: F.w, H: F.h, imgs: loaded.map((l) => l.img), crops: loaded.map((l) => crops[l.src] || DEFAULT_CROP),
+      title: pName(memory.place) || t('studio.fallbackTitle'), caption,
+      sub: [pCity(memory.place), countryName(memory.place?.country)].filter(Boolean).join(', '),
+      date: formatDate(memory.date || memory.createdAt), flag: flagOf(memory.place?.country), watermark: t('canvas.watermark'),
     }),
-    [tpl, F, imgs, caption, memory],
+    [tpl, F, loaded, crops, caption, memory, t],
   );
 
   useEffect(() => {
     const c = canvasRef.current;
-    if (!c || !imgs.length) return;
+    if (!c || !loaded.length) return;
     c.width = F.w;
     c.height = F.h;
-    document.fonts?.ready.then(() => render(c.getContext('2d'), opts));
-    render(c.getContext('2d'), opts);
+    const draw = () => setSlots(render(c.getContext('2d'), opts));
+    draw();
+    document.fonts?.ready.then(draw);
     try {
       c.getContext('2d').getImageData(0, 0, 1, 1);
       setTainted(false);
     } catch {
       setTainted(true);
     }
-  }, [opts, imgs, F]);
+  }, [opts, loaded, F]);
 
   const toggle = (src) =>
     setSelected((s) => (s.includes(src) ? s.filter((x) => x !== src) : s.length >= 4 ? s : [...s, src]));
+
+  /* ---------- Kéo để chỉnh vị trí ảnh trong khung ---------- */
+  const toCanvas = (e) => {
+    const r = canvasRef.current.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * F.w, y: ((e.clientY - r.top) / r.height) * F.h, scale: F.w / r.width };
+  };
+  const activeSrc = loaded[active]?.src;
+  const cropOf = (src) => crops[src] || DEFAULT_CROP;
+  const setCrop = (src, patch) => setCrops((c) => ({ ...c, [src]: { ...(c[src] || DEFAULT_CROP), ...patch } }));
+
+  const onPointerDown = (e) => {
+    const p = toCanvas(e);
+    const slot = slots.find((s) => p.x >= s.x && p.x <= s.x + s.w && p.y >= s.y && p.y <= s.y + s.h);
+    if (!slot) return;
+    setActive(slot.i);
+    drag.current = { slot, last: p };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const p = toCanvas(e);
+    const { slot } = d;
+    const { src, img } = loaded[slot.i] || {};
+    if (!img) return;
+    const c = cropOf(src);
+    const sc = Math.max(slot.w / img.width, slot.h / img.height) * c.z;
+    const overX = img.width * sc - slot.w;
+    const overY = img.height * sc - slot.h;
+    const clamp = (v) => Math.min(1, Math.max(0, v));
+    setCrop(src, {
+      x: overX > 1 ? clamp(c.x - (p.x - d.last.x) / overX) : 0.5,
+      y: overY > 1 ? clamp(c.y - (p.y - d.last.y) / overY) : 0.5,
+    });
+    d.last = p;
+  };
+  const onPointerUp = () => {
+    drag.current = null;
+  };
+  const onWheel = (e) => {
+    if (!activeSrc) return;
+    const z = Math.min(3, Math.max(1, cropOf(activeSrc).z * (e.deltaY < 0 ? 1.06 : 1 / 1.06)));
+    setCrop(activeSrc, { z });
+  };
+  const activeSlot = slots.find((s) => s.i === active);
 
   const deliver = async (blob, name) => {
     const file = new File([blob], name, { type: blob.type });
@@ -375,17 +442,17 @@ export default function ShareStudio({ memory, onClose }) {
     a.download = name;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    notify('Đã tải về máy — đăng lên Instagram / TikTok / Facebook thôi! ✨');
+    notify(t('studio.downloaded'));
   };
 
   const exportImage = () => {
-    canvasRef.current.toBlob((b) => b && deliver(b, `ban-do-du-lich-${Date.now()}.png`), 'image/png');
+    canvasRef.current.toBlob((b) => b && deliver(b, `travel-map-${Date.now()}.png`), 'image/png');
   };
 
   const exportVideo = async () => {
     const mime = pickMime();
-    if (!mime) return notify('Trình duyệt chưa hỗ trợ quay video, hãy xuất ảnh nhé', 'error');
-    setBusy('Đang tạo video…');
+    if (!mime) return notify(t('studio.noVideo'), 'error');
+    setBusy(t('studio.making'));
     const c = document.createElement('canvas');
     c.width = F.w;
     c.height = F.h;
@@ -395,14 +462,14 @@ export default function ShareStudio({ memory, onClose }) {
     const chunks = [];
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const done = new Promise((r) => (rec.onstop = r));
-    const duration = 1.5 + imgs.length * 0.9 + 2.5;
+    const duration = 1.5 + loaded.length * 0.9 + 2.5;
     rec.start();
     const t0 = performance.now();
     await new Promise((resolve) => {
       const tick = () => {
-        const t = (performance.now() - t0) / 1000;
-        render(ctx, opts, t);
-        if (t < duration) requestAnimationFrame(tick);
+        const time = (performance.now() - t0) / 1000;
+        render(ctx, opts, time);
+        if (time < duration) requestAnimationFrame(tick);
         else resolve();
       };
       tick();
@@ -411,18 +478,44 @@ export default function ShareStudio({ memory, onClose }) {
     await done;
     setBusy('');
     const blob = new Blob(chunks, { type: mime.split(';')[0] });
-    deliver(blob, `ban-do-du-lich-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}`);
+    deliver(blob, `travel-map-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}`);
   };
 
   return (
-    <Modal title="✨ Tạo ảnh chia sẻ" onClose={onClose} wide className="modal--studio">
+    <Modal title={t('studio.title')} onClose={onClose} wide className="modal--studio">
       <div className="studio">
         <div className="studio__preview">
-          {imgs.length ? <canvas ref={canvasRef} /> : <div className="studio__empty">Chọn 1–4 ảnh để bắt đầu</div>}
+          {loaded.length ? (
+            <div className="studio__stage">
+              <canvas
+                ref={canvasRef}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerUp}
+                onWheel={onWheel}
+              />
+              {activeSlot && (
+                <div
+                  className="studio__focus"
+                  style={{
+                    left: `${(activeSlot.x / F.w) * 100}%`,
+                    top: `${(activeSlot.y / F.h) * 100}%`,
+                    width: `${(activeSlot.w / F.w) * 100}%`,
+                    height: `${(activeSlot.h / F.h) * 100}%`,
+                  }}
+                >
+                  <span>✥</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="studio__empty">{t('studio.empty')}</div>
+          )}
         </div>
         <div className="studio__controls stack">
           <div className="field">
-            <span>Chọn ảnh ({selected.length}/4)</span>
+            <span>{t('studio.pick', { n: selected.length })}</span>
             <div className="studio__photos">
               {sources.map((s) => (
                 <button key={s} className={`studio__ph ${selected.includes(s) ? 'on' : ''}`} onClick={() => toggle(s)}>
@@ -430,7 +523,7 @@ export default function ShareStudio({ memory, onClose }) {
                   {selected.includes(s) && <span>{selected.indexOf(s) + 1}</span>}
                 </button>
               ))}
-              <label className="studio__ph studio__ph--add" title="Thêm ảnh từ máy">
+              <label className="studio__ph studio__ph--add" title={t('studio.addFromDevice')}>
                 <input
                   type="file"
                   accept="image/*"
@@ -445,45 +538,73 @@ export default function ShareStudio({ memory, onClose }) {
               </label>
             </div>
           </div>
+
+          {loaded.length > 0 && (
+            <div className="field adjust">
+              <span>{t('studio.adjust')}</span>
+              <div className="adjust__row">
+                <div className="adjust__thumbs">
+                  {loaded.map((l, i) => (
+                    <button key={l.src} className={`adjust__thumb ${i === active ? 'on' : ''}`} onClick={() => setActive(i)} aria-label={t('studio.editing', { n: i + 1 })}>
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <label className="adjust__zoom">
+                  <span>🔍</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.01"
+                    value={activeSrc ? cropOf(activeSrc).z : 1}
+                    onChange={(e) => activeSrc && setCrop(activeSrc, { z: Number(e.target.value) })}
+                    aria-label={t('studio.zoom')}
+                  />
+                </label>
+                <button className="btn btn--sm btn--ghost" onClick={() => activeSrc && setCrop(activeSrc, DEFAULT_CROP)}>
+                  {t('studio.reset')}
+                </button>
+              </div>
+              <small className="muted">{t('studio.adjustHint')}</small>
+            </div>
+          )}
+
           <div className="field">
-            <span>Mẫu</span>
+            <span>{t('studio.template')}</span>
             <div className="tpl-grid">
-              {TEMPLATES.map((t) => (
-                <button key={t.id} className={`tpl ${tpl === t.id ? 'on' : ''}`} onClick={() => setTpl(t.id)}>
-                  <span>{t.emoji}</span>
-                  {t.name}
+              {TEMPLATES.map((x) => (
+                <button key={x.id} className={`tpl ${tpl === x.id ? 'on' : ''}`} onClick={() => setTpl(x.id)}>
+                  <span>{x.emoji}</span>
+                  {t('tpl.' + x.id)}
                 </button>
               ))}
             </div>
           </div>
           <div className="field">
-            <span>Khung hình</span>
+            <span>{t('studio.format')}</span>
             <div className="segmented">
               {FORMATS.map((f) => (
                 <button key={f.id} className={fmt === f.id ? 'on' : ''} onClick={() => setFmt(f.id)}>
-                  {f.name}
+                  {t('fmt.' + f.id)}
                 </button>
               ))}
             </div>
           </div>
           <label className="field">
-            <span>Chú thích</span>
-            <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={120} placeholder="Một câu thật cute…" />
+            <span>{t('studio.caption')}</span>
+            <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={120} placeholder={t('studio.captionPlaceholder')} />
           </label>
-          {tainted && (
-            <p className="small warn">
-              Không đọc được ảnh này để xuất. Hãy bấm ＋ để chọn ảnh từ máy.
-            </p>
-          )}
+          {tainted && <p className="small warn">{t('studio.tainted')}</p>}
           <div className="grid-2">
-            <button className="btn btn--primary" disabled={!imgs.length || tainted || !!busy} onClick={exportImage}>
-              🖼️ Lưu / chia sẻ ảnh
+            <button className="btn btn--primary" disabled={!loaded.length || tainted || !!busy} onClick={exportImage}>
+              {t('studio.saveImage')}
             </button>
-            <button className="btn btn--dark" disabled={!imgs.length || tainted || !!busy} onClick={exportVideo}>
-              {busy || '🎬 Tạo video'}
+            <button className="btn btn--dark" disabled={!loaded.length || tainted || !!busy} onClick={exportVideo}>
+              {busy || t('studio.makeVideo')}
             </button>
           </div>
-          <p className="small muted">Trên điện thoại sẽ mở bảng chia sẻ để đăng thẳng lên Instagram, TikTok, Facebook, Zalo…</p>
+          <p className="small muted">{t('studio.mobileHint')}</p>
         </div>
       </div>
     </Modal>

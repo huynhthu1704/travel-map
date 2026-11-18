@@ -6,6 +6,8 @@ import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
 import { firebaseEnabled } from '../lib/firebase';
 import ShareStudio from './ShareStudio';
+import { useI18n } from '../i18n';
+import { pName, pCity } from '../lib/lang';
 
 export default function Modals() {
   const { modal, setModal } = useApp();
@@ -40,13 +42,14 @@ function GoogleIcon() {
 
 function LoginModal({ reason, onClose }) {
   const { api, notify } = useApp();
+  const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   return (
-    <Modal title="Đăng nhập" onClose={onClose} className="modal--sm">
+    <Modal title={t('auth.login')} onClose={onClose} className="modal--sm">
       <div className="login">
         <div className="login__art">🗺️👣💛</div>
-        <h3 className="h2">{reason || 'Lưu giữ mọi chuyến đi'}</h3>
-        <p className="muted">Đánh dấu nơi đã đặt chân, lưu ảnh kỉ niệm và tạo chuyến đi chung với bạn bè.</p>
+        <h3 className="h2">{reason || t('auth.defaultReason')}</h3>
+        <p className="muted">{t('auth.pitch')}</p>
         <button
           className="btn btn--google btn--block"
           disabled={busy}
@@ -56,21 +59,22 @@ function LoginModal({ reason, onClose }) {
               await api.signIn();
               onClose();
             } catch (e) {
-              notify('Đăng nhập thất bại: ' + e.message, 'error');
+              notify(t('auth.failed', { msg: e.message }), 'error');
             } finally {
               setBusy(false);
             }
           }}
         >
-          <GoogleIcon /> {busy ? 'Đang mở Google…' : 'Tiếp tục với Google'}
+          <GoogleIcon /> {busy ? t('auth.opening') : t('auth.continueGoogle')}
         </button>
-        {!firebaseEnabled && <p className="small muted">Chế độ demo: chưa cấu hình Firebase nên dữ liệu chỉ lưu trên trình duyệt này.</p>}
+        {!firebaseEnabled && <p className="small muted">{t('auth.demoNote')}</p>}
       </div>
     </Modal>
   );
 }
 
 function DirectionsModal({ place, onClose }) {
+  const { t } = useI18n();
   const isApple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
   const options = [
     { key: 'apple', label: 'Apple Maps', icon: '🍎', url: appleMapsUrl(place) },
@@ -78,10 +82,10 @@ function DirectionsModal({ place, onClose }) {
   ];
   if (!isApple) options.reverse();
   return (
-    <Modal title="Mở chỉ đường bằng…" onClose={onClose} className="modal--sm">
+    <Modal title={t('dir.title')} onClose={onClose} className="modal--sm">
       <p className="muted">
-        Đến <b>{place.name}</b>
-        {place.city ? `, ${place.city}` : ''}
+        {t('dir.to')} <b>{pName(place)}</b>
+        {pCity(place) ? `, ${pCity(place)}` : ''}
       </p>
       <div className="stack">
         {options.map((o) => (
@@ -89,7 +93,7 @@ function DirectionsModal({ place, onClose }) {
             <span className="map-choice__icon">{o.icon}</span>
             <span>
               <b>{o.label}</b>
-              <small>Mở trong ứng dụng hoặc trình duyệt</small>
+              <small>{t('dir.hint')}</small>
             </span>
             <span>→</span>
           </a>
@@ -101,6 +105,7 @@ function DirectionsModal({ place, onClose }) {
 
 function PlacePicker({ value, onChange }) {
   const { memories, places } = useApp();
+  const { t } = useI18n();
   const [q, setQ] = useState('');
   const [osm, setOsm] = useState([]);
   const local = useMemo(() => {
@@ -108,7 +113,7 @@ function PlacePicker({ value, onChange }) {
     const seen = new Set();
     return [...places, ...memories.map((m) => m.place), ...ALL_FAMOUS]
       .filter((p) => p && !seen.has(p.id) && seen.add(p.id))
-      .filter((p) => !n || normalize(`${p.name} ${p.city} ${countryName(p.country)}`).includes(n))
+      .filter((p) => !n || normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)}`).includes(n))
       .slice(0, n ? 6 : 4);
   }, [q, places, memories]);
   useEffect(() => {
@@ -125,26 +130,26 @@ function PlacePicker({ value, onChange }) {
       <div className="picked">
         <span>{value.emoji || '📍'}</span>
         <span>
-          <b>{value.name}</b>
+          <b>{pName(value)}</b>
           <small>
-            {[value.city, countryName(value.country)].filter(Boolean).join(', ')} {flagOf(value.country)}
+            {[pCity(value), countryName(value.country)].filter(Boolean).join(', ')} {flagOf(value.country)}
           </small>
         </span>
         <button type="button" className="btn btn--sm btn--ghost" onClick={() => onChange(null)}>
-          Đổi
+          {t('mem.change')}
         </button>
       </div>
     );
   return (
     <div className="picker">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm địa điểm: Hội An, Kyoto, quán cà phê…" autoFocus />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('mem.pickPlaceholder')} autoFocus />
       <div className="picker__list">
         {[...local, ...osm].map((p) => (
           <button type="button" key={p.id} className="search__item" onClick={() => onChange(p)}>
             <span className="search__emoji">{p.emoji || flagOf(p.country)}</span>
             <span>
-              {p.name}
-              <small>{[p.city, countryName(p.country)].filter(Boolean).join(', ')}</small>
+              {pName(p)}
+              <small>{[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}</small>
             </span>
           </button>
         ))}
@@ -155,6 +160,7 @@ function PlacePicker({ value, onChange }) {
 
 function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
   const { api, user, trips, notify, setModal } = useApp();
+  const { t } = useI18n();
   const [place, setPlace] = useState(initialPlace || null);
   const [files, setFiles] = useState([]);
   const [caption, setCaption] = useState('');
@@ -167,33 +173,33 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!place) return notify('Hãy chọn địa điểm', 'error');
-    if (!files.length) return notify('Hãy chọn ít nhất 1 ảnh', 'error');
+    if (!place) return notify(t('mem.needPlace'), 'error');
+    if (!files.length) return notify(t('mem.needPhoto'), 'error');
     setBusy(true);
     try {
       const mem = await api.addMemory(user, { place, caption, date, visibility, tripId }, files);
-      notify('Đã lưu kỉ niệm 📸');
+      notify(t('mem.saved'));
       setModal({ type: 'share', memory: mem });
     } catch (err) {
-      notify('Không lưu được: ' + err.message, 'error');
+      notify(t('mem.saveFailed', { msg: err.message }), 'error');
       setBusy(false);
     }
   };
 
   return (
-    <Modal title="Thêm kỉ niệm" onClose={onClose} wide>
+    <Modal title={t('mem.add')} onClose={onClose} wide>
       <form className="stack" onSubmit={submit}>
         <label className="field">
-          <span>Địa điểm</span>
+          <span>{t('mem.place')}</span>
           <PlacePicker value={place} onChange={setPlace} />
         </label>
         <div className="field">
-          <span>Ảnh ({files.length}/10)</span>
+          <span>{t('mem.photos', { n: files.length })}</span>
           <div className="uploader">
             {previews.map((src, i) => (
               <div className="uploader__thumb" key={src}>
                 <img src={src} alt="" />
-                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label="Xoá ảnh">
+                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={t('mem.removePhoto')}>
                   ✕
                 </button>
               </div>
@@ -207,24 +213,24 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
                   onChange={(e) => setFiles([...files, ...e.target.files].slice(0, 10))}
                 />
                 <span>＋</span>
-                <small>Thêm ảnh</small>
+                <small>{t('mem.addPhoto')}</small>
               </label>
             )}
           </div>
         </div>
         <label className="field">
-          <span>Ghi chú</span>
-          <textarea rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Hôm đó trời đẹp, tụi mình…" maxLength={500} />
+          <span>{t('mem.note')}</span>
+          <textarea rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={t('mem.notePlaceholder')} maxLength={500} />
         </label>
         <div className="grid-2">
           <label className="field">
-            <span>Ngày</span>
+            <span>{t('mem.date')}</span>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
           <label className="field">
-            <span>Chuyến đi</span>
+            <span>{t('mem.trip')}</span>
             <select value={tripId} onChange={(e) => setTripId(e.target.value)}>
-              <option value="">— Không —</option>
+              <option value="">{t('common.noneOption')}</option>
               {trips.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.emoji} {t.name}
@@ -235,17 +241,17 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
         </div>
         <div className="segmented" role="radiogroup">
           <button type="button" className={visibility === 'private' ? 'on' : ''} onClick={() => setVisibility('private')}>
-            🔒 Riêng tư
+            {t('mem.private')}
           </button>
           <button type="button" className={visibility === 'public' ? 'on' : ''} onClick={() => setVisibility('public')}>
-            🌍 Công khai
+            {t('mem.public')}
           </button>
         </div>
         <p className="small muted">
-          {visibility === 'public' ? 'Mọi người có thể xem để tham khảo trước khi đi du lịch.' : 'Chỉ bạn (và thành viên chuyến đi nếu có) nhìn thấy.'}
+          {visibility === 'public' ? t('mem.publicHint') : t('mem.privateHint')}
         </p>
         <button className="btn btn--primary btn--block" disabled={busy}>
-          {busy ? 'Đang tải ảnh lên…' : 'Lưu kỉ niệm'}
+          {busy ? t('mem.uploading') : t('mem.save')}
         </button>
       </form>
     </Modal>
@@ -253,7 +259,9 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
 }
 
 function MemoryViewer({ memory: m, onClose }) {
-  const { user, api, setModal, openPlace, setPlaceStatus, notify } = useApp();
+  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus } = useApp();
+  const st = placeStatus[m.place?.id];
+  const { t } = useI18n();
   const [i, setI] = useState(0);
   const [full, setFull] = useState(null);
   useEffect(() => {
@@ -266,15 +274,15 @@ function MemoryViewer({ memory: m, onClose }) {
   const mine = user && m.uid === user.uid;
   const photos = full || m.photos || [];
   return (
-    <Modal title={m.place?.name || 'Kỉ niệm'} onClose={onClose} wide>
+    <Modal title={pName(m.place) || t('mem.title')} onClose={onClose} wide>
       <div className="viewer">
         {photos.length > 0 && (
           <div className="viewer__media">
             <img src={photos[i]} alt={m.caption} />
             {photos.length > 1 && (
               <>
-                <button className="viewer__nav viewer__nav--l" onClick={() => setI((i - 1 + photos.length) % photos.length)} aria-label="Ảnh trước">‹</button>
-                <button className="viewer__nav viewer__nav--r" onClick={() => setI((i + 1) % photos.length)} aria-label="Ảnh sau">›</button>
+                <button className="viewer__nav viewer__nav--l" onClick={() => setI((i - 1 + photos.length) % photos.length)} aria-label={t('mem.prev')}>‹</button>
+                <button className="viewer__nav viewer__nav--r" onClick={() => setI((i + 1) % photos.length)} aria-label={t('mem.next')}>›</button>
                 <div className="viewer__dots">
                   {photos.map((_, j) => (
                     <span key={j} className={j === i ? 'on' : ''} />
@@ -290,41 +298,52 @@ function MemoryViewer({ memory: m, onClose }) {
             <div>
               <b>{m.authorName}</b>
               <div className="small muted">
-                {flagOf(m.place?.country)} {[m.place?.city, countryName(m.place?.country)].filter(Boolean).join(', ')}
+                {flagOf(m.place?.country)} {[pCity(m.place), countryName(m.place?.country)].filter(Boolean).join(', ')}
                 {m.date ? ` · ${formatDate(m.date)}` : ''}
               </div>
             </div>
           </div>
           {m.caption && <p className="viewer__caption">{m.caption}</p>}
           <div className="row wrap">
-            <button className="btn btn--sm btn--soft" onClick={() => { onClose(); openPlace(m.place); }}>🗺️ Xem trên bản đồ</button>
-            {!mine && <button className="btn btn--sm btn--soft" onClick={() => setPlaceStatus(m.place, 'wishlist')}>💛 Muốn đi</button>}
-            <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: m.place })}>🧭 Chỉ đường</button>
-            {mine && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: full ? { ...m, fullPhotos: full } : m })}>✨ Chia sẻ</button>}
+            <button className="btn btn--sm btn--soft" onClick={() => { onClose(); openPlace(m.place); }}>{t('mem.onMap')}</button>
+            {st === 'visited' ? (
+              <span className="status-pill status-pill--visited">{t('mem.alreadyVisited')}</span>
+            ) : (
+              <button
+                className={`btn btn--sm ${st === 'wishlist' ? 'btn--coral' : 'btn--soft'}`}
+                onClick={() => setPlaceStatus(m.place, 'wishlist')}
+                aria-pressed={st === 'wishlist'}
+                title={st === 'wishlist' ? t('mem.wishRemove') : ''}
+              >
+                {st === 'wishlist' ? t('mem.wishAdded') : t('mem.wish')}
+              </button>
+            )}
+            <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: m.place })}>{t('common.directions')}</button>
+            {mine && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: full ? { ...m, fullPhotos: full } : m })}>{t('mem.share')}</button>}
             {mine && (
               <button
                 className="btn btn--sm btn--soft"
                 onClick={async () => {
                   const v = m.visibility === 'public' ? 'private' : 'public';
                   await api.updateMemory(m.id, { visibility: v });
-                  notify(v === 'public' ? 'Đã chuyển sang công khai 🌍' : 'Đã chuyển sang riêng tư 🔒');
+                  notify(v === 'public' ? t('mem.nowPublic') : t('mem.nowPrivate'));
                   onClose();
                 }}
               >
-                {m.visibility === 'public' ? '🔒 Chuyển riêng tư' : '🌍 Công khai'}
+                {m.visibility === 'public' ? t('mem.makePrivate') : t('mem.makePublic')}
               </button>
             )}
             {mine && (
               <button
                 className="btn btn--sm btn--ghost danger"
                 onClick={async () => {
-                  if (!confirm('Xoá kỉ niệm này?')) return;
+                  if (!confirm(t('mem.confirmDelete'))) return;
                   await api.deleteMemory(m);
-                  notify('Đã xoá');
+                  notify(t('mem.deleted'));
                   onClose();
                 }}
               >
-                🗑️ Xoá
+                {t('mem.delete')}
               </button>
             )}
           </div>

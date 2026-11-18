@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
+import { useI18n } from '../i18n';
+import { getLocale } from '../lib/lang';
 
 export function Modal({ onClose, title, children, wide, className = '' }) {
+  const { t } = useI18n();
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && onClose?.();
     window.addEventListener('keydown', k);
@@ -15,7 +18,7 @@ export function Modal({ onClose, title, children, wide, className = '' }) {
       <div className={`modal ${wide ? 'modal--wide' : ''} ${className}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal__head">
           <h2 className="h3">{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Đóng">✕</button>
+          <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}>✕</button>
         </div>
         <div className="modal__body">{children}</div>
       </div>
@@ -56,5 +59,5 @@ export function formatDate(v) {
   if (!v) return '';
   const d = typeof v === 'string' ? new Date(v) : new Date(v?.toMillis ? v.toMillis() : v);
   if (isNaN(d)) return '';
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return d.toLocaleDateString(getLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
 }

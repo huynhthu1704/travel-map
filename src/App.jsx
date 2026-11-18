@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AppProvider, useApp } from './AppContext';
 import MapView from './components/MapView';
 import SidePanel from './components/SidePanel';
@@ -7,27 +7,42 @@ import Modals from './components/Modals';
 import { Avatar } from './components/ui';
 import { ExplorePage, MemoriesPage, TripsPage } from './pages/Pages';
 import { firebaseEnabled } from './lib/firebase';
+import { useI18n, LANGS } from './i18n';
 
 const NAV = [
-  { id: 'map', label: 'Bản đồ', icon: '🗺️' },
-  { id: 'explore', label: 'Khám phá', icon: '🌍' },
-  { id: 'memories', label: 'Kỉ niệm', icon: '📸' },
-  { id: 'trips', label: 'Chuyến đi', icon: '🧳' },
+  { id: 'map', icon: '🗺️' },
+  { id: 'explore', icon: '🌍' },
+  { id: 'memories', icon: '📸' },
+  { id: 'trips', icon: '🧳' },
 ];
+
+/** Nút lá cờ đổi ngôn ngữ: bấm để chuyển sang ngôn ngữ còn lại */
+function LangSwitch() {
+  const { lang, setLang, t } = useI18n();
+  const next = LANGS.find((l) => l.id !== lang);
+  const cur = LANGS.find((l) => l.id === lang);
+  return (
+    <button className="lang-btn" onClick={() => setLang(next.id)} title={`${t('lang.switch')}: ${next.label}`} aria-label={`${t('lang.switch')}: ${next.label}`}>
+      <span className="lang-btn__flag">{cur.flag}</span>
+      <span className="lang-btn__code">{cur.id.toUpperCase()}</span>
+    </button>
+  );
+}
 
 function UserMenu() {
   const { user, api, requireLogin } = useApp();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   if (user === undefined) return <span className="avatar avatar--letter skeleton" />;
   if (!user)
     return (
       <button className="btn btn--dark btn--sm" onClick={() => requireLogin(() => {})}>
-        Đăng nhập
+        {t('auth.login')}
       </button>
     );
   return (
     <div className="user-menu">
-      <button className="user-menu__btn" onClick={() => setOpen((v) => !v)} aria-label="Tài khoản">
+      <button className="user-menu__btn" onClick={() => setOpen((v) => !v)} aria-label={t('auth.account')}>
         <Avatar name={user.name} photo={user.photo} size={36} />
       </button>
       {open && (
@@ -41,7 +56,7 @@ function UserMenu() {
               setOpen(false);
             }}
           >
-            Đăng xuất
+            {t('auth.logout')}
           </button>
         </div>
       )}
@@ -51,24 +66,30 @@ function UserMenu() {
 
 function Shell() {
   const { view, setView, toast, activeTripId, trips, setActiveTripId } = useApp();
+  const { t } = useI18n();
   const activeTrip = trips.find((t) => t.id === activeTripId);
+  // Giữ các trang đã mở trong DOM để khi quay lại vẫn còn tab, bộ lọc và vị trí cuộn
+  const [mounted, setMounted] = useState(() => new Set([view]));
+  useEffect(() => setMounted((m) => (m.has(view) ? m : new Set([...m, view]))), [view]);
+  const pageCls = (id) => (view === id ? '' : 'page-hidden');
   return (
     <div className={`app view-${view}`}>
       <header className="topbar">
         <button className="logo" onClick={() => setView('map')}>
           <span className="logo__mark">📍</span>
           <span className="logo__text">
-            Bản đồ <em>du lịch</em>
+            {t('app.logo1')} <em>{t('app.logo2')}</em>
           </span>
         </button>
         <SearchBox />
         <nav className="nav nav--top">
           {NAV.map((n) => (
             <button key={n.id} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
-              {n.icon} {n.label}
+              {n.icon} {t('nav.' + n.id)}
             </button>
           ))}
         </nav>
+        <LangSwitch />
         <UserMenu />
       </header>
 
@@ -77,33 +98,33 @@ function Shell() {
           <MapView />
           {activeTrip && view === 'map' && (
             <div className="trip-badge">
-              {activeTrip.emoji} Đang xem chuyến <b>{activeTrip.name}</b>
-              <button onClick={() => setActiveTripId(null)} aria-label="Tắt">✕</button>
+              {activeTrip.emoji} {t('map.viewingTrip')} <b>{activeTrip.name}</b>
+              <button onClick={() => setActiveTripId(null)} aria-label={t('map.off')}>✕</button>
             </div>
           )}
           <div className="legend">
-            <span><i className="dot dot--visited" />Đã đến</span>
-            <span><i className="dot dot--wish" />Muốn đi</span>
-            <span><i className="dot dot--famous" />Nổi tiếng</span>
-            {activeTrip && <span><i className="dot dot--trip" />Chuyến đi</span>}
+            <span><i className="dot dot--visited" />{t('legend.visited')}</span>
+            <span><i className="dot dot--wish" />{t('legend.wish')}</span>
+            <span><i className="dot dot--famous" />{t('legend.famous')}</span>
+            {activeTrip && <span><i className="dot dot--trip" />{t('legend.trip')}</span>}
           </div>
           {view === 'map' && <SidePanel />}
         </div>
-        {view === 'explore' && <ExplorePage />}
-        {view === 'memories' && <MemoriesPage />}
-        {view === 'trips' && <TripsPage />}
+        {mounted.has('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
+        {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}
+        {mounted.has('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
       </main>
 
       <nav className="nav nav--bottom">
         {NAV.map((n) => (
           <button key={n.id} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
             <span>{n.icon}</span>
-            {n.label}
+            {t('nav.' + n.id)}
           </button>
         ))}
       </nav>
 
-      {!firebaseEnabled && <div className="demo-flag">Chế độ demo · dữ liệu lưu trên trình duyệt</div>}
+      {!firebaseEnabled && <div className="demo-flag">{t('demo.flag')}</div>}
       {toast && <div className={`toast toast--${toast.kind}`} key={toast.id}>{toast.msg}</div>}
       <Modals />
     </div>

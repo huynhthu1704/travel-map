@@ -4,8 +4,8 @@ export const googleMapsUrl = (p) =>
   `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&destination_place_id=&travelmode=driving`;
 
 /** Tìm kiếm địa điểm bất kỳ bằng OpenStreetMap Nominatim (miễn phí, không cần key). */
-export async function searchNominatim(q, signal) {
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=vi&q=${encodeURIComponent(q)}`;
+export async function searchNominatim(q, signal, lang = 'vi') {
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&accept-language=${lang}&q=${encodeURIComponent(q)}`;
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
   if (!res.ok) return [];
   const data = await res.json();

@@ -4,40 +4,43 @@ import { MemoryGrid } from '../components/SidePanel';
 import { Avatar, Chip, Empty, formatDate } from '../components/ui';
 import { countryName, flagOf } from '../lib/countries';
 import { normalize } from '../lib/geo';
+import { useI18n } from '../i18n';
+import { pName, pCity } from '../lib/lang';
 
 /** Bộ lọc dùng chung: tìm theo chữ + quốc gia + thành phố */
 function useFilters(items, getPlace) {
   const [text, setText] = useState('');
   const [cc, setCc] = useState('');
   const [city, setCity] = useState('');
+  const { t, lang } = useI18n();
   const countries = useMemo(() => [...new Set(items.map((i) => getPlace(i)?.country).filter(Boolean))].sort(), [items, getPlace]);
   const cities = useMemo(
-    () => [...new Set(items.filter((i) => !cc || getPlace(i)?.country === cc).map((i) => getPlace(i)?.city).filter(Boolean))].sort(),
-    [items, cc, getPlace],
+    () => [...new Set(items.filter((i) => !cc || getPlace(i)?.country === cc).map((i) => pCity(getPlace(i))).filter(Boolean))].sort(),
+    [items, cc, getPlace, lang], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const filtered = useMemo(() => {
     const n = normalize(text.trim());
     return items.filter((i) => {
       const p = getPlace(i) || {};
       if (cc && p.country !== cc) return false;
-      if (city && p.city !== city) return false;
-      if (n && !normalize(`${p.name} ${p.city} ${countryName(p.country)} ${i.caption || ''} ${i.authorName || ''}`).includes(n)) return false;
+      if (city && pCity(p) !== city) return false;
+      if (n && !normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)} ${i.caption || ''} ${i.authorName || ''}`).includes(n)) return false;
       return true;
     });
-  }, [items, text, cc, city, getPlace]);
+  }, [items, text, cc, city, getPlace, lang]); // eslint-disable-line react-hooks/exhaustive-deps
   const ui = (
     <div className="filters">
-      <input className="filters__search" value={text} onChange={(e) => setText(e.target.value)} placeholder="🔎 Tìm theo địa điểm, ghi chú…" />
-      <select value={cc} onChange={(e) => { setCc(e.target.value); setCity(''); }} aria-label="Lọc theo quốc gia">
-        <option value="">🌏 Tất cả quốc gia</option>
+      <input className="filters__search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('filter.search')} />
+      <select value={cc} onChange={(e) => { setCc(e.target.value); setCity(''); }} aria-label={t('filter.byCountry')}>
+        <option value="">{t('filter.allCountries')}</option>
         {countries.map((c) => (
           <option key={c} value={c}>
             {flagOf(c)} {countryName(c)}
           </option>
         ))}
       </select>
-      <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="Lọc theo thành phố" disabled={!cities.length}>
-        <option value="">🏙️ Tất cả thành phố</option>
+      <select value={city} onChange={(e) => setCity(e.target.value)} aria-label={t('filter.byCity')} disabled={!cities.length}>
+        <option value="">{t('filter.allCities')}</option>
         {cities.map((c) => (
           <option key={c}>{c}</option>
         ))}
@@ -50,18 +53,19 @@ const memPlace = (m) => m.place;
 
 export function ExplorePage() {
   const { publicMemories } = useApp();
+  const { t } = useI18n();
   const { filtered, ui } = useFilters(publicMemories, memPlace);
   return (
     <div className="page">
       <header className="page__head">
         <div>
-          <p className="eyebrow">Cộng đồng</p>
-          <h1 className="h1">Khám phá trước khi đi 🌍</h1>
-          <p className="muted">Ảnh thật từ những người đã đặt chân tới — chia sẻ ở chế độ công khai.</p>
+          <p className="eyebrow">{t('explore.eyebrow')}</p>
+          <h1 className="h1">{t('explore.title')}</h1>
+          <p className="muted">{t('explore.sub')}</p>
         </div>
       </header>
       {ui}
-      {filtered.length ? <MemoryGrid items={filtered} /> : <Empty emoji="🔭" title="Chưa có ảnh phù hợp" text="Thử bỏ bớt bộ lọc nhé." />}
+      {filtered.length ? <MemoryGrid items={filtered} /> : <Empty emoji="🔭" title={t('explore.empty')} text={t('explore.emptyHint')} />}
     </div>
   );
 }
@@ -69,6 +73,7 @@ export function ExplorePage() {
 export function MemoriesPage() {
   const { user, memories, places, requireLogin, setModal, openPlace } = useApp();
   const [tab, setTab] = useState('memories');
+  const { t } = useI18n();
   const { filtered, ui } = useFilters(memories, memPlace);
   const wish = places.filter((p) => p.status === 'wishlist');
   const visited = places.filter((p) => p.status === 'visited');
@@ -78,9 +83,9 @@ export function MemoriesPage() {
       <div className="page">
         <Empty
           emoji="📸"
-          title="Kỉ niệm của bạn sẽ ở đây"
-          text="Đăng nhập Google để lưu ảnh kỉ niệm ở từng địa điểm."
-          action={<button className="btn btn--primary" onClick={() => requireLogin(() => {})}>Đăng nhập</button>}
+          title={t('mine.loginTitle')}
+          text={t('mine.loginText')}
+          action={<button className="btn btn--primary" onClick={() => requireLogin(() => {})}>{t('auth.login')}</button>}
         />
       </div>
     );
@@ -89,17 +94,17 @@ export function MemoriesPage() {
     <div className="page">
       <header className="page__head">
         <div>
-          <p className="eyebrow">Của tôi</p>
-          <h1 className="h1">Kỉ niệm & dấu chân 👣</h1>
+          <p className="eyebrow">{t('mine.eyebrow')}</p>
+          <h1 className="h1">{t('mine.title')}</h1>
         </div>
         <button className="btn btn--primary" onClick={() => setModal({ type: 'memory' })}>
-          📸 Thêm kỉ niệm
+          {t('place.addMemory')}
         </button>
       </header>
       <div className="chips">
-        <Chip active={tab === 'memories'} onClick={() => setTab('memories')}>📸 Kỉ niệm ({memories.length})</Chip>
-        <Chip active={tab === 'visited'} onClick={() => setTab('visited')}>👣 Đã đến ({visited.length})</Chip>
-        <Chip active={tab === 'wishlist'} onClick={() => setTab('wishlist')}>💛 Muốn đi ({wish.length})</Chip>
+        <Chip active={tab === 'memories'} onClick={() => setTab('memories')}>{t('mine.tabMemories', { n: memories.length })}</Chip>
+        <Chip active={tab === 'visited'} onClick={() => setTab('visited')}>{t('mine.tabVisited', { n: visited.length })}</Chip>
+        <Chip active={tab === 'wishlist'} onClick={() => setTab('wishlist')}>{t('mine.tabWish', { n: wish.length })}</Chip>
       </div>
       {tab === 'memories' && (
         <>
@@ -107,12 +112,12 @@ export function MemoriesPage() {
           {filtered.length ? (
             <MemoryGrid items={filtered} />
           ) : (
-            <Empty emoji="🧺" title="Chưa có kỉ niệm nào" text="Chọn một địa điểm trên bản đồ rồi bấm “Thêm kỉ niệm”." />
+            <Empty emoji="🧺" title={t('mine.empty')} text={t('mine.emptyHint')} />
           )}
         </>
       )}
       {tab !== 'memories' && (
-        <PlaceList items={tab === 'visited' ? visited : wish} onOpen={openPlace} emptyText={tab === 'visited' ? 'Chưa đánh dấu nơi nào' : 'Danh sách muốn đi đang trống'} />
+        <PlaceList items={tab === 'visited' ? visited : wish} onOpen={openPlace} emptyText={tab === 'visited' ? t('mine.noVisited') : t('mine.noWish')} />
       )}
     </div>
   );
@@ -121,6 +126,7 @@ export function MemoriesPage() {
 function PlaceList({ items, onOpen, emptyText }) {
   const { filtered, ui } = useFilters(items, (p) => p);
   const { setModal } = useApp();
+  const { t } = useI18n();
   return (
     <>
       {ui}
@@ -130,13 +136,13 @@ function PlaceList({ items, onOpen, emptyText }) {
             <div key={p.id} className="list-item">
               <span className="list-item__emoji">{p.emoji || '📍'}</span>
               <button className="list-item__main" onClick={() => onOpen(p)}>
-                <b>{p.name}</b>
+                <b>{pName(p)}</b>
                 <small>
-                  {flagOf(p.country)} {[p.city, countryName(p.country)].filter(Boolean).join(', ')}
+                  {flagOf(p.country)} {[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}
                 </small>
               </button>
               <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: p })}>
-                🧭 Chỉ đường
+                {t('common.directions')}
               </button>
             </div>
           ))}
@@ -154,29 +160,30 @@ export function TripsPage() {
   const [emoji, setEmoji] = useState('🧳');
   const [code, setCode] = useState('');
   const [openId, setOpenId] = useState(null);
+  const { t } = useI18n();
 
   if (!user)
     return (
       <div className="page">
         <Empty
           emoji="🧳"
-          title="Đi chơi cùng nhau"
-          text="Tạo chuyến đi, mời bạn bè bằng link và cùng nhau đánh dấu mọi nơi đã đi."
-          action={<button className="btn btn--primary" onClick={() => requireLogin(() => {})}>Đăng nhập</button>}
+          title={t('trips.loginTitle')}
+          text={t('trips.loginText')}
+          action={<button className="btn btn--primary" onClick={() => requireLogin(() => {})}>{t('auth.login')}</button>}
         />
       </div>
     );
 
-  const open = trips.find((t) => t.id === openId);
+  const open = trips.find((tr) => tr.id === openId);
   if (open) return <TripDetail trip={open} onBack={() => setOpenId(null)} />;
 
   return (
     <div className="page">
       <header className="page__head">
         <div>
-          <p className="eyebrow">Nhóm</p>
-          <h1 className="h1">Chuyến đi chung 🧳</h1>
-          <p className="muted">Mọi địa điểm cả nhóm đi cùng nhau sẽ hiện trên bản đồ của tất cả thành viên.</p>
+          <p className="eyebrow">{t('trips.eyebrow')}</p>
+          <h1 className="h1">{t('trips.title')}</h1>
+          <p className="muted">{t('trips.sub')}</p>
         </div>
       </header>
       <div className="grid-2 grid-2--wide">
@@ -185,67 +192,67 @@ export function TripsPage() {
           onSubmit={async (e) => {
             e.preventDefault();
             if (!name.trim()) return;
-            const t = await api.createTrip(user, { name: name.trim(), emoji });
+            const tr = await api.createTrip(user, { name: name.trim(), emoji });
             setName('');
-            notify(`Đã tạo “${t.name}” — gửi link mời bạn bè nhé!`);
-            setOpenId(t.id);
+            notify(t('trips.created', { name: tr.name }));
+            setOpenId(tr.id);
           }}
         >
-          <h3 className="h3">Tạo chuyến đi mới</h3>
+          <h3 className="h3">{t('trips.create')}</h3>
           <div className="row">
-            <select value={emoji} onChange={(e) => setEmoji(e.target.value)} className="emoji-select" aria-label="Biểu tượng">
+            <select value={emoji} onChange={(e) => setEmoji(e.target.value)} className="emoji-select" aria-label={t('trips.icon')}>
               {['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'].map((x) => (
                 <option key={x}>{x}</option>
               ))}
             </select>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: Đà Lạt cuối tuần" className="grow" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('trips.namePlaceholder')} className="grow" />
           </div>
-          <button className="btn btn--primary">Tạo chuyến đi</button>
+          <button className="btn btn--primary">{t('trips.createBtn')}</button>
         </form>
         <form
           className="card stack"
           onSubmit={async (e) => {
             e.preventDefault();
             try {
-              const t = await api.joinTrip(user, code);
-              notify(`Đã tham gia “${t.name}” 🎉`);
+              const tr = await api.joinTrip(user, code);
+              notify(t('trips.joined', { name: tr.name }));
               setCode('');
             } catch (err) {
               notify(err.message, 'error');
             }
           }}
         >
-          <h3 className="h3">Tham gia bằng mã mời</h3>
-          <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="VD: K3X9QA" maxLength={8} />
-          <button className="btn btn--dark">Tham gia</button>
+          <h3 className="h3">{t('trips.join')}</h3>
+          <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder={t('trips.codePlaceholder')} maxLength={8} />
+          <button className="btn btn--dark">{t('trips.joinBtn')}</button>
         </form>
       </div>
       {trips.length === 0 ? (
-        <Empty emoji="🎒" title="Chưa có chuyến đi nào" />
+        <Empty emoji="🎒" title={t('trips.empty')} />
       ) : (
         <div className="trip-list">
-          {trips.map((t) => (
-            <article key={t.id} className="trip-card">
-              <button className="trip-card__main" onClick={() => setOpenId(t.id)}>
-                <span className="trip-card__emoji">{t.emoji}</span>
+          {trips.map((tr) => (
+            <article key={tr.id} className="trip-card">
+              <button className="trip-card__main" onClick={() => setOpenId(tr.id)}>
+                <span className="trip-card__emoji">{tr.emoji}</span>
                 <span>
-                  <b>{t.name}</b>
-                  <small>{t.memberIds.length} thành viên · mã {t.inviteCode}</small>
+                  <b>{tr.name}</b>
+                  <small>{t('trips.meta', { n: tr.memberIds.length, code: tr.inviteCode })}</small>
                 </span>
               </button>
               <div className="avatars">
-                {Object.entries(t.members || {}).slice(0, 4).map(([id, m]) => (
+                {Object.entries(tr.members || {}).slice(0, 4).map(([id, m]) => (
                   <Avatar key={id} name={m.name} photo={m.photo} size={28} />
                 ))}
               </div>
               <button
-                className={`btn btn--sm ${activeTripId === t.id ? 'btn--primary' : 'btn--soft'}`}
+                className={`btn btn--sm ${activeTripId === tr.id ? 'btn--primary' : 'btn--soft'}`}
                 onClick={() => {
-                  setActiveTripId(activeTripId === t.id ? null : t.id);
+                  setActiveTripId(activeTripId === tr.id ? null : tr.id);
                   setView('map');
                 }}
               >
-                🗺️ {activeTripId === t.id ? 'Đang hiện' : 'Xem bản đồ'}
+                🗺️ {activeTripId === tr.id ? t('trips.showing') : t('trips.viewMap')}
               </button>
             </article>
           ))}
@@ -257,11 +264,12 @@ export function TripsPage() {
 
 function TripDetail({ trip, onBack }) {
   const { user, api, notify, setActiveTripId, setView, openPlace, setModal } = useApp();
+  const { t } = useI18n();
   const [stops, setStops] = useState([]);
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
   const share = async () => {
-    const text = `Tham gia chuyến đi “${trip.name}” ${trip.emoji} cùng mình trên Bản đồ du lịch!`;
+    const text = t('trip.inviteText', { name: trip.name, emoji: trip.emoji });
     if (navigator.share) {
       try {
         await navigator.share({ title: trip.name, text, url: link });
@@ -271,23 +279,23 @@ function TripDetail({ trip, onBack }) {
       }
     }
     await navigator.clipboard?.writeText(link);
-    notify('Đã copy link mời 🔗');
+    notify(t('trip.copied'));
   };
   const countries = [...new Set(stops.map((s) => s.place.country).filter(Boolean))];
   return (
     <div className="page">
-      <button className="back" onClick={onBack}>← Tất cả chuyến đi</button>
+      <button className="back" onClick={onBack}>{t('trip.back')}</button>
       <header className="page__head">
         <div>
           <h1 className="h1">
             {trip.emoji} {trip.name}
           </h1>
           <p className="muted">
-            {countries.map(flagOf).join(' ')} {stops.length} điểm dừng · Mã mời <b className="code">{trip.inviteCode}</b>
+            {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stops.length })} · {t('trip.code')} <b className="code">{trip.inviteCode}</b>
           </p>
         </div>
         <div className="row wrap">
-          <button className="btn btn--primary" onClick={share}>🔗 Mời bạn bè</button>
+          <button className="btn btn--primary" onClick={share}>{t('trip.invite')}</button>
           <button
             className="btn btn--dark"
             onClick={() => {
@@ -295,25 +303,25 @@ function TripDetail({ trip, onBack }) {
               setView('map');
             }}
           >
-            🗺️ Xem trên bản đồ
+            {t('trip.onMap')}
           </button>
         </div>
       </header>
       <section>
-        <h3 className="section-title">Thành viên</h3>
+        <h3 className="section-title">{t('trip.members')}</h3>
         <div className="row wrap">
           {Object.entries(trip.members || {}).map(([id, m]) => (
             <span key={id} className="member">
               <Avatar name={m.name} photo={m.photo} size={28} /> {m.name}
-              {id === trip.ownerId && <small> · trưởng nhóm</small>}
+              {id === trip.ownerId && <small> · {t('trip.owner')}</small>}
             </span>
           ))}
         </div>
       </section>
       <section>
-        <h3 className="section-title">Hành trình</h3>
+        <h3 className="section-title">{t('trip.journey')}</h3>
         {stops.length === 0 ? (
-          <Empty emoji="📍" title="Chưa có điểm dừng" text="Khi thêm kỉ niệm hoặc đánh dấu “đã đến”, hãy chọn chuyến đi này để cả nhóm cùng thấy." />
+          <Empty emoji="📍" title={t('trip.noStops')} text={t('trip.noStopsHint')} />
         ) : (
           <ol className="timeline">
             {stops.map((s) => (
@@ -321,10 +329,10 @@ function TripDetail({ trip, onBack }) {
                 <div className="timeline__dot">{s.kind === 'memory' ? '📸' : '👣'}</div>
                 <div className="timeline__body">
                   <button className="link" onClick={() => openPlace(s.place)}>
-                    <b>{s.place.name}</b>
+                    <b>{pName(s.place)}</b>
                   </button>
                   <div className="small muted">
-                    {flagOf(s.place.country)} {[s.place.city, countryName(s.place.country)].filter(Boolean).join(', ')} · bởi {s.byName}
+                    {flagOf(s.place.country)} {[pCity(s.place), countryName(s.place.country)].filter(Boolean).join(', ')} · {t('trip.by', { name: s.byName })}
                     {s.createdAt ? ` · ${formatDate(s.createdAt)}` : ''}
                   </div>
                   {s.caption && <p>{s.caption}</p>}
@@ -351,13 +359,13 @@ function TripDetail({ trip, onBack }) {
       <button
         className="btn btn--ghost danger"
         onClick={async () => {
-          if (!confirm(trip.ownerId === user.uid ? 'Xoá chuyến đi này cho cả nhóm?' : 'Rời khỏi chuyến đi?')) return;
+          if (!confirm(trip.ownerId === user.uid ? t('trip.confirmDelete') : t('trip.confirmLeave'))) return;
           await api.leaveTrip(user, trip);
           setActiveTripId(null);
           onBack();
         }}
       >
-        {trip.ownerId === user.uid ? '🗑️ Xoá chuyến đi' : '🚪 Rời chuyến đi'}
+        {trip.ownerId === user.uid ? t('trip.delete') : t('trip.leave')}
       </button>
     </div>
   );

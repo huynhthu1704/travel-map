@@ -4,6 +4,9 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useApp } from '../AppContext';
 import { famousIn } from '../data/places';
+import { useI18n } from '../i18n';
+import { countryName } from '../lib/countries';
+import { pName } from '../lib/lang';
 
 const iconCache = {};
 function pinIcon(kind, emoji) {
@@ -60,6 +63,7 @@ export default function MapView() {
     countries, visitedCountries, selectedCountry, openCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace,
   } = useApp();
   const geoRef = useRef();
+  const { lang } = useI18n();
 
   const style = useMemo(
     () => (f) => {
@@ -114,6 +118,7 @@ export default function MapView() {
       <ZoomControl position="bottomright" />
       {countries && (
         <GeoJSON
+          key={lang}
           ref={geoRef}
           data={countries}
           style={style}
@@ -123,7 +128,7 @@ export default function MapView() {
               mouseover: (e) => e.target.setStyle({ fillOpacity: 0.6, fillColor: '#FFD452' }),
               mouseout: (e) => e.target.setStyle(styleRef.current(f)),
             });
-            layer.bindTooltip(f.properties.nameVi, { sticky: true, className: 'country-tip', direction: 'top' });
+            layer.bindTooltip(f.properties.cc ? countryName(f.properties.cc) : f.properties.name, { sticky: true, className: 'country-tip', direction: 'top' });
           }}
         />
       )}
@@ -135,7 +140,7 @@ export default function MapView() {
           eventHandlers={{ click: () => openPlace(place, { fly: false }) }}
           zIndexOffset={kind === 'visited' ? 500 : kind === 'trip' ? 400 : 0}
         >
-          <Tooltip direction="top">{place.name}{by ? ` · ${by}` : ''}</Tooltip>
+          <Tooltip direction="top">{pName(place)}{by ? ` · ${by}` : ''}</Tooltip>
         </Marker>
       ))}
       <FlyController countries={countries} />

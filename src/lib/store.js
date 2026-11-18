@@ -17,6 +17,8 @@ import {
 import { signInWithPopup, signInWithRedirect, signOut as fbSignOut, onAuthStateChanged } from 'firebase/auth';
 import { firebaseEnabled, auth, db, googleProvider } from './firebase';
 import { compressImage, compressToDataURL, blobToDataURL } from './image';
+import { translate } from '../i18n';
+import { FAMOUS_BY_ID } from '../data/places';
 
 const now = () => Date.now();
 const toMillis = (v) => (v?.toMillis ? v.toMillis() : v || 0);
@@ -24,7 +26,8 @@ const byNewest = (a, b) => toMillis(b.createdAt) - toMillis(a.createdAt);
 const safeId = (s) => String(s).replace(/[^\w-]/g, '_').slice(0, 120);
 export const makeInviteCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 const pickPlace = (p) => ({
-  id: p.id, name: p.name, city: p.city || '', country: p.country || '', lat: p.lat, lng: p.lng, emoji: p.emoji || '📍',
+  id: p.id, name: p.name, city: p.city || '', country: p.country || '', lat: p.lat, lng: p.lng,
+  emoji: p.emoji || FAMOUS_BY_ID[p.id]?.emoji || '📍',
 });
 
 /* ------------------------------------------------------------------ */
@@ -127,7 +130,7 @@ const firebaseBackend = {
   },
   async joinTrip(user, code) {
     const s = await getDocs(query(collection(db, 'trips'), where('inviteCode', '==', code.trim().toUpperCase()), limit(1)));
-    if (s.empty) throw new Error('Không tìm thấy chuyến đi với mã này');
+    if (s.empty) throw new Error(translate('err.tripNotFound'));
     const d = s.docs[0];
     await updateDoc(d.ref, { memberIds: arrayUnion(user.uid), [`members.${user.uid}`]: { name: user.name, photo: user.photo || '' } });
     return { id: d.id, ...d.data() };
@@ -243,7 +246,7 @@ const localBackend = {
   },
   async joinTrip(user, code) {
     const t = state.trips.find((x) => x.inviteCode === code.trim().toUpperCase());
-    if (!t) throw new Error('Ở chế độ demo chỉ tham gia được chuyến đi tạo trên cùng trình duyệt.');
+    if (!t) throw new Error(translate('err.demoJoin'));
     if (!t.memberIds.includes(user.uid)) t.memberIds.push(user.uid);
     t.members[user.uid] = { name: user.name, photo: user.photo };
     save();

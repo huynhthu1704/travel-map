@@ -2,6 +2,7 @@ import { feature } from 'topojson-client';
 import countriesLib from 'i18n-iso-countries';
 import vi from 'i18n-iso-countries/langs/vi.json';
 import en from 'i18n-iso-countries/langs/en.json';
+import { getLang } from './lang';
 
 countriesLib.registerLocale(vi);
 countriesLib.registerLocale(en);
@@ -18,8 +19,16 @@ const SHORT_VI = {
   TZ: 'Tanzania', BO: 'Bolivia', VE: 'Venezuela', IR: 'Iran', SY: 'Syria', MD: 'Moldova', CD: 'CHDC Congo', CG: 'Congo',
 };
 
+const SHORT_EN = {
+  CN: 'China', SY: 'Syria',
+  US: 'United States', GB: 'United Kingdom', KR: 'South Korea', KP: 'North Korea', RU: 'Russia', LA: 'Laos', VN: 'Vietnam',
+  TW: 'Taiwan', IR: 'Iran', SY: 'Syria', VE: 'Venezuela', BO: 'Bolivia', TZ: 'Tanzania', MD: 'Moldova', CD: 'DR Congo',
+  CG: 'Congo', CZ: 'Czechia', AE: 'UAE', MM: 'Myanmar', HK: 'Hong Kong', MO: 'Macau',
+};
+
 export function countryName(cc) {
   if (!cc) return '';
+  if (getLang() === 'en') return SHORT_EN[cc] || countriesLib.getName(cc, 'en') || cc;
   return SHORT_VI[cc] || countriesLib.getName(cc, 'vi') || countriesLib.getName(cc, 'en') || cc;
 }
 

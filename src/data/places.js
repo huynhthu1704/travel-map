@@ -123,10 +123,105 @@ const raw = {
   ],
 };
 
+
+// Bản tiếng Anh: id → [name, city (null = giữ nguyên), desc]
+const EN = {
+  'vn-halong': ['Ha Long Bay', 'Quang Ninh', 'World Natural Heritage site with thousands of limestone islands.'],
+  'vn-hoian': ['Hoi An Ancient Town', 'Quang Nam', 'Lantern-lit old town and UNESCO heritage site.'],
+  'vn-hoguom': ['Hoan Kiem Lake', 'Hanoi', 'The heart of the capital — walk the Old Quarter on weekends.'],
+  'vn-sapa': ['Sa Pa', 'Lao Cai', 'Rice terraces, Fansipan peak and Northwest mountain clouds.'],
+  'vn-dalat': ['Da Lat', 'Lam Dong', 'City of flowers, coffee and pine hills.'],
+  'vn-hue': ['Hue Imperial City', 'Hue', 'The ancient citadel of the Nguyen dynasty.'],
+  'vn-bana': ['Golden Bridge – Ba Na Hills', 'Da Nang', 'A bridge held up by a pair of giant hands.'],
+  'vn-phongnha': ['Phong Nha – Ke Bang', 'Quang Binh', 'Kingdom of caves, home of Son Doong.'],
+  'vn-benthanh': ['Ben Thanh Market', 'Ho Chi Minh City', 'Saigon icon and street-food paradise.'],
+  'vn-phuquoc': ['Phu Quoc', 'Kien Giang', 'Pearl island with blue sea and Sunset Town.'],
+  'vn-ninhbinh': ['Trang An', 'Ninh Binh', 'Boat through caves amid stunning karst scenery.'],
+  'vn-hagiang': ['Ma Pi Leng Pass', 'Ha Giang', 'The most majestic pass in the North — a biker favourite.'],
+  'jp-fuji': ['Mount Fuji', null, 'Japan’s icon, most beautiful in cherry blossom season.'],
+  'jp-fushimi': ['Fushimi Inari', null, 'Thousands of bright red torii gates.'],
+  'jp-shibuya': ['Shibuya Crossing', null, 'The busiest crossing in the world.'],
+  'jp-nara': ['Nara Park', null, 'Hang out with friendly deer.'],
+  'jp-dotonbori': ['Dotonbori', null, 'Street-food paradise.'],
+  'jp-arashiyama': ['Arashiyama Bamboo Grove', null, 'A cool path through green bamboo.'],
+  'jp-hokkaido': ['Furano', null, 'Dreamy purple lavender fields.'],
+  'kr-gyeongbok': ['Gyeongbokgung Palace', null, 'Wear a hanbok and stroll the royal palace.'],
+  'kr-namsan': ['N Seoul Tower', null, 'Love locks and a view over the whole city.'],
+  'kr-bukchon': ['Bukchon Hanok Village', null, 'A traditional village in the middle of Seoul.'],
+  'kr-gamcheon': ['Gamcheon Culture Village', null, 'Colourful houses on the hillside.'],
+  'kr-jeju': ['Seongsan Ilchulbong', null, 'Watch the sunrise from a volcanic crater.'],
+  'kr-nami': ['Nami Island', null, 'Romantic rows of golden trees.'],
+  'th-grandpalace': ['Grand Palace', null, 'Thailand’s dazzling golden architecture.'],
+  'th-watarun': ['Wat Arun', null, 'Temple of Dawn on the Chao Phraya river.'],
+  'th-phiphi': ['Phi Phi Islands', null, 'Crystal-clear water and dramatic cliffs.'],
+  'th-chiangmai': ['Doi Suthep', null, 'Mountain temple overlooking Chiang Mai.'],
+  'th-ayutthaya': ['Ayutthaya', null, 'Ancient capital with a Buddha head in tree roots.'],
+  'sg-mbs': ['Marina Bay Sands', null, 'The rooftop infinity pool.'],
+  'sg-gardens': ['Gardens by the Bay', null, 'Supertrees that glow at night.'],
+  'sg-sentosa': ['Sentosa', null, 'Fun island with Universal Studios.'],
+  'sg-merlion': ['Merlion Park', null, 'The iconic half-lion, half-fish statue.'],
+  'cn-greatwall': ['Great Wall of China', 'Beijing', 'A world wonder thousands of kilometres long.'],
+  'cn-forbidden': ['Forbidden City', 'Beijing', 'The largest imperial palace in the world.'],
+  'cn-zhangjiajie': ['Zhangjiajie', 'Hunan', 'Stone pillars straight out of the movie Avatar.'],
+  'cn-bund': ['The Bund', 'Shanghai', 'A glittering skyline on the Huangpu river.'],
+  'cn-guilin': ['Guilin – Yangshuo', 'Guangxi', 'The poetic Li river.'],
+  'fr-eiffel': ['Eiffel Tower', null, 'The romantic symbol of Paris.'],
+  'fr-louvre': ['Louvre Museum', null, 'Meet the Mona Lisa.'],
+  'fr-montsaintmichel': ['Mont-Saint-Michel', null, 'An abbey on a rocky island at sea.'],
+  'fr-nice': ['Promenade des Anglais', null, 'Stroll the blue Côte d’Azur.'],
+  'fr-provence': ['Valensole Plateau', null, 'Lavender fields in July.'],
+  'it-colosseum': ['Colosseum', null, 'A Roman arena almost 2,000 years old.'],
+  'it-venice': ['Venice Canals', null, 'The city on the water.'],
+  'it-pisa': ['Leaning Tower of Pisa', null, 'Strike the classic “hold the tower” pose.'],
+  'it-amalfi': ['Positano', null, 'A colourful seaside village.'],
+  'it-florence': ['Florence Cathedral (Duomo)', null, 'The famous Renaissance dome.'],
+  'es-sagrada': ['Sagrada Família', null, 'Gaudí’s unfinished masterpiece.'],
+  'es-guell': ['Park Güell', null, 'A park covered in colourful mosaics.'],
+  'es-alhambra': ['Alhambra', null, 'A stunning Moorish palace.'],
+  'es-plaza': ['Plaza de España', 'Seville', 'A tiled square and film location.'],
+  'gb-bigben': ['Big Ben', null, 'London’s iconic clock tower.'],
+  'gb-towerbridge': ['Tower Bridge', null, 'The classic bridge over the Thames.'],
+  'gb-stonehenge': ['Stonehenge', null, 'A mysterious prehistoric stone circle.'],
+  'gb-edinburgh': ['Edinburgh Castle', null, 'A castle on an ancient volcano.'],
+  'us-liberty': ['Statue of Liberty', null, 'The symbol of America.'],
+  'us-timessquare': ['Times Square', null, 'A crossroads ablaze with LED lights.'],
+  'us-goldengate': ['Golden Gate Bridge', null, 'The orange-red bridge in the fog.'],
+  'us-grandcanyon': ['Grand Canyon', null, 'A majestic canyon.'],
+  'us-yosemite': ['Yosemite', null, 'National park with the El Capitan cliff.'],
+  'us-hollywood': ['Hollywood Sign', null, 'Check in at the movie capital.'],
+  'au-opera': ['Sydney Opera House', null, 'White shell-shaped roofs by the harbour.'],
+  'au-reef': ['Great Barrier Reef', null, 'The largest coral reef system in the world.'],
+  'au-uluru': ['Uluru', null, 'The sacred red rock.'],
+  'au-greatocean': ['Twelve Apostles', null, 'Limestone stacks rising from the sea.'],
+  'id-ubud': ['Tegallalang Rice Terraces', null, 'Swing over green rice paddies.'],
+  'id-tanahlot': ['Tanah Lot Temple', null, 'A temple on a rock in the sea.'],
+  'id-borobudur': ['Borobudur', null, 'The largest Buddhist temple in the world.'],
+  'id-komodo': ['Komodo', null, 'Meet Komodo dragons and a pink beach.'],
+  'my-petronas': ['Petronas Twin Towers', null, 'The iconic twin towers.'],
+  'my-batu': ['Batu Caves', null, 'The rainbow staircase.'],
+  'my-penang': ['George Town', null, 'Street art and street food.'],
+  'kh-angkor': ['Angkor Wat', null, 'A magnificent temple complex.'],
+  'kh-palace': ['Royal Palace of Phnom Penh', null, 'A palace with golden roofs.'],
+  'la-luangprabang': ['Luang Prabang', null, 'Peaceful old capital with morning alms-giving.'],
+  'la-kuangsi': ['Kuang Si Falls', null, 'Turquoise waterfalls.'],
+  'ch-matterhorn': ['Matterhorn', null, 'The pyramid-shaped mountain.'],
+  'ch-lucerne': ['Chapel Bridge', null, 'An old wooden bridge on the lake.'],
+  'ch-interlaken': ['Jungfraujoch', null, 'The Top of Europe.'],
+  'tr-cappadocia': ['Cappadocia', null, 'Hot-air balloons at sunrise.'],
+  'tr-hagia': ['Hagia Sophia', null, 'A building over a thousand years old.'],
+  'tr-pamukkale': ['Pamukkale', null, 'White travertine terraces.'],
+};
+
 export const FAMOUS_PLACES = Object.fromEntries(
   Object.entries(raw).map(([cc, list]) => [
     cc,
-    list.map(([id, name, city, lat, lng, emoji, desc]) => ({ id, name, city, lat, lng, emoji, desc, country: cc, famous: true })),
+    list.map(([id, name, city, lat, lng, emoji, desc]) => {
+      const [nameEn, cityEn, descEn] = EN[id] || [];
+      return {
+        id, name, city, lat, lng, emoji, desc, country: cc, famous: true,
+        i18n: { en: { name: nameEn || name, city: cityEn || city, desc: descEn || desc } },
+      };
+    }),
   ]),
 );
 
@@ -135,3 +230,5 @@ export const ALL_FAMOUS = Object.values(FAMOUS_PLACES).flat();
 export function famousIn(cc) {
   return FAMOUS_PLACES[cc] || [];
 }
+
+export const FAMOUS_BY_ID = Object.fromEntries(ALL_FAMOUS.map((p) => [p.id, p]));

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/store';
 import { loadCountries, bboxOf } from './lib/countries';
+import { fixPlace, fixMemory } from './lib/fixes';
 import { loadFamousLive } from './lib/famousLive';
 import { famousIn } from './data/places';
 import { translate as t } from './i18n';
@@ -65,7 +66,7 @@ export function AppProvider({ children }) {
   useEffect(
     () =>
       api.watchPublicMemories((list) => {
-        setPublicMemories(list);
+        setPublicMemories(list.map(fixMemory));
         markLoaded('public');
       }),
     [],
@@ -81,9 +82,9 @@ export function AppProvider({ children }) {
       setTrips([]);
       return;
     }
-    const u1 = api.watchPlaces(user.uid, setPlaces);
+    const u1 = api.watchPlaces(user.uid, (list) => setPlaces(list.map(fixPlace)));
     const u2 = api.watchMyMemories(user.uid, (list) => {
-      setMemories(list);
+      setMemories(list.map(fixMemory));
       markLoaded('mine');
     });
     const u3 = api.watchTrips(user.uid, (list) => {

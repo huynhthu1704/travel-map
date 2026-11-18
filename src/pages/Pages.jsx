@@ -3,7 +3,8 @@ import { useApp } from '../AppContext';
 import { MemoryGrid } from '../components/SidePanel';
 import { Avatar, Chip, Empty, formatDate, Loader, LoadingImage } from '../components/ui';
 import { countryName, flagOf } from '../lib/countries';
-import { normalize } from '../lib/geo';
+import { normalize, searchNominatim } from '../lib/geo';
+import { PlaceCard } from '../components/SidePanel';
 import { useI18n } from '../i18n';
 import { pName, pCity } from '../lib/lang';
 import Combobox from '../components/Combobox';
@@ -83,14 +84,79 @@ function useFilters(items, getPlace) {
       />
     </div>
   );
-  return { filtered, ui, cc, city };
+  return { filtered, ui, cc, city, text };
 }
 const memPlace = (m) => m.place;
+
+/** Kết quả địa điểm cho ô tìm kiếm: địa điểm nổi tiếng đã có + tìm trên bản đồ (OpenStreetMap) */
+function PlaceMatches({ text, cc, city }) {
+  const { t, lang } = useI18n();
+  const { famousFor, allLiveFamous } = useApp();
+  const [osm, setOsm] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [limit, setLimit] = useState(8);
+  const q = text.trim();
+  const local = useMemo(() => {
+    if (q.length < 2) return [];
+    const n = normalize(q);
+    const nc = normalize(city.trim());
+    const pool = cc ? famousFor(cc) : allLiveFamous || [];
+    return pool.filter(
+      (p) => normalize(`${p.name} ${pName(p)} ${p.desc || ''}`).includes(n) && (!nc || normalize(`${p.city} ${pCity(p)}`).includes(nc)),
+    );
+  }, [q, cc, city, famousFor, allLiveFamous, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setLimit(8);
+    if (q.length < 2) return setOsm([]);
+    const ctl = new AbortController();
+    setBusy(true);
+    const tm = setTimeout(async () => {
+      try {
+        const query = [q, city.trim()].filter(Boolean).join(', ');
+        setOsm(await searchNominatim(query, ctl.signal, lang, { countrycodes: cc, limit: 10 }));
+      } catch {
+        /* bỏ qua lỗi mạng / huỷ */
+      }
+      setBusy(false);
+    }, 450);
+    return () => {
+      clearTimeout(tm);
+      ctl.abort();
+    };
+  }, [q, cc, city, lang]);
+  if (q.length < 2) return null;
+  const seen = new Set(local.map((p) => normalize(p.name)));
+  const list = [...local, ...osm.filter((p) => !seen.has(normalize(p.name)) && p.type !== 'country')];
+  return (
+    <section className="stack" style={{ marginBottom: 24 }}>
+      <h3 className="h3">{t('explore.placesFound', { n: list.length })}</h3>
+      {busy && !list.length ? (
+        <Loader size="sm" />
+      ) : list.length ? (
+        <>
+          <div className="place-grid">
+            {list.slice(0, limit).map((p) => (
+              <PlaceCard key={p.id} place={p} />
+            ))}
+          </div>
+          {list.length > limit && (
+            <button className="btn btn--soft" onClick={() => setLimit((x) => x + 8)}>
+              {t('country.showMore', { n: list.length - limit })}
+            </button>
+          )}
+        </>
+      ) : (
+        <p className="muted small">{t('explore.noPlaces')}</p>
+      )}
+      <h3 className="h3" style={{ marginTop: 8 }}>{t('explore.photosFound')}</h3>
+    </section>
+  );
+}
 
 export function ExplorePage() {
   const { publicMemories, openCountry, loaded } = useApp();
   const { t } = useI18n();
-  const { filtered, ui, cc } = useFilters(publicMemories, memPlace);
+  const { filtered, ui, cc, city, text } = useFilters(publicMemories, memPlace);
   return (
     <div className="page">
       <header className="page__head">
@@ -101,6 +167,7 @@ export function ExplorePage() {
         </div>
       </header>
       {ui}
+      <PlaceMatches text={text} cc={cc} city={city} />
       {!loaded.public ? (
         <Loader />
       ) : filtered.length ? (

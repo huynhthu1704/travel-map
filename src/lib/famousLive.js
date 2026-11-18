@@ -1,3 +1,4 @@
+import { fixPlace } from './fixes';
 // Famous places for any country, loaded on demand from Wikidata (via the fast QLever SPARQL endpoint)
 // and ranked by how many Wikipedia language editions cover them. Cached in localStorage for 7 days.
 import { famousIn } from '../data/places';
@@ -148,7 +149,7 @@ export async function loadFamousLive(cc, bounds) {
   if (!cc) return [];
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY(cc)) || 'null');
-    if (cached && Date.now() - cached.t < TTL) return cached.list;
+    if (cached && Date.now() - cached.t < TTL) return cached.list.map(fixPlace);
   } catch {
     /* ignore */
   }
@@ -179,7 +180,7 @@ export async function loadFamousLive(cc, bounds) {
     } catch {
       /* storage full */
     }
-    return list;
+    return list.map(fixPlace);
   } catch {
     return [];
   } finally {

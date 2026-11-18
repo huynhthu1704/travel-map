@@ -33,8 +33,9 @@ export const isLatin = (s = '') => !/[^\u0000-ɏḀ-ỿ -⁯₠-⃏\s]/u.test(
  * Tìm kiếm địa điểm bất kỳ bằng OpenStreetMap Nominatim (miễn phí, không cần key).
  * Địa điểm ở nước ngoài luôn dùng tên tiếng Anh; địa điểm ở Việt Nam giữ tên tiếng Việt khi giao diện là tiếng Việt.
  */
-export async function searchNominatim(q, signal, lang = 'vi') {
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&namedetails=1&limit=6&accept-language=en&q=${encodeURIComponent(q)}`;
+export async function searchNominatim(q, signal, lang = 'vi', { countrycodes = '', limit = 6 } = {}) {
+  const cc = countrycodes ? `&countrycodes=${countrycodes.toLowerCase()}` : '';
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&namedetails=1&limit=${limit}${cc}&accept-language=en&q=${encodeURIComponent(q)}`;
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } });
   if (!res.ok) return [];
   const data = await res.json();

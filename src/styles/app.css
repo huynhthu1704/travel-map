@@ -6524,3 +6524,12 @@ body.fb-picking * {
   font-size: 12px;
   font-weight: 700;
 }
+.popular__img {
+  position: relative;
+}
+.popular__img .loader__text {
+  display: none;
+}
+.popular__img .loader {
+  transform: scale(0.6);
+}

@@ -23,23 +23,23 @@ const FORMATS = [
   { id: 'square', w: 1080, h: 1080 },
 ];
 
-const C = {
+export const C = {
   honey: '#FFC629', honey2: '#F5B000', honeySoft: '#FFF0C2', cream: '#FFFCF5', ink: '#1F1A14', ink2: '#4A4237', coral: '#FF7A59', white: '#FFFFFF',
 };
-const HEAD = '700 {s}px "Twemoji Country Flags", Lexend, "Be Vietnam Pro", sans-serif';
-const BODY = '500 {s}px "Twemoji Country Flags", "Be Vietnam Pro", sans-serif';
-const font = (tpl, s) => tpl.replace('{s}', Math.round(s));
-const ease = (t) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
+export const HEAD = '700 {s}px "Twemoji Country Flags", Lexend, "Be Vietnam Pro", sans-serif';
+export const BODY = '500 {s}px "Twemoji Country Flags", "Be Vietnam Pro", sans-serif';
+export const font = (tpl, s) => tpl.replace('{s}', Math.round(s));
+export const ease = (t) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
 
-function roundRect(ctx, x, y, w, h, r) {
+export function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
 }
 
-const DEFAULT_CROP = { x: 0.5, y: 0.5, z: 1 };
+export const DEFAULT_CROP = { x: 0.5, y: 0.5, z: 1 };
 
 /** Vẽ ảnh phủ kín khung. `crop` = điểm lấy nét (x, y: 0–1) + mức phóng (z ≥ 1) do người dùng chỉnh. */
-function drawCover(ctx, img, x, y, w, h, r = 0, zoom = 1, crop = DEFAULT_CROP) {
+export function drawCover(ctx, img, x, y, w, h, r = 0, zoom = 1, crop = DEFAULT_CROP) {
   const s = Math.max(w / img.width, h / img.height) * zoom * crop.z;
   const iw = img.width * s;
   const ih = img.height * s;
@@ -66,7 +66,7 @@ function gridSlots(n, x, y, w, h, gap) {
   return [[x, y, cw, ch], [x + cw + gap, y, cw, ch], [x, y + ch + gap, cw, ch], [x + cw + gap, y + ch + gap, cw, ch]];
 }
 
-function wrapText(ctx, text, maxW, maxLines = 2) {
+export function wrapText(ctx, text, maxW, maxLines = 2) {
   const words = text.split(/\s+/);
   const lines = [];
   let line = '';
@@ -308,7 +308,7 @@ function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, f
   return slots;
 }
 
-function pickMime() {
+export function pickMime() {
   const list = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
   return list.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
 }

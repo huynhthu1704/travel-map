@@ -6,6 +6,8 @@ import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
 import { firebaseEnabled } from '../lib/firebase';
 import ShareStudio from './ShareStudio';
+import RecapStudio from './RecapStudio';
+import DateInput from './DateInput';
 import { useI18n } from '../i18n';
 import { pName, pCity, getLang } from '../lib/lang';
 
@@ -24,6 +26,8 @@ export default function Modals() {
       return <MemoryViewer memory={modal.memory} onClose={close} />;
     case 'share':
       return <ShareStudio memory={modal.memory} onClose={close} />;
+    case 'recap':
+      return <RecapStudio mode={modal.mode || 'year'} trip={modal.trip} stops={modal.stops} onClose={close} />;
     case 'confirmRemove':
       return <ConfirmRemoveModal place={modal.place} onClose={close} />;
     case 'visitDate':
@@ -235,7 +239,7 @@ function VisitDateModal({ place, tripId, onClose }) {
         <p className="muted">{t('visit.question', { name: pName(place) })}</p>
         <label className="field">
           <span>{t('visit.label')}</span>
-          <input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
+          <DateInput value={date} max={today()} onChange={setDate} ariaLabel={t('visit.label')} />
         </label>
         <OccasionField value={occasion} onChange={setOccasion} />
         {busy ? (
@@ -452,7 +456,7 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
         <div className="grid-2">
           <label className="field">
             <span>{t('mem.date')}</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <DateInput value={date} onChange={setDate} ariaLabel={t('mem.date')} />
           </label>
           <label className="field">
             <span>{t('mem.trip')}</span>

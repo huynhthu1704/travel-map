@@ -846,6 +846,122 @@ code {
   font-size: 12px;
   color: var(--color-text-muted);
 }
+.otd {
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #fff1e8, var(--honey-100));
+  border: 1.5px solid #ffd7c4;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: pop 0.3s ease;
+}
+.otd__head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.otd__head small {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.otd__badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  box-shadow: var(--shadow-card);
+}
+.otd__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.otd__item {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+.otd__photo {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--honey-50);
+}
+.otd__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.otd__emoji {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--honey-100);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+.otd__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 14px;
+}
+.otd__text small {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+.stats--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+.trip-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.trip-summary__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.trip-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.trip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.trip-group__city {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: 2px solid var(--honey-200);
+}
+.recap-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 120px;
+  overflow: auto;
+}
 .progress {
   position: relative;
   height: 32px;
@@ -1033,8 +1149,41 @@ button.list-item:hover,
   margin-top: 2px;
   gap: 6px;
 }
-.visit-field input {
-  max-width: 220px;
+.date-input {
+  position: relative;
+  max-width: 240px;
+}
+.date-input input:first-child {
+  padding-right: 44px;
+  letter-spacing: 0.04em;
+}
+.date-input.is-invalid input:first-child {
+  border-color: var(--coral-500);
+  box-shadow: 0 0 0 4px var(--coral-100);
+}
+.date-input__btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  font-size: 17px;
+}
+.date-input__btn:hover {
+  background: var(--honey-50);
+}
+.date-input__native {
+  position: absolute;
+  right: 6px;
+  bottom: 0;
+  width: 34px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  padding: 0;
+  border: 0;
 }
 .place-card__title {
   font-family: var(--font-heading);

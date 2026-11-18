@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FAMOUS_BY_ID } from '../data/places';
 
-const KEY = 'travel-map-img-v1';
+const KEY = 'travel-map-img-v2';
 let cache = {};
 try {
   cache = JSON.parse(localStorage.getItem(KEY) || '{}');
@@ -19,11 +19,53 @@ const save = () => {
 };
 const pending = {};
 
-async function wikiThumb(lang, q) {
-  const url = `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=1&gsrsearch=${encodeURIComponent(q)}&prop=pageimages&piprop=thumbnail&pithumbsize=640`;
+const norm = (x = '') =>
+  x
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 1);
+
+/** Tên bài viết có khớp với tên địa điểm không (tránh lấy nhầm ảnh của trang khác) */
+function titleMatches(title, name) {
+  const a = new Set(norm(title));
+  const b = norm(name).filter((w) => !['the', 'of', 'and', 'cua', 'va'].includes(w));
+  if (!b.length) return false;
+  const hit = b.filter((w) => a.has(w)).length;
+  return hit / b.length >= 0.6;
+}
+
+/** Ảnh đại diện của đúng một bài Wikipedia (theo tiêu đề) */
+async function pageThumb(lang, title) {
+  const url = `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&titles=${encodeURIComponent(title)}&prop=pageimages&piprop=thumbnail&pithumbsize=640`;
   const j = await fetch(url).then((r) => r.json());
-  const page = Object.values(j?.query?.pages || {})[0];
+  return Object.values(j?.query?.pages || {})[0]?.thumbnail?.source || '';
+}
+
+/** Tìm bài Wikipedia theo tên, chỉ nhận khi tiêu đề khớp tên địa điểm */
+async function searchThumb(lang, q, name) {
+  const url = `https://${lang}.wikipedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrlimit=3&gsrsearch=${encodeURIComponent(q)}&prop=pageimages&piprop=thumbnail&pithumbsize=640`;
+  const j = await fetch(url).then((r) => r.json());
+  const pages = Object.values(j?.query?.pages || {}).sort((x, y) => (x.index || 0) - (y.index || 0));
+  const page = pages.find((pg) => pg.thumbnail && titleMatches(pg.title, name));
   return page?.thumbnail?.source || '';
+}
+
+/** Địa điểm từ Wikidata: lấy ảnh từ chính bài Wikipedia liên kết với mục Wikidata đó */
+async function wikidataThumb(qid) {
+  const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&origin=*&ids=${qid}&props=sitelinks&sitefilter=viwiki|enwiki`;
+  const j = await fetch(url).then((r) => r.json());
+  const links = j?.entities?.[qid]?.sitelinks || {};
+  for (const [site, lang] of [['viwiki', 'vi'], ['enwiki', 'en']]) {
+    if (links[site]?.title) {
+      const img = await pageThumb(lang, links[site].title);
+      if (img) return img;
+    }
+  }
+  return '';
 }
 
 export async function getPlaceImage(p) {
@@ -35,11 +77,15 @@ export async function getPlaceImage(p) {
   if (pending[p.id]) return pending[p.id];
   pending[p.id] = (async () => {
     const en = p.i18n?.en || FAMOUS_BY_ID[p.id]?.i18n?.en;
+    const qid = p.wikidata || (/^wd-(Q\d+)$/.exec(p.id || '') || [])[1];
     let img = '';
     try {
-      if (p.country === 'VN') img = await wikiThumb('vi', p.name);
-      if (!img && en?.name) img = await wikiThumb('en', [en.name, en.city].filter(Boolean).join(' '));
-      if (!img) img = await wikiThumb('en', p.name);
+      if (qid) img = await wikidataThumb(qid);
+      else {
+        if (p.country === 'VN') img = await searchThumb('vi', p.name, p.name);
+        if (!img && en?.name) img = await searchThumb('en', [en.name, en.city].filter(Boolean).join(' '), en.name);
+        if (!img) img = await searchThumb('en', p.name, p.name);
+      }
     } catch {
       img = '';
     }
@@ -50,9 +96,9 @@ export async function getPlaceImage(p) {
   return pending[p.id];
 }
 
+/** Hook: { src, loading } — src = '' nếu không có ảnh; loading = đang tìm URL ảnh */
 const known = (p) => !!p && (!!p.image || cache[p.id] !== undefined || !(p.famous || FAMOUS_BY_ID[p.id] || /^wd-/.test(p.id || '')));
 
-/** Hook: { src, loading } — src = '' nếu không có ảnh; loading = đang tìm URL ảnh */
 export function usePlaceImage(p) {
   const [state, setState] = useState(() => ({ src: p?.image || cache[p?.id] || '', loading: !known(p) }));
   useEffect(() => {

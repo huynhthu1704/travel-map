@@ -151,6 +151,9 @@ export function MemoriesPage() {
           <h1 className="h1">{t('mine.title')}</h1>
         </div>
         <div className="row wrap">
+          <button className="btn btn--outline" onClick={() => setModal({ type: 'recap', mode: 'year' })}>
+            {t('recap.yearButton')}
+          </button>
           <button className="btn btn--outline" onClick={() => startPicking('place', tab === 'wishlist' ? 'wishlist' : 'visited')}>
             {t('pick.addOnMap')}
           </button>
@@ -364,6 +367,9 @@ function TripDetail({ trip, onBack }) {
         </div>
         <div className="row wrap">
           <button className="btn btn--primary" onClick={share}>{t('trip.invite')}</button>
+          <button className="btn btn--outline" disabled={!stopList.length} onClick={() => setModal({ type: 'recap', mode: 'trip', trip, stops: stopList })}>
+            {t('recap.shareTrip')}
+          </button>
           <button
             className="btn btn--dark"
             onClick={() => {
@@ -386,6 +392,7 @@ function TripDetail({ trip, onBack }) {
           ))}
         </div>
       </section>
+      {stopList.length > 0 && <TripSummary trip={trip} stops={stopList} />}
       <section>
         <h3 className="section-title">{t('trip.journey')}</h3>
         {!stops ? (
@@ -438,5 +445,84 @@ function TripDetail({ trip, onBack }) {
         {trip.ownerId === user.uid ? t('trip.delete') : t('trip.leave')}
       </button>
     </div>
+  );
+}
+
+/** Tổng hợp chuyến đi: số liệu + địa điểm nhóm theo quốc gia / thành phố */
+function TripSummary({ trip, stops }) {
+  const { t } = useI18n();
+  const { openPlace, setModal } = useApp();
+  const sum = useMemo(() => {
+    const placesMap = new Map();
+    const byPlace = {};
+    stops.forEach((s) => {
+      if (!s.place) return;
+      placesMap.set(s.place.id, s.place);
+      const b = (byPlace[s.place.id] ||= { photos: 0, people: new Set() });
+      b.photos += (s.photos || []).length;
+      if (s.byName) b.people.add(s.byName);
+    });
+    const list = [...placesMap.values()];
+    const groups = {};
+    list.forEach((p) => {
+      const cc = p.country || '—';
+      const city = pCity(p) || '—';
+      ((groups[cc] ||= {})[city] ||= []).push(p);
+    });
+    const times = stops.map((s) => (s.createdAt?.toMillis ? s.createdAt.toMillis() : s.createdAt)).filter(Boolean);
+    return {
+      list,
+      groups,
+      byPlace,
+      countries: Object.keys(groups).filter((c) => c !== '—').length,
+      cities: new Set(list.map((p) => pCity(p)).filter(Boolean)).size,
+      photos: stops.reduce((n, s) => n + (s.photos || []).length, 0),
+      from: times.length ? Math.min(...times) : null,
+      to: times.length ? Math.max(...times) : null,
+    };
+  }, [stops]);
+  return (
+    <section className="card trip-summary">
+      <div className="trip-summary__head">
+        <h3 className="h3">{t('recap.tripSummary')}</h3>
+        <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'recap', mode: 'trip', trip, stops })}>
+          {t('recap.shareTrip')}
+        </button>
+      </div>
+      <div className="stats stats--4">
+        <div className="stat"><div className="stat__value">📍 {sum.list.length}</div><div className="stat__label">{t('recap.places')}</div></div>
+        <div className="stat"><div className="stat__value">🌏 {sum.countries}</div><div className="stat__label">{t('recap.countries')}</div></div>
+        <div className="stat"><div className="stat__value">🏙️ {sum.cities}</div><div className="stat__label">{t('recap.cities')}</div></div>
+        <div className="stat"><div className="stat__value">📸 {sum.photos}</div><div className="stat__label">{t('recap.photos')}</div></div>
+      </div>
+      {sum.from && (
+        <p className="small muted">
+          🗓️ {formatDate(sum.from)}
+          {sum.to && sum.to !== sum.from ? ` → ${formatDate(sum.to)}` : ''} · 👥 {Object.keys(trip.members || {}).length} {t('recap.members')}
+        </p>
+      )}
+      <div className="trip-groups">
+        {Object.entries(sum.groups).map(([cc, cities]) => (
+          <div key={cc} className="trip-group">
+            <b>
+              {flagOf(cc)} {countryName(cc) || cc}
+            </b>
+            {Object.entries(cities).map(([city, ps]) => (
+              <div key={city} className="trip-group__city">
+                <span className="muted small">🏙️ {city}</span>
+                <div className="chips">
+                  {ps.map((p) => (
+                    <button key={p.id} className="chip chip--sm" onClick={() => openPlace(p)}>
+                      {p.emoji || '📍'} {pName(p)}
+                      {sum.byPlace[p.id]?.photos ? ` · 📸${sum.byPlace[p.id].photos}` : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

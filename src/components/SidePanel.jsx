@@ -7,6 +7,7 @@ import { useI18n } from '../i18n';
 import { pName, pCity, pDesc } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
 import Combobox from './Combobox';
+import DateInput from './DateInput';
 
 export default function SidePanel() {
   const { selectedPlace, selectedCountry } = useApp();
@@ -67,6 +68,7 @@ function WorldPanel() {
         <h1 className="h2">{t('world.title')}</h1>
         <p className="muted">{t('world.hint')}</p>
       </div>
+      {user && <OnThisDay />}
       <div className="stats">
         <Stat value={visitedCountries.size} label={t('stat.countries')} emoji="🌏" />
         <Stat value={visited.length} label={t('stat.visited')} emoji="👣" />
@@ -171,6 +173,11 @@ function WorldPanel() {
         {t('world.addMemory')}
       </button>
       <div className="btn-stack">
+        {user && (
+          <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'recap', mode: 'year' })}>
+            {t('recap.yearButton')}
+          </button>
+        )}
         <button className="btn btn--outline btn--block" onClick={() => startPicking('place')}>
           {t('pick.open')}
         </button>
@@ -418,7 +425,7 @@ function PlacePanel() {
       {st === 'visited' && (
         <label className="field visit-field">
           <span>{t('visit.edit')}</span>
-          <input type="date" value={placeById[p.id]?.visitedAt || ''} onChange={(e) => saveVisited(p, { visitedAt: e.target.value || null })} />
+          <DateInput value={placeById[p.id]?.visitedAt || ''} onChange={(v) => saveVisited(p, { visitedAt: v || null })} ariaLabel={t('visit.edit')} />
         </label>
       )}
       {st === 'visited' && <PlaceOccasion place={p} saved={placeById[p.id]?.occasion || ''} onSave={(occasion) => saveVisited(p, { occasion })} />}
@@ -486,4 +493,69 @@ function PlaceOccasion({ place, saved, onSave }) {
   const [value, setValue] = useState(saved);
   useEffect(() => setValue(saved), [saved, place.id]);
   return <OccasionField value={value} onChange={setValue} onCommit={(v) => v !== saved && onSave(v)} />;
+}
+
+/** "Ngày này năm xưa": nơi đã đến / kỉ niệm đúng ngày-tháng hôm nay của các năm trước */
+function OnThisDay() {
+  const { places, memories, openPlace, setModal } = useApp();
+  const { t } = useI18n();
+  const items = useMemo(() => {
+    const now = new Date();
+    const md = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const yr = now.getFullYear();
+    const out = new Map();
+    const add = (date, place, extra) => {
+      if (!date || !place) return;
+      const d = String(date).slice(0, 10);
+      const y = Number(d.slice(0, 4));
+      if (d.slice(5) !== md || !(y < yr)) return;
+      const key = `${place.id}-${y}`;
+      out.set(key, { ...(out.get(key) || {}), place, year: y, ...extra });
+    };
+    places.forEach((p) => p.status === 'visited' && add(p.visitedAt, p, { occasion: p.occasion }));
+    memories.forEach((m) => add(m.date, m.place, { memory: m }));
+    return [...out.values()].sort((a, b) => b.year - a.year);
+  }, [places, memories]);
+  if (!items.length) return null;
+  const yr = new Date().getFullYear();
+  return (
+    <section className="otd">
+      <div className="otd__head">
+        <span className="otd__badge">📅</span>
+        <div>
+          <b>{t('otd.title')}</b>
+          <small>{t('otd.sub')}</small>
+        </div>
+      </div>
+      <div className="otd__list">
+        {items.slice(0, 4).map((it) => (
+          <article key={it.place.id + it.year} className="otd__item">
+            {it.memory?.photos?.[0] ? (
+              <button className="otd__photo" onClick={() => setModal({ type: 'viewMemory', memory: it.memory })}>
+                <LoadingImage src={it.memory.photos[0]} alt={pName(it.place)} />
+              </button>
+            ) : (
+              <span className="otd__emoji">{it.place.emoji || '📍'}</span>
+            )}
+            <div className="otd__text">
+              <p>
+                {t('otd.line', { n: yr - it.year, year: it.year })} <b>{pName(it.place)}</b> {flagOf(it.place.country)}
+              </p>
+              {(it.occasion || it.memory?.caption) && <small>“{it.occasion || it.memory.caption}”</small>}
+              <div className="row wrap">
+                <button className="btn btn--sm btn--soft" onClick={() => (it.memory ? setModal({ type: 'viewMemory', memory: it.memory }) : openPlace(it.place))}>
+                  {t('otd.view')}
+                </button>
+                {it.memory && (
+                  <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: it.memory })}>
+                    {t('mem.share')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }

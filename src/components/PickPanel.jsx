@@ -2,6 +2,7 @@ import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { countryName, flagOf } from '../lib/countries';
 import { formatDate, OccasionField } from './ui';
+import DateInput from './DateInput';
 
 /** Bảng nổi khi đang thêm nhiều địa điểm bằng cách chạm lên bản đồ */
 export default function PickPanel() {
@@ -30,7 +31,7 @@ export default function PickPanel() {
         {pickStatus === 'visited' && (
           <label className="field">
             <span>{t('pick.date')}</span>
-            <input type="date" value={pickDate} onChange={(e) => setPickDate(e.target.value)} />
+            <DateInput value={pickDate} onChange={setPickDate} ariaLabel={t('pick.date')} />
           </label>
         )}
         {pickStatus === 'visited' && <OccasionField value={pickOccasion} onChange={setPickOccasion} />}

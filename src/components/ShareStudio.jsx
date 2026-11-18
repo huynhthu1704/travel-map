@@ -29,6 +29,20 @@ export const C = {
 export const HEAD = '700 {s}px "Twemoji Country Flags", Lexend, "Be Vietnam Pro", sans-serif';
 export const BODY = '500 {s}px "Twemoji Country Flags", "Be Vietnam Pro", sans-serif';
 export const font = (tpl, s) => tpl.replace('{s}', Math.round(s));
+
+/* Vẽ chữ một dòng vừa khung: tự giảm cỡ chữ, nếu vẫn dài thì cắt "…".
+   Không dùng tham số maxWidth của fillText vì Safari iOS canh giữa sai. */
+export function fitText(ctx, text, x, y, maxW, tpl, size, minSize = size * 0.6) {
+  let s = size;
+  ctx.font = font(tpl, s);
+  while (s > minSize && ctx.measureText(text).width > maxW) { s -= 2; ctx.font = font(tpl, s); }
+  let t = text;
+  if (ctx.measureText(t).width > maxW) {
+    while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+    t = t.trimEnd() + '…';
+  }
+  ctx.fillText(t, x, y);
+}
 export const ease = (t) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
 
 export function roundRect(ctx, x, y, w, h, r) {
@@ -112,12 +126,10 @@ function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, f
     dots(ctx, W, H, '#FFE38A');
     ctx.globalAlpha = titleA;
     ctx.fillStyle = C.ink;
-    ctx.font = font(HEAD, 78);
     ctx.textAlign = 'center';
-    ctx.fillText(`${title}`, W / 2, 150, W - 120);
-    ctx.font = font(BODY, 36);
+    fitText(ctx, title, W / 2, 150, W - 160, HEAD, 78);
     ctx.fillStyle = C.ink2;
-    ctx.fillText(`${flag} ${sub}${date ? ' · ' + date : ''}`, W / 2, 210, W - 120);
+    fitText(ctx, `${flag} ${sub}${date ? ' · ' + date : ''}`, W / 2, 210, W - 160, BODY, 36);
     ctx.globalAlpha = 1;
     const top = 260;
     const bottom = H - (caption ? 230 : 140);
@@ -213,9 +225,8 @@ function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, f
     ctx.textAlign = 'left';
     const cy = H - m - 150;
     if (caption) wrapText(ctx, caption, W - m * 2 - 140).forEach((l, i) => ctx.fillText(l, m + 70, cy + i * 50));
-    ctx.font = font(BODY, 30);
     ctx.fillStyle = C.honey2;
-    ctx.fillText(`📍 ${sub}${date ? '  ·  ' + date : ''}`, m + 70, H - m - 52);
+    fitText(ctx, `📍 ${sub}${date ? '  ·  ' + date : ''}`, m + 70, H - m - 52, W - m * 2 - 140, BODY, 30);
   } else if (tpl === 'film') {
     ctx.fillStyle = C.ink;
     ctx.fillRect(0, 0, W, H);
@@ -248,11 +259,9 @@ function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, f
     ctx.globalAlpha = titleA;
     ctx.textAlign = 'center';
     ctx.fillStyle = C.honey;
-    ctx.font = font(HEAD, 72);
-    ctx.fillText(title, W / 2, 130, W - 120);
+    fitText(ctx, title, W / 2, 130, W - 160, HEAD, 72);
     ctx.fillStyle = C.honeySoft;
-    ctx.font = font(BODY, 32);
-    ctx.fillText(`${flag} ${sub}${date ? ' · ' + date : ''}`, W / 2, 185, W - 120);
+    fitText(ctx, `${flag} ${sub}${date ? ' · ' + date : ''}`, W / 2, 185, W - 160, BODY, 32);
     ctx.globalAlpha = 1;
     if (caption) {
       ctx.fillStyle = C.white;
@@ -270,10 +279,8 @@ function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, f
     ctx.fill();
     ctx.fillStyle = C.ink;
     ctx.textAlign = 'left';
-    ctx.font = font(HEAD, 72);
-    ctx.fillText(title, m + 50, m + 115, W - m * 2 - 220);
-    ctx.font = font(BODY, 32);
-    ctx.fillText(`${sub}${date ? ' · ' + date : ''}`, m + 50, m + 170, W - m * 2 - 220);
+    fitText(ctx, title, m + 50, m + 115, W - m * 2 - 220, HEAD, 72);
+    fitText(ctx, `${sub}${date ? ' · ' + date : ''}`, m + 50, m + 170, W - m * 2 - 220, BODY, 32);
     ctx.font = '110px "Twemoji Country Flags", serif';
     ctx.textAlign = 'right';
     ctx.fillText(flag, W - m - 40, m + 160);

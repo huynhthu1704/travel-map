@@ -78,17 +78,6 @@ export default function ProfilePage() {
 
   if (profileSub === 'activity') return <ActivityPage uid={uid} prof={prof} isMe={isMe} mutual={mutual} feed={feed} />;
 
-  const saveName = async (value) => {
-    const v = value.trim();
-    if (!v && value !== '') return;
-    try {
-      await api.setDisplayName(user, value === '' ? '' : v);
-      setNameEdit(null);
-      notify(t('profile.saved'));
-    } catch (e) {
-      notify(e.message, 'error');
-    }
-  };
   const pickPhoto = async (e) => {
     const f = e.target.files?.[0];
     e.target.value = '';
@@ -129,13 +118,28 @@ export default function ProfilePage() {
     }
   };
 
-  const saveBio = async () => {
+  const startEdit = () => {
+    setNameEdit(user.name || '');
+    setBio(p?.bio || '');
+    setEditing(true);
+  };
+  const cancelEdit = () => {
+    setEditing(false);
+    setNameEdit(null);
+    setBio(p?.bio || '');
+  };
+  const saveAll = async (e) => {
+    e?.preventDefault();
+    const n = (nameEdit || '').trim();
+    if (!n) return;
     try {
-      await socialApi.saveProfile(uid, { bio: bio.trim().slice(0, BIO_MAX) });
-      setEditing(false);
-      notify(t('social.bioSaved'));
-    } catch (e) {
-      notify(e.message, 'error');
+      if (n !== user.name) await api.setDisplayName(user, n);
+      const b = bio.trim().slice(0, BIO_MAX);
+      if (b !== (p?.bio || '')) await socialApi.saveProfile(uid, { bio: b });
+      cancelEdit();
+      notify(t('profile.updated'));
+    } catch (err) {
+      notify(err.message, 'error');
     }
   };
 
@@ -143,7 +147,7 @@ export default function ProfilePage() {
     <div className="page profile">
       <header className="profile__head card">
         <div className="profile__avatar">
-          <Avatar name={prof.name || '?'} photo={prof.photo} size={96} />
+          <Avatar name={prof.name || '?'} photo={prof.photo} size={104} />
           {isMe && (
             <label className={`profile__cam ${photoBusy ? 'is-busy' : ''}`} title={t('profile.photoChange')}>
               {photoBusy ? '⏳' : '📷'}
@@ -151,97 +155,82 @@ export default function ProfilePage() {
             </label>
           )}
         </div>
-        <div className="profile__info">
-          {nameEdit !== null ? (
-            <form
-              className="profile__nameform"
-              onSubmit={(e) => {
-                e.preventDefault();
-                saveName(nameEdit);
-              }}
-            >
-              <input value={nameEdit} onChange={(e) => setNameEdit(e.target.value)} maxLength={40} placeholder={user.googleName} autoFocus aria-label={t('profile.nameLabel')} />
-              <button className="btn btn--sm btn--primary" disabled={!nameEdit.trim() || nameEdit.trim() === user.name}>
-                💾 {t('admin.save')}
-              </button>
-              <button type="button" className="btn btn--sm btn--ghost" onClick={() => setNameEdit(null)}>
+
+        {editing ? (
+          <form className="profile__edit" onSubmit={saveAll}>
+            <label className="field">
+              <span>{t('profile.nameLabel')}</span>
+              <input value={nameEdit || ''} onChange={(e) => setNameEdit(e.target.value)} maxLength={40} placeholder={user.googleName} autoFocus />
+            </label>
+            <label className="field">
+              <span>
+                {t('profile.bioLabel')} <small className="muted">{bio.length}/{BIO_MAX}</small>
+              </span>
+              <textarea rows={2} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} placeholder={t('social.bioPh')} />
+            </label>
+            <div className="profile__editLinks">
+              {user.name !== user.googleName && user.googleName && (
+                <button type="button" className="link" onClick={() => setNameEdit(user.googleName)}>
+                  {t('profile.useGoogle', { name: user.googleName })}
+                </button>
+              )}
+              {user.photo && user.googlePhoto && user.photo !== user.googlePhoto && (
+                <button type="button" className="link" onClick={resetPhoto} disabled={photoBusy}>
+                  {t('profile.photoGoogle')}
+                </button>
+              )}
+            </div>
+            <div className="profile__editBtns">
+              <button type="button" className="btn btn--sm btn--ghost" onClick={cancelEdit}>
                 {t('pick.cancel')}
               </button>
-              {user.name !== user.googleName && user.googleName && (
-                <button type="button" className="btn btn--sm btn--ghost" onClick={() => saveName('')}>
-                  ↩️ {t('profile.useGoogle', { name: user.googleName })}
-                </button>
-              )}
-            </form>
-          ) : (
-            <div className="profile__nameRow">
-              <h1 className="h1">{prof.name || t('admin.unknownUser')}</h1>
-              {isMe && (
-                <button className="btn btn--sm btn--ghost" onClick={() => setNameEdit(user.name || '')}>
-                  ✏️ {t('profile.editName')}
-                </button>
-              )}
+              <button className="btn btn--sm btn--primary" disabled={!(nameEdit || '').trim()}>
+                {t('admin.save')}
+              </button>
             </div>
-          )}
-          {editing ? (
-            <div className="stack-sm">
-              <textarea rows={2} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} placeholder={t('social.bioPh')} autoFocus />
-              <div className="row wrap">
-                <button className="btn btn--sm btn--primary" onClick={saveBio}>
-                  💾 {t('admin.save')}
+          </form>
+        ) : (
+          <div className="profile__info">
+            <div className="profile__top">
+              <h1 className="profile__name">{prof.name || t('admin.unknownUser')}</h1>
+              <div className="profile__btns">
+                {isMe ? (
+                  <button className="btn btn--sm btn--soft" onClick={startEdit}>
+                    {t('profile.editBtn')}
+                  </button>
+                ) : (
+                  <button className={`btn btn--sm ${followingIds.has(uid) ? 'btn--soft' : 'btn--primary'}`} onClick={() => toggleFollow(uid, prof.name)}>
+                    {followingIds.has(uid) ? `✓ ${t('social.followingBtn')}` : followerIds.has(uid) ? t('social.followBack') : t('social.follow')}
+                  </button>
+                )}
+                <button className="btn btn--sm btn--ghost btn--icon" onClick={shareLink} title={t('social.shareProfile')} aria-label={t('social.shareProfile')}>
+                  🔗
                 </button>
-                <button className="btn btn--sm btn--ghost" onClick={() => (setEditing(false), setBio(p?.bio || ''))}>
-                  {t('pick.cancel')}
-                </button>
-                <small className="muted">
-                  {bio.length}/{BIO_MAX}
-                </small>
               </div>
             </div>
-          ) : (
-            <p className={`profile__bio ${prof.bio ? '' : 'muted'}`}>
-              {prof.bio || (isMe ? t('social.bioEmptyMe') : t('social.bioEmpty'))}
-              {isMe && (
-                <button className="btn btn--sm btn--ghost" onClick={() => setEditing(true)}>
-                  ✏️ {prof.bio ? t('social.editBio') : t('social.addBio')}
-                </button>
-              )}
-            </p>
-          )}
-          {isMe && photoBusy === false && user.photo && user.googlePhoto && user.photo !== user.googlePhoto && (
-            <button className="btn btn--sm btn--ghost profile__resetPhoto" onClick={resetPhoto}>
-              ↩️ {t('profile.photoGoogle')}
-            </button>
-          )}
-          <div className="profile__follow">
-            <span>
-              <b>{fCount.followers ?? '…'}</b> {t('social.followers')}
-            </span>
-            <span>
-              <b>{fCount.following ?? '…'}</b> {t('social.following')}
-            </span>
-            {!isMe && (
-              <>
-                <button className={`btn btn--sm ${followingIds.has(uid) ? 'btn--soft' : 'btn--primary'}`} onClick={() => toggleFollow(uid, prof.name)}>
-                  {followingIds.has(uid) ? `✓ ${t('social.followingBtn')}` : followerIds.has(uid) ? `＋ ${t('social.followBack')}` : `＋ ${t('social.follow')}`}
-                </button>
-                {mutual && <span className="profile__friend">🤝 {t('social.friends')}</span>}
-              </>
+            <div className="profile__counts">
+              <span>
+                <b>{fCount.followers ?? '…'}</b> {t('social.followers')}
+              </span>
+              <span>
+                <b>{fCount.following ?? '…'}</b> {t('social.following')}
+              </span>
+              {mutual && <span className="profile__friend">🤝 {t('social.friends')}</span>}
+            </div>
+            {prof.bio ? (
+              <p className="profile__bio">{prof.bio}</p>
+            ) : (
+              <p className="profile__bio muted">{isMe ? t('social.bioEmptyMe') : t('social.bioEmpty')}</p>
             )}
-          </div>
-          <div className="profile__actions">
             {isMe || mutual ? (
-              <button className="btn btn--sm btn--soft" onClick={() => openProfile(uid, 'activity')}>
-                🕒 {t('social.recent')}
+              <button className="profile__activity" onClick={() => openProfile(uid, 'activity')}>
+                🕒 {t('social.recent')} <span aria-hidden>→</span>
               </button>
             ) : (
               <span className="small muted">🔒 {t('social.feedLocked')}</span>
             )}
-            <button className="btn btn--sm btn--ghost" onClick={shareLink}>
-              🔗 {t('social.shareProfile')}
-            </button>
           </div>
-        </div>
+        )}
       </header>
 
       <div className="profile__stats">
@@ -279,7 +268,7 @@ export default function ProfilePage() {
                     <div className="place-group__head">
                       <span className="place-group__flag">{flagOf(cc) || '🌏'}</span>
                       <b>{countryName(cc)}</b>
-                      <span className="place-group__count">{t('social.cityCount', { n: sorted.length })}</span>
+                      <span className="place-group__count">{t(sorted.length === 1 ? 'social.cityCount1' : 'social.cityCount', { n: sorted.length })}</span>
                     </div>
                     {sorted.length > 0 && (
                       <div className="place-group__cities">

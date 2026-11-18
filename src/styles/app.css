@@ -6259,3 +6259,143 @@ body.fb-picking * {
   max-height: 100%;
   border-radius: 12px;
 }
+
+/* ---------- Hồ sơ: phần đầu gọn gàng ---------- */
+.profile__head {
+  align-items: flex-start;
+  gap: 28px;
+  padding: 28px 32px;
+}
+.profile__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.profile__name {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.profile__btns {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn--icon {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+.profile__counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  font-size: 14px;
+  color: var(--ink-500);
+}
+.profile__counts b {
+  color: var(--ink-900);
+  font-size: 15px;
+  margin-right: 2px;
+}
+.profile__head .profile__bio {
+  display: block;
+  margin: 2px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-700);
+  max-width: 60ch;
+}
+.profile__activity {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--honey-700);
+  cursor: pointer;
+}
+.profile__activity:hover {
+  text-decoration: underline;
+}
+.profile__activity span {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+.profile__activity:hover span {
+  transform: translateX(3px);
+}
+.profile__cam {
+  opacity: 0.92;
+}
+.profile__edit {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+.profile__edit .field span {
+  display: flex;
+  justify-content: space-between;
+}
+.profile__edit textarea {
+  width: 100%;
+  resize: vertical;
+}
+.profile__editLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+}
+.profile__editLinks:empty {
+  display: none;
+}
+.profile__editBtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .profile__head {
+    padding: 22px 18px;
+    gap: 14px;
+  }
+  .profile__top {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .profile__name {
+    font-size: 24px;
+  }
+  .profile__counts {
+    justify-content: center;
+  }
+  .profile__head .profile__bio {
+    margin: 0 auto;
+  }
+  .profile__activity {
+    align-self: center;
+  }
+  .profile__edit {
+    width: 100%;
+    text-align: left;
+  }
+}
+@media (max-width: 640px) {
+  .profile__head {
+    align-items: center;
+  }
+  .profile__info {
+    width: 100%;
+    align-items: center;
+  }
+}

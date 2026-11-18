@@ -2122,22 +2122,46 @@ img.is-loaded {
 /* Toast & flags */
 .toast {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 28px;
-  transform: translateX(-50%);
+  margin: 0 auto;
+  width: min(560px, calc(100vw - 32px));
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--color-bg-inverse);
   color: #fff;
-  padding: 12px 20px;
-  border-radius: var(--radius-full);
+  padding: 14px 20px;
+  border-radius: 16px;
   font-weight: 600;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
   z-index: 4000;
   box-shadow: var(--shadow-pop);
   animation: pop 0.2s ease;
-  max-width: calc(100vw - 32px);
-  text-align: center;
+}
+.toast::before {
+  content: '✓';
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--mint-500);
+  color: #fff;
 }
 .toast--error {
   background: #c4472a;
+}
+.toast--error::before {
+  content: '!';
+  background: rgba(255, 255, 255, 0.25);
 }
 .demo-flag {
   position: fixed;

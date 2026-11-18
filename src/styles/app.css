@@ -3172,3 +3172,27 @@ img.is-loaded {
   background: transparent;
   padding: 4px 0;
 }
+.trip-manage {
+  margin-top: 8px;
+  gap: 6px;
+}
+.item-scope--me {
+  background: var(--sky-100, #dcefff);
+}
+.check-items label.is-locked {
+  cursor: default;
+}
+.check-items label.is-locked input {
+  opacity: 0.5;
+}
+.checklist form.row .grow {
+  order: 0;
+  min-width: 160px;
+}
+.checklist form.row > .btn {
+  order: 1;
+}
+.checklist form.row .check-new-scope {
+  order: 2;
+  flex-basis: 100%;
+}

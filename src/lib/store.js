@@ -386,7 +386,14 @@ const localBackend = {
     return t;
   },
   async leaveTrip(user, trip) {
-    state.trips = state.trips.filter((t) => t.id !== trip.id);
+    if (trip.ownerId === user.uid) state.trips = state.trips.filter((t) => t.id !== trip.id);
+    else {
+      const t = state.trips.find((x) => x.id === trip.id);
+      if (t) {
+        t.memberIds = t.memberIds.filter((id) => id !== user.uid);
+        delete t.members[user.uid];
+      }
+    }
     save();
   },
   watchStops(tripId, cb) {

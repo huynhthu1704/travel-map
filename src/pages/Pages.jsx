@@ -569,10 +569,40 @@ function TripDetail({ trip, onBack }) {
           <p className="muted">
             {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stopList.length })} · {t('trip.code')} <b className="code">{trip.inviteCode}</b>
           </p>
-          {isMember && !editing && (
-            <button className="btn btn--sm btn--soft trip-edit-btn" onClick={() => setEditing(true)}>
-              ✏️ {t('trip.edit')}
-            </button>
+          {isMember && (
+            <div className="row wrap trip-manage">
+              {!editing && (
+                <button className="btn btn--sm btn--soft" onClick={() => setEditing(true)}>
+                  ✏️ {t('trip.edit')}
+                </button>
+              )}
+              {/* Chỉ người tạo được xoá chuyến; thành viên khác chỉ có thể rời chuyến */}
+              {trip.ownerId === user.uid ? (
+                <button
+                  className="btn btn--sm btn--ghost danger"
+                  onClick={async () => {
+                    if (!confirm(t('trip.confirmDelete'))) return;
+                    await api.leaveTrip(user, trip);
+                    setActiveTripId(null);
+                    onBack();
+                  }}
+                >
+                  {t('trip.delete')}
+                </button>
+              ) : (
+                <button
+                  className="btn btn--sm btn--ghost danger"
+                  onClick={async () => {
+                    if (!confirm(t('trip.confirmLeave'))) return;
+                    await api.leaveTrip(user, trip);
+                    setActiveTripId(null);
+                    onBack();
+                  }}
+                >
+                  {t('trip.leave')}
+                </button>
+              )}
+            </div>
           )}
         </div>
         <div className="row wrap">
@@ -659,17 +689,6 @@ function TripDetail({ trip, onBack }) {
           </ol>
         )}
       </section>}
-      <button
-        className="btn btn--ghost danger"
-        onClick={async () => {
-          if (!confirm(trip.ownerId === user.uid ? t('trip.confirmDelete') : t('trip.confirmLeave'))) return;
-          await api.leaveTrip(user, trip);
-          setActiveTripId(null);
-          onBack();
-        }}
-      >
-        {trip.ownerId === user.uid ? t('trip.delete') : t('trip.leave')}
-      </button>
     </div>
   );
 }

@@ -115,22 +115,46 @@ function DirectionsModal({ place, onClose }) {
   );
 }
 
-/** Đọc link Google Maps → địa điểm { id, name, city, country, lat, lng } */
+/** Mở rộng link rút gọn (maps.app.goo.gl, goo.gl/maps) thành link Google Maps đầy đủ */
+async function expandShortLink(url) {
+  const withTimeout = (ms) => {
+    const ctl = new AbortController();
+    setTimeout(() => ctl.abort(), ms);
+    return ctl.signal;
+  };
+  // 1) r.jina.ai: tải trang hộ và trả về "Final URL" sau khi chuyển hướng
+  try {
+    const txt = await fetch(`https://r.jina.ai/${url}`, { signal: withTimeout(15000) }).then((r) => (r.ok ? r.text() : ''));
+    const fin = txt.match(/Final URL:\s*(\S+)/)?.[1] || txt.match(/https:\/\/www\.google\.[a-z.]+\/maps\/[^\s)"']+/)?.[0];
+    if (fin && /\/maps/.test(fin)) return fin;
+  } catch {
+    /* thử cách khác */
+  }
+  // 2) unshorten.me (có thể trả về trang đồng ý cookie, link thật nằm trong tham số continue)
+  try {
+    const r = await fetch(`https://unshorten.me/json/${url}`, { signal: withTimeout(10000) }).then((x) => x.json());
+    let fin = r?.resolved_url || '';
+    const cont = fin.match(/[?&]continue=([^&]+)/)?.[1];
+    if (cont) fin = decodeURIComponent(cont);
+    if (/\/maps/.test(fin)) return fin;
+  } catch {
+    /* bỏ qua */
+  }
+  return '';
+}
+
+/** Đọc link Google Maps → địa điểm { id, name, city, country, lat, lng }; null nếu link không hợp lệ / không tìm thấy */
 export async function resolveGoogleMaps(text) {
   let parsed = parseGoogleMapsInput(text);
-  // Link rút gọn (maps.app.goo.gl): thử mở rộng qua dịch vụ trung gian công khai
-  if (parsed.shortOnly) {
-    try {
-      const url = text.match(/https?:\/\/\S+/)[0];
-      const ctl = new AbortController();
-      setTimeout(() => ctl.abort(), 8000);
-      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: ctl.signal }).then((x) => x.json());
-      const finalUrl = r?.status?.url || '';
-      const fromBody = (r?.contents || '').match(/https:\/\/www\.google\.[a-z.]+\/maps\/[^"'\s<]+/)?.[0] || '';
-      parsed = parseGoogleMapsInput(finalUrl.includes('/maps') ? finalUrl : fromBody.replace(/\\u0026/g, '&'));
-    } catch {
-      /* bỏ qua */
-    }
+  const url = text.match(/https?:\/\/\S+/)?.[0] || '';
+  const isShort = /maps\.app\.goo\.gl|goo\.gl\/maps/.test(url);
+  if (url && !/google\.[a-z.]+\/maps|maps\.google\.|maps\.app\.goo\.gl|goo\.gl\/maps/.test(url)) return null; // không phải link Google Maps
+  if (isShort) {
+    const fin = await expandShortLink(url);
+    if (!fin) return null;
+    parsed = parseGoogleMapsInput(fin);
+    // Link rút gọn phải trỏ tới 1 địa điểm cụ thể (có tên hoặc toạ độ chính xác), không chỉ là một vùng bản đồ
+    if (!parsed.name && !/!3d-?\d/.test(decodeURIComponent(fin))) return null;
   }
   const lang = getLang();
   if (parsed.lat != null) {

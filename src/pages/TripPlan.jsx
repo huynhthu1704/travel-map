@@ -110,11 +110,15 @@ function PlacePicker({ onPick, placeholder, countrycodes = '' }) {
     setQ('');
     setOsm([]);
   };
+  const [linkState, setLinkState] = useState(''); // '' | 'notFound'
+  useEffect(() => setLinkState(''), [q]);
   const fromLink = async () => {
     setBusy(true);
+    setLinkState('');
     const p = await resolveGoogleMaps(q);
     setBusy(false);
     if (p) pick(p);
+    else setLinkState('notFound');
   };
   const seen = new Set(local.map((p) => normalize(p.name)));
   const results = [...local, ...osm.filter((p) => !seen.has(normalize(p.name)) && p.type !== 'country')];
@@ -123,8 +127,13 @@ function PlacePicker({ onPick, placeholder, countrycodes = '' }) {
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} />
       {isGoogleMapsLink(q) && (
         <button className="btn btn--sm btn--dark" onClick={fromLink} disabled={busy}>
-          🔗 {t('link.find')}
+          {busy ? `⏳ ${t('link.finding')}` : `🔗 ${t('link.find')}`}
         </button>
+      )}
+      {isGoogleMapsLink(q) && linkState === 'notFound' && (
+        <div className="place-picker__results">
+          <p className="small warn">🔎 {t('link.notFoundShort')}</p>
+        </div>
       )}
       {q.trim().length >= 2 && !isGoogleMapsLink(q) && (
         <div className="place-picker__results">
@@ -521,13 +530,16 @@ function Checklist({ list, trip }) {
   const { t } = useI18n();
   const { api, user } = useApp();
   const [text, setText] = useState('');
-  const [newScope, setNewScope] = useState('shared'); // mục mới: 👥 cả nhóm tick chung / 🙋 mỗi người tự tick
+  const [newScope, setNewScope] = useState('shared'); // mục mới: 👥 chung / 🙋 mỗi người tự tick / 👤 chỉ mình tôi lo
   const [collapsed, setCollapsed] = useState(false);
   const sharedList = list.scope === 'shared';
   const memberCount = trip.memberIds?.length || 1;
   // Mục "mỗi người" trong checklist chung: ai cũng tick riêng (doneMap: {uid: tên})
   const perPerson = (it) => sharedList && it.scope === 'personal';
   const isDone = (it) => (perPerson(it) ? !!it.doneMap?.[user.uid] : !!it.done);
+  // Mục "chỉ mình tôi": 1 người nhận lo, chỉ người đó tick được (người khác vẫn thấy ai đang lo)
+  const onlyMe = (it) => sharedList && it.scope === 'me';
+  const canTick = (it) => !onlyMe(it) || it.ownerUid === user.uid;
 
   // Kéo thả để sắp xếp (chuột & cảm ứng): giữ ⠿ rồi kéo lên / xuống
   const [drag, setDrag] = useState(null); // { id, draft: [...] }
@@ -580,12 +592,25 @@ function Checklist({ list, trip }) {
         return { ...x, done: !x.done, doneBy: !x.done ? user.name : null };
       }),
     );
-  const switchScope = (it) => save(items.map((x) => (x.id === it.id ? { ...x, scope: x.scope === 'personal' ? 'shared' : 'personal' } : x)));
+  // Bấm biểu tượng để đổi: Chung → Mỗi người → Chỉ mình tôi → Chung
+  const NEXT = { shared: 'personal', personal: 'me', me: 'shared' };
+  const switchScope = (it) =>
+    save(
+      items.map((x) => {
+        if (x.id !== it.id) return x;
+        const scope = NEXT[x.scope || 'shared'] || 'shared';
+        return scope === 'me' ? { ...x, scope, ownerUid: user.uid, ownerName: user.name, done: false, doneBy: null } : { ...x, scope, ownerUid: null, ownerName: null };
+      }),
+    );
   const remove = (it) => save(items.filter((x) => x.id !== it.id));
   const addItem = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    save([...items, { id: Math.random().toString(36).slice(2, 10), text: text.trim(), scope: sharedList ? newScope : 'personal', done: false, doneBy: null, doneMap: {} }]);
+    const scope = sharedList ? newScope : 'personal';
+    save([
+      ...items,
+      { id: Math.random().toString(36).slice(2, 10), text: text.trim(), scope, done: false, doneBy: null, doneMap: {}, ...(scope === 'me' ? { ownerUid: user.uid, ownerName: user.name } : {}) },
+    ]);
     setText('');
   };
   const reset = () =>
@@ -638,19 +663,23 @@ function Checklist({ list, trip }) {
                   >
                     ⠿
                   </button>
-                  <label>
-                    <input type="checkbox" checked={isDone(it)} onChange={() => toggle(it)} />
+                  <label className={canTick(it) ? '' : 'is-locked'} title={canTick(it) ? '' : t('check.onlyOwnerTicks', { name: it.ownerName })}>
+                    <input type="checkbox" checked={isDone(it)} disabled={!canTick(it)} onChange={() => toggle(it)} />
                     <span>{it.text}</span>
                   </label>
-                  {sharedList && !pp && it.done && it.doneBy && <small className="muted">✓ {it.doneBy}</small>}
+                  {sharedList && !pp && !onlyMe(it) && it.done && it.doneBy && <small className="muted">✓ {it.doneBy}</small>}
                   {sharedList && (
                     <button
                       type="button"
-                      className={`item-scope ${pp ? 'item-scope--each' : ''}`}
-                      onClick={() => switchScope(it)}
-                      title={(pp ? t('check.itemEachHelp') : t('check.itemGroupHelp')) + (pp && names.length ? ` — ✓ ${names.join(', ')}` : '') + ` · ${t('check.tapToSwitch')}`}
+                      className={`item-scope ${pp ? 'item-scope--each' : ''} ${onlyMe(it) ? 'item-scope--me' : ''}`}
+                      onClick={() => (onlyMe(it) && it.ownerUid !== user.uid ? null : switchScope(it))}
+                      title={
+                        (onlyMe(it) ? t('check.itemMeHelp', { name: it.ownerName }) : pp ? t('check.itemEachHelp') : t('check.itemGroupHelp')) +
+                        (pp && names.length ? ` — ✓ ${names.join(', ')}` : '') +
+                        (onlyMe(it) && it.ownerUid !== user.uid ? '' : ` · ${t('check.tapToSwitch')}`)
+                      }
                     >
-                      {pp ? `🙋 ${names.length}/${memberCount}` : '👥'}
+                      {onlyMe(it) ? `👤 ${it.ownerUid === user.uid ? t('check.me') : it.ownerName || '?'}` : pp ? `🙋 ${names.length}/${memberCount}` : '👥'}
                     </button>
                   )}
                   <button className="icon-btn icon-btn--sm" onClick={() => remove(it)} aria-label={t('plan.remove')}>
@@ -668,6 +697,9 @@ function Checklist({ list, trip }) {
                 </button>
                 <button type="button" className={newScope === 'personal' ? 'on' : ''} onClick={() => setNewScope('personal')} title={t('check.itemEachHelp')}>
                   🙋 {t('check.itemEach')}
+                </button>
+                <button type="button" className={newScope === 'me' ? 'on' : ''} onClick={() => setNewScope('me')} title={t('check.itemMeHelp', { name: user.name })}>
+                  👤 {t('check.itemMe')}
                 </button>
               </div>
             )}

@@ -11,6 +11,7 @@ import Combobox from '../components/Combobox';
 import DateInput from '../components/DateInput';
 import { TripPlan, TripChecklists } from './TripPlan';
 import TripCosts from './TripCosts';
+import DuplicateTrip from './DuplicateTrip';
 import DestinationPicker, { destLabel, cleanDests } from '../components/DestinationPicker';
 
 const TRIP_EMOJIS = ['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'];
@@ -533,11 +534,12 @@ export function TripsPage() {
 }
 
 function TripDetail({ trip, onBack }) {
-  const { user, api, notify, setActiveTripId, setView, openPlace, setModal, tripTab, setTripTab } = useApp();
+  const { user, api, notify, setActiveTripId, setView, openPlace, setModal, tripTab, setTripTab, setOpenTripId } = useApp();
   const tab = ['plan', 'costs', 'checklist', 'journey'].includes(tripTab) ? tripTab : 'plan';
   const { t } = useI18n();
   const [stops, setStops] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const isMember = !!user && (trip.memberIds || []).includes(user.uid);
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
@@ -574,6 +576,11 @@ function TripDetail({ trip, onBack }) {
               {!editing && (
                 <button className="btn btn--sm btn--soft" onClick={() => setEditing(true)}>
                   ✏️ {t('trip.edit')}
+                </button>
+              )}
+              {!duplicating && (
+                <button className="btn btn--sm btn--soft" onClick={() => setDuplicating(true)} title={t('dup.help')}>
+                  📋 {t('dup.button')}
                 </button>
               )}
               {/* Chỉ người tạo được xoá chuyến; thành viên khác chỉ có thể rời chuyến */}
@@ -622,6 +629,17 @@ function TripDetail({ trip, onBack }) {
         </div>
       </header>
       {editing && <TripEditor trip={trip} onClose={() => setEditing(false)} />}
+      {duplicating && (
+        <DuplicateTrip
+          trip={trip}
+          onClose={() => setDuplicating(false)}
+          onCreated={(tr) => {
+            setDuplicating(false);
+            setTripTab('plan');
+            setOpenTripId(tr.id);
+          }}
+        />
+      )}
       <section>
         <h3 className="section-title">{t('trip.members')}</h3>
         <div className="row wrap">

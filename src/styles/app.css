@@ -3200,3 +3200,19 @@ img.is-loaded {
   color: #2e9e5b;
   background: #eaf7ef;
 }
+.dup-trip {
+  margin-bottom: 16px;
+}
+.dup-opts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .dup-opts {
+    grid-template-columns: 1fr;
+  }
+}
+.switch.is-disabled {
+  opacity: 0.5;
+}

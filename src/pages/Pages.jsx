@@ -457,7 +457,7 @@ export function TripsPage() {
                   <b>{tr.name}</b>
                   <small>
                     {tripDates(tr) && <>🗓️ {tripDates(tr)} · </>}
-                    {t('trips.meta', { n: tr.memberIds.length, code: tr.inviteCode })}
+                    {t('trips.members', { n: tr.memberIds.length })}
                   </small>
                 </span>
               </button>

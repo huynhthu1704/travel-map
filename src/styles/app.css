@@ -1462,8 +1462,16 @@ button.list-item:hover,
 }
 .trip-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
+  grid-template-columns: 1fr 1fr; /* 2 cột bằng nhau, thẳng hàng với 2 ô Tạo / Tham gia phía trên */
+  gap: var(--spacing-lg);
+}
+@media (max-width: 640px) {
+  .trip-list {
+    grid-template-columns: 1fr;
+  }
+}
+.trip-card > :last-child {
+  margin-top: auto; /* nút luôn nằm đáy thẻ để các thẻ cao bằng nhau trông đều */
 }
 .trip-card {
   background: var(--color-bg-surface);

@@ -5,7 +5,7 @@ import SidePanel from './components/SidePanel';
 import PickPanel from './components/PickPanel';
 import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
-import { Avatar } from './components/ui';
+import { Avatar, Loader } from './components/ui';
 import { ExplorePage, MemoriesPage, TripsPage } from './pages/Pages';
 import { firebaseEnabled } from './lib/firebase';
 import { useI18n, LANGS } from './i18n';
@@ -66,7 +66,7 @@ function UserMenu() {
 }
 
 function Shell() {
-  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode } = useApp();
+  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user } = useApp();
   const { t } = useI18n();
   const activeTrip = trips.find((t) => t.id === activeTripId);
   // Giữ các trang đã mở trong DOM để khi quay lại vẫn còn tab, bộ lọc và vị trí cuộn
@@ -134,6 +134,7 @@ function Shell() {
       {!firebaseEnabled && <div className="demo-flag">{t('demo.flag')}</div>}
       {toast && <div className={`toast toast--${toast.kind}`} key={toast.id}>{toast.msg}</div>}
       <Modals />
+      {(!countries || user === undefined) && <Loader page size="md" />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
-import { Modal, Avatar, formatDate } from './ui';
+import { Modal, Avatar, formatDate, Loader, LoadingImage } from './ui';
 import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize, parseGoogleMapsInput, reverseGeocode, isGoogleMapsLink } from '../lib/geo';
 import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
@@ -24,6 +24,8 @@ export default function Modals() {
       return <MemoryViewer memory={modal.memory} onClose={close} />;
     case 'share':
       return <ShareStudio memory={modal.memory} onClose={close} />;
+    case 'visitDate':
+      return <VisitDateModal place={modal.place} tripId={modal.tripId} onClose={close} />;
     case 'addLink':
       return <AddLinkModal text={modal.text} onClose={close} />;
     default:
@@ -159,10 +161,56 @@ function GoogleLinkInput({ initial = '', onFound, autoRun }) {
       <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder={t('link.placeholder')} />
       <small className="muted">{t('link.howto')}</small>
       {error && <p className="small warn">{error}</p>}
-      <button type="button" className="btn btn--dark" disabled={busy || !text.trim()} onClick={() => run()}>
-        {busy ? t('link.finding') : t('link.find')}
-      </button>
+      {busy ? (
+        <Loader text={t('link.finding')} />
+      ) : (
+        <button type="button" className="btn btn--dark" disabled={!text.trim()} onClick={() => run()}>
+          {t('link.find')}
+        </button>
+      )}
     </div>
+  );
+}
+
+const today = () => {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+
+/** Hỏi ngày đã đến khi đánh dấu "đã tới" */
+function VisitDateModal({ place, tripId, onClose }) {
+  const { t } = useI18n();
+  const { saveVisited, notify, placeById } = useApp();
+  const [date, setDate] = useState(placeById[place.id]?.visitedAt || today());
+  const [busy, setBusy] = useState(false);
+  const save = async (value) => {
+    setBusy(true);
+    await saveVisited(place, value, tripId);
+    notify(t('toast.visited', { name: pName(place) }));
+    onClose();
+  };
+  return (
+    <Modal title={t('visit.title')} onClose={onClose} className="modal--sm">
+      <div className="stack">
+        <p className="muted">{t('visit.question', { name: pName(place) })}</p>
+        <label className="field">
+          <span>{t('visit.label')}</span>
+          <input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        {busy ? (
+          <Loader size="sm" />
+        ) : (
+          <div className="grid-2">
+            <button className="btn btn--soft" onClick={() => save(null)}>
+              {t('visit.skip')}
+            </button>
+            <button className="btn btn--primary" onClick={() => save(date || null)}>
+              👣 {t('visit.save')}
+            </button>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 
@@ -388,9 +436,11 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
         <p className="small muted">
           {visibility === 'public' ? t('mem.publicHint') : t('mem.privateHint')}
         </p>
-        <button className="btn btn--primary btn--block" disabled={busy}>
-          {busy ? t('mem.uploading') : t('mem.save')}
-        </button>
+        {busy ? (
+          <Loader text={t('mem.uploading')} />
+        ) : (
+          <button className="btn btn--primary btn--block">{t('mem.save')}</button>
+        )}
       </form>
     </Modal>
   );
@@ -416,7 +466,7 @@ function MemoryViewer({ memory: m, onClose }) {
       <div className="viewer">
         {photos.length > 0 && (
           <div className="viewer__media">
-            <img src={photos[i]} alt={m.caption} />
+            <LoadingImage key={photos[i]} src={photos[i]} alt={m.caption} loaderSize="md" />
             {photos.length > 1 && (
               <>
                 <button className="viewer__nav viewer__nav--l" onClick={() => setI((i - 1 + photos.length) % photos.length)} aria-label={t('mem.prev')}>‹</button>

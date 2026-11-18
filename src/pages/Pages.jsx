@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { MemoryGrid } from '../components/SidePanel';
-import { Avatar, Chip, Empty, formatDate } from '../components/ui';
+import { Avatar, Chip, Empty, formatDate, Loader, LoadingImage } from '../components/ui';
 import { countryName, flagOf } from '../lib/countries';
 import { normalize } from '../lib/geo';
 import { useI18n } from '../i18n';
@@ -101,7 +101,7 @@ function useFilters(items, getPlace) {
 const memPlace = (m) => m.place;
 
 export function ExplorePage() {
-  const { publicMemories, openCountry } = useApp();
+  const { publicMemories, openCountry, loaded } = useApp();
   const { t } = useI18n();
   const { filtered, ui, cc } = useFilters(publicMemories, memPlace);
   return (
@@ -114,7 +114,9 @@ export function ExplorePage() {
         </div>
       </header>
       {ui}
-      {filtered.length ? (
+      {!loaded.public ? (
+        <Loader />
+      ) : filtered.length ? (
         <MemoryGrid items={filtered} />
       ) : (
         <Empty
@@ -135,7 +137,7 @@ export function ExplorePage() {
 }
 
 export function MemoriesPage() {
-  const { user, memories, places, requireLogin, setModal, openPlace, startPicking } = useApp();
+  const { user, memories, places, requireLogin, setModal, openPlace, startPicking, loaded } = useApp();
   const [tab, setTab] = useState('memories');
   const { t } = useI18n();
   const { filtered, ui } = useFilters(memories, memPlace);
@@ -178,7 +180,9 @@ export function MemoriesPage() {
       {tab === 'memories' && (
         <>
           {ui}
-          {filtered.length ? (
+          {!loaded.mine ? (
+            <Loader />
+          ) : filtered.length ? (
             <MemoryGrid items={filtered} />
           ) : (
             <Empty emoji="🧺" title={t('mine.empty')} text={t('mine.emptyHint')} />
@@ -208,6 +212,7 @@ function PlaceList({ items, onOpen, emptyText }) {
                 <b>{pName(p)}</b>
                 <small>
                   {flagOf(p.country)} {[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}
+                  {p.visitedAt ? ` · 📅 ${formatDate(p.visitedAt)}` : ''}
                 </small>
               </button>
               <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: p })}>
@@ -224,7 +229,7 @@ function PlaceList({ items, onOpen, emptyText }) {
 }
 
 export function TripsPage() {
-  const { user, trips, api, requireLogin, notify, activeTripId, setActiveTripId, setView } = useApp();
+  const { user, trips, api, requireLogin, notify, activeTripId, setActiveTripId, setView, loaded } = useApp();
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('🧳');
   const [code, setCode] = useState('');
@@ -296,7 +301,9 @@ export function TripsPage() {
           <button className="btn btn--dark">{t('trips.joinBtn')}</button>
         </form>
       </div>
-      {trips.length === 0 ? (
+      {!loaded.trips ? (
+        <Loader />
+      ) : trips.length === 0 ? (
         <Empty emoji="🎒" title={t('trips.empty')} />
       ) : (
         <div className="trip-list">
@@ -334,7 +341,7 @@ export function TripsPage() {
 function TripDetail({ trip, onBack }) {
   const { user, api, notify, setActiveTripId, setView, openPlace, setModal } = useApp();
   const { t } = useI18n();
-  const [stops, setStops] = useState([]);
+  const [stops, setStops] = useState(null);
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
   const share = async () => {
@@ -350,7 +357,8 @@ function TripDetail({ trip, onBack }) {
     await navigator.clipboard?.writeText(link);
     notify(t('trip.copied'));
   };
-  const countries = [...new Set(stops.map((s) => s.place.country).filter(Boolean))];
+  const stopList = stops || [];
+  const countries = [...new Set(stopList.map((s) => s.place.country).filter(Boolean))];
   return (
     <div className="page">
       <button className="back" onClick={onBack}>{t('trip.back')}</button>
@@ -360,7 +368,7 @@ function TripDetail({ trip, onBack }) {
             {trip.emoji} {trip.name}
           </h1>
           <p className="muted">
-            {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stops.length })} · {t('trip.code')} <b className="code">{trip.inviteCode}</b>
+            {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stopList.length })} · {t('trip.code')} <b className="code">{trip.inviteCode}</b>
           </p>
         </div>
         <div className="row wrap">
@@ -389,7 +397,9 @@ function TripDetail({ trip, onBack }) {
       </section>
       <section>
         <h3 className="section-title">{t('trip.journey')}</h3>
-        {stops.length === 0 ? (
+        {!stops ? (
+          <Loader />
+        ) : stops.length === 0 ? (
           <Empty emoji="📍" title={t('trip.noStops')} text={t('trip.noStopsHint')} />
         ) : (
           <ol className="timeline">
@@ -414,7 +424,7 @@ function TripDetail({ trip, onBack }) {
                             setModal({ type: 'viewMemory', memory: { id: s.id, memoryId: s.memoryId, uid: 'trip-stop', authorName: s.byName, authorPhoto: s.byPhoto, place: s.place, caption: s.caption, photos: s.photos } })
                           }
                         >
-                          <img src={p} alt="" loading="lazy" />
+                          <LoadingImage src={p} alt="" loading="lazy" />
                         </button>
                       ))}
                     </div>

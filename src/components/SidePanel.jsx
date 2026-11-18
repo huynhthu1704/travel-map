@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
-import { Chip, Empty, formatDate, Avatar } from './ui';
+import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage } from './ui';
 import { useI18n } from '../i18n';
 import { pName, pCity, pDesc } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
@@ -148,19 +148,22 @@ function CountryPanel() {
     [famous, mine, memories, cc, lang], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const byCity = (p) => !city || pCity(p) === city;
+  const headRef = useRef(null);
 
   return (
     <div className="stack">
-      <button
-        className="back"
-        onClick={() => {
-          setSelectedCountry(null);
-          setFlyTarget({ world: true, t: Date.now() });
-        }}
-      >
-        {t('country.backWorld')}
-      </button>
-      <div className="country-head">
+      <StickyBar watch={headRef} compact={<>{flagOf(cc)} {countryName(cc)}</>}>
+        <button
+          className="back"
+          onClick={() => {
+            setSelectedCountry(null);
+            setFlyTarget({ world: true, t: Date.now() });
+          }}
+        >
+          {t('country.backWorld')}
+        </button>
+      </StickyBar>
+      <div className="country-head" ref={headRef}>
         <span className="country-head__flag">{flagOf(cc)}</span>
         <div>
           <h1 className="h2">{countryName(cc)}</h1>
@@ -190,7 +193,10 @@ function CountryPanel() {
                 <span className="list-item__emoji">{p.status === 'visited' ? '👣' : '💛'}</span>
                 <span>
                   <b>{pName(p)}</b>
-                  <small>{pCity(p)}</small>
+                  <small>
+                    {pCity(p)}
+                    {p.visitedAt ? ` · 📅 ${formatDate(p.visitedAt)}` : ''}
+                  </small>
                 </span>
               </button>
             ))}
@@ -209,7 +215,7 @@ function CountryPanel() {
             ))}
           </div>
         )}
-        {famousLoading && <p className="small muted loading-dots">{t('country.loadingMore')}</p>}
+        {famousLoading && <Loader text={t('country.loadingMore')} />}
         {!city && famous.length > famousLimit && (
           <button className="btn btn--soft btn--block" onClick={() => setFamousLimit((n) => n + 15)}>
             {t('country.showMore', { n: famous.length - famousLimit })}
@@ -229,14 +235,15 @@ function CountryPanel() {
 }
 
 export function PlaceCard({ place }) {
-  const { placeStatus, setPlaceStatus, setModal, openPlace } = useApp();
+  const { placeStatus, setPlaceStatus, setModal, openPlace, placeById } = useApp();
   const { t } = useI18n();
-  const img = usePlaceImage(place);
+  const visitedAt = placeById[place.id]?.visitedAt;
+  const { src: img, loading: finding } = usePlaceImage(place);
   const st = placeStatus[place.id];
   return (
     <article className="place-card">
       <button className="place-card__cover" onClick={() => openPlace(place)} aria-label={pName(place)}>
-        {img ? <img src={img} alt={pName(place)} loading="lazy" referrerPolicy="no-referrer" /> : <span>{place.emoji}</span>}
+        <LoadingImage src={img} finding={finding} alt={pName(place)} loading="lazy" fallback={<span>{place.emoji}</span>} />
         {img && <span className="place-card__badge">{place.emoji}</span>}
       </button>
       <div className="place-card__body">
@@ -244,6 +251,7 @@ export function PlaceCard({ place }) {
           {pName(place)}
         </button>
         <p className="muted small">{pCity(place)}{pDesc(place) ? ` · ${pDesc(place)}` : ''}</p>
+        {st === 'visited' && visitedAt && <p className="visit-date">{t('visit.on', { date: formatDate(visitedAt) })}</p>}
         <div className="row">
           <button className={`btn btn--sm ${st === 'wishlist' ? 'btn--coral' : 'btn--soft'}`} onClick={() => setPlaceStatus(place, 'wishlist')} aria-pressed={st === 'wishlist'}>
             {st === 'wishlist' ? t('card.liked') : t('card.wish')}
@@ -261,16 +269,17 @@ export function PlaceCard({ place }) {
 }
 
 function PlacePanel() {
-  const { selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView } = useApp();
+  const { saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView } = useApp();
   const [tripId, setTripId] = useState('');
   const { t } = useI18n();
-  const img = usePlaceImage(p);
+  const { src: img, loading: findingImg } = usePlaceImage(p);
   const st = placeStatus[p.id];
   const mine = memories.filter((m) => m.place?.id === p.id);
   const pub = publicMemories.filter((m) => m.place?.id === p.id && !mine.some((x) => x.id === m.id));
+  const heroRef = useRef(null);
   return (
     <div className="stack">
-      <div className="back-row">
+      <StickyBar watch={heroRef} compact={<>{p.emoji || '📍'} {pName(p)}</>}>
         {returnView && (
           <button
             className="btn btn--sm btn--dark"
@@ -291,14 +300,14 @@ function PlacePanel() {
         >
           ← {p.country ? countryName(p.country) : t('common.back')}
         </button>
-      </div>
-      {img && (
+      </StickyBar>
+      {(img || findingImg) && (
         <figure className="place-photo">
-          <img src={img} alt={pName(p)} referrerPolicy="no-referrer" />
-          <figcaption>{t('place.photoCredit')}</figcaption>
+          <LoadingImage src={img} finding={findingImg} alt={pName(p)} loaderSize="md" />
+          {img && <figcaption>{t('place.photoCredit')}</figcaption>}
         </figure>
       )}
-      <div className="place-hero">
+      <div className="place-hero" ref={heroRef}>
         <span className="place-hero__emoji">{p.emoji || '📍'}</span>
         <div>
           <h1 className="h2">{pName(p)}</h1>
@@ -347,6 +356,12 @@ function PlacePanel() {
         </button>
       </div>
 
+      {st === 'visited' && (
+        <label className="field visit-field">
+          <span>{t('visit.edit')}</span>
+          <input type="date" value={placeById[p.id]?.visitedAt || ''} onChange={(e) => saveVisited(p, e.target.value || null)} />
+        </label>
+      )}
       {mine.length > 0 && (
         <section>
           <h3 className="section-title">{t('place.yourMemories')}</h3>
@@ -367,7 +382,7 @@ export function MemoryGrid({ items }) {
     <div className="mgrid">
       {items.map((m) => (
         <button key={m.id} className="mgrid__item" onClick={() => setModal({ type: 'viewMemory', memory: m })}>
-          {m.photos?.[0] ? <img src={m.photos[0]} alt={m.caption || m.place?.name} loading="lazy" /> : <span className="mgrid__noimg">📝</span>}
+          <LoadingImage src={m.photos?.[0]} alt={m.caption || m.place?.name} loading="lazy" fallback={<span className="mgrid__noimg">📝</span>} />
           {m.photos?.length > 1 && <span className="mgrid__count">+{m.photos.length - 1}</span>}
           <span className="mgrid__meta">
             <Avatar name={m.authorName} photo={m.authorPhoto} size={20} />
@@ -377,6 +392,31 @@ export function MemoryGrid({ items }) {
           {placeStatus[m.place?.id] === 'wishlist' && <span className="mgrid__wish" title="💛">💛</span>}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Thanh trên cùng luôn dính khi cuộn: giữ nút quay lại, và khi tiêu đề lớn (`watch`) bị cuộn khuất
+ * thì hiện tên quốc gia / địa điểm dạng chữ nhỏ.
+ */
+function StickyBar({ watch, compact, children }) {
+  const barRef = useRef(null);
+  const [showCompact, setShowCompact] = useState(false);
+  useEffect(() => {
+    const target = watch.current;
+    const root = barRef.current?.closest('.panel__scroll');
+    if (!target || !root) return;
+    const io = new IntersectionObserver(([e]) => setShowCompact(!e.isIntersecting), { root, threshold: 0, rootMargin: '-56px 0px 0px 0px' });
+    io.observe(target);
+    return () => io.disconnect();
+  }, [watch]);
+  return (
+    <div className={`sticky-bar ${showCompact ? 'sticky-bar--compact' : ''}`} ref={barRef}>
+      <div className="sticky-bar__actions">{children}</div>
+      <div className="sticky-bar__title" aria-hidden={!showCompact}>
+        {compact}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../i18n';
 import { getLocale } from '../lib/lang';
 
@@ -41,6 +41,44 @@ export function Chip({ active, onClick, children }) {
     <button className={`chip ${active ? 'chip--on' : ''}`} onClick={onClick} type="button">
       {children}
     </button>
+  );
+}
+
+/** Ảnh có hiệu ứng loading cho tới khi tải xong; lỗi tải thì hiện `fallback` */
+export function LoadingImage({ src, alt, finding, fallback = null, loaderSize = 'sm', className = '', ...rest }) {
+  const [state, setState] = useState('loading');
+  useEffect(() => setState('loading'), [src]);
+  if (!src && !finding) return fallback;
+  return (
+    <>
+      {src && state !== 'error' && (
+        <img
+          src={src}
+          alt={alt}
+          className={`${className} ${state === 'loaded' ? 'is-loaded' : 'is-loading'}`}
+          onLoad={() => setState('loaded')}
+          onError={() => setState('error')}
+          referrerPolicy="no-referrer"
+          {...rest}
+        />
+      )}
+      {state === 'error' && fallback}
+      {(finding || (src && state === 'loading')) && <Loader size={loaderSize} overlay />}
+    </>
+  );
+}
+
+/** Hiệu ứng loading chung: logo 📍 nhảy qua lại + "Chờ chút xíu nha" */
+export function Loader({ size = 'md', overlay, page, text }) {
+  const { t } = useI18n();
+  return (
+    <div className={`loader loader--${size} ${overlay ? 'loader--overlay' : ''} ${page ? 'loader--page' : ''}`} role="status" aria-live="polite">
+      <div className="loader__track" aria-hidden>
+        <span className="loader__shadow" />
+        <span className="loader__logo">📍</span>
+      </div>
+      <span className="loader__text">{text || t('common.loading')}</span>
+    </div>
   );
 }
 

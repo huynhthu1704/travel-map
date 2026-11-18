@@ -55,10 +55,11 @@ const firebaseBackend = {
   watchPlaces(uid, cb) {
     return onSnapshot(collection(db, 'users', uid, 'places'), (s) => cb(s.docs.map((d) => d.data())));
   },
-  async setPlace(user, place, status, tripId) {
+  /** visitedAt: ngày đã đến ('YYYY-MM-DD'), tuỳ chọn */
+  async setPlace(user, place, status, tripId, visitedAt = null) {
     const r = doc(db, 'users', user.uid, 'places', safeId(place.id));
     if (!status) return deleteDoc(r);
-    await setDoc(r, { ...pickPlace(place), status, tripId: tripId || null, updatedAt: now() });
+    await setDoc(r, { ...pickPlace(place), status, tripId: tripId || null, visitedAt: status === 'visited' ? visitedAt || null : null, updatedAt: now() });
     if (tripId && status === 'visited') await this.addStop(user, tripId, { place, kind: 'place' });
   },
 
@@ -90,7 +91,7 @@ const firebaseBackend = {
       await setDoc(doc(db, 'memories', memRef.id, 'full', String(i)), { data: full[i], uid: user.uid, i });
     }
     // Đặt chân tới đây = đánh dấu "đã đến"
-    await setDoc(doc(db, 'users', user.uid, 'places', safeId(place.id)), { ...pickPlace(place), status: 'visited', tripId: tripId || null, updatedAt: now() });
+    await setDoc(doc(db, 'users', user.uid, 'places', safeId(place.id)), { ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() });
     if (tripId) await this.addStop(user, tripId, { place, kind: 'memory', photos: thumbs, caption, memoryId: memRef.id });
     return { id: memRef.id, ...data, fullPhotos: full };
   },
@@ -196,10 +197,10 @@ const localBackend = {
   watchPlaces(u, cb) {
     return sub(() => cb(Object.values(state.places[u] || {})));
   },
-  async setPlace(user, place, status, tripId) {
+  async setPlace(user, place, status, tripId, visitedAt = null) {
     const m = (state.places[user.uid] ||= {});
     if (!status) delete m[place.id];
-    else m[place.id] = { ...pickPlace(place), status, tripId: tripId || null, updatedAt: now() };
+    else m[place.id] = { ...pickPlace(place), status, tripId: tripId || null, visitedAt: status === 'visited' ? visitedAt || null : null, updatedAt: now() };
     if (status === 'visited' && tripId) this.addStop(user, tripId, { place, kind: 'place' });
     save();
   },
@@ -217,7 +218,7 @@ const localBackend = {
       visibility, tripId: tripId || null, photos, createdAt: now(),
     };
     state.memories.push(mem);
-    (state.places[user.uid] ||= {})[place.id] = { ...pickPlace(place), status: 'visited', tripId: tripId || null, updatedAt: now() };
+    (state.places[user.uid] ||= {})[place.id] = { ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() };
     if (tripId) this.addStop(user, tripId, { place, kind: 'memory', photos, caption });
     save();
     return mem;

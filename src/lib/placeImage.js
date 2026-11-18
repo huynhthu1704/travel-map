@@ -50,16 +50,18 @@ export async function getPlaceImage(p) {
   return pending[p.id];
 }
 
-/** Hook: trả về URL ảnh ('' nếu không có / đang tải) */
+const known = (p) => !!p && (!!p.image || cache[p.id] !== undefined || !(p.famous || FAMOUS_BY_ID[p.id] || /^wd-/.test(p.id || '')));
+
+/** Hook: { src, loading } — src = '' nếu không có ảnh; loading = đang tìm URL ảnh */
 export function usePlaceImage(p) {
-  const [src, setSrc] = useState(() => p?.image || cache[p?.id] || '');
+  const [state, setState] = useState(() => ({ src: p?.image || cache[p?.id] || '', loading: !known(p) }));
   useEffect(() => {
     let alive = true;
-    setSrc(p?.image || cache[p?.id] || '');
-    getPlaceImage(p).then((s) => alive && setSrc(s));
+    setState({ src: p?.image || cache[p?.id] || '', loading: !known(p) });
+    getPlaceImage(p).then((s) => alive && setState({ src: s, loading: false }));
     return () => {
       alive = false;
     };
   }, [p?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  return src;
+  return state;
 }

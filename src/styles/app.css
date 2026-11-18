@@ -968,6 +968,14 @@ button.list-item:hover,
   gap: 6px;
   min-width: 0;
 }
+.visit-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--honey-800);
+}
+.visit-field input {
+  max-width: 220px;
+}
 .place-card__title {
   font-family: var(--font-heading);
   font-weight: 600;
@@ -1082,6 +1090,43 @@ button.list-item:hover,
 .page-hidden .page {
   visibility: hidden;
   pointer-events: none;
+}
+.sticky-bar {
+  position: sticky;
+  top: -24px;
+  z-index: 5;
+  margin: -24px -24px 0;
+  padding: 16px 24px 10px;
+  background: var(--color-bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: box-shadow 0.2s;
+}
+.sticky-bar--compact {
+  box-shadow: 0 6px 12px -8px rgba(77, 53, 0, 0.25);
+}
+.sticky-bar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sticky-bar__title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.2s, opacity 0.2s;
+}
+.sticky-bar--compact .sticky-bar__title {
+  max-height: 24px;
+  opacity: 1;
 }
 .back-row {
   display: flex;
@@ -1247,6 +1292,116 @@ button.list-item:hover,
   object-fit: cover;
   border-radius: 10px;
   width: 100%;
+}
+img.is-loading {
+  opacity: 0;
+}
+img.is-loaded {
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+.timeline__photos button {
+  position: relative;
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.viewer__media .loader--overlay {
+  background: var(--ink-900);
+}
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 12px;
+  color: var(--color-text-muted);
+}
+.loader__track {
+  position: relative;
+  width: 84px;
+  height: 46px;
+}
+.loader__logo {
+  position: absolute;
+  left: 0;
+  bottom: 6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--color-bg-brand);
+  box-shadow: inset 0 -3px 0 var(--honey-600), 0 4px 10px rgba(122, 84, 0, 0.25);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  animation: loader-hop 1.1s ease-in-out infinite;
+}
+.loader__shadow {
+  position: absolute;
+  left: 4px;
+  bottom: 0;
+  width: 26px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(77, 53, 0, 0.18);
+  animation: loader-shadow 1.1s ease-in-out infinite;
+}
+.loader__text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--honey-700);
+}
+.loader__text::after {
+  content: '';
+  animation: loader-dots 1.2s steps(4) infinite;
+}
+.loader--sm {
+  padding: 6px;
+  gap: 2px;
+}
+.loader--sm .loader__track {
+  transform: scale(0.7);
+  margin: -6px 0;
+}
+.loader--sm .loader__text {
+  font-size: 11px;
+}
+.loader--overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--honey-50);
+  z-index: 1;
+}
+.loader--page {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: var(--color-bg-canvas);
+}
+@keyframes loader-hop {
+  0% { transform: translate(0, 0) rotate(-8deg); }
+  25% { transform: translate(25px, -16px) rotate(0deg); }
+  50% { transform: translate(50px, 0) rotate(8deg); }
+  75% { transform: translate(25px, -16px) rotate(0deg); }
+  100% { transform: translate(0, 0) rotate(-8deg); }
+}
+@keyframes loader-shadow {
+  0%, 50%, 100% { transform: translateX(0) scaleX(1); opacity: 1; }
+  25%, 75% { transform: translateX(25px) scaleX(0.6); opacity: 0.5; }
+  50% { transform: translateX(50px) scaleX(1); }
+}
+@keyframes loader-dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader__logo,
+  .loader__shadow {
+    animation: none;
+  }
 }
 .empty {
   text-align: center;
@@ -1760,6 +1915,11 @@ button.list-item:hover,
   }
   .panel__scroll {
     padding: 8px 18px 24px;
+  }
+  .sticky-bar {
+    top: -8px;
+    margin: -8px -18px 0;
+    padding: 8px 18px 8px;
   }
   .leaflet-bottom.leaflet-right {
     bottom: 44%;

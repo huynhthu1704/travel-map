@@ -19,6 +19,8 @@ export function AppProvider({ children }) {
   const [activeTripId, setActiveTripId] = useState(null);
   const [tripStops, setTripStops] = useState([]);
   const [countries, setCountries] = useState(null);
+  const [loaded, setLoaded] = useState({ public: false, mine: false, trips: false });
+  const markLoaded = (k) => setLoaded((l) => (l[k] ? l : { ...l, [k]: true }));
 
   const [view, setView] = useState('map');
   const [selectedCountry, setSelectedCountry] = useState(null);
@@ -34,11 +36,21 @@ export function AppProvider({ children }) {
   const [pickMode, setPickMode] = useState(null); // null | 'place' (thêm nhiều) | 'memory' (chọn 1 cho kỉ niệm)
   const [pickStatus, setPickStatus] = useState('visited');
   const [picked, setPicked] = useState([]); // địa điểm đã thêm trong lượt chọn này
+  const [pickDate, setPickDate] = useState('');
+  const pickDateRef = useRef(pickDate);
+  pickDateRef.current = pickDate;
   const [toast, setToast] = useState(null);
   const pendingAction = useRef(null);
 
   useEffect(() => api.onAuth(setUser), []);
-  useEffect(() => api.watchPublicMemories(setPublicMemories), []);
+  useEffect(
+    () =>
+      api.watchPublicMemories((list) => {
+        setPublicMemories(list);
+        markLoaded('public');
+      }),
+    [],
+  );
   useEffect(() => {
     loadCountries().then(setCountries);
   }, []);
@@ -51,8 +63,14 @@ export function AppProvider({ children }) {
       return;
     }
     const u1 = api.watchPlaces(user.uid, setPlaces);
-    const u2 = api.watchMyMemories(user.uid, setMemories);
-    const u3 = api.watchTrips(user.uid, setTrips);
+    const u2 = api.watchMyMemories(user.uid, (list) => {
+      setMemories(list);
+      markLoaded('mine');
+    });
+    const u3 = api.watchTrips(user.uid, (list) => {
+      setTrips(list);
+      markLoaded('trips');
+    });
     if (pendingAction.current) {
       const fn = pendingAction.current;
       pendingAction.current = null;
@@ -133,6 +151,14 @@ export function AppProvider({ children }) {
   userRef.current = user;
 
   const placeStatus = useMemo(() => Object.fromEntries(places.map((p) => [p.id, p.status])), [places]);
+  const placeById = useMemo(() => Object.fromEntries(places.map((p) => [p.id, p])), [places]);
+  /** Lưu "đã đến" kèm ngày (hoặc đổi ngày) */
+  const saveVisited = useCallback(
+    async (place, visitedAt, tripId) => {
+      await api.setPlace(userRef.current, place, 'visited', tripId ?? placeById[place.id]?.tripId, visitedAt);
+    },
+    [placeById],
+  );
   const visitedCountries = useMemo(() => {
     const s = new Set();
     places.forEach((p) => p.status === 'visited' && p.country && s.add(p.country));
@@ -146,6 +172,8 @@ export function AppProvider({ children }) {
         const u = userRef.current;
         const current = placeStatus[place.id];
         const next = current === status ? null : status;
+        // Đánh dấu "đã đến" → hỏi ngày đến để sau này nhớ
+        if (next === 'visited') return setModal({ type: 'visitDate', place, tripId });
         await api.setPlace(u, place, next, tripId);
         notify(
           next === 'visited' ? t('toast.visited', { name: pName(place) }) : next === 'wishlist' ? t('toast.wish', { name: pName(place) }) : t('toast.unmarked'),
@@ -216,8 +244,9 @@ export function AppProvider({ children }) {
       setPicked((list) => [...list, { place: draft, status, loading: true }]);
       const geo = await reverseGeocode(lat, lng, getLang());
       const place = { ...draft, name: geo.name || t('pick.loading'), city: geo.city, country: geo.country };
-      await api.setPlace(u, place, status);
-      setPicked((list) => list.map((x) => (x.place.id === id ? { place, status, loading: false } : x)));
+      const date = status === 'visited' ? pickDateRef.current || null : null;
+      await api.setPlace(u, place, status, null, date);
+      setPicked((list) => list.map((x) => (x.place.id === id ? { place, status, date, loading: false } : x)));
     },
     [],
   );
@@ -227,10 +256,10 @@ export function AppProvider({ children }) {
     setPicked((list) => list.filter((x) => x.place.id !== place.id));
     await api.setPlace(userRef.current, place, null);
   }, []);
-  const renamePicked = useCallback(async (place, name, status) => {
+  const renamePicked = useCallback(async (place, name, status, date) => {
     const next = { ...place, name };
     setPicked((list) => list.map((x) => (x.place.id === place.id ? { ...x, place: next } : x)));
-    await api.setPlace(userRef.current, next, status);
+    await api.setPlace(userRef.current, next, status, null, date);
   }, []);
   const finishPicking = useCallback(() => {
     setPickMode(null);
@@ -241,7 +270,7 @@ export function AppProvider({ children }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = {
-    pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
+    loaded, placeById, saveVisited, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

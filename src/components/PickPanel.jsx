@@ -1,10 +1,11 @@
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { countryName, flagOf } from '../lib/countries';
+import { formatDate } from './ui';
 
 /** Bảng nổi khi đang thêm nhiều địa điểm bằng cách chạm lên bản đồ */
 export default function PickPanel() {
-  const { pickStatus, setPickStatus, picked, removePicked, renamePicked, finishPicking, setFlyTarget } = useApp();
+  const { pickStatus, setPickStatus, pickDate, setPickDate, picked, removePicked, renamePicked, finishPicking, setFlyTarget } = useApp();
   const { t } = useI18n();
   return (
     <aside className="panel pick-panel">
@@ -26,6 +27,12 @@ export default function PickPanel() {
             💛 {t('legend.wish')}
           </button>
         </div>
+        {pickStatus === 'visited' && (
+          <label className="field">
+            <span>{t('pick.date')}</span>
+            <input type="date" value={pickDate} onChange={(e) => setPickDate(e.target.value)} />
+          </label>
+        )}
         {picked.length === 0 ? (
           <div className="pick-panel__empty">
             <span>👆</span>
@@ -33,7 +40,7 @@ export default function PickPanel() {
           </div>
         ) : (
           <ol className="pick-list">
-            {picked.map(({ place, status, loading }) => (
+            {picked.map(({ place, status, date, loading }) => (
               <li key={place.id} className={loading ? 'is-loading' : ''}>
                 <button className="pick-list__icon" onClick={() => setFlyTarget({ lat: place.lat, lng: place.lng, zoom: 14, t: Date.now() })} aria-label={t('common.viewOnMap')}>
                   {status === 'visited' ? '👣' : '💛'}
@@ -44,11 +51,12 @@ export default function PickPanel() {
                     key={place.name}
                     disabled={loading}
                     aria-label={t('place.rename')}
-                    onBlur={(e) => e.target.value.trim() && e.target.value !== place.name && renamePicked(place, e.target.value.trim(), status)}
+                    onBlur={(e) => e.target.value.trim() && e.target.value !== place.name && renamePicked(place, e.target.value.trim(), status, date)}
                     onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                   />
                   <small>
                     {flagOf(place.country)} {[place.city, countryName(place.country)].filter(Boolean).join(', ')}
+                    {date ? ` · 📅 ${formatDate(date)}` : ''}
                   </small>
                 </div>
                 <button className="icon-btn" onClick={() => removePicked(place)} aria-label={t('pick.undo')} disabled={loading}>

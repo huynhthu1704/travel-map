@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
-import { Modal } from './ui';
+import { Modal, Loader } from './ui';
 import { loadImage } from '../lib/image';
 import { countryName, flagOf } from '../lib/countries';
 import { formatDate } from './ui';
@@ -510,7 +510,7 @@ export default function ShareStudio({ memory, onClose }) {
               )}
             </div>
           ) : (
-            <div className="studio__empty">{t('studio.empty')}</div>
+            selected.length ? <Loader size="md" /> : <div className="studio__empty">{t('studio.empty')}</div>
           )}
         </div>
         <div className="studio__controls stack">

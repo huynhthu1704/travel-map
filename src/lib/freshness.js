@@ -22,11 +22,18 @@ function showUpdateBar() {
   const bar = document.createElement('div');
   bar.id = 'update-bar';
   bar.className = 'update-bar';
-  bar.innerHTML = `<span>✨ ${t('update.available')}</span>`;
+  bar.setAttribute('role', 'status');
+  bar.innerHTML = `<span class="update-bar__icon">✨</span><span class="update-bar__text">${t('update.available')}</span>`;
   const btn = document.createElement('button');
-  btn.textContent = t('update.reload');
+  btn.className = 'update-bar__reload';
+  btn.textContent = `↻ ${t('update.reload')}`;
   btn.onclick = () => location.reload();
-  bar.appendChild(btn);
+  const close = document.createElement('button');
+  close.className = 'update-bar__close';
+  close.setAttribute('aria-label', '✕');
+  close.textContent = '✕';
+  close.onclick = () => bar.remove();
+  bar.append(btn, close);
   document.body.appendChild(bar);
 }
 

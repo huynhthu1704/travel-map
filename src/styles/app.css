@@ -3545,26 +3545,56 @@ img.is-loaded {
 }
 .update-bar {
   position: fixed;
+  top: 76px;
   left: 50%;
-  bottom: 84px;
   transform: translateX(-50%);
   z-index: 3000;
-  background: var(--ink-900, #211b14);
-  color: #fff;
-  border-radius: var(--radius-full, 999px);
-  padding: 8px 8px 8px 18px;
+  width: min(440px, calc(100vw - 24px));
+  background: var(--honey-400, #ffc629);
+  color: var(--ink-900, #211b14);
+  border-radius: 16px;
+  padding: 8px 8px 8px 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-size: 14px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(77, 53, 0, 0.25);
+  animation: update-in 0.3s ease;
 }
-.update-bar button {
-  background: var(--honey-400, #ffc629);
-  color: #211b14;
+@keyframes update-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+}
+.update-bar__icon {
+  font-size: 18px;
+}
+.update-bar__text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.update-bar__reload {
+  background: var(--ink-900, #211b14);
+  color: #fff;
   font-weight: 700;
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 8px 16px;
+  white-space: nowrap;
+}
+.update-bar__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: var(--ink-900, #211b14);
+  opacity: 0.7;
+}
+.update-bar__close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* ---------- Thẻ đầu trang chuyến đi ---------- */

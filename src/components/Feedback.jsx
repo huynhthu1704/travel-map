@@ -21,7 +21,12 @@ export function StatusChip({ status }) {
 
 function TypeTag({ type }) {
   const { t } = useI18n();
-  return <span className={`fb-type fb-type--${type}`}>{type === 'bug' ? '🐞' : '✨'} {t('fb.type.' + type)}</span>;
+  return (
+    <span className={`fb-type fb-type--${type}`} title={t('fb.type.' + type)}>
+      {type === 'bug' ? '🐞' : '✨'}
+      <em className="fb-type__label"> {t('fb.type.' + type)}</em>
+    </span>
+  );
 }
 
 /** Form góp ý + danh sách góp ý của tôi */

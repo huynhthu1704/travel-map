@@ -5427,3 +5427,35 @@ body.fb-picking * {
   line-height: 1.3;
   font-size: 12px;
 }
+
+/* Danh sách góp ý: nhãn loại / trạng thái cùng độ rộng để các dòng thẳng hàng */
+.fb-row .fb-type {
+  flex: none;
+  width: 132px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.fb-row .fb-status {
+  flex: none;
+  min-width: 96px;
+  text-align: center;
+  box-sizing: border-box;
+}
+@media (max-width: 640px) {
+  .fb-row .fb-type {
+    width: 34px;
+    padding: 3px 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-indent: 0;
+  }
+}
+
+.fb-type__label {
+  font-style: normal;
+}
+@media (max-width: 640px) {
+  .fb-row .fb-type__label {
+    display: none;
+  }
+}

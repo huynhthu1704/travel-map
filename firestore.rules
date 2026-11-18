@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMember(tripId) {
+      return signedIn() && request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds;
+    }
+
+    // Địa điểm đã đến / muốn đi của từng người
+    match /users/{uid}/places/{placeId} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Kỉ niệm: công khai thì ai cũng xem được (kể cả chưa đăng nhập)
+    match /memories/{id} {
+      allow read: if resource.data.visibility == 'public' || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.visibility in ['public', 'private'];
+      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Chuyến đi chung
+    match /trips/{tripId} {
+      // Người đã đăng nhập đọc được để tham gia bằng mã mời
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.memberIds == [request.auth.uid];
+      // Chủ chuyến đi sửa/xoá; thành viên mới chỉ được thêm/bớt chính mình
+      allow update: if signedIn() && (
+        resource.data.ownerId == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members'])
+      );
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /stops/{stopId} {
+        allow read: if isMember(tripId);
+        allow create: if isMember(tripId) && request.resource.data.byUid == request.auth.uid;
+        allow delete: if isMember(tripId) && resource.data.byUid == request.auth.uid;
+      }
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { AppProvider, useApp } from './AppContext';
 import MapView from './components/MapView';
 import SidePanel from './components/SidePanel';
@@ -6,7 +6,10 @@ import PickPanel from './components/PickPanel';
 import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
 import { Avatar, Loader } from './components/ui';
-import { ExplorePage, MemoriesPage, TripsPage } from './pages/Pages';
+// Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
+const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
+const MemoriesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.MemoriesPage })));
+const TripsPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.TripsPage })));
 import { firebaseEnabled } from './lib/firebase';
 import { useI18n, LANGS } from './i18n';
 
@@ -144,9 +147,11 @@ function Shell() {
           </div>
           {view === 'map' && (pickMode === 'place' ? <PickPanel /> : <SidePanel />)}
         </div>
-        {mounted.has('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
-        {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}
-        {mounted.has('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
+        <Suspense fallback={view !== 'map' ? <div className="page"><Loader /></div> : null}>
+          {mounted.has('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
+          {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}
+          {mounted.has('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
+        </Suspense>
       </main>
 
       <nav className="nav nav--bottom">

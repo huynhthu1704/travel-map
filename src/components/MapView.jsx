@@ -245,7 +245,7 @@ export default function MapView() {
       <ZoomControl position="bottomright" />
       {countries && (
         <GeoJSON
-          key={lang}
+          key={`${lang}-${countries.features.length}`}
           ref={geoRef}
           data={countries}
           style={style}

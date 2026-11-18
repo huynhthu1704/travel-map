@@ -88,16 +88,16 @@ export function AppProvider({ children }) {
       setProfilePhoto(p?.photo || null);
     });
   }, [authUser?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(
-    () =>
-      api.watchPublicMemories((list) => {
-        setPublicMemories(list.map(fixMemory));
-        markLoaded('public');
-      }),
-    [],
-  );
   useEffect(() => {
-    loadCountries().then(setCountries);
+    // Bản đồ quốc gia nhẹ trước để hiện nhanh, rồi thay bằng bản chi tiết khi trình duyệt rảnh
+    let alive = true;
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200));
+    loadCountries('110m')
+      .then((fc) => alive && setCountries((cur) => cur || fc))
+      .finally(() => idle(() => loadCountries('50m').then((fc) => alive && setCountries(fc))));
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -426,6 +426,19 @@ export function AppProvider({ children }) {
       return [];
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Kỉ niệm công khai (kèm ảnh) khá nặng → chỉ tải khi cần: trang Khám phá, xem một quốc gia / địa điểm
+  const [needPublic, setNeedPublic] = useState(false);
+  useEffect(() => {
+    if (!needPublic && (view === 'explore' || selectedPlace || selectedCountry)) setNeedPublic(true);
+  }, [view, selectedPlace, selectedCountry, needPublic]);
+  useEffect(() => {
+    if (!needPublic) return undefined;
+    return api.watchPublicMemories((list) => {
+      setPublicMemories(list.map(fixMemory));
+      markLoaded('public');
+    });
+  }, [needPublic]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = {
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,

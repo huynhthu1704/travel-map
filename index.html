@@ -8,17 +8,40 @@
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Font: ít độ đậm hơn + tải không chặn, để mã của web được tải trước trên mạng chậm -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&family=Lexend:wght@600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&family=Lexend:wght@600;700&display=swap" />
+    </noscript>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin />
+    <style>
+      /* Màn hình chờ hiện ngay khi mở web (trước khi mã JavaScript tải xong) */
+      #boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#FFFCF5;font-family:system-ui,sans-serif;color:#4A4237;z-index:0}
+      #boot svg{width:72px;height:72px;animation:bootf 1.4s ease-in-out infinite}
+      #boot b{font-size:26px;color:#1F1A14}#boot b em{font-style:normal;color:#D99A00}
+      #boot i{display:block;width:140px;height:5px;border-radius:9px;background:#FFF0C2;overflow:hidden;position:relative}
+      #boot i::after{content:"";position:absolute;inset:0;width:40%;background:#FFC629;border-radius:9px;animation:boots 1.1s ease-in-out infinite}
+      @keyframes bootf{50%{transform:translateY(-8px)}}@keyframes boots{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+    </style>
     <meta name="application-name" content="Travel Map" />
     <meta name="apple-mobile-web-app-title" content="Travel Map" />
     <meta property="og:title" content="Travel Map" />
     <title>Travel Map 🍯</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot">
+        <svg viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="#FFC629"/><path d="M32 12c-8.3 0-15 6.5-15 14.6C17 37.5 32 52 32 52s15-14.5 15-25.4C47 18.5 40.3 12 32 12z" fill="#1F1A14"/><circle cx="32" cy="27" r="6" fill="#FFC629"/></svg>
+        <b>Travel <em>Map</em></b>
+        <i></i>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

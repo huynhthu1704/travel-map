@@ -124,7 +124,7 @@ const firebaseBackend = {
     );
   },
   watchPublicMemories(cb) {
-    return onSnapshot(query(collection(db, 'memories'), where('visibility', '==', 'public'), limit(300)), (s) =>
+    return onSnapshot(query(collection(db, 'memories'), where('visibility', '==', 'public'), limit(120)), (s) =>
       cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byNewest)),
     );
   },

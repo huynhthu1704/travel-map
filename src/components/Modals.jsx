@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { Modal, Avatar, formatDate, Loader, LoadingImage, OccasionField, DirectionsIcon } from './ui';
 import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize, parseGoogleMapsInput, reverseGeocode, isGoogleMapsLink } from '../lib/geo';
 import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
 import { firebaseEnabled } from '../lib/firebase';
-import ShareStudio from './ShareStudio';
-import RecapStudio from './RecapStudio';
-import { FaqModal, SponsorModal } from './HelpModals';
+// Studio ảnh / video và trang trợ giúp: chỉ tải khi mở
+const ShareStudio = lazy(() => import('./ShareStudio'));
+const RecapStudio = lazy(() => import('./RecapStudio'));
+const FaqModal = lazy(() => import('./HelpModals').then((m) => ({ default: m.FaqModal })));
+const SponsorModal = lazy(() => import('./HelpModals').then((m) => ({ default: m.SponsorModal })));
 import DateInput from './DateInput';
 import { useI18n } from '../i18n';
 import { pName, pCity, getLang } from '../lib/lang';
@@ -17,6 +19,20 @@ export default function Modals() {
   const { modal, setModal } = useApp();
   if (!modal) return null;
   const close = () => setModal(null);
+  return (
+    <Suspense
+      fallback={
+        <Modal onClose={close} className="modal--sm">
+          <Loader />
+        </Modal>
+      }
+    >
+      {renderModal(modal, close)}
+    </Suspense>
+  );
+}
+
+function renderModal(modal, close) {
   switch (modal.type) {
     case 'login':
       return <LoginModal reason={modal.reason} onClose={close} />;

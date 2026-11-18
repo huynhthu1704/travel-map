@@ -57,10 +57,14 @@ export function alpha2FromName(name) {
 }
 
 let cache = null;
-/** Tải GeoJSON các quốc gia (lazy, ~700KB) và gắn mã ISO alpha-2 + tên tiếng Việt. */
-export async function loadCountries() {
-  if (cache) return cache;
-  const topo = (await import('world-atlas/countries-50m.json')).default;
+const loaded = {};
+/**
+ * Tải GeoJSON các quốc gia và gắn mã ISO alpha-2 + tên tiếng Việt.
+ * detail '110m' (~36KB nén) để tô màu bản đồ thật nhanh; '50m' (~230KB nén) chi tiết hơn, có cả nước nhỏ như Singapore.
+ */
+export async function loadCountries(detail = '50m') {
+  if (loaded[detail]) return loaded[detail];
+  const topo = (detail === '110m' ? await import('world-atlas/countries-110m.json') : await import('world-atlas/countries-50m.json')).default;
   const fc = feature(topo, topo.objects.countries);
   fc.features = fc.features
     .map((f) => {
@@ -68,7 +72,8 @@ export async function loadCountries() {
       return { ...f, geometry: unwrapGeometry(f.geometry), properties: { ...f.properties, cc: cc || null, nameVi: cc ? countryName(cc) : f.properties.name } };
     })
     .filter((f) => f.properties.name !== 'Antarctica');
-  cache = fc;
+  loaded[detail] = fc;
+  if (detail === '50m' || !cache) cache = fc;
   return fc;
 }
 

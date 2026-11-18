@@ -3402,3 +3402,59 @@ img.is-loaded {
   border-color: var(--honey-500, #e0a100);
   color: var(--ink-900);
 }
+/* Đầu trang chuyến đi: thông tin bên trái, mã mời + quản lý + hành động bên phải */
+.trip-head {
+  align-items: flex-end;
+}
+.trip-head__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.trip-head__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.trip-head__meta .trip-manage {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  flex-wrap: wrap;
+}
+.trip-head__actions {
+  justify-content: flex-end;
+}
+.invite-code {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  border: 1px dashed var(--honey-300);
+  background: var(--color-bg-surface);
+}
+.invite-code:hover {
+  border-color: var(--honey-500, #e0a100);
+}
+@media (max-width: 760px) {
+  .trip-head__side,
+  .trip-head__meta,
+  .trip-head__actions {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+}
+.page__head.trip-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: 24px;
+}
+@media (max-width: 760px) {
+  .page__head.trip-head {
+    grid-template-columns: 1fr;
+  }
+}

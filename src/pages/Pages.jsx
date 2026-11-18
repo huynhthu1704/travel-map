@@ -584,7 +584,7 @@ function TripDetail({ trip, onBack }) {
   return (
     <div className="page">
       <button className="back" onClick={onBack}>{t('trip.back')}</button>
-      <header className="page__head">
+      <header className="page__head trip-head">
         <div>
           <h1 className="h1">
             {trip.emoji} {trip.name}
@@ -592,10 +592,23 @@ function TripDetail({ trip, onBack }) {
           {tripDates(trip) && <p className="trip-dates">🗓️ {tripDates(trip)}</p>}
           {destLabel(trip.destinations) && <p className="trip-dests">📍 {destLabel(trip.destinations)}</p>}
           <p className="muted">
-            {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stopList.length })} · {t('trip.code')} <b className="code">{trip.inviteCode}</b>
+            {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stopList.length })}
           </p>
+        </div>
+        <div className="trip-head__side">
+          <div className="trip-head__meta">
+            <button
+              className="invite-code"
+              title={t('trip.copyCode')}
+              onClick={async () => {
+                await navigator.clipboard?.writeText(trip.inviteCode);
+                notify(t('trip.codeCopied', { code: trip.inviteCode }));
+              }}
+            >
+              {t('trip.code')} <b className="code">{trip.inviteCode}</b> 📋
+            </button>
           {isMember && (
-            <div className="row wrap trip-manage">
+            <div className="trip-manage">
               {!editing && (
                 <button className="btn btn--sm btn--soft" onClick={() => setEditing(true)}>
                   ✏️ {t('trip.edit')}
@@ -634,8 +647,8 @@ function TripDetail({ trip, onBack }) {
               )}
             </div>
           )}
-        </div>
-        <div className="row wrap">
+          </div>
+        <div className="row wrap trip-head__actions">
           <button className="btn btn--primary" onClick={share}>{t('trip.invite')}</button>
           <button className="btn btn--outline" disabled={!stopList.length} onClick={() => setModal({ type: 'recap', mode: 'trip', trip, stops: stopList })}>
             {t('recap.shareTrip')}
@@ -649,6 +662,7 @@ function TripDetail({ trip, onBack }) {
           >
             {t('trip.onMap')}
           </button>
+        </div>
         </div>
       </header>
       {editing && <TripEditor trip={trip} onClose={() => setEditing(false)} />}

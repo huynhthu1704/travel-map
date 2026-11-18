@@ -95,3 +95,25 @@ export function bboxOf(cc) {
   walk(f.geometry.coordinates);
   return b;
 }
+
+/** Quốc gia chứa điểm (lat, lng) theo dữ liệu ranh giới đã tải — dự phòng khi tra cứu trực tuyến không trả về quốc gia */
+export function countryAt(fc, lat, lng) {
+  if (!fc?.features) return '';
+  const inRing = (ring) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i];
+      const [xj, yj] = ring[j];
+      if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi || 1e-12) + xi) inside = !inside;
+    }
+    return inside;
+  };
+  const inPoly = (poly) => inRing(poly[0]) && !poly.slice(1).some(inRing);
+  for (const f of fc.features) {
+    const g = f.geometry;
+    if (!g || !f.properties?.cc) continue;
+    const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+    if (polys.some(inPoly)) return f.properties.cc;
+  }
+  return '';
+}

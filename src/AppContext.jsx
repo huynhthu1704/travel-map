@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/store';
 import { socialApi, nameSearchFields } from './lib/social';
-import { loadCountries, bboxOf } from './lib/countries';
+import { loadCountries, bboxOf, countryAt } from './lib/countries';
 import { parseRoute, buildRoute } from './lib/route';
 import { loadFamousLive } from './lib/famousLive';
 import { famousIn } from './data/places';
@@ -42,6 +42,8 @@ export function AppProvider({ children }) {
   const [tripPlan, setTripPlan] = useState([]); // kế hoạch của chuyến đang hiện trên bản đồ
   const [tripStops, setTripStops] = useState([]);
   const [countries, setCountries] = useState(null);
+  const countriesRef = useRef(null);
+  countriesRef.current = countries;
   const [loaded, setLoaded] = useState({ public: false, mine: false, trips: false });
   const markLoaded = (k) => setLoaded((l) => (l[k] ? l : { ...l, [k]: true }));
 
@@ -425,9 +427,18 @@ export function AppProvider({ children }) {
     async (lat, lng, { name = '', purpose = 'place', fly = false } = {}) => {
       const id = `pin-${lat.toFixed(5)}_${lng.toFixed(5)}`;
       const draft = { id, name: name || t('pick.loading'), city: '', country: '', lat, lng, emoji: '📍', custom: true };
-      openPlace(draft, { fly });
+      if (purpose !== 'memory') openPlace(draft, { fly });
       const geo = await reverseGeocode(lat, lng, getLang());
-      const place = { ...draft, name: name || geo.name || t('pick.loading'), city: geo.city, country: geo.country };
+      const country = geo.country || countryAt(countriesRef.current, lat, lng);
+      // Không cho chọn điểm không thuộc quốc gia nào (giữa biển…)
+      if (!country) {
+        notify(t('pick.noCountry'), 'error');
+        setSelectedPlace((cur) => (cur?.id === id ? null : cur));
+        if (purpose === 'memory') setPickMode('memory');
+        return null;
+      }
+      // Kỉ niệm: chưa lấy được tên thì để trống cho người dùng tự đặt
+      const place = { ...draft, name: name || geo.name || (purpose === 'memory' ? '' : t('pick.loading')), city: geo.city, country, needsName: !name && !geo.name };
       setSelectedPlace((cur) => (cur?.id === id ? place : cur));
       if (place.country) setSelectedCountry(place.country);
       if (purpose === 'memory') requireLogin(() => setModal({ type: 'memory', place }), t('reason.saveMemory'));
@@ -463,7 +474,13 @@ export function AppProvider({ children }) {
       const draft = { id, name: t('pick.loading'), city: '', country: '', lat, lng, emoji: '📍', custom: true };
       setPicked((list) => [...list, { place: draft, status, loading: true }]);
       const geo = await reverseGeocode(lat, lng, getLang());
-      const place = { ...draft, name: geo.name || t('pick.loading'), city: geo.city, country: geo.country };
+      const country = geo.country || countryAt(countriesRef.current, lat, lng);
+      if (!country) {
+        setPicked((list) => list.filter((x) => x.place.id !== id));
+        notify(t('pick.noCountry'), 'error');
+        return;
+      }
+      const place = { ...draft, name: geo.name || t('pick.loading'), city: geo.city, country };
       const date = status === 'visited' ? pickDateRef.current || null : null;
       const occasion = status === 'visited' ? pickOccasionRef.current.trim() : '';
       await api.setPlace(u, place, status, null, date, occasion);

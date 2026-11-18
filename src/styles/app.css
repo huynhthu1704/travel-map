@@ -7044,3 +7044,21 @@ a.app-link.place-card__title:hover {
     white-space: nowrap;
   }
 }
+.picked--custom .picked__edit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.picked--custom input {
+  padding: 8px 12px;
+  font-weight: 700;
+  background: var(--base-white);
+}
+.picked--custom input.is-required {
+  border-color: var(--coral-500);
+}
+.picked__hint {
+  font-style: normal;
+  color: #c2410c;
+}

@@ -445,6 +445,31 @@ function PlacePicker({ value, onChange, onPickOnMap }) {
       c.abort();
     };
   }, [q]);
+  if (value?.custom)
+    // Điểm chọn trên bản đồ: cho đặt / sửa tên (bắt buộc khi app không tự lấy được tên)
+    return (
+      <div className="picked picked--custom">
+        <span>{value.emoji || '📍'}</span>
+        <span className="picked__edit">
+          <input
+            value={value.name || ''}
+            onChange={(e) => onChange({ ...value, name: e.target.value })}
+            placeholder={t('pick.namePh')}
+            maxLength={80}
+            aria-label={t('pick.nameLabel')}
+            autoFocus={!value.name}
+            className={!value.name?.trim() ? 'is-required' : ''}
+          />
+          <small>
+            {flagOf(value.country)} {[value.city, countryName(value.country)].filter(Boolean).join(', ')}
+            {!value.name?.trim() && <em className="picked__hint"> · {t('pick.nameNeeded')}</em>}
+          </small>
+        </span>
+        <button type="button" className="btn btn--sm btn--ghost" onClick={() => onChange(null)}>
+          {t('mem.change')}
+        </button>
+      </div>
+    );
   if (value)
     return (
       <div className="picked">
@@ -516,6 +541,8 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
   const submit = async (e) => {
     e.preventDefault();
     if (!place) return notify(t('mem.needPlace'), 'error');
+    if (!place.country) return notify(t('pick.noCountry'), 'error');
+    if (!place.name?.trim()) return notify(t('pick.nameNeeded'), 'error');
     if (!files.length) return notify(t('mem.needPhoto'), 'error');
     setBusy(true);
     try {

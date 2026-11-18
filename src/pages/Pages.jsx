@@ -557,7 +557,7 @@ export function TripsPage() {
 }
 
 function TripDetail({ trip, onBack }) {
-  const { user, api, notify, setActiveTripId, setView, openPlace, setModal, tripTab, setTripTab, setOpenTripId } = useApp();
+  const { user, api, notify, setActiveTripId, setView, openPlace, setModal, tripTab, setTripTab, setOpenTripId, showTripOnMap } = useApp();
   const tab = ['plan', 'costs', 'checklist', 'journey'].includes(tripTab) ? tripTab : 'plan';
   const { t } = useI18n();
   const [stops, setStops] = useState(null);
@@ -681,10 +681,7 @@ function TripDetail({ trip, onBack }) {
             </button>
             <button
               className="btn btn--dark"
-              onClick={() => {
-                setActiveTripId(trip.id);
-                setView('map');
-              }}
+              onClick={() => showTripOnMap(trip.id)}
             >
               {t('trip.onMap')}
             </button>

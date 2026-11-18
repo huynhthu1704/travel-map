@@ -296,7 +296,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
 
 export function TripPlan({ trip }) {
   const { t } = useI18n();
-  const { api, user, notify, places, famousFor, ensureFamous, setActiveTripId, setView, placeById } = useApp();
+  const { api, user, notify, places, famousFor, ensureFamous, setActiveTripId, setView, placeById, showTripOnMap } = useApp();
   const [items, setItems] = useState(null);
   const [addDate, setAddDate] = useState('');
   useEffect(() => api.watchPlan(trip.id, setItems), [trip.id, api]);
@@ -429,10 +429,7 @@ export function TripPlan({ trip }) {
               )}
               <button
                 className="btn btn--sm btn--dark"
-                onClick={() => {
-                  setActiveTripId(trip.id);
-                  setView('map');
-                }}
+                onClick={() => showTripOnMap(trip.id)}
               >
                 🗺️ {t('plan.onMap')}
               </button>

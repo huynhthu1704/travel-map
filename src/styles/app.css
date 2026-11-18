@@ -3730,3 +3730,83 @@ img.is-loaded {
   border-color: #b9ae9f;
   color: #6b6258;
 }
+.pin--plandone {
+  background: #2e9e5b;
+}
+.pin--plandone span {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+}
+/* Bảng lộ trình chuyến đi trên bản đồ */
+.route-panel__head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.route-panel__emoji {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--honey-100);
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  flex: none;
+}
+.route-day .plan-day__title {
+  font-size: 14px;
+}
+.route-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.route-list button {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border-radius: 12px;
+}
+.route-list button:hover {
+  background: var(--honey-100);
+}
+.route-list__n {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--honey-400);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+}
+.route-list li.is-done .route-list__n {
+  background: #2e9e5b;
+  color: #fff;
+}
+.route-list li.is-skipped {
+  opacity: 0.55;
+}
+.route-list li.is-skipped .route-list__n {
+  background: #e9e4dd;
+}
+.route-list li.is-skipped b {
+  text-decoration: line-through;
+}
+.route-list__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.route-list__note {
+  font-size: 12px;
+}

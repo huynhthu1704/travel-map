@@ -4,16 +4,18 @@ import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
 import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage, OccasionField } from './ui';
 import { useI18n } from '../i18n';
-import { pName, pCity, pDesc } from '../lib/lang';
+import { pName, pCity, pDesc, getLocale } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
 import Combobox from './Combobox';
 import DateInput from './DateInput';
 
 export default function SidePanel() {
-  const { selectedPlace, selectedCountry } = useApp();
+  const { selectedPlace, selectedCountry, activeTripId, trips } = useApp();
   const [expanded, setExpanded] = useState(false);
   const { t } = useI18n();
-  const content = selectedPlace ? <PlacePanel /> : selectedCountry ? <CountryPanel /> : <WorldPanel />;
+  // Đang xem lộ trình 1 chuyến đi → bảng bên trái là danh sách địa điểm của chuyến đó
+  const tripMode = activeTripId && trips.some((tr) => tr.id === activeTripId);
+  const content = selectedPlace ? <PlacePanel /> : tripMode ? <TripRoutePanel /> : selectedCountry ? <CountryPanel /> : <WorldPanel />;
   return (
     <aside className={`panel ${expanded ? 'panel--expanded' : ''}`}>
       <button className="panel__handle" onClick={() => setExpanded((v) => !v)} aria-label={t('panel.toggle')}>
@@ -21,6 +23,108 @@ export default function SidePanel() {
       </button>
       <div className="panel__scroll">{content}</div>
     </aside>
+  );
+}
+
+/** Bảng lộ trình chuyến đi trên bản đồ: danh sách địa điểm theo đúng thứ tự & ngày giờ của Kế hoạch */
+function TripRoutePanel() {
+  const { trips, activeTripId, setActiveTripId, tripPlan, openPlace, setOpenTripId, setTripTab, setView, setFlyTarget } = useApp();
+  const { t } = useI18n();
+  const trip = trips.find((tr) => tr.id === activeTripId);
+  const plan = tripPlan.filter((it) => it.tripId === activeTripId && it.place);
+  const groups = [];
+  plan.forEach((it, i) => {
+    const k = it.date || '';
+    if (!groups.length || groups[groups.length - 1].k !== k) groups.push({ k, list: [] });
+    groups[groups.length - 1].list.push({ it, n: i + 1 });
+  });
+  const shown = plan.filter((it) => !it.skipped);
+  const done = plan.filter((it) => it.done).length;
+  const fitAll = () => {
+    if (!shown.length) return;
+    const la = shown.map((x) => x.place.lat);
+    const ln = shown.map((x) => x.place.lng);
+    setFlyTarget({ bbox: [Math.min(...la) - 0.05, Math.max(...la) + 0.05, Math.min(...ln) - 0.05, Math.max(...ln) + 0.05], t: Date.now() });
+  };
+  const dayLabel = (iso) => {
+    const d = new Date(`${iso}T00:00:00`);
+    const wd = d.toLocaleDateString(getLocale(), { weekday: 'short' });
+    const n = trip.startDate && iso >= trip.startDate ? Math.round((d - new Date(`${trip.startDate}T00:00:00`)) / 864e5) + 1 : null;
+    return { n, text: `${wd}, ${formatDate(iso)}` };
+  };
+  if (!trip) return null;
+  return (
+    <div className="stack route-panel">
+      <div className="route-panel__head">
+        <span className="route-panel__emoji">{trip.emoji}</span>
+        <div>
+          <p className="eyebrow">{t('route.eyebrow')}</p>
+          <h1 className="h2">{trip.name}</h1>
+        </div>
+      </div>
+      <div className="row wrap">
+        <button
+          className="btn btn--sm btn--soft"
+          onClick={() => {
+            setOpenTripId(trip.id);
+            setTripTab('plan');
+            setView('trips');
+          }}
+        >
+          🗓️ {t('route.openPlan')}
+        </button>
+        <button className="btn btn--sm btn--soft" onClick={fitAll} disabled={!shown.length}>
+          🔍 {t('route.fitAll')}
+        </button>
+        <button className="btn btn--sm btn--ghost" onClick={() => setActiveTripId(null)}>
+          ✕ {t('route.exit')}
+        </button>
+      </div>
+      {plan.length > 0 && (
+        <div className="plan-progress">
+          <div className="plan-progress__bar">
+            <i style={{ width: `${(done / Math.max(shown.length, 1)) * 100}%` }} />
+          </div>
+          <small>{t('plan.progress', { done, n: shown.length })}</small>
+        </div>
+      )}
+      {plan.length === 0 && <Empty emoji="🗺️" title={t('plan.empty')} text={t('route.emptyHint')} />}
+      {groups.map((g) => {
+        const d = g.k ? dayLabel(g.k) : null;
+        return (
+          <section key={g.k || 'none'} className="route-day">
+            <h4 className="plan-day__title">
+              {d ? (
+                <>
+                  {d.n && <span className="plan-day__n">{t('plan.dayN', { n: d.n })}</span>}
+                  {d.text}
+                </>
+              ) : (
+                <>🕓 {t('plan.noDate')}</>
+              )}
+            </h4>
+            <ol className="route-list">
+              {g.list.map(({ it, n }) => (
+                <li key={it.id} className={`${it.done ? 'is-done' : ''} ${it.skipped ? 'is-skipped' : ''}`}>
+                  <button onClick={() => openPlace(it.place)}>
+                    <span className="route-list__n">{it.skipped ? '✕' : n}</span>
+                    <span className="route-list__body">
+                      <b>
+                        {it.place.emoji || '📍'} {pName(it.place)}
+                      </b>
+                      <small className="muted">
+                        {[it.time && `🕘 ${it.time}`, pCity(it.place), it.done && `👣 ${t('plan.statusDone')}`, it.skipped && t('plan.statusSkip')].filter(Boolean).join(' · ')}
+                      </small>
+                      {it.note && <small className="route-list__note">📝 {it.note}</small>}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 

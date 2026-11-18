@@ -9,7 +9,9 @@ import { useApp } from '../AppContext';
 import { famousIn } from '../data/places';
 import { useI18n } from '../i18n';
 import { countryName } from '../lib/countries';
-import { pName } from '../lib/lang';
+import { pName, getLocale } from '../lib/lang';
+
+const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(getLocale(), { weekday: 'short', day: '2-digit', month: '2-digit' });
 
 const iconCache = {};
 function pinIcon(kind, emoji) {
@@ -115,7 +117,8 @@ export default function MapView() {
   const geoRef = useRef();
   const { lang } = useI18n();
 
-  const planOrder = useMemo(() => (activeTripId ? tripPlan.filter((it) => it.tripId === activeTripId && it.place && !it.skipped) : []), [activeTripId, tripPlan]);
+  const planAll = useMemo(() => (activeTripId ? tripPlan.filter((it) => it.tripId === activeTripId && it.place) : []), [activeTripId, tripPlan]);
+  const planOrder = useMemo(() => planAll.filter((it) => !it.skipped), [planAll]);
   // Tô màu quốc gia: của chuyến đi đang xem, hoặc tất cả quốc gia đã đến
   const shownCountries = useMemo(
     () =>
@@ -153,10 +156,11 @@ export default function MapView() {
       tripStops
         .filter((s) => s.tripId === activeTripId && s.place)
         .forEach((s) => m.set(s.place.id, { place: s.place, kind: 'trip', emoji: s.kind === 'wishlist' ? '💛' : '👣', by: s.byName }));
-      // Kế hoạch: đánh số theo thứ tự dự định; điểm đã đi hiện dấu chân
-      planOrder.forEach((it, i) => {
-        if (it.done) m.set(it.place.id, { place: it.place, kind: 'trip', emoji: '👣', by: it.doneBy });
-        else if (!m.has(it.place.id)) m.set(it.place.id, { place: it.place, kind: 'plan', emoji: String(i + 1) });
+      // Kế hoạch: đánh số đúng như trong trang Kế hoạch (đã đi = ghim xanh, vẫn giữ số)
+      planAll.forEach((it, i) => {
+        if (it.skipped) return void m.delete(it.place.id); // không đi → không hiện trên lộ trình
+        const when = [it.date && fmtDay(it.date), it.time].filter(Boolean).join(' · ');
+        m.set(it.place.id, { place: it.place, kind: it.done ? 'plandone' : 'plan', emoji: String(i + 1), by: when });
       });
       if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
       return [...m.values()];
@@ -168,7 +172,7 @@ export default function MapView() {
     places.forEach((p) => m.set(p.id, { place: p, kind: p.status, emoji: p.status === 'visited' ? '👣' : '💛' }));
     if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
     return [...m.values()];
-  }, [selectedCountry, homeCountry, places, memories, tripStops, planOrder, activeTripId, selectedPlace, famousFor, famousLimit]);
+  }, [selectedCountry, homeCountry, places, memories, tripStops, planAll, activeTripId, selectedPlace, famousFor, famousLimit]);
 
   const renderMarker = ({ place, kind, emoji, by }) => (
     <Marker
@@ -176,9 +180,10 @@ export default function MapView() {
       position={[place.lat, place.lng]}
       icon={pinIcon(kind, emoji)}
       eventHandlers={{ click: () => openPlace(place, { fly: false }) }}
-      zIndexOffset={kind === 'visited' ? 500 : kind === 'trip' ? 400 : 0}
+      zIndexOffset={kind === 'visited' ? 500 : kind === 'trip' || kind === 'plan' || kind === 'plandone' ? 400 : 0}
     >
       <Tooltip direction="top">
+        {kind === 'plan' || kind === 'plandone' ? `${emoji}. ` : ''}
         {pName(place)}
         {by ? ` · ${by}` : ''}
       </Tooltip>

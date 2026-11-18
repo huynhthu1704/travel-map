@@ -329,6 +329,19 @@ export function PlaceCard({ place }) {
   );
 }
 
+/** Danh sách id chuyến đi có địa điểm này trong kế hoạch (theo dõi trực tiếp) */
+function useTripsWithPlace(placeId, trips) {
+  const { api, user } = useApp();
+  const [plans, setPlans] = useState({});
+  const ids = trips.map((tr) => tr.id).join(',');
+  useEffect(() => {
+    if (!user || !ids) return setPlans({});
+    const unsubs = ids.split(',').map((id) => api.watchPlan(id, (list) => setPlans((m) => ({ ...m, [id]: list.map((it) => it.place?.id) }))));
+    return () => unsubs.forEach((u) => u && u());
+  }, [ids, user?.uid, api]); // eslint-disable-line react-hooks/exhaustive-deps
+  return useMemo(() => Object.entries(plans).filter(([, list]) => list.includes(placeId)).map(([id]) => id), [plans, placeId]);
+}
+
 /** Nút thêm vào kế hoạch chuyến: nếu địa điểm đã có trong kế hoạch thì báo "đã nằm trong chuyến này" */
 function PlanButton({ tripId, place, onOpen }) {
   const { api, user, notify } = useApp();
@@ -361,9 +374,18 @@ function PlacePanel() {
   const { removePlace, saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView, api, user, notify } = useApp();
   // Chuyến đi gắn với địa điểm: lấy theo dữ liệu đã lưu
   const savedTripId = placeById[p.id]?.tripId || '';
-  const { setOpenTripId, setTripTab } = useApp();
-  const [tripId, setTripId] = useState(savedTripId);
-  useEffect(() => setTripId(savedTripId), [p.id, savedTripId]);
+  const { setOpenTripId, setTripTab, openTripId } = useApp();
+  // Chuyến đi có địa điểm này trong kế hoạch → tự chọn sẵn, không bắt chọn lại
+  const planTrips = useTripsWithPlace(p.id, trips);
+  const planTripId = planTrips.includes(openTripId) ? openTripId : planTrips[0] || '';
+  const defaultTripId = savedTripId || planTripId;
+  const [tripId, setTripId] = useState(defaultTripId);
+  useEffect(() => setTripId(defaultTripId), [p.id, defaultTripId]);
+  // Đã lưu địa điểm (đã đến / muốn đi) nhưng chưa gắn chuyến mà nó nằm trong kế hoạch → tự lưu chuyến đó
+  useEffect(() => {
+    const status = placeStatus[p.id];
+    if (user && status && !savedTripId && planTripId) api.setPlaceTrip(user, placeById[p.id] || p, status, planTripId, '').catch(() => {});
+  }, [p.id, planTripId, savedTripId, placeStatus[p.id]]); // eslint-disable-line react-hooks/exhaustive-deps
   const changeTrip = async (next) => {
     setTripId(next);
     const status = placeStatus[p.id];

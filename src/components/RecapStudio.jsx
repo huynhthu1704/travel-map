@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { Modal, Loader } from './ui';
+import { Modal, Loader, formatDate } from './ui';
 import { loadImage } from '../lib/image';
 import { countryName, flagOf } from '../lib/countries';
 import { pName, pCity } from '../lib/lang';
-import { C, HEAD, BODY, font, ease, roundRect, drawCover, wrapText, pickMime } from './ShareStudio';
+import { C, HEAD, BODY, font, ease, roundRect, drawCover, pickMime, fitText } from './ShareStudio';
 
 /* ------------------------------------------------------------------ */
 /* Ảnh / video tổng kết: các nơi đã đi trong 1 năm hoặc 1 chuyến đi    */
+/* 5 bố cục: Bản đồ · Lưới ảnh · Tem hộ chiếu · Dòng thời gian ·        */
+/* Trình chiếu. Người dùng tự chọn ảnh (mặc định mỗi chuyến 1 ảnh).    */
+/* Danh sách địa điểm luôn hiện đủ: chữ tự thu nhỏ cho vừa khung.      */
 /* ------------------------------------------------------------------ */
 
 const FORMATS = [
@@ -16,10 +19,19 @@ const FORMATS = [
   { id: 'portrait', w: 1080, h: 1350 },
   { id: 'square', w: 1080, h: 1080 },
 ];
+const LAYOUTS = [
+  { id: 'map', emoji: '🗺️', max: 4 },
+  { id: 'collage', emoji: '🖼️', max: 9 },
+  { id: 'passport', emoji: '🛂', max: 3 },
+  { id: 'timeline', emoji: '🗓️', max: 4 },
+  { id: 'slideshow', emoji: '🎞️', max: 12 },
+];
+const MAX_PICK = 12;
 const THEMES = {
-  honey: { bg1: '#FFF4CC', bg2: '#FFD86B', card: '#FFFFFF', text: C.ink, sub: C.ink2, land: '#EFE7D6', landVisited: '#FFC629', stroke: '#D9CDB4', water: '#EAF4F8', dot: C.coral, accent: '#A87400' },
-  night: { bg1: '#1F1A14', bg2: '#3A2E1C', card: '#2B241C', text: '#FFFFFF', sub: '#E9DFC9', land: '#4A4237', landVisited: '#FFC629', stroke: '#5E5446', water: '#221D17', dot: '#FF7A59', accent: '#FFC629' },
+  honey: { bg1: '#FFF4CC', bg2: '#FFD86B', card: '#FFFFFF', text: C.ink, sub: C.ink2, land: '#EFE7D6', landVisited: '#FFC629', stroke: '#D9CDB4', water: '#EAF4F8', dot: C.coral, accent: '#A87400', chip: 'rgba(255,255,255,0.85)' },
+  night: { bg1: '#1F1A14', bg2: '#3A2E1C', card: '#2B241C', text: '#FFFFFF', sub: '#E9DFC9', land: '#4A4237', landVisited: '#FFC629', stroke: '#5E5446', water: '#221D17', dot: '#FF7A59', accent: '#FFC629', chip: 'rgba(255,255,255,0.1)' },
 };
+const STAMP_INKS = ['#C2410C', '#1D4ED8', '#047857', '#7C3AED', '#B91C1C', '#0E7490', '#A16207'];
 
 const mercY = (lat) => {
   const l = (Math.max(-80, Math.min(80, lat)) * Math.PI) / 180;
@@ -28,18 +40,18 @@ const mercY = (lat) => {
 
 /** Khung nhìn bản đồ bao quanh các địa điểm, giữ đúng tỉ lệ ô vẽ */
 function viewFor(places, aspect) {
-  if (!places.length) return { w: -170, e: 190, s: -55, n: 75 };
-  let w = Math.min(...places.map((p) => p.lng));
-  let e = Math.max(...places.map((p) => p.lng));
-  let s = Math.min(...places.map((p) => p.lat));
-  let n = Math.max(...places.map((p) => p.lat));
+  const pts = places.filter((p) => p.lat != null && p.lng != null);
+  if (!pts.length) return { w: -170, e: 190, s: -55, n: 75 };
+  let w = Math.min(...pts.map((p) => p.lng));
+  let e = Math.max(...pts.map((p) => p.lng));
+  let s = Math.min(...pts.map((p) => p.lat));
+  let n = Math.max(...pts.map((p) => p.lat));
   const padX = Math.max((e - w) * 0.25, 4);
   const padY = Math.max((n - s) * 0.25, 3);
   w -= padX;
   e += padX;
   s -= padY;
   n += padY;
-  // khớp tỉ lệ khung (theo Mercator)
   const cx = (w + e) / 2;
   const cy = (mercY(s) + mercY(n)) / 2;
   let spanX = ((e - w) * Math.PI) / 180;
@@ -81,154 +93,539 @@ function drawMapLayer(features, visited, view, w, h, theme) {
   return { canvas: c, px, py };
 }
 
-/** Vẽ một khung hình tổng kết. time = Infinity → ảnh tĩnh đầy đủ */
-function renderRecap(ctx, o, time = Infinity) {
-  const { W, H, theme: T } = o;
-  const k = W / 1080; // hệ số tỉ lệ
-  const tall = H / W > 1.5;
-  const sq = H / W < 1.1;
-  const at = (t0, dur = 0.6) => ease((time - t0) / dur);
+/* ----------------------------- helpers ----------------------------- */
 
-  // nền
+const TEXT_ONLY = (tpl) => tpl.replace('"Twemoji Country Flags", ', '');
+
+function background(ctx, o) {
+  const { W, H, theme: T } = o;
   const g = ctx.createLinearGradient(0, 0, W, H);
   g.addColorStop(0, T.bg1);
   g.addColorStop(1, T.bg2);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
+}
 
+/** Nhãn nhỏ + tiêu đề lớn. Trả về y sau tiêu đề */
+function header(ctx, o, y, at, { center = false, size = 84 } = {}) {
+  const { W, k, theme: T } = o;
   const m = 64 * k;
-  let y = (tall ? 120 : 80) * k;
-
-  // tiêu đề
+  const x = center ? W / 2 : m;
   ctx.globalAlpha = at(0);
-  ctx.textAlign = 'left';
+  ctx.textAlign = center ? 'center' : 'left';
   ctx.fillStyle = T.accent;
-  ctx.font = font(BODY, 30 * k);
-  ctx.fillText(o.eyebrow.toUpperCase(), m, y);
-  y += 84 * k;
+  fitText(ctx, o.eyebrow.toUpperCase(), x, y, W - m * 2, BODY, 30 * k);
+  y += (size + 4) * k;
   ctx.fillStyle = T.text;
-  ctx.font = font(HEAD, (sq ? 70 : 84) * k);
-  wrapText(ctx, o.title, W - m * 2, 2).forEach((l, i) => ctx.fillText(l, m, y + i * 92 * k));
-  y += (ctx.measureText(o.title).width > W - m * 2 ? 2 : 1) * 92 * k - 40 * k;
+  fitText(ctx, o.title, x, y, W - m * 2, HEAD, size * k, size * k * 0.55);
+  if (o.subtitle) {
+    y += 52 * k;
+    ctx.fillStyle = T.sub;
+    fitText(ctx, o.subtitle, x, y, W - m * 2, BODY, 30 * k);
+  }
   ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  return y + 30 * k;
+}
 
-  // số liệu (đếm dần trong video)
-  y += 36 * k;
-  const statH = (sq ? 120 : 150) * k;
+function statsRow(ctx, o, y, at, h) {
+  const { W, k, theme: T } = o;
+  const m = 64 * k;
   const gap = 20 * k;
-  const sw = (W - m * 2 - gap * 2) / 3;
+  const n = o.stats.length;
+  const sw = (W - m * 2 - gap * (n - 1)) / n;
   o.stats.forEach((st, i) => {
-    const a = at(0.3 + i * 0.15);
     const x = m + i * (sw + gap);
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = at(0.3 + i * 0.12);
     ctx.fillStyle = T.card;
-    roundRect(ctx, x, y, sw, statH, 28 * k);
+    roundRect(ctx, x, y, sw, h, 26 * k);
     ctx.fill();
     ctx.fillStyle = T.text;
-    ctx.font = font(HEAD, (sq ? 52 : 64) * k);
-    const v = time === Infinity ? st.value : Math.round(st.value * ease((time - 0.4) / 1.6));
-    ctx.fillText(`${st.icon} ${v}`, x + 24 * k, y + statH * 0.55);
+    const v = o.time === Infinity ? st.value : Math.round(st.value * ease((o.time - 0.4) / 1.6));
+    fitText(ctx, `${st.icon} ${v}`, x + 22 * k, y + h * 0.56, sw - 40 * k, HEAD, Math.min(60, h / k / 2.3) * k);
     ctx.fillStyle = T.sub;
-    ctx.font = font(BODY, 26 * k);
-    ctx.fillText(st.label, x + 26 * k, y + statH * 0.85);
+    fitText(ctx, st.label, x + 24 * k, y + h * 0.84, sw - 40 * k, BODY, 24 * k);
   });
   ctx.globalAlpha = 1;
-  y += statH + 28 * k;
+  return y + h;
+}
 
-  // bản đồ
-  const listRows = sq ? 2 : tall ? 4 : 3;
-  const photosH = o.imgs.length ? (sq ? 0 : tall ? 300 : 230) * k : 0;
-  const listH = (listRows * 56 + 20) * k;
-  const bottom = H - 70 * k;
-  const mapH = Math.max(220 * k, bottom - y - listH - (photosH ? photosH + 24 * k : 0) - 24 * k);
-  const mapW = W - m * 2;
+/**
+ * Tất cả địa điểm dạng "nhãn" xếp tràn dòng, tự giảm cỡ chữ đến khi vừa khung.
+ * Không bao giờ ghi "+N nơi khác": nhỏ nhất vẫn không vừa thì chuyển sang dạng chữ liền.
+ */
+function placeCloud(ctx, o, x, y, w, h, at, t0 = 2) {
+  const { k, theme: T, places } = o;
+  if (!places.length || h <= 0) return;
+  const items = places.map((p) => ({ flag: flagOf(p.country), text: pName(p) }));
+  for (let s = 32; s >= 13; s -= 1) {
+    const size = s * k;
+    const padX = size * 0.55;
+    const flagW = size * 1.55;
+    const chipH = size * 1.75;
+    const gap = size * 0.4;
+    ctx.font = font(TEXT_ONLY(BODY), size);
+    let cx = 0;
+    let cy = 0;
+    const pos = [];
+    let ok = true;
+    for (const it of items) {
+      let tw = ctx.measureText(it.text).width;
+      const maxText = w - padX * 2 - flagW;
+      if (tw > maxText) tw = maxText;
+      const cw = padX * 2 + flagW + tw;
+      if (cx > 0 && cx + cw > w) {
+        cx = 0;
+        cy += chipH + gap;
+      }
+      pos.push({ x: cx, y: cy, w: cw, tw });
+      cx += cw + gap;
+      if (cy + chipH > h) {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok) continue;
+    const per = Math.min(0.08, 2 / items.length);
+    items.forEach((it, i) => {
+      const a = at(t0 + i * per, 0.35);
+      if (a <= 0) return;
+      const p = pos[i];
+      ctx.globalAlpha = a;
+      ctx.fillStyle = T.chip;
+      roundRect(ctx, x + p.x, y + p.y, p.w, chipH, chipH / 2);
+      ctx.fill();
+      ctx.textAlign = 'left';
+      ctx.font = font(BODY, size * 1.02);
+      ctx.fillText(it.flag, x + p.x + padX, y + p.y + chipH * 0.68);
+      ctx.fillStyle = T.text;
+      fitText(ctx, it.text, x + p.x + padX + flagW, y + p.y + chipH * 0.68, p.tw, BODY, size, size);
+    });
+    ctx.globalAlpha = 1;
+    return;
+  }
+  // Rất nhiều địa điểm: chữ liền, phân cách bằng dấu ·
+  ctx.globalAlpha = at(t0);
+  ctx.fillStyle = T.text;
+  const size = 13 * k;
+  ctx.font = font(TEXT_ONLY(BODY), size);
+  const words = items.map((it) => it.text);
+  let line = '';
+  let yy = y + size;
+  for (const wd of words) {
+    const test = line ? `${line} · ${wd}` : wd;
+    if (ctx.measureText(test).width > w && line) {
+      ctx.fillText(line, x, yy);
+      line = wd;
+      yy += size * 1.45;
+      if (yy > y + h) break;
+    } else line = test;
+  }
+  if (yy <= y + h) ctx.fillText(line, x, yy);
+  ctx.globalAlpha = 1;
+}
+
+function watermark(ctx, o, color) {
+  const { W, H, k, theme: T } = o;
+  ctx.globalAlpha = 0.85;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = color || T.sub;
+  ctx.font = font(BODY, 24 * k);
+  ctx.fillText(o.watermark, W / 2, H - 28 * k);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+/** Lưới ảnh thích ứng 1–9 ảnh */
+function mosaic(n, x, y, w, h, gap) {
+  if (n <= 0) return [];
+  if (n === 1) return [[x, y, w, h]];
+  if (n === 2) return w >= h ? [[x, y, (w - gap) / 2, h], [x + (w + gap) / 2, y, (w - gap) / 2, h]] : [[x, y, w, (h - gap) / 2], [x, y + (h + gap) / 2, w, (h - gap) / 2]];
+  if (n === 3) {
+    const big = (h - gap) * 0.58;
+    return [[x, y, w, big], [x, y + big + gap, (w - gap) / 2, h - big - gap], [x + (w + gap) / 2, y + big + gap, (w - gap) / 2, h - big - gap]];
+  }
+  const cols = n <= 4 ? 2 : 3;
+  const rows = Math.ceil(n / cols);
+  const cw = (w - gap * (cols - 1)) / cols;
+  const ch = (h - gap * (rows - 1)) / rows;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const r = Math.floor(i / cols);
+    const inRow = r === rows - 1 ? n - r * cols : cols;
+    const rw = (w - gap * (inRow - 1)) / inRow; // hàng cuối thiếu ảnh → giãn đều cho kín
+    const c = i - r * cols;
+    out.push([x + c * (inRow === cols ? cw + gap : rw + gap), y + r * (ch + gap), inRow === cols ? cw : rw, ch]);
+  }
+  return out;
+}
+
+function drawMap(ctx, o, x, y, w, h, at) {
+  const { k, theme: T } = o;
   ctx.save();
-  roundRect(ctx, m, y, mapW, mapH, 36 * k);
+  roundRect(ctx, x, y, w, h, 36 * k);
   ctx.clip();
-  if (o.map) ctx.drawImage(o.map.canvas, m, y, mapW, mapH);
-  // điểm đã đến lần lượt hiện ra
+  if (o.map) ctx.drawImage(o.map.canvas, x, y, w, h);
   const per = Math.min(0.35, 3 / Math.max(o.places.length, 1));
   o.places.forEach((p, i) => {
     const a = at(1 + i * per, 0.4);
-    if (a <= 0 || !o.map) return;
-    const sx = mapW / o.map.canvas.width;
-    const x = m + o.map.px(p.lng) * sx;
-    const yy = y + o.map.py(p.lat) * (mapH / o.map.canvas.height);
-    const r = 13 * k * (0.6 + 0.4 * a);
+    if (a <= 0 || !o.map || p.lat == null) return;
+    const px = x + o.map.px(p.lng) * (w / o.map.canvas.width);
+    const py = y + o.map.py(p.lat) * (h / o.map.canvas.height);
+    const r = 12 * k * (0.6 + 0.4 * a);
     ctx.globalAlpha = a;
     ctx.beginPath();
-    ctx.arc(x, yy, r + 5 * k, 0, Math.PI * 2);
+    ctx.arc(px, py, r + 5 * k, 0, Math.PI * 2);
     ctx.fillStyle = '#fff';
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(x, yy, r, 0, Math.PI * 2);
+    ctx.arc(px, py, r, 0, Math.PI * 2);
     ctx.fillStyle = T.dot;
     ctx.fill();
   });
   ctx.restore();
   ctx.globalAlpha = 1;
-  y += mapH + 24 * k;
-
-  // ảnh kỉ niệm
-  if (photosH) {
-    const n = o.imgs.length;
-    const pw = (W - m * 2 - gap * (n - 1)) / n;
-    o.imgs.forEach((img, i) => {
-      const a = at(1.6 + i * 0.25);
-      if (a <= 0) return;
-      ctx.globalAlpha = a;
-      drawCover(ctx, img, m + i * (pw + gap), y + (1 - a) * 30 * k, pw, photosH, 26 * k);
-    });
-    ctx.globalAlpha = 1;
-    y += photosH + 24 * k;
-  }
-
-  // danh sách địa điểm (2 cột)
-  const shown = o.places.slice(0, listRows * 2);
-  const more = o.places.length - shown.length;
-  const colW = (W - m * 2 - gap) / 2;
-  ctx.font = font(BODY, 30 * k);
-  shown.forEach((p, i) => {
-    const a = at(2 + i * 0.12);
-    if (a <= 0) return;
-    ctx.globalAlpha = a;
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const x = m + col * (colW + gap);
-    const yy = y + row * 56 * k + 34 * k;
-    ctx.fillStyle = T.text;
-    let label = `${flagOf(p.country)} ${pName(p)}`;
-    while (ctx.measureText(label).width > colW && label.length > 4) label = label.slice(0, -2) + '…';
-    ctx.fillText(label, x, yy);
-  });
-  if (more > 0) {
-    ctx.globalAlpha = at(2.6);
-    ctx.fillStyle = T.sub;
-    ctx.font = font(BODY, 26 * k);
-    ctx.textAlign = 'right';
-    ctx.fillText(o.moreLabel(more), W - m, y + listRows * 56 * k + 30 * k);
-    ctx.textAlign = 'left';
-  }
-  ctx.globalAlpha = 0.85;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = T.sub;
-  ctx.font = font(BODY, 24 * k);
-  ctx.fillText(o.watermark, W / 2, H - 28 * k);
-  ctx.globalAlpha = 1;
 }
 
-/**
- * mode 'year': tổng kết các nơi đã đi trong 1 năm (người dùng chọn năm)
- * mode 'trip': tổng hợp 1 chuyến đi (truyền trip + stops)
- */
+/* ----------------------------- layouts ----------------------------- */
+
+function layoutMap(ctx, o, at) {
+  const { W, H, k } = o;
+  const tall = H / W > 1.5;
+  const sq = H / W < 1.1;
+  const m = 64 * k;
+  let y = header(ctx, o, (tall ? 120 : 80) * k, at, { size: sq ? 70 : 84 });
+  y = statsRow(ctx, o, y + 10 * k, at, (sq ? 110 : 140) * k) + 26 * k;
+  const imgs = o.imgs.slice(0, sq ? 0 : 4);
+  const photosH = imgs.length ? (tall ? 280 : 200) * k : 0;
+  const bottom = H - 70 * k;
+  const cloudH = Math.max(H * (sq ? 0.17 : 0.2), 0);
+  const mapH = Math.max(200 * k, bottom - y - cloudH - (photosH ? photosH + 22 * k : 0) - 22 * k);
+  drawMap(ctx, o, m, y, W - m * 2, mapH, at);
+  y += mapH + 22 * k;
+  if (photosH) {
+    const gap = 18 * k;
+    const pw = (W - m * 2 - gap * (imgs.length - 1)) / imgs.length;
+    imgs.forEach((im, i) => {
+      const a = at(1.6 + i * 0.2);
+      if (a <= 0) return;
+      ctx.globalAlpha = a;
+      drawCover(ctx, im.img, m + i * (pw + gap), y + (1 - a) * 30 * k, pw, photosH, 24 * k);
+    });
+    ctx.globalAlpha = 1;
+    y += photosH + 22 * k;
+  }
+  placeCloud(ctx, o, m, y, W - m * 2, bottom - y, at, 2.2);
+  watermark(ctx, o);
+}
+
+function layoutCollage(ctx, o, at) {
+  const { W, H, k, theme: T } = o;
+  const sq = H / W < 1.1;
+  const m = 56 * k;
+  let y = header(ctx, o, (H / W > 1.5 ? 110 : 76) * k, at, { center: true, size: sq ? 64 : 80 });
+  // số liệu dạng chữ một dòng
+  ctx.textAlign = 'center';
+  ctx.fillStyle = T.text;
+  ctx.globalAlpha = at(0.3);
+  fitText(ctx, o.stats.map((s) => `${s.icon} ${s.value} ${s.label}`).join('   '), W / 2, y + 16 * k, W - m * 2, BODY, 32 * k);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  y += 50 * k;
+  const bottom = H - 70 * k;
+  const cloudH = Math.max(H * (sq ? 0.16 : 0.19), 90 * k);
+  const imgs = o.imgs.slice(0, 9);
+  const gh = bottom - y - cloudH - 24 * k;
+  if (imgs.length) {
+    mosaic(imgs.length, m, y, W - m * 2, gh, 14 * k).forEach(([x, yy, w, h], i) => {
+      const a = at(0.6 + i * 0.22, 0.5);
+      if (a <= 0) return;
+      ctx.globalAlpha = a;
+      const s = 0.92 + 0.08 * a;
+      drawCover(ctx, imgs[i].img, x + (w * (1 - s)) / 2, yy + (h * (1 - s)) / 2, w * s, h * s, 22 * k);
+    });
+    ctx.globalAlpha = 1;
+  } else {
+    drawMap(ctx, o, m, y, W - m * 2, gh, at);
+  }
+  y += gh + 24 * k;
+  placeCloud(ctx, o, m, y, W - m * 2, bottom - y, at, 1.2 + imgs.length * 0.22);
+  watermark(ctx, o);
+}
+
+function layoutPassport(ctx, o, at) {
+  const { W, H, k } = o;
+  const sq = H / W < 1.1;
+  const night = o.themeId === 'night';
+  const paper = night ? '#2A2F3A' : '#F6EFDF';
+  const ink = night ? '#F3E9D2' : '#3B2F1E';
+  ctx.fillStyle = paper;
+  ctx.fillRect(0, 0, W, H);
+  // hoa văn nền mờ
+  ctx.strokeStyle = night ? 'rgba(255,255,255,0.05)' : 'rgba(120,90,40,0.08)';
+  ctx.lineWidth = 2 * k;
+  for (let i = -H; i < W; i += 46 * k) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + H, H);
+    ctx.stroke();
+  }
+  const m = 64 * k;
+  // đầu trang hộ chiếu
+  ctx.globalAlpha = at(0);
+  ctx.fillStyle = night ? '#FFC629' : '#7A1F1F';
+  ctx.font = font(HEAD, 26 * k);
+  ctx.fillText('✈  PASSPORT · TRAVEL MAP', m, 90 * k);
+  ctx.fillStyle = ink;
+  fitText(ctx, o.title, m, 170 * k, W - m * 2, HEAD, (sq ? 60 : 74) * k, 40 * k);
+  ctx.font = font(BODY, 28 * k);
+  ctx.globalAlpha = at(0.2) * 0.8;
+  fitText(ctx, o.stats.map((s) => `${s.value} ${s.label}`).join('  ·  '), m, 222 * k, W - m * 2, BODY, 28 * k);
+  ctx.globalAlpha = 1;
+  // tem: mỗi quốc gia 1 tem lớn, mỗi thành phố 1 tem nhỏ
+  const stamps = [
+    ...o.countries.map((cc) => ({ big: true, top: flagOf(cc), label: countryName(cc).toUpperCase(), sub: `${o.places.filter((p) => p.country === cc).length} ✦` })),
+    ...o.cities.map((c) => ({ big: false, top: flagOf(c.cc), label: c.name.toUpperCase(), sub: c.date ? formatDate(c.date) : '' })),
+  ];
+  const top = 270 * k;
+  const photos = o.imgs.slice(0, sq ? 0 : 3);
+  const photoH = photos.length ? (H / W > 1.5 ? 330 : 250) * k : 0;
+  const cloudH = H * (sq ? 0.16 : 0.15);
+  const areaH = H - top - 70 * k - cloudH - (photoH ? photoH + 30 * k : 0) - 20 * k;
+  const areaW = W - m * 2;
+  // chọn cỡ tem để vừa hết
+  let cols = 3;
+  let size = 0;
+  for (cols = 3; cols <= 8; cols++) {
+    size = areaW / cols;
+    if (Math.ceil(stamps.length / cols) * size * 0.92 <= areaH) break;
+  }
+  const rows = Math.ceil(stamps.length / cols);
+  const cell = Math.min(areaW / cols, areaH / Math.max(rows, 1) / 0.92);
+  stamps.forEach((s, i) => {
+    const a = at(0.6 + i * Math.min(0.15, 2.4 / stamps.length), 0.35);
+    if (a <= 0) return;
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+    const cx = m + c * cell + cell / 2;
+    const cy = top + r * cell * 0.92 + cell * 0.46;
+    const rad = (s.big ? 0.44 : 0.38) * cell;
+    const inkC = STAMP_INKS[i % STAMP_INKS.length];
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((((i * 37) % 17) - 8) * (Math.PI / 180));
+    ctx.scale(1.4 - 0.4 * a, 1.4 - 0.4 * a);
+    ctx.globalAlpha = a * 0.9;
+    ctx.strokeStyle = night ? '#FFD86B' : inkC;
+    ctx.fillStyle = night ? '#FFD86B' : inkC;
+    ctx.lineWidth = Math.max(2, cell * 0.03);
+    ctx.beginPath();
+    if (s.big) ctx.arc(0, 0, rad, 0, Math.PI * 2);
+    else roundRect(ctx, -rad, -rad * 0.72, rad * 2, rad * 1.44, rad * 0.18);
+    ctx.stroke();
+    ctx.lineWidth = Math.max(1, cell * 0.012);
+    ctx.beginPath();
+    if (s.big) ctx.arc(0, 0, rad * 0.84, 0, Math.PI * 2);
+    else roundRect(ctx, -rad * 0.88, -rad * 0.6, rad * 1.76, rad * 1.2, rad * 0.12);
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = a;
+    ctx.font = font(BODY, cell * 0.2);
+    ctx.fillText(s.top, 0, -rad * 0.22);
+    ctx.globalAlpha = a * 0.9;
+    fitText(ctx, s.label, 0, rad * 0.2, rad * 1.55, HEAD, cell * 0.11, cell * 0.06);
+    ctx.font = font(TEXT_ONLY(BODY), cell * 0.075);
+    if (s.sub) ctx.fillText(s.sub, 0, rad * 0.46);
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+  let y = top + Math.max(areaH, 0) + 20 * k;
+  if (photoH) {
+    const gap = 26 * k;
+    const pw = (W - m * 2 - gap * (photos.length - 1)) / photos.length;
+    photos.forEach((im, i) => {
+      const a = at(1.8 + i * 0.25);
+      if (a <= 0) return;
+      const x = m + i * (pw + gap);
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(x + pw / 2, y + photoH / 2);
+      ctx.rotate(((i % 2 ? 3 : -3) * Math.PI) / 180);
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,0.18)';
+      ctx.shadowBlur = 18 * k;
+      ctx.fillRect(-pw / 2, -photoH / 2, pw, photoH);
+      ctx.shadowBlur = 0;
+      drawCover(ctx, im.img, -pw / 2 + 12 * k, -photoH / 2 + 12 * k, pw - 24 * k, photoH - 56 * k, 4 * k);
+      ctx.fillStyle = '#3B2F1E';
+      ctx.textAlign = 'center';
+      fitText(ctx, im.label || '', 0, photoH / 2 - 16 * k, pw - 30 * k, BODY, 20 * k);
+      ctx.restore();
+    });
+    y += photoH + 30 * k;
+  }
+  const oT = { ...o, theme: { ...o.theme, text: ink, chip: night ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)' } };
+  placeCloud(ctx, oT, m, y, W - m * 2, H - 70 * k - y, at, 2.4);
+  watermark(ctx, o, ink);
+}
+
+function layoutTimeline(ctx, o, at) {
+  const { W, H, k, theme: T } = o;
+  const m = 64 * k;
+  let y = header(ctx, o, (H / W > 1.5 ? 120 : 80) * k, at, { size: H / W < 1.1 ? 64 : 80 });
+  y = statsRow(ctx, o, y + 6 * k, at, (H / W < 1.1 ? 100 : 130) * k) + 30 * k;
+  const groups = o.timeline;
+  const imgs = o.imgs.slice(0, 4);
+  const photoW = imgs.length ? 250 * k : 0;
+  const bottom = H - 70 * k;
+  const areaH = bottom - y;
+  const lineX = m + 18 * k;
+  const textX = lineX + 40 * k;
+  const textW = W - textX - m - (photoW ? photoW + 30 * k : 0);
+  // cỡ chữ lớn nhất để toàn bộ mốc thời gian vừa khung
+  let size = 34;
+  const measure = (s) => {
+    ctx.font = font(TEXT_ONLY(BODY), s * k);
+    let total = 0;
+    for (const g of groups) {
+      const words = g.places.join(' · ');
+      const lines = Math.max(1, Math.ceil(ctx.measureText(words).width / textW));
+      total += s * k * 1.25 + lines * s * k * 1.35 + s * k * 0.7;
+    }
+    return total;
+  };
+  while (size > 13 && measure(size) > areaH) size -= 1;
+  const S = size * k;
+  ctx.globalAlpha = at(0.6);
+  ctx.strokeStyle = T.accent;
+  ctx.lineWidth = 4 * k;
+  ctx.beginPath();
+  ctx.moveTo(lineX, y);
+  ctx.lineTo(lineX, y + Math.min(areaH, measure(size)));
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  let yy = y;
+  groups.forEach((g, i) => {
+    const a = at(0.8 + i * Math.min(0.3, 3 / groups.length), 0.4);
+    ctx.globalAlpha = Math.max(a, 0);
+    ctx.fillStyle = T.dot;
+    ctx.beginPath();
+    ctx.arc(lineX, yy + S * 0.55, S * 0.38, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = T.accent;
+    fitText(ctx, g.label, textX, yy + S * 0.9, textW, HEAD, S * 0.9, S * 0.6);
+    yy += S * 1.25;
+    ctx.fillStyle = T.text;
+    ctx.font = font(TEXT_ONLY(BODY), S);
+    let line = '';
+    for (const wd of g.places) {
+      const test = line ? `${line} · ${wd}` : wd;
+      if (ctx.measureText(test).width > textW && line) {
+        ctx.fillText(line, textX, yy + S);
+        yy += S * 1.35;
+        line = wd;
+      } else line = test;
+    }
+    if (line) ctx.fillText(line, textX, yy + S);
+    yy += S * 1.35 + S * 0.7;
+  });
+  ctx.globalAlpha = 1;
+  if (photoW) {
+    const gap = 18 * k;
+    const ph = Math.min((areaH - gap * (imgs.length - 1)) / imgs.length, photoW * 1.25);
+    imgs.forEach((im, i) => {
+      const a = at(1.2 + i * 0.25);
+      if (a <= 0) return;
+      ctx.globalAlpha = a;
+      drawCover(ctx, im.img, W - m - photoW + (1 - a) * 40 * k, y + i * (ph + gap), photoW, ph, 22 * k);
+    });
+    ctx.globalAlpha = 1;
+  }
+  watermark(ctx, o);
+}
+
+/** Trình chiếu: từng ảnh tràn màn hình (zoom chậm), cuối cùng là thẻ tổng kết. Ảnh tĩnh = thẻ tổng kết trên nền ảnh bìa. */
+const SLIDE = 2.4;
+function layoutSlideshow(ctx, o, at, time) {
+  const { W, H, k } = o;
+  const imgs = o.imgs;
+  const slidesEnd = time === Infinity ? 0 : imgs.length * SLIDE;
+  if (time !== Infinity && time < slidesEnd) {
+    const i = Math.floor(time / SLIDE);
+    const local = (time - i * SLIDE) / SLIDE;
+    const im = imgs[i];
+    const z = 1.04 + 0.1 * local;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = ease(local * 5);
+    drawCover(ctx, im.img, 0, 0, W, H, 0, z, { x: i % 2 ? 0.4 : 0.6, y: 0.5, z: 1 });
+    const g = ctx.createLinearGradient(0, H * 0.55, 0, H);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.65)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = ease((local - 0.1) * 4);
+    ctx.fillStyle = '#fff';
+    fitText(ctx, im.label || '', 64 * k, H - 170 * k, W - 128 * k, HEAD, 64 * k, 36 * k);
+    ctx.fillStyle = '#FFD86B';
+    fitText(ctx, im.sub || '', 64 * k, H - 110 * k, W - 128 * k, BODY, 30 * k);
+    ctx.fillStyle = '#fff';
+    ctx.font = font(BODY, 26 * k);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${i + 1}/${imgs.length}`, W - 64 * k, 90 * k);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+    return;
+  }
+  // thẻ tổng kết
+  const t2 = time === Infinity ? Infinity : time - slidesEnd;
+  const at2 = (t0, dur = 0.6) => (t2 === Infinity ? 1 : ease((t2 - t0) / dur));
+  const o2 = { ...o, time: t2 };
+  if (imgs[0]) {
+    drawCover(ctx, imgs[0].img, 0, 0, W, H, 0, 1.15);
+    ctx.fillStyle = o.themeId === 'night' ? 'rgba(20,16,12,0.78)' : 'rgba(255,248,225,0.84)';
+    ctx.fillRect(0, 0, W, H);
+  } else background(ctx, o);
+  const m = 64 * k;
+  let y = header(ctx, o2, (H / W > 1.5 ? 160 : 90) * k, at2, { center: true, size: H / W < 1.1 ? 66 : 86 });
+  y = statsRow(ctx, o2, y + 20 * k, at2, (H / W < 1.1 ? 110 : 150) * k) + 40 * k;
+  placeCloud(ctx, o2, m, y, W - m * 2, H - 90 * k - y, at2, 0.8);
+  watermark(ctx, o2);
+}
+
+/** Vẽ một khung hình tổng kết. time = Infinity → ảnh tĩnh đầy đủ */
+function renderRecap(ctx, o, time = Infinity) {
+  const oo = { ...o, time };
+  const at = (t0, dur = 0.6) => (time === Infinity ? 1 : ease((time - t0) / dur));
+  ctx.textBaseline = 'alphabetic';
+  ctx.globalAlpha = 1;
+  if (o.layout !== 'passport') background(ctx, oo);
+  if (o.layout === 'collage') layoutCollage(ctx, oo, at);
+  else if (o.layout === 'passport') layoutPassport(ctx, oo, at);
+  else if (o.layout === 'timeline') layoutTimeline(ctx, oo, at);
+  else if (o.layout === 'slideshow') layoutSlideshow(ctx, oo, at, time);
+  else layoutMap(ctx, oo, at);
+}
+
+function videoDuration(o) {
+  const n = o.places.length;
+  if (o.layout === 'slideshow') return o.imgs.length * SLIDE + 4.5;
+  if (o.layout === 'collage') return 1.2 + Math.min(9, o.imgs.length) * 0.22 + Math.min(2, n * 0.08) + 3;
+  if (o.layout === 'passport') return 0.6 + 2.4 + 3.5;
+  if (o.layout === 'timeline') return 0.8 + 3 + 3;
+  return 1 + Math.min(3, n * 0.35) + 3.5;
+}
+
+/* ----------------------------- component ----------------------------- */
+
 const NO_STOPS = [];
+const tsOf = (v) => (v?.toMillis ? new Date(v.toMillis()).toISOString().slice(0, 10) : typeof v === 'number' ? new Date(v).toISOString().slice(0, 10) : v || '');
 
 export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onClose }) {
-  const { places, memories, countries, api, notify } = useApp();
+  const { places, memories, countries, api, notify, trips } = useApp();
   const { t, lang } = useI18n();
   const now = new Date().getFullYear();
 
-  // --- dữ liệu theo năm ---
   const years = useMemo(() => {
     const ys = new Set([now]);
     places.forEach((p) => p.status === 'visited' && p.visitedAt && ys.add(Number(p.visitedAt.slice(0, 4))));
@@ -237,60 +634,142 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
   }, [places, memories, now]);
   const [year, setYear] = useState(() => years[0] || now);
 
+  // Địa điểm (kèm ngày) + kho ảnh để chọn
   const data = useMemo(() => {
-    if (mode === 'trip') {
-      const map = new Map();
-      stops.forEach((s) => s.place && !map.has(s.place.id) && map.set(s.place.id, s.place));
-      const photoSrc = stops.flatMap((s) => (s.photos || []).map((url) => ({ url, memoryId: s.memoryId }))).slice(0, 4);
-      return { places: [...map.values()], photoSrc, memIds: [...new Set(stops.map((s) => s.memoryId).filter(Boolean))] };
-    }
     const map = new Map();
-    const inYear = (d) => d && String(d).slice(0, 4) === String(year);
-    places.forEach((p) => p.status === 'visited' && inYear(p.visitedAt) && map.set(p.id, p));
-    const mems = memories.filter((m) => inYear(m.date)).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-    mems.forEach((m) => m.place && !map.has(m.place.id) && map.set(m.place.id, m.place));
-    const sorted = [...map.values()].sort((a, b) => String(a.visitedAt || '').localeCompare(String(b.visitedAt || '')));
-    return { places: sorted, photoSrc: mems.flatMap((m) => (m.photos || []).slice(0, 1).map((url) => ({ url, mem: m }))).slice(0, 4) };
-  }, [mode, stops, places, memories, year]);
+    const pool = [];
+    const addPool = (mem, place, date, tripId) =>
+      (mem.photos || []).forEach((url, i) => pool.push({ key: `${mem.id || mem.memoryId}:${i}`, url, i, mem, place, date, tripId: tripId || '' }));
+    if (mode === 'trip') {
+      stops.forEach((s) => s.place && !map.has(s.place.id) && map.set(s.place.id, { ...s.place, date: s.date || tsOf(s.createdAt) }));
+      const seen = new Set();
+      memories
+        .filter((m) => m.tripId === trip?.id)
+        .forEach((m) => {
+          seen.add(m.id);
+          if (m.place && !map.has(m.place.id)) map.set(m.place.id, { ...m.place, date: m.date });
+          addPool(m, m.place, m.date, trip?.id);
+        });
+      stops.forEach((s) => s.memoryId && !seen.has(s.memoryId) && (seen.add(s.memoryId), addPool({ id: s.memoryId, memoryId: s.memoryId, photos: s.photos }, s.place, s.date || tsOf(s.createdAt), trip?.id)));
+    } else {
+      const inYear = (d) => d && String(d).slice(0, 4) === String(year);
+      places.forEach((p) => p.status === 'visited' && inYear(p.visitedAt) && map.set(p.id, { ...p, date: p.visitedAt }));
+      const mems = memories.filter((m) => inYear(m.date));
+      mems.forEach((m) => {
+        if (m.place && !map.has(m.place.id)) map.set(m.place.id, { ...m.place, date: m.date });
+        addPool(m, m.place, m.date, m.tripId);
+      });
+    }
+    const list = [...map.values()].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    pool.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    return { places: list, pool };
+  }, [mode, stops, places, memories, year, trip]);
+
+  // Mặc định: mỗi chuyến đi 1 ảnh (chuyến đi: mỗi địa điểm 1 ảnh), tối thiểu 4 ảnh nếu có
+  const defaultPick = useMemo(() => {
+    const pick = [];
+    const used = new Set();
+    const groupKey = (ph) => (mode === 'trip' ? `p:${ph.place?.id}` : ph.tripId ? `t:${ph.tripId}` : null);
+    data.pool.forEach((ph) => {
+      const g = groupKey(ph);
+      if (g && !used.has(g) && pick.length < 8) {
+        used.add(g);
+        pick.push(ph.key);
+      }
+    });
+    data.pool.forEach((ph) => {
+      const g = `p:${ph.place?.id}`;
+      if (pick.length < 4 && !pick.includes(ph.key) && !used.has(g)) {
+        used.add(g);
+        pick.push(ph.key);
+      }
+    });
+    data.pool.forEach((ph) => pick.length < Math.min(4, data.pool.length) && !pick.includes(ph.key) && pick.push(ph.key));
+    return pick;
+  }, [data, mode]);
+  const [picked, setPicked] = useState(defaultPick);
+  useEffect(() => setPicked(defaultPick), [defaultPick]);
+  const togglePick = (key) =>
+    setPicked((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : cur.length >= MAX_PICK ? (notify(t('recap.maxPhotos', { n: MAX_PICK })), cur) : [...cur, key]));
 
   const [fmt, setFmt] = useState('story');
   const [theme, setTheme] = useState('honey');
+  const [layout, setLayout] = useState('map');
   const [imgs, setImgs] = useState([]);
   const [busy, setBusy] = useState('');
   const canvasRef = useRef();
   const F = FORMATS.find((f) => f.id === fmt);
 
-  // Ảnh: dùng ảnh độ phân giải đầy đủ nếu có
+  // Tải ảnh đã chọn (ảnh vừa nếu có), giữ đúng thứ tự chọn
+  const cacheRef = useRef({});
   useEffect(() => {
     let alive = true;
     (async () => {
-      const urls = await Promise.all(
-        data.photoSrc.map(async (ph) => {
+      const list = await Promise.all(
+        picked.map(async (key) => {
+          const ph = data.pool.find((x) => x.key === key);
+          if (!ph) return null;
+          if (cacheRef.current[key]) return cacheRef.current[key];
+          let url = ph.url;
           try {
-            const full = await api.getFullPhotos(ph.mem || { id: ph.memoryId, memoryId: ph.memoryId, photos: [ph.url] });
-            return full?.[0] || ph.url;
+            const arr = await api.getPhotos(ph.mem, 'medium');
+            url = arr?.[ph.i] || ph.url;
           } catch {
-            return ph.url;
+            /* dùng ảnh thu nhỏ */
+          }
+          try {
+            const img = await loadImage(url);
+            const item = {
+              key,
+              img,
+              label: ph.place ? pName(ph.place) : '',
+              sub: [ph.place && [pCity(ph.place), countryName(ph.place.country)].filter(Boolean).join(', '), ph.date && formatDate(ph.date)].filter(Boolean).join(' · '),
+            };
+            cacheRef.current[key] = item;
+            return item;
+          } catch {
+            return null;
           }
         }),
       );
-      const list = await Promise.all(urls.map((u) => loadImage(u).catch(() => null)));
       if (alive) setImgs(list.filter(Boolean));
     })();
     return () => {
       alive = false;
     };
-  }, [data, api]);
+  }, [picked, data, api]);
 
-  const stats = useMemo(() => {
-    const cc = new Set(data.places.map((p) => p.country).filter(Boolean));
-    const cities = new Set(data.places.map((p) => pCity(p)).filter(Boolean));
-    return [
+  const derived = useMemo(() => {
+    const cc = [...new Set(data.places.map((p) => p.country).filter(Boolean))];
+    const cityMap = new Map();
+    data.places.forEach((p) => {
+      const name = pCity(p);
+      if (name && !cityMap.has(`${p.country}|${name}`)) cityMap.set(`${p.country}|${name}`, { name, cc: p.country, date: p.date });
+    });
+    const cities = [...cityMap.values()];
+    // Dòng thời gian: năm → theo tháng; chuyến đi → theo ngày
+    const groups = new Map();
+    data.places.forEach((p) => {
+      const d = p.date ? String(p.date) : '';
+      const key = d ? (mode === 'trip' ? d.slice(0, 10) : d.slice(0, 7)) : '~';
+      (groups.get(key) || groups.set(key, []).get(key)).push(pName(p));
+    });
+    const label = (key) => {
+      if (key === '~') return t('recap.noDate');
+      if (mode === 'trip') return formatDate(key);
+      const dt = new Date(`${key}-01T00:00:00`);
+      const txt = dt.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US', { month: 'long', year: 'numeric' });
+      return txt.charAt(0).toUpperCase() + txt.slice(1);
+    };
+    const timeline = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => ({ label: label(k), places: v }));
+    const stats = [
       { icon: '📍', value: data.places.length, label: t('recap.places') },
-      { icon: '🌏', value: cc.size, label: t('recap.countries') },
-      { icon: '🏙️', value: cities.size, label: t('recap.cities') },
+      { icon: '🌏', value: cc.length, label: t('recap.countries') },
+      { icon: '🏙️', value: cities.length, label: t('recap.cities') },
     ];
-  }, [data, t, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (mode === 'year') stats.push({ icon: '🧳', value: new Set(memories.filter((m) => String(m.date || '').startsWith(String(year)) && m.tripId).map((m) => m.tripId)).size || trips.filter((x) => String(x.startDate || '').startsWith(String(year))).length, label: t('recap.trips') });
+    return { countries: cc, cities, timeline, stats };
+  }, [data, mode, t, lang, memories, trips, year]);
 
   const opts = useMemo(() => {
     const T = THEMES[theme];
@@ -301,14 +780,15 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     const visited = new Set(data.places.map((p) => p.country));
     const view = viewFor(data.places, mapW / mapH);
     const map = countries ? drawMapLayer(countries.features, visited, view, mapW, mapH, T) : null;
+    const range = data.places.length && data.places[0].date ? [data.places[0].date, data.places[data.places.length - 1].date].filter(Boolean) : [];
     return {
-      W: F.w, H: F.h, theme: T, map, imgs, places: data.places, stats,
+      W: F.w, H: F.h, k, theme: T, themeId: theme, layout, map, imgs, places: data.places, ...derived,
       eyebrow: mode === 'trip' ? `${trip?.emoji || '🧳'} ${t('recap.tripEyebrow')}` : t('recap.yearEyebrow'),
       title: mode === 'trip' ? trip?.name || '' : t('recap.yearTitle', { year }),
-      moreLabel: (n) => t('recap.more', { n }),
+      subtitle: mode === 'trip' && range.length ? `${formatDate(range[0])} → ${formatDate(range[range.length - 1])}` : derived.countries.map((cc) => `${flagOf(cc)} ${countryName(cc)}`).join('  '),
       watermark: t('canvas.watermark'),
     };
-  }, [theme, F, data, imgs, stats, countries, mode, trip, year, t]);
+  }, [theme, F, data, imgs, derived, countries, mode, trip, year, t, layout]);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -324,7 +804,7 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     const file = new File([blob], name, { type: blob.type });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: opts.title, text: `${opts.title} #bandodulich` });
+        await navigator.share({ files: [file], title: opts.title, text: `${opts.title} #travelmap` });
         return;
       } catch (e) {
         if (e.name === 'AbortError') return;
@@ -343,6 +823,7 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
   const exportVideo = async () => {
     const mime = pickMime();
     if (!mime) return notify(t('studio.noVideo'), 'error');
+    if (layout === 'slideshow' && !imgs.length) return notify(t('recap.needPhotos'), 'error');
     setBusy(t('studio.making'));
     const c = document.createElement('canvas');
     c.width = F.w;
@@ -352,7 +833,7 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     const chunks = [];
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const done = new Promise((r) => (rec.onstop = r));
-    const duration = 1 + Math.min(3, data.places.length * 0.35) + 3.5;
+    const duration = videoDuration(opts);
     rec.start();
     const t0 = performance.now();
     await new Promise((resolve) => {
@@ -369,6 +850,8 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     setBusy('');
     deliver(new Blob(chunks, { type: mime.split(';')[0] }), `travel-map-recap-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}`);
   };
+
+  const maxFor = LAYOUTS.find((l) => l.id === layout).max;
 
   return (
     <Modal title={mode === 'trip' ? t('recap.tripModal') : t('recap.yearModal')} onClose={onClose} wide className="modal--studio">
@@ -387,18 +870,51 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
               </div>
             </div>
           )}
-          {data.places.length === 0 ? (
-            <p className="warn small">{mode === 'trip' ? t('recap.emptyTrip') : t('recap.emptyYear', { year })}</p>
-          ) : (
-            <div className="recap-list">
-              {data.places.slice(0, 30).map((p) => (
-                <span key={p.id} className="chip chip--sm">
-                  {flagOf(p.country)} {pName(p)}
-                </span>
+          {data.places.length === 0 && <p className="warn small">{mode === 'trip' ? t('recap.emptyTrip') : t('recap.emptyYear', { year })}</p>}
+          <div className="field">
+            <span>{t('recap.layout')}</span>
+            <div className="recap-layouts">
+              {LAYOUTS.map((l) => (
+                <button key={l.id} className={layout === l.id ? 'on' : ''} onClick={() => setLayout(l.id)}>
+                  <b>{l.emoji}</b>
+                  <small>{t('recap.layout.' + l.id)}</small>
+                </button>
               ))}
-              {data.places.length > 30 && <span className="small muted">{t('recap.more', { n: data.places.length - 30 })}</span>}
             </div>
-          )}
+          </div>
+          <div className="field">
+            <span>
+              {t('recap.pickPhotos', { n: picked.length })}
+              {picked.length > maxFor && <small className="muted"> · {t('recap.layoutUses', { n: maxFor })}</small>}
+            </span>
+            {data.pool.length === 0 ? (
+              <p className="small muted">{t('recap.noPhotos')}</p>
+            ) : (
+              <>
+                <div className="recap-photos">
+                  {data.pool.map((ph) => {
+                    const idx = picked.indexOf(ph.key);
+                    return (
+                      <button key={ph.key} className={idx >= 0 ? 'on' : ''} onClick={() => togglePick(ph.key)} title={ph.place ? pName(ph.place) : ''}>
+                        <img src={ph.url} alt="" loading="lazy" />
+                        {idx >= 0 && <span>{idx + 1}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="row wrap">
+                  <button className="btn btn--sm btn--ghost" onClick={() => setPicked(defaultPick)}>
+                    ↺ {mode === 'trip' ? t('recap.pickDefaultTrip') : t('recap.pickDefault')}
+                  </button>
+                  {picked.length > 0 && (
+                    <button className="btn btn--sm btn--ghost" onClick={() => setPicked([])}>
+                      ✕ {t('recap.pickNone')}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
           <div className="field">
             <span>{t('recap.theme')}</span>
             <div className="segmented">

@@ -310,7 +310,7 @@ function PlacePreview({ place: p, onDetail }) {
 
 /** Nhóm địa điểm theo quốc gia → thành phố, có ô tìm, mở / thu gọn từng quốc gia.
     Bấm một địa điểm → mở xem nhanh ngay tại chỗ + bay bản đồ tới; "Chi tiết" mới mở trang riêng. */
-function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, openFirst = 2, sortCountries = 'count', memKey = 'list' }) {
+function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, sortCountries = 'count', memKey = 'list' }) {
   const { openPlace, openCountry, setFlyTarget } = useApp();
   const { t, lang } = useI18n();
   const mem = (listMemory[memKey] ||= { q: '', openId: null });
@@ -355,7 +355,7 @@ function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, ope
     <div className="stack-sm grouped" ref={rootRef}>
       {items.length > 6 && <input className="grouped__search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('group.search')} />}
       {groups.map((g, gi) => (
-        <details key={g.cc} className="grouped__country" open={!!n || gi < openFirst || g.cities.some(([, l]) => l.some((p) => p.id === openId))}>
+        <details key={g.cc} className="grouped__country" open={!!n || groups.length === 1 || g.cities.some(([, l]) => l.some((p) => p.id === openId))}>
           <summary>
             <span className="grouped__flag">{g.cc === '—' ? '🌐' : flagOf(g.cc)}</span>
             <b>{g.cc === '—' ? t('group.otherCountry') : countryName(g.cc)}</b>
@@ -595,7 +595,7 @@ function WorldPanel() {
               ))}
           </div>
           {homeLoading && <Loader text={t('country.loadingMore')} />}
-          <GroupedPlaces items={homeFamous} memKey={`famous-${homeCountry}`} emptyEmoji="🏞️" emptyTitle={t('home.famousEmpty')} rowExtra={quick} openFirst={3} />
+          <GroupedPlaces items={homeFamous} memKey={`famous-${homeCountry}`} emptyEmoji="🏞️" emptyTitle={t('home.famousEmpty')} rowExtra={quick} />
         </section>
       )}
     </div>

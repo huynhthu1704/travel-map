@@ -80,7 +80,7 @@ export default function DateInput({ value, onChange, max, ariaLabel }) {
         type="date"
         className="date-input__native"
         tabIndex={-1}
-        aria-hidden
+        aria-label={ariaLabel ? `${ariaLabel} 📅` : '📅'}
         value={value || ''}
         max={max}
         onChange={(e) => onChange(e.target.value)}

@@ -3866,3 +3866,27 @@ img.is-loaded {
     min-height: 36px;
   }
 }
+/* Điện thoại / iPhone: Safari không mở lịch qua nút giả → đặt ô ngày thật (trong suốt) ngay trên nút 📅
+   để chạm vào là mở bánh xe chọn ngày của iOS / Android */
+@media (pointer: coarse) {
+  .date-input__native {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    right: 3px;
+    opacity: 0.011;
+    pointer-events: auto;
+    z-index: 2;
+    font-size: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+  }
+  .date-input__native::-webkit-date-and-time-value {
+    text-align: left;
+  }
+}

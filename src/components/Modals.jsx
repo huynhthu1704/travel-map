@@ -293,7 +293,7 @@ function PlacePicker({ value, onChange, onPickOnMap }) {
 }
 
 function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
-  const { api, user, trips, notify, setModal, setPickMode } = useApp();
+  const { api, user, trips, notify, setModal, startPicking } = useApp();
   const { t } = useI18n();
   const [place, setPlace] = useState(initialPlace || null);
   const [files, setFiles] = useState([]);
@@ -328,10 +328,7 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
           <PlacePicker
             value={place}
             onChange={setPlace}
-            onPickOnMap={() => {
-              setModal(null);
-              setPickMode('memory');
-            }}
+            onPickOnMap={() => startPicking('memory')}
           />
         </label>
         <div className="field">

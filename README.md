@@ -13,7 +13,8 @@ The app's interface is in Vietnamese.
 |---|---|---|
 | 🗺️ | World map: visited countries are filled in yellow, with a 👣 pin at each place you've been | Viewing: no |
 | 🔍 | Click a country to zoom in, see famous places, and filter by city or region. Besides a hand-picked list, up to ~100 famous places per country are loaded live from Wikidata (via the QLever endpoint), ranked by Wikipedia coverage and cached for 7 days | No |
-| 🔗 | Add any place from a Google Maps link, or pick a spot on the map (long-press / right-click to drop a pin) | Save: yes |
+| 🔗 | Add any place from a Google Maps link, or open the map and tap to add as many places as you like (visited or wishlist) | Save: yes |
+| 🖼️ | Photos for famous places from Wikimedia Commons / Wikipedia | No |
 | 🌐 | Vietnamese / English UI (flag button, Vietnamese by default); places outside Vietnam use English names | No |
 | 🔎 | Search for any country, city or place (OpenStreetMap) | No |
 | 💛 | Add places to your *wishlist* or mark them as *visited* | Yes |
@@ -79,4 +80,4 @@ src/
   styles/tokens.css       design tokens (synced with Figma)
 ```
 
-Stack: React 18 · Vite · Leaflet / react-leaflet · Firebase (Auth, Firestore) · OpenStreetMap tiles · Nominatim.
+Stack: React 18 · Vite · Leaflet / react-leaflet · MapLibre GL (OpenFreeMap vector tiles, Latin-script labels) · Firebase (Auth, Firestore) · Nominatim · Wikidata (QLever) · Wikipedia.

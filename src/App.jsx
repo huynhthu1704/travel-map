@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AppProvider, useApp } from './AppContext';
 import MapView from './components/MapView';
 import SidePanel from './components/SidePanel';
+import PickPanel from './components/PickPanel';
 import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
 import { Avatar } from './components/ui';
@@ -102,7 +103,7 @@ function Shell() {
               <button onClick={() => setActiveTripId(null)} aria-label={t('map.off')}>✕</button>
             </div>
           )}
-          {pickMode && view === 'map' && (
+          {pickMode === 'memory' && view === 'map' && (
             <div className="pick-banner">
               📍 {t('pick.banner')}
               <button onClick={() => setPickMode(null)}>{t('pick.cancel')}</button>
@@ -114,7 +115,7 @@ function Shell() {
             <span><i className="dot dot--famous" />{t('legend.famous')}</span>
             {activeTrip && <span><i className="dot dot--trip" />{t('legend.trip')}</span>}
           </div>
-          {view === 'map' && <SidePanel />}
+          {view === 'map' && (pickMode === 'place' ? <PickPanel /> : <SidePanel />)}
         </div>
         {mounted.has('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
         {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import { MapContainer, GeoJSON, Marker, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import BaseMap from './BaseMap';
 import { useApp } from '../AppContext';
 import { famousIn } from '../data/places';
 import { useI18n } from '../i18n';
@@ -60,19 +61,21 @@ function FlyController({ countries }) {
 
 /** Chọn vị trí: bấm khi đang ở chế độ chọn, hoặc chạm giữ / chuột phải bất kỳ lúc nào */
 function PickHandler() {
-  const { pickMode, setPickMode, pinPlace } = useApp();
+  const { pickMode, setPickMode, pinPlace, addPickedAt } = useApp();
   const map = useMap();
   useEffect(() => {
     map.getContainer().classList.toggle('map--picking', !!pickMode);
   }, [pickMode, map]);
   useMapEvents({
     click: (e) => {
-      if (!pickMode) return;
-      const purpose = pickMode;
-      setPickMode(null);
-      pinPlace(e.latlng.lat, e.latlng.lng, { purpose });
+      if (pickMode === 'place') addPickedAt(e.latlng.lat, e.latlng.lng);
+      else if (pickMode === 'memory') {
+        setPickMode(null);
+        pinPlace(e.latlng.lat, e.latlng.lng, { purpose: 'memory' });
+      }
     },
     contextmenu: (e) => {
+      if (pickMode === 'place') return addPickedAt(e.latlng.lat, e.latlng.lng);
       setPickMode(null);
       pinPlace(e.latlng.lat, e.latlng.lng);
     },
@@ -134,11 +137,7 @@ export default function MapView() {
       zoomControl={false}
       maxBounds={[[-85, -400], [85, 400]]}
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        className="base-tiles"
-      />
+      <BaseMap />
       <ZoomControl position="bottomright" />
       {countries && (
         <GeoJSON

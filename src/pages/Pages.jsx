@@ -7,54 +7,103 @@ import { normalize } from '../lib/geo';
 import { useI18n } from '../i18n';
 import { pName, pCity } from '../lib/lang';
 
-/** Bộ lọc dùng chung: tìm theo chữ + quốc gia + thành phố */
+/** Bộ lọc dùng chung: tìm theo chữ + chọn bất kỳ quốc gia + gõ/chọn thành phố */
 function useFilters(items, getPlace) {
   const [text, setText] = useState('');
   const [cc, setCc] = useState('');
   const [city, setCity] = useState('');
   const { t, lang } = useI18n();
-  const countries = useMemo(() => [...new Set(items.map((i) => getPlace(i)?.country).filter(Boolean))].sort(), [items, getPlace]);
-  const cities = useMemo(
-    () => [...new Set(items.filter((i) => !cc || getPlace(i)?.country === cc).map((i) => pCity(getPlace(i))).filter(Boolean))].sort(),
-    [items, cc, getPlace, lang], // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  const { countries: geo, famousFor, ensureFamous } = useApp();
+  const listId = useMemo(() => `cities-${Math.random().toString(36).slice(2, 8)}`, []);
+
+  // Tất cả quốc gia trên thế giới; quốc gia đang có dữ liệu được đưa lên đầu
+  const withData = useMemo(() => new Set(items.map((i) => getPlace(i)?.country).filter(Boolean)), [items, getPlace]);
+  const allCountries = useMemo(() => {
+    const ccs = new Set((geo?.features || []).map((f) => f.properties.cc).filter(Boolean));
+    withData.forEach((c) => ccs.add(c));
+    const byName = (x, y) => countryName(x).localeCompare(countryName(y), lang);
+    const all = [...ccs];
+    return { top: all.filter((c) => withData.has(c)).sort(byName), rest: all.filter((c) => !withData.has(c)).sort(byName) };
+  }, [geo, withData, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Nạp địa điểm nổi tiếng của quốc gia đã chọn để gợi ý tên thành phố
+  useEffect(() => ensureFamous(cc), [cc, ensureFamous]);
+  const cities = useMemo(() => {
+    const fromItems = items.filter((i) => !cc || getPlace(i)?.country === cc).map((i) => pCity(getPlace(i)));
+    const fromFamous = cc ? famousFor(cc).map((p) => pCity(p)) : [];
+    return [...new Set([...fromItems, ...fromFamous].filter(Boolean))].sort((x, y) => x.localeCompare(y, lang));
+  }, [items, cc, getPlace, lang, famousFor]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const filtered = useMemo(() => {
     const n = normalize(text.trim());
+    const nc = normalize(city.trim());
     return items.filter((i) => {
       const p = getPlace(i) || {};
       if (cc && p.country !== cc) return false;
-      if (city && pCity(p) !== city) return false;
+      if (nc && !normalize(`${pCity(p)} ${p.city}`).includes(nc)) return false;
       if (n && !normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)} ${i.caption || ''} ${i.authorName || ''}`).includes(n)) return false;
       return true;
     });
   }, [items, text, cc, city, getPlace, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const ui = (
     <div className="filters">
       <input className="filters__search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('filter.search')} />
-      <select value={cc} onChange={(e) => { setCc(e.target.value); setCity(''); }} aria-label={t('filter.byCountry')}>
+      <select
+        value={cc}
+        onChange={(e) => {
+          setCc(e.target.value);
+          setCity('');
+        }}
+        aria-label={t('filter.byCountry')}
+      >
         <option value="">{t('filter.allCountries')}</option>
-        {countries.map((c) => (
-          <option key={c} value={c}>
-            {flagOf(c)} {countryName(c)}
-          </option>
-        ))}
+        {allCountries.top.length > 0 && (
+          <optgroup label={t('filter.withData')}>
+            {allCountries.top.map((c) => (
+              <option key={c} value={c}>
+                {flagOf(c)} {countryName(c)}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        <optgroup label={t('filter.allWorld')}>
+          {allCountries.rest.map((c) => (
+            <option key={c} value={c}>
+              {flagOf(c)} {countryName(c)}
+            </option>
+          ))}
+        </optgroup>
       </select>
-      <select value={city} onChange={(e) => setCity(e.target.value)} aria-label={t('filter.byCity')} disabled={!cities.length}>
-        <option value="">{t('filter.allCities')}</option>
-        {cities.map((c) => (
-          <option key={c}>{c}</option>
-        ))}
-      </select>
+      <div className="filters__city">
+        <input
+          list={listId}
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          placeholder={t('filter.cityPlaceholder')}
+          aria-label={t('filter.byCity')}
+        />
+        {city && (
+          <button type="button" className="filters__clear" onClick={() => setCity('')} aria-label={t('common.close')}>
+            ✕
+          </button>
+        )}
+        <datalist id={listId}>
+          {cities.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+      </div>
     </div>
   );
-  return { filtered, ui };
+  return { filtered, ui, cc, city };
 }
 const memPlace = (m) => m.place;
 
 export function ExplorePage() {
-  const { publicMemories } = useApp();
+  const { publicMemories, openCountry } = useApp();
   const { t } = useI18n();
-  const { filtered, ui } = useFilters(publicMemories, memPlace);
+  const { filtered, ui, cc } = useFilters(publicMemories, memPlace);
   return (
     <div className="page">
       <header className="page__head">
@@ -65,13 +114,28 @@ export function ExplorePage() {
         </div>
       </header>
       {ui}
-      {filtered.length ? <MemoryGrid items={filtered} /> : <Empty emoji="🔭" title={t('explore.empty')} text={t('explore.emptyHint')} />}
+      {filtered.length ? (
+        <MemoryGrid items={filtered} />
+      ) : (
+        <Empty
+          emoji="🔭"
+          title={t('explore.empty')}
+          text={t('explore.emptyHint')}
+          action={
+            cc && (
+              <button className="btn btn--primary" onClick={() => openCountry(cc)}>
+                {t('explore.seeFamous', { country: countryName(cc) })}
+              </button>
+            )
+          }
+        />
+      )}
     </div>
   );
 }
 
 export function MemoriesPage() {
-  const { user, memories, places, requireLogin, setModal, openPlace } = useApp();
+  const { user, memories, places, requireLogin, setModal, openPlace, startPicking } = useApp();
   const [tab, setTab] = useState('memories');
   const { t } = useI18n();
   const { filtered, ui } = useFilters(memories, memPlace);
@@ -97,9 +161,14 @@ export function MemoriesPage() {
           <p className="eyebrow">{t('mine.eyebrow')}</p>
           <h1 className="h1">{t('mine.title')}</h1>
         </div>
-        <button className="btn btn--primary" onClick={() => setModal({ type: 'memory' })}>
-          {t('place.addMemory')}
-        </button>
+        <div className="row wrap">
+          <button className="btn btn--outline" onClick={() => startPicking('place', tab === 'wishlist' ? 'wishlist' : 'visited')}>
+            {t('pick.addOnMap')}
+          </button>
+          <button className="btn btn--primary" onClick={() => setModal({ type: 'memory' })}>
+            {t('place.addMemory')}
+          </button>
+        </div>
       </header>
       <div className="chips">
         <Chip active={tab === 'memories'} onClick={() => setTab('memories')}>{t('mine.tabMemories', { n: memories.length })}</Chip>

@@ -5,6 +5,7 @@ import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
 import { Chip, Empty, formatDate, Avatar } from './ui';
 import { useI18n } from '../i18n';
 import { pName, pCity, pDesc } from '../lib/lang';
+import { usePlaceImage } from '../lib/placeImage';
 
 export default function SidePanel() {
   const { selectedPlace, selectedCountry } = useApp();
@@ -33,7 +34,7 @@ function Stat({ value, label, emoji }) {
 }
 
 function WorldPanel() {
-  const { user, places, visitedCountries, openCountry, openPlace, requireLogin, setModal, trips, activeTripId, setActiveTripId, setPickMode } = useApp();
+  const { user, places, visitedCountries, openCountry, openPlace, requireLogin, setModal, trips, activeTripId, setActiveTripId, startPicking } = useApp();
   const { t } = useI18n();
   const visited = places.filter((p) => p.status === 'visited');
   const wish = places.filter((p) => p.status === 'wishlist');
@@ -123,7 +124,7 @@ function WorldPanel() {
         {t('world.addMemory')}
       </button>
       <div className="grid-2">
-        <button className="btn btn--outline btn--sm" onClick={() => setPickMode('place')}>
+        <button className="btn btn--outline btn--sm" onClick={() => startPicking('place')}>
           {t('pick.open')}
         </button>
         <button className="btn btn--outline btn--sm" onClick={() => setModal({ type: 'addLink' })}>
@@ -230,11 +231,13 @@ function CountryPanel() {
 export function PlaceCard({ place }) {
   const { placeStatus, setPlaceStatus, setModal, openPlace } = useApp();
   const { t } = useI18n();
+  const img = usePlaceImage(place);
   const st = placeStatus[place.id];
   return (
     <article className="place-card">
-      <button className="place-card__cover" onClick={() => openPlace(place)}>
-        <span>{place.emoji}</span>
+      <button className="place-card__cover" onClick={() => openPlace(place)} aria-label={pName(place)}>
+        {img ? <img src={img} alt={pName(place)} loading="lazy" referrerPolicy="no-referrer" /> : <span>{place.emoji}</span>}
+        {img && <span className="place-card__badge">{place.emoji}</span>}
       </button>
       <div className="place-card__body">
         <button className="place-card__title" onClick={() => openPlace(place)}>
@@ -261,6 +264,7 @@ function PlacePanel() {
   const { selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView } = useApp();
   const [tripId, setTripId] = useState('');
   const { t } = useI18n();
+  const img = usePlaceImage(p);
   const st = placeStatus[p.id];
   const mine = memories.filter((m) => m.place?.id === p.id);
   const pub = publicMemories.filter((m) => m.place?.id === p.id && !mine.some((x) => x.id === m.id));
@@ -288,6 +292,12 @@ function PlacePanel() {
           ← {p.country ? countryName(p.country) : t('common.back')}
         </button>
       </div>
+      {img && (
+        <figure className="place-photo">
+          <img src={img} alt={pName(p)} referrerPolicy="no-referrer" />
+          <figcaption>{t('place.photoCredit')}</figcaption>
+        </figure>
+      )}
       <div className="place-hero">
         <span className="place-hero__emoji">{p.emoji || '📍'}</span>
         <div>

@@ -31,7 +31,9 @@ export function AppProvider({ children }) {
 
   const [modal, setModal] = useState(null); // {type, ...props}
   const [liveFamous, setLiveFamous] = useState({}); // cc → [places] | 'loading'
-  const [pickMode, setPickMode] = useState(null); // null | 'place' | 'memory'
+  const [pickMode, setPickMode] = useState(null); // null | 'place' (thêm nhiều) | 'memory' (chọn 1 cho kỉ niệm)
+  const [pickStatus, setPickStatus] = useState('visited');
+  const [picked, setPicked] = useState([]); // địa điểm đã thêm trong lượt chọn này
   const [toast, setToast] = useState(null);
   const pendingAction = useRef(null);
 
@@ -72,12 +74,17 @@ export function AppProvider({ children }) {
   }, [activeTripId, user]);
 
   // Tải thêm địa điểm nổi tiếng (Wikidata) khi mở một quốc gia
-  useEffect(() => {
-    const cc = selectedCountry;
-    if (!cc || !countries || liveFamous[cc]) return;
-    setLiveFamous((m) => ({ ...m, [cc]: 'loading' }));
-    loadFamousLive(cc, bboxOf(cc)).then((list) => setLiveFamous((m) => ({ ...m, [cc]: list })));
-  }, [selectedCountry, countries]); // eslint-disable-line react-hooks/exhaustive-deps
+  const liveRef = useRef(liveFamous);
+  liveRef.current = liveFamous;
+  const ensureFamous = useCallback(
+    (cc) => {
+      if (!cc || !countries || liveRef.current[cc]) return;
+      setLiveFamous((m) => ({ ...m, [cc]: 'loading' }));
+      loadFamousLive(cc, bboxOf(cc)).then((list) => setLiveFamous((m) => ({ ...m, [cc]: list })));
+    },
+    [countries],
+  );
+  useEffect(() => ensureFamous(selectedCountry), [selectedCountry, ensureFamous]);
   const famousFor = useCallback(
     (cc) => {
       const live = liveFamous[cc];
@@ -181,8 +188,60 @@ export function AppProvider({ children }) {
     [openPlace, requireLogin],
   );
 
+  /** Mở bản đồ để chọn vị trí. purpose 'place' = thêm nhiều địa điểm; 'memory' = chọn 1 vị trí cho kỉ niệm. */
+  const startPicking = useCallback(
+    (purpose = 'place', status) => {
+      const go = () => {
+        setModal(null);
+        setView('map');
+        setSelectedPlace(null);
+        if (status) setPickStatus(status);
+        if (purpose === 'place') setPicked([]);
+        setPickMode(purpose);
+      };
+      if (purpose === 'place') requireLogin(go, t('reason.savePlace'));
+      else go();
+    },
+    [requireLogin],
+  );
+
+  /** Ở chế độ thêm nhiều: mỗi lần chạm bản đồ = lưu 1 địa điểm với trạng thái đang chọn */
+  const addPickedAt = useCallback(
+    async (lat, lng) => {
+      const u = userRef.current;
+      if (!u) return;
+      const id = `pin-${lat.toFixed(5)}_${lng.toFixed(5)}`;
+      const status = pickStatusRef.current;
+      const draft = { id, name: t('pick.loading'), city: '', country: '', lat, lng, emoji: '📍', custom: true };
+      setPicked((list) => [...list, { place: draft, status, loading: true }]);
+      const geo = await reverseGeocode(lat, lng, getLang());
+      const place = { ...draft, name: geo.name || t('pick.loading'), city: geo.city, country: geo.country };
+      await api.setPlace(u, place, status);
+      setPicked((list) => list.map((x) => (x.place.id === id ? { place, status, loading: false } : x)));
+    },
+    [],
+  );
+  const pickStatusRef = useRef(pickStatus);
+  pickStatusRef.current = pickStatus;
+  const removePicked = useCallback(async (place) => {
+    setPicked((list) => list.filter((x) => x.place.id !== place.id));
+    await api.setPlace(userRef.current, place, null);
+  }, []);
+  const renamePicked = useCallback(async (place, name, status) => {
+    const next = { ...place, name };
+    setPicked((list) => list.map((x) => (x.place.id === place.id ? { ...x, place: next } : x)));
+    await api.setPlace(userRef.current, next, status);
+  }, []);
+  const finishPicking = useCallback(() => {
+    setPickMode(null);
+    setPicked((list) => {
+      if (list.length) notify(t('pick.done', { n: list.length }));
+      return [];
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const value = {
-    pickMode, setPickMode, pinPlace, famousFor, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
+    pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

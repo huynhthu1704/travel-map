@@ -115,9 +115,9 @@ const fb = {
   hideMemory: (id, by, note = '') => updateDoc(doc(db, 'memories', id), { visibility: 'private', moderated: true, moderatedBy: by, moderatedAt: now(), moderationNote: note }),
   unhideMemory: (id) => updateDoc(doc(db, 'memories', id), { visibility: 'public', moderated: false, moderationNote: '' }),
   async deleteMemoryAdmin(m) {
-    const [full, mid] = await Promise.all([getDocs(collection(db, 'memories', m.id, 'full')), getDocs(collection(db, 'memories', m.id, 'mid'))]);
+    const [full, mid, thumbs] = await Promise.all(['full', 'mid', 'thumbs'].map((tier) => getDocs(collection(db, 'memories', m.id, tier))));
     const b = writeBatch(db);
-    [...full.docs, ...mid.docs].forEach((d) => b.delete(d.ref));
+    [...full.docs, ...mid.docs, ...thumbs.docs].forEach((d) => b.delete(d.ref));
     b.delete(doc(db, 'memories', m.id));
     await b.commit();
   },

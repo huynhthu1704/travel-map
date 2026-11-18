@@ -308,7 +308,7 @@ function MemoryRow({ m, compact, reportCount }) {
           {flagOf(m.place?.country)} {pName(m.place)}
         </b>
         <small>
-          {m.authorName} · {formatDate(m.createdAt)} · {m.photos?.length || 0} 📸
+          {m.authorName} · {formatDate(m.createdAt)} · {Math.max(m.photoCount || 0, m.photos?.length || 0)} 📸
           {reportCount ? <span className="role role--banned"> 🚩 {reportCount}</span> : null}
           {m.moderated && <span className="role role--banned"> {t('admin.hiddenTag')}</span>}
         </small>

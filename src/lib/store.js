@@ -24,6 +24,8 @@ import { translate } from '../i18n';
 import { recordDownload } from './network';
 import { FAMOUS_BY_ID } from '../data/places';
 
+const thumbCache = new Map(); // id kỉ niệm → ảnh thu nhỏ đã tải
+
 const now = () => Date.now();
 const toMillis = (v) => (v?.toMillis ? v.toMillis() : v || 0);
 const byNewest = (a, b) => toMillis(b.createdAt) - toMillis(a.createdAt);
@@ -141,10 +143,12 @@ const firebaseBackend = {
     }
     const data = {
       uid: user.uid, authorName: user.name, authorPhoto: user.photo || '', place: pickPlace(place), caption: caption || '',
-      date: date || '', occasion: occasion || '', visibility: thumbs.length ? visibility : 'private', tripId: tripId || null, photos: thumbs, photoCount: full.length, tiers: 3, createdAt: now(),
+      // Chỉ giữ ảnh bìa trong document để danh sách tải nhẹ; các ảnh thu nhỏ khác nằm ở memories/{id}/thumbs
+      date: date || '', occasion: occasion || '', visibility: thumbs.length ? visibility : 'private', tripId: tripId || null, photos: thumbs.slice(0, 1), photoCount: full.length, tiers: 3, thumbsMoved: true, createdAt: now(),
     };
     await setDoc(memRef, data);
-    // Mỗi ảnh đầy đủ là 1 document riêng (giới hạn 1MB/document của Firestore)
+    // Mỗi ảnh là 1 document riêng (giới hạn 1MB/document của Firestore)
+    for (let i = 0; i < thumbs.length; i++) await setDoc(doc(db, 'memories', memRef.id, 'thumbs', String(i)), { data: thumbs[i], uid: user.uid, i });
     for (let i = 0; i < full.length; i++) {
       await setDoc(doc(db, 'memories', memRef.id, 'full', String(i)), { data: full[i], uid: user.uid, i });
       await setDoc(doc(db, 'memories', memRef.id, 'mid', String(i)), { data: mid[i], uid: user.uid, i });
@@ -157,7 +161,7 @@ const firebaseBackend = {
       { merge: true }, // giữ lại "dịp" đã ghi trước đó
     );
     if (tripId) await this.addStop(user, tripId, { place, kind: 'memory', photos: thumbs, caption, memoryId: memRef.id, date });
-    return { id: memRef.id, ...data, fullPhotos: full };
+    return { id: memRef.id, ...data, allThumbs: thumbs, fullPhotos: full };
   },
   /** Lấy ảnh độ phân giải đầy đủ (fallback: ảnh thu nhỏ) — dùng cho chia sẻ / xuất video */
   getFullPhotos(mem) {
@@ -170,7 +174,8 @@ const firebaseBackend = {
   async getPhotos(mem, quality = 'high') {
     if (quality === 'high' && mem.fullPhotos) return mem.fullPhotos;
     const id = mem.memoryId || mem.id;
-    if (quality === 'low' || !id || (!mem.photoCount && !mem.memoryId)) return mem.photos || [];
+    if (quality === 'low') return this.getThumbs(mem);
+    if (!id || (!mem.photoCount && !mem.memoryId)) return mem.photos || [];
     const tier = quality === 'medium' && (mem.tiers >= 3 || mem.memoryId) ? 'mid' : 'full';
     const t0 = performance.now();
     try {
@@ -183,12 +188,48 @@ const firebaseBackend = {
       return mem.photos || [];
     }
   },
+  /** Tất cả ảnh thu nhỏ của 1 kỉ niệm: document chỉ giữ ảnh bìa, phần còn lại tải khi cần (có bộ nhớ đệm) */
+  async getThumbs(mem) {
+    const have = mem.allThumbs || mem.photos || [];
+    const id = mem.memoryId || mem.id;
+    if (!id || !(mem.photoCount > have.length)) return have;
+    if (thumbCache.has(id)) return thumbCache.get(id);
+    try {
+      const snap = await getDocs(collection(db, 'memories', id, 'thumbs'));
+      const list = snap.docs.map((d) => d.data()).sort((a, b) => a.i - b.i).map((d) => d.data);
+      if (list.length) thumbCache.set(id, list);
+      return list.length ? list : have;
+    } catch {
+      return have;
+    }
+  },
+  /**
+   * Chuyển kỉ niệm cũ (lưu mọi ảnh thu nhỏ ngay trong document) sang dạng nhẹ: chỉ giữ ảnh bìa,
+   * ảnh còn lại vào memories/{id}/thumbs. Chạy nền cho kỉ niệm của chính người dùng, từng cái một.
+   */
+  async slimMemories(user, list) {
+    for (const m of list) {
+      if (m.uid !== user.uid || m.thumbsMoved || (m.photos?.length || 0) < 2) continue;
+      try {
+        for (let i = 0; i < m.photos.length; i++) await setDoc(doc(db, 'memories', m.id, 'thumbs', String(i)), { data: m.photos[i], uid: user.uid, i });
+        thumbCache.set(m.id, m.photos);
+        await updateDoc(doc(db, 'memories', m.id), { photos: m.photos.slice(0, 1), photoCount: Math.max(m.photoCount || 0, m.photos.length), thumbsMoved: true });
+      } catch {
+        return; // thử lại lần sau
+      }
+    }
+  },
   updateMemory: (id, patch) => updateDoc(doc(db, 'memories', id), patch),
   async deleteMemory(mem) {
-    const [snap, midSnap] = await Promise.all([getDocs(collection(db, 'memories', mem.id, 'full')), getDocs(collection(db, 'memories', mem.id, 'mid'))]);
+    const [snap, midSnap, thumbSnap] = await Promise.all([
+      getDocs(collection(db, 'memories', mem.id, 'full')),
+      getDocs(collection(db, 'memories', mem.id, 'mid')),
+      getDocs(collection(db, 'memories', mem.id, 'thumbs')),
+    ]);
     const b = writeBatch(db);
     snap.docs.forEach((d) => b.delete(d.ref));
     midSnap.docs.forEach((d) => b.delete(d.ref));
+    thumbSnap.docs.forEach((d) => b.delete(d.ref));
     b.delete(doc(db, 'memories', mem.id));
     await b.commit();
   },
@@ -417,6 +458,10 @@ const localBackend = {
   async getPhotos(mem) {
     return mem.photos || [];
   },
+  async getThumbs(mem) {
+    return mem.photos || [];
+  },
+  async slimMemories() {},
   async updateMemory(id, patch) {
     state.memories = state.memories.map((m) => (m.id === id ? { ...m, ...patch } : m));
     save();

@@ -497,6 +497,17 @@ export function AppProvider({ children }) {
     });
   }, [needPublic]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Kỉ niệm cũ lưu mọi ảnh thu nhỏ trong document → chuyển sang dạng nhẹ (chạy nền 1 lần mỗi phiên)
+  const slimmed = useRef(false);
+  useEffect(() => {
+    if (!user || !loaded.mine || slimmed.current) return undefined;
+    if (!memories.some((m) => m.uid === user.uid && !m.thumbsMoved && (m.photos?.length || 0) > 1)) return undefined;
+    slimmed.current = true;
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 3000));
+    idle(() => api.slimMemories(user, memories));
+    return undefined;
+  }, [user?.uid, loaded.mine, memories]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Thống kê hoạt động của chính người dùng → lưu vào hồ sơ để trang Thống kê (quản trị) tổng hợp,
   // không cần đọc dữ liệu riêng tư của từng người. Chỉ ghi khi số liệu thay đổi.
   const statsRef = useRef('');

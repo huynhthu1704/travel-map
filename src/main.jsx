@@ -7,6 +7,11 @@ import { setupFreshness } from './lib/freshness';
 
 setupFreshness();
 
+// Service worker: lưu sẵn mã, font, bản đồ → mở lại nhanh, xem được khi mạng chập chờn (chỉ bản đã build)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {}));
+}
+
 // Windows không hiển thị emoji lá cờ (🇻🇳 thành "VN") → nạp font cờ khi cần
 polyfillCountryFlagEmojis('Twemoji Country Flags', `${import.meta.env.BASE_URL}fonts/TwemojiCountryFlags.woff2`);
 

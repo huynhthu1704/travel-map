@@ -6,6 +6,7 @@ import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage, OccasionField, D
 import { useI18n } from '../i18n';
 import { pName, pCity, pDesc, getLocale } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
+import { photoCountOf, useThumbs } from '../lib/useThumbs';
 import Combobox from './Combobox';
 import { normalize } from '../lib/geo';
 import DateInput from './DateInput';
@@ -925,7 +926,7 @@ export function MemoryGrid({ items }) {
       {items.map((m) => (
         <button key={m.id} className="mgrid__item" onClick={() => setModal({ type: 'viewMemory', memory: m })}>
           <LoadingImage src={m.photos?.[0]} alt={m.caption || m.place?.name} loading="lazy" fallback={<span className="mgrid__noimg">📝</span>} />
-          {m.photos?.length > 1 && <span className="mgrid__count">+{m.photos.length - 1}</span>}
+          {photoCountOf(m) > 1 && <span className="mgrid__count">+{photoCountOf(m) - 1}</span>}
           <span className="mgrid__meta">
             <span>{pName(m.place)}</span>
             {m.uid !== user?.uid && m.authorName && <small>{m.authorName}</small>}
@@ -1022,16 +1023,7 @@ function CheckinHistory({ place, saved, mine, tripId, children }) {
                 {e.memory?.visibility === 'public' && <small title={t('checkin.public')}>🌍</small>}
               </div>
               {e.caption && <p className="small checkins__note">{e.caption}</p>}
-              {e.photos.length > 0 && (
-                <div className="checkins__photos">
-                  {e.photos.slice(0, 4).map((src, k) => (
-                    <button key={k} onClick={() => setModal({ type: 'viewMemory', memory: e.memory })}>
-                      <LoadingImage src={src} alt="" loading="lazy" />
-                      {k === 3 && e.photos.length > 4 && <span>+{e.photos.length - 4}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {e.memory && photoCountOf(e.memory) > 0 && <CheckinPhotos memory={e.memory} onOpen={() => setModal({ type: 'viewMemory', memory: e.memory })} />}
             </div>
             <div className="checkins__actions">
               <button
@@ -1061,6 +1053,21 @@ function CheckinHistory({ place, saved, mine, tripId, children }) {
     </section>
       )}
     </>
+  );
+}
+
+function CheckinPhotos({ memory, onOpen }) {
+  const photos = useThumbs(memory);
+  const n = photoCountOf(memory);
+  return (
+    <div className="checkins__photos">
+      {photos.slice(0, 4).map((src, k) => (
+        <button key={k} onClick={onOpen}>
+          <LoadingImage src={src} alt="" loading="lazy" />
+          {k === 3 && n > 4 && <span>+{n - 4}</span>}
+        </button>
+      ))}
+    </div>
   );
 }
 

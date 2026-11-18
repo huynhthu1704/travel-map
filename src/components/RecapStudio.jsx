@@ -633,13 +633,25 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     return [...ys].filter(Boolean).sort((a, b) => b - a);
   }, [places, memories, now]);
   const [year, setYear] = useState(() => years[0] || now);
+  // Kỉ niệm chỉ giữ ảnh bìa trong document → tải thêm ảnh thu nhỏ để chọn
+  const [moreThumbs, setMoreThumbs] = useState({});
+  useEffect(() => {
+    let alive = true;
+    const inScope = memories.filter((m) => (mode === 'trip' ? m.tripId === trip?.id : String(m.date || '').startsWith(String(year))));
+    inScope
+      .filter((m) => (m.photoCount || 0) > (m.photos?.length || 0) && !moreThumbs[m.id])
+      .forEach((m) => api.getThumbs(m).then((l) => alive && l?.length && setMoreThumbs((x) => ({ ...x, [m.id]: l }))));
+    return () => {
+      alive = false;
+    };
+  }, [memories, mode, trip, year, api]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Địa điểm (kèm ngày) + kho ảnh để chọn
   const data = useMemo(() => {
     const map = new Map();
     const pool = [];
     const addPool = (mem, place, date, tripId) =>
-      (mem.photos || []).forEach((url, i) => pool.push({ key: `${mem.id || mem.memoryId}:${i}`, url, i, mem, place, date, tripId: tripId || '' }));
+      (moreThumbs[mem.id] || mem.photos || []).forEach((url, i) => pool.push({ key: `${mem.id || mem.memoryId}:${i}`, url, i, mem, place, date, tripId: tripId || '' }));
     if (mode === 'trip') {
       stops.forEach((s) => s.place && !map.has(s.place.id) && map.set(s.place.id, { ...s.place, date: s.date || tsOf(s.createdAt) }));
       const seen = new Set();
@@ -663,7 +675,7 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     const list = [...map.values()].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
     pool.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
     return { places: list, pool };
-  }, [mode, stops, places, memories, year, trip]);
+  }, [mode, stops, places, memories, year, trip, moreThumbs]);
 
   // Mặc định: mỗi chuyến đi 1 ảnh (chuyến đi: mỗi địa điểm 1 ảnh), tối thiểu 4 ảnh nếu có
   const defaultPick = useMemo(() => {
@@ -688,8 +700,19 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     return pick;
   }, [data, mode]);
   const [picked, setPicked] = useState(defaultPick);
-  useEffect(() => setPicked(defaultPick), [defaultPick]);
+  // Đổi năm / chuyến → chọn lại mặc định; ảnh tải thêm sau không ghi đè lựa chọn của người dùng
+  const pickKey = `${mode}-${year}-${trip?.id || ''}`;
+  const pickKeyRef = useRef(pickKey);
+  const touched = useRef(false);
+  useEffect(() => {
+    if (pickKeyRef.current !== pickKey) {
+      pickKeyRef.current = pickKey;
+      touched.current = false;
+    }
+    if (!touched.current) setPicked(defaultPick);
+  }, [defaultPick, pickKey]);
   const togglePick = (key) =>
+    (touched.current = true) &&
     setPicked((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : cur.length >= MAX_PICK ? (notify(t('recap.maxPhotos', { n: MAX_PICK })), cur) : [...cur, key]));
 
   const [fmt, setFmt] = useState('story');
@@ -907,7 +930,7 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
                     ↺ {mode === 'trip' ? t('recap.pickDefaultTrip') : t('recap.pickDefault')}
                   </button>
                   {picked.length > 0 && (
-                    <button className="btn btn--sm btn--ghost" onClick={() => setPicked([])}>
+                    <button className="btn btn--sm btn--ghost" onClick={() => ((touched.current = true), setPicked([]))}>
                       ✕ {t('recap.pickNone')}
                     </button>
                   )}

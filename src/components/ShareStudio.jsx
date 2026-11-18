@@ -379,7 +379,8 @@ export default function ShareStudio({ memory, onClose }) {
     api.getFullPhotos(memory).then((full) => {
       if (!full?.length) return;
       setBase(full);
-      setSelected((sel) => sel.map((s) => full[(memory.photos || []).indexOf(s)] || s));
+      // Document có thể chỉ giữ ảnh bìa → khi có đủ ảnh thì chọn sẵn tối đa 4 ảnh như trước
+      setSelected((sel) => (sel.length <= 1 && full.length > 1 ? full.slice(0, 4) : sel.map((s) => full[(memory.photos || []).indexOf(s)] || s)));
     });
   }, [memory, api]);
 

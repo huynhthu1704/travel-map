@@ -14,6 +14,7 @@ import DateInput from './DateInput';
 import { useI18n } from '../i18n';
 import { pName, pCity, getLang } from '../lib/lang';
 import { getNetQuality } from '../lib/network';
+import { useThumbs } from '../lib/useThumbs';
 
 export default function Modals() {
   const { modal, setModal } = useApp();
@@ -604,8 +605,7 @@ function MemoryViewer({ memory: m, onClose }) {
   const [loadingBetter, setLoadingBetter] = useState(false);
   useEffect(() => {
     let alive = true;
-    if (quality === 'low') return setBetter(null);
-    setLoadingBetter(true);
+    setLoadingBetter(quality !== 'low');
     api.getPhotos(m, quality).then((p) => {
       if (!alive) return;
       setBetter({ q: quality, photos: p });
@@ -834,7 +834,8 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
   const [busy, setBusy] = useState(false);
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
-  const hasPhotos = files.length > 0 || (memory?.photos?.length || 0) > 0;
+  const memThumbs = useThumbs(memory);
+  const hasPhotos = files.length > 0 || memThumbs.length > 0;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -888,7 +889,7 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
         <div className="field">
           <span>📸 {t('checkin.photos')}</span>
           <div className="uploader">
-            {(memory?.photos || []).map((src) => (
+            {memThumbs.map((src) => (
               <div className="uploader__thumb" key={src}>
                 <img src={src} alt="" />
               </div>

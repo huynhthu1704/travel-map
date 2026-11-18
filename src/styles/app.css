@@ -2723,3 +2723,14 @@ img.is-loaded {
   height: 18px;
   accent-color: var(--honey-500);
 }
+.trip-filter {
+  margin-bottom: var(--spacing-md, 14px);
+}
+.trip-card__people {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.trip-card__people b {
+  color: var(--ink-900);
+}

@@ -372,6 +372,7 @@ export function TripsPage() {
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('🧳');
   const [code, setCode] = useState('');
+  const [owner, setOwner] = useState('all'); // all | mine | others
   const { t } = useI18n();
   // Đường dẫn trỏ tới chuyến đi không còn / không có quyền xem → về danh sách
   useEffect(() => {
@@ -448,8 +449,23 @@ export function TripsPage() {
       ) : trips.length === 0 ? (
         <Empty emoji="🎒" title={t('trips.empty')} />
       ) : (
+        <>
+        <div className="chips trip-filter">
+          {[
+            ['all', trips.length],
+            ['mine', trips.filter((tr) => tr.ownerId === user.uid).length],
+            ['others', trips.filter((tr) => tr.ownerId !== user.uid).length],
+          ].map(([k, n]) => (
+            <Chip key={k} active={owner === k} onClick={() => setOwner(k)}>
+              {t('trips.filter.' + k)} ({n})
+            </Chip>
+          ))}
+        </div>
+        {trips.every((tr) => (owner === 'mine' ? tr.ownerId !== user.uid : owner === 'others' ? tr.ownerId === user.uid : false)) && (
+          <p className="muted">{t('trips.filterEmpty')}</p>
+        )}
         <div className="trip-list">
-          {trips.map((tr) => (
+          {trips.filter((tr) => (owner === 'mine' ? tr.ownerId === user.uid : owner === 'others' ? tr.ownerId !== user.uid : true)).map((tr) => (
             <article key={tr.id} className="trip-card">
               <button className="trip-card__main" onClick={() => setOpenId(tr.id)}>
                 <span className="trip-card__emoji">{tr.emoji}</span>
@@ -461,10 +477,19 @@ export function TripsPage() {
                   </small>
                 </span>
               </button>
-              <div className="avatars">
-                {Object.entries(tr.members || {}).slice(0, 4).map(([id, m]) => (
-                  <Avatar key={id} name={m.name} photo={m.photo} size={28} />
-                ))}
+              <div className="trip-card__people">
+                <div className="avatars">
+                  {Object.entries(tr.members || {})
+                    .sort(([a], [b]) => (a === tr.ownerId ? -1 : b === tr.ownerId ? 1 : 0))
+                    .slice(0, 4)
+                    .map(([id, m]) => (
+                      <Avatar key={id} name={m.name} photo={m.photo} size={28} />
+                    ))}
+                </div>
+                <small className="muted">
+                  {t('trips.createdBy')}{' '}
+                  <b>{tr.ownerId === user.uid ? t('trips.you') : tr.members?.[tr.ownerId]?.name || '—'}</b>
+                </small>
               </div>
               <button
                 className={`btn btn--sm ${activeTripId === tr.id ? 'btn--primary' : 'btn--soft'}`}
@@ -478,6 +503,7 @@ export function TripsPage() {
             </article>
           ))}
         </div>
+        </>
       )}
     </div>
   );

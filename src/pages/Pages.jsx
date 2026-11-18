@@ -10,6 +10,7 @@ import { pName, pCity } from '../lib/lang';
 import Combobox from '../components/Combobox';
 import DateInput from '../components/DateInput';
 import { TripPlan, TripChecklists } from './TripPlan';
+import TripCosts from './TripCosts';
 import DestinationPicker, { destLabel, cleanDests } from '../components/DestinationPicker';
 
 const TRIP_EMOJIS = ['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'];
@@ -533,7 +534,7 @@ export function TripsPage() {
 
 function TripDetail({ trip, onBack }) {
   const { user, api, notify, setActiveTripId, setView, openPlace, setModal, tripTab, setTripTab } = useApp();
-  const tab = ['plan', 'checklist', 'journey'].includes(tripTab) ? tripTab : 'plan';
+  const tab = ['plan', 'costs', 'checklist', 'journey'].includes(tripTab) ? tripTab : 'plan';
   const { t } = useI18n();
   const [stops, setStops] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -605,6 +606,7 @@ function TripDetail({ trip, onBack }) {
       <div className="chips trip-tabs">
         {[
           ['plan', `🗓️ ${t('plan.tab')}`],
+          ['costs', `💰 ${t('cost.tab')}`],
           ['checklist', `✅ ${t('check.tab')}`],
           ['journey', `👣 ${t('trip.journey')} (${stopList.length})`],
         ].map(([id, label]) => (
@@ -614,6 +616,7 @@ function TripDetail({ trip, onBack }) {
         ))}
       </div>
       {tab === 'plan' && <TripPlan trip={trip} />}
+      {tab === 'costs' && <TripCosts trip={trip} />}
       {tab === 'checklist' && <TripChecklists trip={trip} />}
       {tab === 'journey' && stopList.length > 0 && <TripSummary trip={trip} stops={stopList} />}
       {tab === 'journey' && <section>

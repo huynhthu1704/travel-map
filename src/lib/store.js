@@ -10,6 +10,7 @@
  *  trips/{id}                    { name,emoji,ownerId,memberIds[],members{uid:{name,photo}},inviteCode,createdAt }
  *  trips/{id}/stops/{stopId}     { place{},kind:'place'|'memory'|'wishlist',photos[],caption,byUid,byName,createdAt }
  *  trips/{id}/plan/{itemId}      { place{},date?,time?,note,order,done,doneBy,doneAt,addedBy,addedByName,createdAt }
+ *  trips/{id}/costs/{id}         { type:'estimate'|'actual'|'payment',title,amount,per?:'group'|'person',paidBy?,splitAmong?[uid],planItemId?,date?,note?,createdBy,createdAt }
  *  trips/{id}/checklists/{id}    { title,phase:'before'|'return',scope:'shared'|'personal',ownerUid?,items[{id,text,done,doneBy}],createdBy,createdAt }
  */
 import {
@@ -204,6 +205,19 @@ const firebaseBackend = {
     const b = writeBatch(db);
     list.forEach(({ id, order }) => b.update(doc(db, 'trips', tripId, 'plan', id), { order }));
     await b.commit();
+  },
+  // ---- Chi phí: trips/{id}/costs/{costId} ----
+  watchCosts(tripId, cb) {
+    return onSnapshot(collection(db, 'trips', tripId, 'costs'), (s) => cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt))));
+  },
+  addCost(user, tripId, data) {
+    return addDoc(collection(db, 'trips', tripId, 'costs'), { ...data, createdBy: user.uid, createdByName: user.name, createdAt: now() });
+  },
+  updateCost(tripId, id, patch) {
+    return updateDoc(doc(db, 'trips', tripId, 'costs', id), { ...patch, updatedAt: now() });
+  },
+  deleteCost(tripId, id) {
+    return deleteDoc(doc(db, 'trips', tripId, 'costs', id));
   },
   // ---- Checklist: trips/{id}/checklists/{listId} ----
   /** Checklist chung của nhóm + checklist cá nhân của mình (2 truy vấn vì checklist cá nhân của người khác bị chặn đọc) */
@@ -401,6 +415,22 @@ const localBackend = {
       const it = (state.plan?.[tripId] || []).find((x) => x.id === id);
       if (it) it.order = order;
     });
+    save();
+  },
+  watchCosts(tripId, cb) {
+    return sub(() => cb(((state.costs ||= {})[tripId] || []).map((x) => ({ ...x, tripId }))));
+  },
+  async addCost(user, tripId, data) {
+    ((state.costs ||= {})[tripId] ||= []).push({ id: uid(), ...data, createdBy: user.uid, createdByName: user.name, createdAt: now() });
+    save();
+  },
+  async updateCost(tripId, id, patch) {
+    const c = (state.costs?.[tripId] || []).find((x) => x.id === id);
+    if (c) Object.assign(c, patch, { updatedAt: now() });
+    save();
+  },
+  async deleteCost(tripId, id) {
+    state.costs[tripId] = (state.costs?.[tripId] || []).filter((x) => x.id !== id);
     save();
   },
   watchChecklists(tripId, cb) {

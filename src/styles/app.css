@@ -2973,3 +2973,202 @@ img.is-loaded {
 .time-input__clear {
   opacity: 0.6;
 }
+
+/* ---------- Chi phí chuyến đi ---------- */
+.cost-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 10px;
+}
+@media (max-width: 860px) {
+  .cost-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.cost-stat,
+.cost-cur {
+  background: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  box-shadow: 0 2px 10px rgba(77, 53, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cost-stat small,
+.cost-cur small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.cost-stat b {
+  font-family: var(--font-heading);
+  font-size: 18px;
+}
+.cost-stat.is-over b {
+  color: #d64545;
+}
+.cost-cur select {
+  font: inherit;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+}
+.cost-table {
+  display: flex;
+  flex-direction: column;
+}
+.cost-table__head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 4px 0;
+  border-bottom: 2px solid var(--honey-300);
+}
+.cost-row,
+.cost-table__head {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+}
+.cost-row {
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--ink-100);
+  font-size: 14px;
+}
+.cost-row--est {
+  grid-template-columns: 1fr 150px 120px 90px;
+}
+.cost-row--act {
+  grid-template-columns: 1fr 120px 150px 80px 64px;
+}
+.cost-row--bal {
+  grid-template-columns: 1fr 120px 120px 160px;
+}
+.cost-row--total {
+  font-weight: 700;
+  border-bottom: none;
+}
+.cost-row__title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cost-row__payer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.cost-row__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.cost-row__actions .icon-btn--sm {
+  opacity: 0.6;
+}
+.cost-row .pos,
+.pos {
+  color: #2e9e5b;
+  font-weight: 700;
+}
+.cost-row .neg {
+  color: #d64545;
+  font-weight: 700;
+}
+@media (max-width: 720px) {
+  .cost-row--est,
+  .cost-row--act,
+  .cost-row--bal {
+    grid-template-columns: 1fr auto;
+  }
+  .cost-table__head {
+    display: none;
+  }
+  .cost-row > span:nth-child(n + 3) {
+    grid-column: 1 / -1;
+    font-size: 12.5px;
+  }
+  .cost-row__actions {
+    justify-content: flex-start;
+  }
+}
+.cost-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--honey-50, #fffaf0);
+  border: 1px solid var(--honey-200, #ffe7a3);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  margin: 4px 0;
+}
+.cost-form__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.cost-form__row .grow {
+  flex: 1;
+  min-width: 160px;
+}
+.cost-form__link {
+  flex: 1;
+  min-width: 180px;
+}
+.cost-form__inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.cost-form__split {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.money-input {
+  display: flex;
+  align-items: center;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-md);
+  padding-right: 10px;
+  width: 180px;
+}
+.money-input input {
+  border: none;
+  text-align: right;
+  font-weight: 700;
+  width: 100%;
+  background: transparent;
+}
+.money-input span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.transfer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--honey-100);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+.transfer > span:first-child {
+  flex: 1;
+}
+.transfer__amt {
+  font-family: var(--font-heading);
+}
+.transfer--done {
+  background: transparent;
+  padding: 4px 0;
+}

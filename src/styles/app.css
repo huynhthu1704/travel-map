@@ -93,6 +93,9 @@ textarea {
 .small {
   font-size: 13px;
 }
+.tiny {
+  font-size: 11px;
+}
 .warn {
   color: var(--honey-800);
   background: var(--honey-50);

@@ -73,3 +73,20 @@ export async function loadCountries() {
 }
 
 export const WORLD_COUNTRY_COUNT = 195;
+
+/** Khung bao {s, n, w, e} của một quốc gia (sau khi đã tải GeoJSON) */
+export function bboxOf(cc) {
+  const f = cache?.features.find((x) => x.properties.cc === cc);
+  if (!f) return null;
+  const b = { s: 90, n: -90, w: 540, e: -540 };
+  const walk = (c) => {
+    if (typeof c[0] === 'number') {
+      b.w = Math.min(b.w, c[0]);
+      b.e = Math.max(b.e, c[0]);
+      b.s = Math.min(b.s, c[1]);
+      b.n = Math.max(b.n, c[1]);
+    } else c.forEach(walk);
+  };
+  walk(f.geometry.coordinates);
+  return b;
+}

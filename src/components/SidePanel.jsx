@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
-import { famousIn, FAMOUS_PLACES } from '../data/places';
+import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
 import { Chip, Empty, formatDate, Avatar } from './ui';
 import { useI18n } from '../i18n';
@@ -136,10 +136,10 @@ function WorldPanel() {
 }
 
 function CountryPanel() {
-  const { selectedCountry: cc, setSelectedCountry, setFlyTarget, places, memories, publicMemories, openPlace, visitedCountries } = useApp();
+  const { selectedCountry: cc, setSelectedCountry, setFlyTarget, places, memories, publicMemories, openPlace, visitedCountries, famousFor, famousLoading, famousLimit, setFamousLimit } = useApp();
   const [city, setCity] = useState(null);
   const { t, lang } = useI18n();
-  const famous = famousIn(cc);
+  const famous = famousFor(cc);
   const mine = places.filter((p) => p.country === cc);
   const pub = publicMemories.filter((m) => m.place?.country === cc);
   const cities = useMemo(
@@ -199,15 +199,22 @@ function CountryPanel() {
 
       <section>
         <h3 className="section-title">{t('country.famous')}</h3>
-        {famous.length === 0 ? (
+        {famous.length === 0 && !famousLoading ? (
           <p className="muted">{t('country.noFamous')}</p>
         ) : (
           <div className="cards">
-            {famous.filter(byCity).map((p) => (
+            {famous.filter(byCity).slice(0, city ? undefined : famousLimit).map((p) => (
               <PlaceCard key={p.id} place={p} />
             ))}
           </div>
         )}
+        {famousLoading && <p className="small muted loading-dots">{t('country.loadingMore')}</p>}
+        {!city && famous.length > famousLimit && (
+          <button className="btn btn--soft btn--block" onClick={() => setFamousLimit((n) => n + 15)}>
+            {t('country.showMore', { n: famous.length - famousLimit })}
+          </button>
+        )}
+        {famous.some((p) => p.wikidata) && <p className="tiny muted">{t('country.source')}</p>}
       </section>
 
       {pub.length > 0 && (

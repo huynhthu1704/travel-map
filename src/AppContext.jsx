@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/store';
-import { loadCountries } from './lib/countries';
+import { loadCountries, bboxOf } from './lib/countries';
+import { loadFamousLive } from './lib/famousLive';
+import { famousIn } from './data/places';
 import { translate as t } from './i18n';
 import { pName, getLang } from './lib/lang';
 import { reverseGeocode } from './lib/geo';
@@ -28,6 +30,7 @@ export function AppProvider({ children }) {
   viewRef.current = view;
 
   const [modal, setModal] = useState(null); // {type, ...props}
+  const [liveFamous, setLiveFamous] = useState({}); // cc → [places] | 'loading'
   const [pickMode, setPickMode] = useState(null); // null | 'place' | 'memory'
   const [toast, setToast] = useState(null);
   const pendingAction = useRef(null);
@@ -67,6 +70,25 @@ export function AppProvider({ children }) {
     }
     return api.watchStops(activeTripId, setTripStops);
   }, [activeTripId, user]);
+
+  // Tải thêm địa điểm nổi tiếng (Wikidata) khi mở một quốc gia
+  useEffect(() => {
+    const cc = selectedCountry;
+    if (!cc || !countries || liveFamous[cc]) return;
+    setLiveFamous((m) => ({ ...m, [cc]: 'loading' }));
+    loadFamousLive(cc, bboxOf(cc)).then((list) => setLiveFamous((m) => ({ ...m, [cc]: list })));
+  }, [selectedCountry, countries]); // eslint-disable-line react-hooks/exhaustive-deps
+  const famousFor = useCallback(
+    (cc) => {
+      const live = liveFamous[cc];
+      return [...famousIn(cc), ...(Array.isArray(live) ? live : [])];
+    },
+    [liveFamous],
+  );
+  const famousLoading = liveFamous[selectedCountry] === 'loading';
+  const [famousLimit, setFamousLimit] = useState(15); // số địa điểm nổi tiếng đang hiện (nút "Xem thêm")
+  useEffect(() => setFamousLimit(15), [selectedCountry]);
+  const allLiveFamous = useMemo(() => Object.values(liveFamous).filter(Array.isArray).flat(), [liveFamous]);
 
   const notify = useCallback((msg, kind = 'ok') => {
     setToast({ msg, kind, id: Date.now() });
@@ -160,7 +182,7 @@ export function AppProvider({ children }) {
   );
 
   const value = {
-    pickMode, setPickMode, pinPlace,
+    pickMode, setPickMode, pinPlace, famousFor, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

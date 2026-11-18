@@ -8,7 +8,7 @@ import { getLang, pName, pCity } from '../lib/lang';
 
 /** Ô tìm kiếm: quốc gia, địa điểm nổi tiếng, kỉ niệm của tôi + mọi địa điểm trên OpenStreetMap */
 export default function SearchBox() {
-  const { countries, openCountry, openPlace, memories, setFlyTarget, setModal } = useApp();
+  const { countries, openCountry, openPlace, memories, setFlyTarget, setModal, allLiveFamous } = useApp();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [osm, setOsm] = useState([]);
@@ -24,12 +24,12 @@ export default function SearchBox() {
       .slice(0, 4)
       .map((f) => f.properties.cc);
     const seen = new Set();
-    const ps = [...memories.map((m) => m.place), ...ALL_FAMOUS]
+    const ps = [...memories.map((m) => m.place), ...ALL_FAMOUS, ...allLiveFamous]
       .filter((p) => p && !seen.has(p.id) && seen.add(p.id))
       .filter((p) => normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)}`).includes(n))
       .slice(0, 6);
     return { countries: cs, places: ps };
-  }, [q, countries, memories, lang]);
+  }, [q, countries, memories, lang, allLiveFamous]);
 
   useEffect(() => {
     if (q.trim().length < 3 || isGoogleMapsLink(q)) {

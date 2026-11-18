@@ -28,6 +28,7 @@ export const makeInviteCode = () => Math.random().toString(36).slice(2, 8).toUpp
 const pickPlace = (p) => ({
   id: p.id, name: p.name, city: p.city || '', country: p.country || '', lat: p.lat, lng: p.lng,
   emoji: p.emoji || FAMOUS_BY_ID[p.id]?.emoji || '📍',
+  ...(p.i18n ? { i18n: p.i18n } : {}),
 });
 
 /* ------------------------------------------------------------------ */

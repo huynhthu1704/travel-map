@@ -82,7 +82,7 @@ function PickHandler() {
 
 export default function MapView() {
   const {
-    countries, visitedCountries, selectedCountry, openCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace, pickMode,
+    countries, visitedCountries, selectedCountry, openCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace, pickMode, famousFor, famousLimit,
   } = useApp();
   const pickRef = useRef(pickMode);
   pickRef.current = pickMode;
@@ -113,7 +113,7 @@ export default function MapView() {
   // Marker: địa điểm của tôi (đã đến / muốn đi), địa điểm nổi tiếng của quốc gia đang xem, điểm dừng chuyến đi
   const markers = useMemo(() => {
     const m = new Map();
-    if (selectedCountry) famousIn(selectedCountry).forEach((p) => m.set(p.id, { place: p, kind: 'famous', emoji: p.emoji }));
+    if (selectedCountry) famousFor(selectedCountry).slice(0, famousLimit).forEach((p) => m.set(p.id, { place: p, kind: 'famous', emoji: p.emoji }));
     memories.forEach((mem) => mem.place && m.set(mem.place.id, { place: mem.place, kind: 'visited', emoji: '👣' }));
     places.forEach((p) => m.set(p.id, { place: p, kind: p.status, emoji: p.status === 'visited' ? '👣' : '💛' }));
     if (activeTripId)
@@ -122,7 +122,7 @@ export default function MapView() {
       });
     if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
     return [...m.values()];
-  }, [selectedCountry, places, memories, tripStops, activeTripId, selectedPlace]);
+  }, [selectedCountry, places, memories, tripStops, activeTripId, selectedPlace, famousFor, famousLimit]);
 
   return (
     <MapContainer

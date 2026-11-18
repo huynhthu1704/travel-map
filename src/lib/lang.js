@@ -28,12 +28,12 @@ export function setLangValue(lang) {
 }
 
 /** Localized fields of a famous place (user-saved places keep their saved text). */
-const loc = (p) => (p && current !== 'vi' && FAMOUS_BY_ID[p.id]?.i18n?.[current]) || null;
+const loc = (p) => (p && current !== 'vi' && (p.i18n?.[current] || FAMOUS_BY_ID[p.id]?.i18n?.[current])) || null;
 export const pName = (p) => loc(p)?.name || p?.name || '';
 // Thành phố ở nước ngoài luôn hiển thị tên tiếng Anh (VD: Beijing thay vì Bắc Kinh / 北京)
 export const pCity = (p) => {
   if (!p) return '';
-  if (current === 'vi' && p.country && p.country !== 'VN') return FAMOUS_BY_ID[p.id]?.i18n?.en?.city || p.city || '';
+  if (current === 'vi' && p.country && p.country !== 'VN') return p.i18n?.en?.city || FAMOUS_BY_ID[p.id]?.i18n?.en?.city || p.city || '';
   return loc(p)?.city || p.city || '';
 };
-export const pDesc = (p) => loc(p)?.desc || p?.desc || '';
+export const pDesc = (p) => loc(p)?.desc || p?.desc || p?.i18n?.en?.desc || '';

@@ -12,7 +12,9 @@ The app's interface is in Vietnamese.
 | | Feature | Login required? |
 |---|---|---|
 | 🗺️ | World map: visited countries are filled in yellow, with a 👣 pin at each place you've been | Viewing: no |
-| 🔍 | Click a country to zoom in, see famous places, and filter by city or region | No |
+| 🔍 | Click a country to zoom in, see famous places, and filter by city or region. Besides a hand-picked list, up to ~100 famous places per country are loaded live from Wikidata (via the QLever endpoint), ranked by Wikipedia coverage and cached for 7 days | No |
+| 🔗 | Add any place from a Google Maps link, or pick a spot on the map (long-press / right-click to drop a pin) | Save: yes |
+| 🌐 | Vietnamese / English UI (flag button, Vietnamese by default); places outside Vietnam use English names | No |
 | 🔎 | Search for any country, city or place (OpenStreetMap) | No |
 | 💛 | Add places to your *wishlist* or mark them as *visited* | Yes |
 | 🧭 | Directions: choose to open **Apple Maps** or **Google Maps** | No |
@@ -67,7 +69,9 @@ src/
   lib/store.js            data layer (Firebase / demo)
   lib/countries.js        country GeoJSON, Vietnamese names, flags
   lib/image.js            image compression
-  data/places.js          suggested famous places by country
+  data/places.js          hand-picked famous places by country
+  lib/famousLive.js       famous places for every country from Wikidata
+  i18n.jsx, lib/lang.js   Vietnamese / English translations
   components/MapView      Leaflet map and pins
   components/SidePanel    world / country / place panels
   components/ShareStudio  share images and videos (canvas + MediaRecorder)

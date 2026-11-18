@@ -268,10 +268,10 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
       </div>
       {!editing && (
         <div className="plan-item__actions">
-          <button className="icon-btn" onClick={() => onMove(-1)} disabled={!canUp} aria-label={t('plan.up')} title={item.time && !canUp ? t('plan.sortedByTime') : t('plan.up')}>
+          <button className="icon-btn" onClick={() => onMove(-1)} disabled={!canUp} aria-label={t('plan.up')} title={t('plan.up')}>
             ↑
           </button>
-          <button className="icon-btn" onClick={() => onMove(1)} disabled={!canDown} aria-label={t('plan.down')} title={item.time && !canDown ? t('plan.sortedByTime') : t('plan.down')}>
+          <button className="icon-btn" onClick={() => onMove(1)} disabled={!canDown} aria-label={t('plan.down')} title={t('plan.down')}>
             ↓
           </button>
           <button className="icon-btn" onClick={() => setEditing(true)} aria-label={t('plan.edit')} title={t('plan.edit')}>
@@ -347,6 +347,12 @@ export function TripPlan({ trip }) {
     const a = group[idx];
     const b = group[idx + dir];
     if (!a || !b) return;
+    // Giờ khác nhau (trong ngày xếp theo giờ) → đổi khung giờ cho nhau để đổi thứ tự
+    if ((a.time || '') !== (b.time || '')) {
+      await Promise.all([api.updatePlanItem(trip.id, a.id, { time: b.time || '' }), api.updatePlanItem(trip.id, b.id, { time: a.time || '' })]);
+      notify(t('plan.timesSwapped', { a: pName(a.place), b: pName(b.place) }));
+      return;
+    }
     let oa = a.order ?? 0;
     let ob = b.order ?? 0;
     if (oa === ob) ob = oa + dir;
@@ -505,9 +511,9 @@ export function TripPlan({ trip }) {
                   item={it}
                   trip={trip}
                   index={counter++}
-                  // Mục có giờ được xếp tự động theo giờ; chỉ đổi chỗ được giữa các mục cùng giờ / chưa có giờ
-                  canUp={i > 0 && (group[i - 1].time || '') === (it.time || '')}
-                  canDown={i < group.length - 1 && (group[i + 1].time || '') === (it.time || '')}
+                  // Luôn đổi chỗ được trong ngày; nếu khác giờ thì 2 địa điểm đổi khung giờ cho nhau
+                  canUp={i > 0}
+                  canDown={i < group.length - 1}
                   onMove={(dir) => move(group, i, dir)}
                 />
               ))}

@@ -63,8 +63,8 @@
   --radius-full: 999px;
 
   /* Typography */
-  --font-heading: 'Lexend', 'Be Vietnam Pro', system-ui, sans-serif;
-  --font-body: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-heading: 'Twemoji Country Flags', 'Lexend', 'Be Vietnam Pro', system-ui, sans-serif;
+  --font-body: 'Twemoji Country Flags', 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Effects */
   --shadow-card: 0 8px 24px rgba(122, 84, 0, 0.12);

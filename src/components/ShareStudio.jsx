@@ -26,8 +26,8 @@ const FORMATS = [
 const C = {
   honey: '#FFC629', honey2: '#F5B000', honeySoft: '#FFF0C2', cream: '#FFFCF5', ink: '#1F1A14', ink2: '#4A4237', coral: '#FF7A59', white: '#FFFFFF',
 };
-const HEAD = '700 {s}px Lexend, "Be Vietnam Pro", sans-serif';
-const BODY = '500 {s}px "Be Vietnam Pro", sans-serif';
+const HEAD = '700 {s}px "Twemoji Country Flags", Lexend, "Be Vietnam Pro", sans-serif';
+const BODY = '500 {s}px "Twemoji Country Flags", "Be Vietnam Pro", sans-serif';
 const font = (tpl, s) => tpl.replace('{s}', Math.round(s));
 const ease = (t) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
 
@@ -184,7 +184,7 @@ function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, f
     ctx.strokeStyle = C.coral;
     ctx.lineWidth = 4;
     ctx.strokeRect(-2, -2, 104, 124);
-    ctx.font = '72px serif';
+    ctx.font = '72px "Twemoji Country Flags", serif';
     ctx.textAlign = 'center';
     ctx.fillText(flag, 50, 82);
     ctx.restore();
@@ -274,7 +274,7 @@ function render(ctx, { tpl, W, H, imgs, crops = [], title, sub, caption, date, f
     ctx.fillText(title, m + 50, m + 115, W - m * 2 - 220);
     ctx.font = font(BODY, 32);
     ctx.fillText(`${sub}${date ? ' · ' + date : ''}`, m + 50, m + 170, W - m * 2 - 220);
-    ctx.font = '110px serif';
+    ctx.font = '110px "Twemoji Country Flags", serif';
     ctx.textAlign = 'right';
     ctx.fillText(flag, W - m - 40, m + 160);
     ctx.globalAlpha = 1;

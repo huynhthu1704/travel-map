@@ -1115,7 +1115,7 @@ function PopularPlaces() {
       }
       g.set(m.place.id, e);
     });
-    return [...g.values()].filter((e) => e.people.size >= 2).sort((a, b) => b.people.size - a.people.size || b.count - a.count).slice(0, 5);
+    return [...g.values()].sort((a, b) => b.people.size - a.people.size || b.count - a.count).slice(0, 5);
   }, [publicMemories]);
   if (!top.length) return null;
   return (

@@ -31,8 +31,8 @@ export const RELEASES = [
         icon: '🔥',
         title: { vi: 'Địa điểm được check-in nhiều nhất', en: 'Most checked-in places' },
         desc: {
-          vi: 'Trang chủ gợi ý những địa điểm được nhiều người check-in công khai nhất. Bấm vào để xem địa điểm trên bản đồ.',
-          en: 'The home panel highlights the places most people have checked in at publicly. Tap one to see it on the map.',
+          vi: 'Trang chủ gợi ý những địa điểm có nhiều lượt check-in công khai nhất. Bấm vào để xem địa điểm trên bản đồ.',
+          en: 'The home panel highlights the places with the most public check-ins. Tap one to see it on the map.',
         },
       },
       {

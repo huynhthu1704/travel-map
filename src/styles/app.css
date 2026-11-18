@@ -2943,3 +2943,33 @@ img.is-loaded {
   opacity: 1;
   text-decoration: underline;
 }
+.time-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-md);
+  padding: 4px 8px;
+  min-height: 46px;
+}
+.time-input select {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  padding: 6px 2px;
+  cursor: pointer;
+  width: auto;
+  min-width: 52px;
+}
+.time-input select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.time-input > span {
+  font-weight: 700;
+}
+.time-input__clear {
+  opacity: 0.6;
+}

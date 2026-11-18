@@ -3,6 +3,7 @@ import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Empty, Loader, formatDate } from '../components/ui';
 import DateInput from '../components/DateInput';
+import TimeInput from '../components/TimeInput';
 import { ALL_FAMOUS } from '../data/places';
 import { templateItems } from '../data/checklists';
 import { countryName, flagOf } from '../lib/countries';
@@ -211,7 +212,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
               </label>
               <label className="field">
                 <span>🕘 {t('plan.time')}</span>
-                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+                <TimeInput value={time} onChange={setTime} ariaLabel={t('plan.time')} />
               </label>
             </div>
             <label className="field">

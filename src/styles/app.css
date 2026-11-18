@@ -5885,3 +5885,22 @@ body.fb-picking * {
     grid-template-columns: 1fr;
   }
 }
+
+/* Nút Góp ý kéo được: dọc theo mép trái / phải */
+.fb-tab {
+  touch-action: none;
+  user-select: none;
+  transform: translateY(-50%) rotate(180deg);
+}
+.fb-tab:active {
+  cursor: grabbing;
+}
+.fb-tab--left {
+  right: auto;
+  left: 0;
+  border-radius: 0 14px 14px 0;
+  transform: translateY(-50%);
+}
+.fb-tab--left span {
+  transform: none;
+}

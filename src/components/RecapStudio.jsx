@@ -842,7 +842,8 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     notify(t('studio.downloaded'));
   };
 
-  const exportImage = () => canvasRef.current.toBlob((b) => b && deliver(b, `travel-map-recap-${Date.now()}.png`), 'image/png');
+  // Ảnh: hiện đúng ảnh sẽ lưu để xem lại trước, rồi mới lưu / chia sẻ
+  const exportImage = () => canvasRef.current.toBlob((b) => b && setResult({ kind: 'image', url: URL.createObjectURL(b), blob: b, name: `travel-map-recap-${Date.now()}.png` }), 'image/png');
 
   // Xem trước chuyển động ngay trên khung xem trước (không ghi video)
   const [playing, setPlaying] = useState(false);
@@ -921,7 +922,7 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
           ) : (
             <>
               <canvas ref={canvasRef} style={result ? { display: 'none' } : undefined} />
-              {result && <video className="studio__video" src={result.url} controls autoPlay loop playsInline />}
+              {result && (result.kind === 'image' ? <img className="studio__video" src={result.url} alt="" /> : <video className="studio__video" src={result.url} controls autoPlay loop playsInline />)}
             </>
           )}
         </div>
@@ -1008,10 +1009,10 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
             <Loader text={busy} />
           ) : result ? (
             <div className="stack-sm">
-              <p className="small">✅ {t('studio.videoReady')}</p>
+              <p className="small">✅ {t(result.kind === 'image' ? 'studio.imageReady' : 'studio.videoReady')}</p>
               <div className="grid-2">
                 <button className="btn btn--primary" onClick={() => deliver(result.blob, result.name)}>
-                  {t('studio.saveVideo')}
+                  {t(result.kind === 'image' ? 'studio.saveImage' : 'studio.saveVideo')}
                 </button>
                 <button className="btn btn--outline" onClick={() => setResult(null)}>
                   ← {t('studio.backToEdit')}
@@ -1025,7 +1026,7 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
               </button>
               <div className="grid-2">
                 <button className="btn btn--primary" disabled={!countries} onClick={exportImage}>
-                  {t('studio.saveImage')}
+                  {t('studio.makeImage')}
                 </button>
                 <button className="btn btn--dark" disabled={!countries} onClick={exportVideo}>
                   {t('studio.makeVideo')}

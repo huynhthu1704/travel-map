@@ -14,6 +14,41 @@ export default function FeedbackLauncher() {
   const [box, setBox] = useState(null);
   const [busy, setBusy] = useState(false);
   const target = useRef(null);
+  // Vị trí nút Góp ý: kéo lên / xuống, kéo sang mép trái / phải; nhớ cho lần sau
+  const [pos, setPos] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('travel-map-fb-pos')) || { side: 'right', top: 0.46 };
+    } catch {
+      return { side: 'right', top: 0.46 };
+    }
+  });
+  const drag = useRef(null);
+  const onDown = (e) => {
+    drag.current = { x: e.clientX, y: e.clientY, moved: false };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
+    d.moved = true;
+    const top = Math.min(0.9, Math.max(0.08, e.clientY / window.innerHeight));
+    setPos({ side: e.clientX < window.innerWidth / 2 ? 'left' : 'right', top });
+  };
+  const onUp = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (!d) return;
+    if (d.moved) {
+      try {
+        localStorage.setItem('travel-map-fb-pos', JSON.stringify(pos));
+      } catch {
+        /* bỏ qua */
+      }
+      return;
+    }
+    requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'));
+  };
 
   useEffect(() => {
     const start = () => setPicking(true);
@@ -83,7 +118,16 @@ export default function FeedbackLauncher() {
   return (
     <>
       {!picking && (
-        <button className="fb-tab fb-ignore" onClick={() => requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'))} title={t('fb.open')}>
+        <button
+          className={`fb-tab fb-ignore fb-tab--${pos.side}`}
+          style={{ top: `${pos.top * 100}%` }}
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerCancel={() => (drag.current = null)}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason')))}
+          title={t('fb.open') + ' · ' + t('fb.dragHint')}
+        >
           <span>💬</span>
           <b>{t('fb.tab')}</b>
         </button>

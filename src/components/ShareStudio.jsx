@@ -486,8 +486,9 @@ export default function ShareStudio({ memory, onClose }) {
     notify(t('studio.downloaded'));
   };
 
+  // Ảnh: hiện đúng ảnh sẽ lưu để xem lại trước, rồi mới lưu / chia sẻ
   const exportImage = () => {
-    canvasRef.current.toBlob((b) => b && deliver(b, `travel-map-${Date.now()}.png`), 'image/png');
+    canvasRef.current.toBlob((b) => b && setResult({ kind: 'image', url: URL.createObjectURL(b), blob: b, name: `travel-map-${Date.now()}.png` }), 'image/png');
   };
 
   const exportVideo = async () => {
@@ -554,7 +555,7 @@ export default function ShareStudio({ memory, onClose }) {
               )}
             </div>
           ) : null}
-          {loaded.length > 0 && result && <video className="studio__video" src={result.url} controls autoPlay loop playsInline />}
+          {loaded.length > 0 && result && (result.kind === 'image' ? <img className="studio__video" src={result.url} alt="" /> : <video className="studio__video" src={result.url} controls autoPlay loop playsInline />)}
           {loaded.length ? null : (
             selected.length ? <Loader size="md" /> : <div className="studio__empty">{t('studio.empty')}</div>
           )}
@@ -644,10 +645,10 @@ export default function ShareStudio({ memory, onClose }) {
           {tainted && <p className="small warn">{t('studio.tainted')}</p>}
           {result ? (
             <div className="stack-sm">
-              <p className="small">✅ {t('studio.videoReady')}</p>
+              <p className="small">✅ {t(result.kind === 'image' ? 'studio.imageReady' : 'studio.videoReady')}</p>
               <div className="grid-2">
                 <button className="btn btn--primary" onClick={() => deliver(result.blob, result.name)}>
-                  {t('studio.saveVideo')}
+                  {t(result.kind === 'image' ? 'studio.saveImage' : 'studio.saveVideo')}
                 </button>
                 <button className="btn btn--outline" onClick={() => setResult(null)}>
                   ← {t('studio.backToEdit')}
@@ -657,7 +658,7 @@ export default function ShareStudio({ memory, onClose }) {
           ) : (
             <div className="grid-2">
               <button className="btn btn--primary" disabled={!loaded.length || tainted || !!busy} onClick={exportImage}>
-                {t('studio.saveImage')}
+                {t('studio.makeImage')}
               </button>
               <button className="btn btn--dark" disabled={!loaded.length || tainted || !!busy} onClick={exportVideo}>
                 {busy || t('studio.makeVideo')}

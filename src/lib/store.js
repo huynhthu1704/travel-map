@@ -26,6 +26,9 @@ import { FAMOUS_BY_ID } from '../data/places';
 const now = () => Date.now();
 const toMillis = (v) => (v?.toMillis ? v.toMillis() : v || 0);
 const byNewest = (a, b) => toMillis(b.createdAt) - toMillis(a.createdAt);
+// Chuyến đi: ngày bắt đầu gần nhất lên trước, cũ hơn ở sau (chưa có ngày thì dùng ngày tạo chuyến)
+const tripKey = (t) => t.startDate || new Date(toMillis(t.createdAt) || 0).toISOString().slice(0, 10);
+const byTripStart = (a, b) => tripKey(b).localeCompare(tripKey(a)) || toMillis(b.createdAt) - toMillis(a.createdAt);
 // Kế hoạch: theo ngày dự định (mục chưa có ngày để cuối), trong ngày theo giờ sớm → muộn
 // (mục chưa có giờ để sau), cuối cùng theo thứ tự người dùng tự sắp
 const byPlanOrder = (a, b) =>
@@ -157,7 +160,7 @@ const firebaseBackend = {
 
   watchTrips(uid, cb) {
     return onSnapshot(query(collection(db, 'trips'), where('memberIds', 'array-contains', uid)), (s) =>
-      cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byNewest)),
+      cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byTripStart)),
     );
   },
   async createTrip(user, { name, emoji, destinations = [], kind = 'domestic', startDate = null, endDate = null, currency = null, rates = null }) {
@@ -378,7 +381,7 @@ const localBackend = {
     save();
   },
   watchTrips(u, cb) {
-    return sub(() => cb(state.trips.filter((t) => t.memberIds.includes(u)).sort(byNewest)));
+    return sub(() => cb(state.trips.filter((t) => t.memberIds.includes(u)).sort(byTripStart)));
   },
   async createTrip(user, { name, emoji, destinations = [], kind = 'domestic', startDate = null, endDate = null, currency = null, rates = null }) {
     const t = {

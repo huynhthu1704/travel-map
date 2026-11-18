@@ -153,7 +153,7 @@ export default function FeedbackLauncher() {
               <span>📸 {t('fb.capturing')}</span>
             ) : (
               <>
-                <span>🎯 {t('fb.pickHint')}</span>
+                <span>🎯 {t(window.matchMedia?.('(hover: none)').matches ? 'fb.pickHintTouch' : 'fb.pickHint')}</span>
                 <button
                   onClick={() => {
                     setPicking(false);

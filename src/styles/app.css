@@ -6942,3 +6942,30 @@ a.app-link.place-card__title:hover {
     max-width: none;
   }
 }
+
+/* Thanh hướng dẫn chọn vùng góp ý: không bị bóp hẹp trên điện thoại */
+.fb-picker-bar {
+  left: 12px;
+  right: 12px;
+  transform: none;
+  width: fit-content;
+  max-width: min(640px, calc(100vw - 24px));
+  margin: 0 auto;
+  border-radius: 18px;
+  line-height: 1.35;
+}
+.fb-picker-bar > span {
+  flex: 1;
+  min-width: 0;
+}
+.fb-picker-bar button {
+  flex: none;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .fb-picker-bar {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    font-size: 13px;
+    padding: 10px 10px 10px 14px;
+  }
+}

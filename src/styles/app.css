@@ -5904,3 +5904,55 @@ body.fb-picking * {
 .fb-tab--left span {
   transform: none;
 }
+
+/* Form / danh sách góp ý không bao giờ rộng quá màn hình (điện thoại) */
+.fb,
+.fb > *,
+.fb-list,
+.fb-row,
+.fb-card,
+.fb-detail,
+.fb-detail > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.fb-row {
+  width: 100%;
+  box-sizing: border-box;
+}
+.fb .segmented {
+  width: 100%;
+  box-sizing: border-box;
+}
+.fb .segmented button {
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.modal__body:has(.fb) {
+  overflow-x: hidden;
+}
+@media (max-width: 640px) {
+  .fb-row {
+    gap: 8px;
+    padding: 10px;
+  }
+  .fb-row .fb-status {
+    min-width: 0;
+    padding: 3px 8px;
+  }
+  .fb-row__main b {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .fb-env dl {
+    grid-template-columns: 1fr;
+  }
+  .fb-env dt {
+    margin-top: 4px;
+  }
+}

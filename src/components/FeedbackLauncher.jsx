@@ -35,18 +35,22 @@ export default function FeedbackLauncher() {
     const top = Math.min(0.9, Math.max(0.08, e.clientY / window.innerHeight));
     setPos({ side: e.clientX < window.innerWidth / 2 ? 'left' : 'right', top });
   };
+  const justDragged = useRef(false);
   const onUp = () => {
     const d = drag.current;
     drag.current = null;
-    if (!d) return;
-    if (d.moved) {
-      try {
-        localStorage.setItem('travel-map-fb-pos', JSON.stringify(pos));
-      } catch {
-        /* bỏ qua */
-      }
-      return;
+    if (!d?.moved) return;
+    justDragged.current = true;
+    setTimeout(() => (justDragged.current = false), 300);
+    try {
+      localStorage.setItem('travel-map-fb-pos', JSON.stringify(pos));
+    } catch {
+      /* bỏ qua */
     }
+  };
+  // Mở form bằng sự kiện click (chạm trên điện thoại cũng sinh click); bỏ qua nếu vừa kéo
+  const onClick = () => {
+    if (justDragged.current) return;
     requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'));
   };
 
@@ -125,7 +129,7 @@ export default function FeedbackLauncher() {
           onPointerMove={onMove}
           onPointerUp={onUp}
           onPointerCancel={() => (drag.current = null)}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason')))}
+          onClick={onClick}
           title={t('fb.open') + ' · ' + t('fb.dragHint')}
         >
           <span>💬</span>

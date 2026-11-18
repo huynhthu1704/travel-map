@@ -6919,3 +6919,26 @@ a.app-link.place-card__title:hover {
   font-size: 13px;
   padding: 2px 4px 8px;
 }
+
+/* Chuyến đi: form tạo / tham gia chỉ mở khi bấm nút */
+.trip-form-panel {
+  max-width: 640px;
+  margin-left: auto;
+  animation: tripFormIn 0.18s ease-out;
+}
+.trip-form-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+@keyframes tripFormIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@media (max-width: 760px) {
+  .trip-form-panel {
+    max-width: none;
+  }
+}

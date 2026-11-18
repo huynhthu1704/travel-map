@@ -6747,3 +6747,73 @@ body.fb-picking * {
   background: var(--mint-100);
   color: #1d7a55;
 }
+.report-card__photo {
+  padding: 0;
+  border: 0;
+  cursor: zoom-in;
+}
+.report-card__photo:hover img {
+  transform: scale(1.04);
+}
+.report-card__photo img {
+  transition: transform 0.2s;
+}
+.report-card__count {
+  grid-column: 1 / -1;
+}
+.report-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(20, 16, 12, 0.88);
+  display: grid;
+  place-items: center;
+  padding: 40px 70px;
+  cursor: zoom-out;
+}
+.report-zoom img {
+  max-width: 100%;
+  max-height: calc(100vh - 80px);
+  border-radius: 12px;
+  cursor: default;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+.report-zoom__nav,
+.report-zoom__close {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.report-zoom__nav--prev {
+  left: 16px;
+  top: 50%;
+}
+.report-zoom__nav--next {
+  right: 16px;
+  top: 50%;
+}
+.report-zoom__close {
+  top: 16px;
+  right: 16px;
+  font-size: 18px;
+}
+.report-zoom__count {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 12px;
+  border-radius: 999px;
+}

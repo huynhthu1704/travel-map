@@ -409,8 +409,22 @@ function Reports({ reports }) {
 /** 1 báo cáo: bấm để xem chi tiết (ảnh, ghi chú, người báo cáo, lý do) rồi mới ẩn / bỏ qua */
 function ReportRow({ r, open, onToggle, act }) {
   const { t } = useI18n();
-  const { adminApi, user, setModal, openProfile } = useApp();
+  const { adminApi, user, setModal, openProfile, api } = useApp();
   const snap = r.snapshot || {};
+  const [zoom, setZoom] = useState(null); // ảnh đang xem lớn (chỉ số)
+  const [full, setFull] = useState(null); // ảnh độ phân giải cao
+  // Mở chi tiết: tải ảnh gốc của bài để admin xem rõ
+  useEffect(() => {
+    if (!open || full) return undefined;
+    let alive = true;
+    api
+      .getPhotos({ id: r.memoryId, photoCount: snap.photoCount || 20, photos: snap.photo ? [snap.photo] : [] }, 'high')
+      .then((l) => alive && setFull(l?.length ? l : null))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const memLike = useMemo(
     () => ({ id: r.memoryId, photos: snap.photo ? [snap.photo] : [], photoCount: open ? snap.photoCount || 20 : 0 }),
     [r.memoryId, snap.photo, snap.photoCount, open],
@@ -450,6 +464,39 @@ function ReportRow({ r, open, onToggle, act }) {
         </span>
         <span className="report-card__toggle">{open ? t('admin.reportCollapse') : t('admin.reportView')}</span>
       </button>
+      {zoom !== null && (full || photos)[zoom] && (
+        <div className="report-zoom" onClick={() => setZoom(null)} role="dialog">
+          <img src={(full || photos)[zoom]} alt="" onClick={(e) => e.stopPropagation()} />
+          {(full || photos).length > 1 && (
+            <>
+              <button
+                className="report-zoom__nav report-zoom__nav--prev"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoom((zoom - 1 + (full || photos).length) % (full || photos).length);
+                }}
+              >
+                ‹
+              </button>
+              <button
+                className="report-zoom__nav report-zoom__nav--next"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoom((zoom + 1) % (full || photos).length);
+                }}
+              >
+                ›
+              </button>
+            </>
+          )}
+          <span className="report-zoom__count">
+            {zoom + 1} / {(full || photos).length}
+          </span>
+          <button className="report-zoom__close" onClick={() => setZoom(null)}>
+            ✕
+          </button>
+        </div>
+      )}
       {open && (
         <div className="report-card__body">
           <div className="report-card__grid">
@@ -492,13 +539,16 @@ function ReportRow({ r, open, onToggle, act }) {
             </div>
             <div className="report-card__photos">
               {photos.length ? (
-                photos.map((src, i) => (
-                  <a key={i} href={src} target="_blank" rel="noreferrer" className="report-card__photo">
+                (full || photos).map((src, i) => (
+                  <button key={i} className="report-card__photo" onClick={() => setZoom(i)} title={t('admin.reportZoom')}>
                     <img src={src} alt="" loading="lazy" />
-                  </a>
+                  </button>
                 ))
               ) : (
                 <span className="muted small">{t('admin.reportNoPhoto')}</span>
+              )}
+              {(full || photos).length > 0 && (
+                <small className="muted report-card__count">{t('admin.reportPhotoCount', { n: (full || photos).length })}</small>
               )}
             </div>
           </div>
@@ -508,7 +558,7 @@ function ReportRow({ r, open, onToggle, act }) {
               onClick={() =>
                 setModal({
                   type: 'viewMemory',
-                  memory: { id: r.memoryId, uid: r.memoryOwner, authorName: snap.authorName, authorPhoto: snap.authorPhoto, place: snap.place, caption: snap.caption, date: snap.date, photos: photos.length ? photos : snap.photo ? [snap.photo] : [], photoCount: photos.length, visibility: 'public' },
+                  memory: { id: r.memoryId, uid: r.memoryOwner, authorName: snap.authorName, authorPhoto: snap.authorPhoto, place: snap.place, caption: snap.caption, date: snap.date, photos: (full || photos).length ? full || photos : snap.photo ? [snap.photo] : [], photoCount: (full || photos).length, visibility: 'public' },
                 })
               }
             >

@@ -123,11 +123,11 @@ function WorldPanel() {
       <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
         {t('world.addMemory')}
       </button>
-      <div className="grid-2">
-        <button className="btn btn--outline btn--sm" onClick={() => startPicking('place')}>
+      <div className="btn-stack">
+        <button className="btn btn--outline btn--block" onClick={() => startPicking('place')}>
           {t('pick.open')}
         </button>
-        <button className="btn btn--outline btn--sm" onClick={() => setModal({ type: 'addLink' })}>
+        <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'addLink' })}>
           {t('link.open')}
         </button>
       </div>

@@ -120,7 +120,10 @@ export default function SearchBox() {
               <span>
                 {u.name || '—'}
                 {u.uid === user?.uid && <em className="search__me"> · {t('social.you')}</em>}
-                <small>{t('search.personMeta', { countries: u.countries?.length || 0, cities: u.cities?.length || 0 })}</small>
+                <small>
+                  {u.username ? `@${u.username} · ` : ''}
+                  {t('search.personMeta', { countries: u.countries?.length || 0, cities: u.cities?.length || 0 })}
+                </small>
               </span>
             </button>
           ))}

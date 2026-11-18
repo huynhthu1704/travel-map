@@ -4,7 +4,7 @@ import { useI18n } from '../i18n';
 import { Avatar, Empty, Loader } from '../components/ui';
 import { MemoryGrid } from '../components/SidePanel';
 import { countryName, flagOf } from '../lib/countries';
-import { socialApi } from '../lib/social';
+import { socialApi, cleanUsername, usernameProblem } from '../lib/social';
 import { fixMemory } from '../lib/fixes';
 import { makeAvatar } from '../lib/avatar';
 
@@ -12,7 +12,7 @@ const BIO_MAX = 160;
 
 /** Hồ sơ người dùng: quốc gia / thành phố đã đi, check-in công khai, giới thiệu ngắn, theo dõi */
 export default function ProfilePage() {
-  const { profileUid: uid, profileSub, user, api, requireLogin, followingIds, followerIds, toggleFollow, notify, openProfile } = useApp();
+  const { profileUid: uid, setProfileUid, profileSub, user, api, requireLogin, followingIds, followerIds, toggleFollow, notify, openProfile } = useApp();
   const { t, lang } = useI18n();
   const [p, setP] = useState(undefined);
   const [checkins, setCheckins] = useState(null);
@@ -23,11 +23,46 @@ export default function ProfilePage() {
   const [nameEdit, setNameEdit] = useState(null); // đang sửa tên: chuỗi tên mới
   const [photoBusy, setPhotoBusy] = useState(false);
   const [openCc, setOpenCc] = useState({});
+  const [handle, setHandle] = useState(''); // nickname đang sửa
+  const [handleState, setHandleState] = useState(''); // '', 'checking', 'ok', 'taken', lỗi định dạng
+  const [saving, setSaving] = useState(false);
+  // Link dạng #/@nickname → tìm ra người dùng
+  useEffect(() => {
+    if (!uid?.startsWith('@') || !user) return undefined;
+    let alive = true;
+    socialApi
+      .usernameOwner(uid.slice(1))
+      .then((real) => alive && (real ? setProfileUid(real) : setP(null)))
+      .catch(() => alive && setP(null));
+    return () => {
+      alive = false;
+    };
+  }, [uid, user]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Kiểm tra nickname còn trống không (chờ người dùng gõ xong)
+  useEffect(() => {
+    if (!editing) return undefined;
+    const n = cleanUsername(handle);
+    if (!n || n === (p?.username || '')) return setHandleState(''), undefined;
+    const bad = usernameProblem(n);
+    if (bad) return setHandleState(bad), undefined;
+    setHandleState('checking');
+    let alive = true;
+    const tm = setTimeout(() => {
+      socialApi
+        .usernameOwner(n)
+        .then((o) => alive && setHandleState(o && o !== user.uid ? 'taken' : 'ok'))
+        .catch(() => alive && setHandleState(''));
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(tm);
+    };
+  }, [handle, editing, p?.username]); // eslint-disable-line react-hooks/exhaustive-deps
   const isMe = user?.uid === uid;
   const mutual = !isMe && followingIds.has(uid) && followerIds.has(uid);
 
   useEffect(() => {
-    if (!uid || !user) return undefined;
+    if (!uid || !user || uid.startsWith('@')) return undefined;
     setP(undefined);
     setCheckins(null);
     const u = [
@@ -106,7 +141,7 @@ export default function ProfilePage() {
     }
   };
   const shareLink = async () => {
-    const url = `${location.origin}${location.pathname}#/u/${encodeURIComponent(uid)}`;
+    const url = `${location.origin}${location.pathname}#/${prof.username ? `@${prof.username}` : `u/${encodeURIComponent(uid)}`}`;
     try {
       if (navigator.share && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) await navigator.share({ title: prof.name, url });
       else {
@@ -121,6 +156,8 @@ export default function ProfilePage() {
   const startEdit = () => {
     setNameEdit(user.name || '');
     setBio(p?.bio || '');
+    setHandle(p?.username || '');
+    setHandleState('');
     setEditing(true);
   };
   const cancelEdit = () => {
@@ -132,14 +169,21 @@ export default function ProfilePage() {
     e?.preventDefault();
     const n = (nameEdit || '').trim();
     if (!n) return;
+    const h = cleanUsername(handle);
+    if (h !== (p?.username || '') && h && handleState !== 'ok') return;
+    setSaving(true);
     try {
+      if (h !== (p?.username || '')) await socialApi.setUsername(uid, h, p?.username || '');
       if (n !== user.name) await api.setDisplayName(user, n);
       const b = bio.trim().slice(0, BIO_MAX);
       if (b !== (p?.bio || '')) await socialApi.saveProfile(uid, { bio: b });
       cancelEdit();
       notify(t('profile.updated'));
     } catch (err) {
-      notify(err.message, 'error');
+      if (err.message === 'taken') setHandleState('taken');
+      notify(err.message === 'taken' ? t('profile.handle.taken') : err.message, 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -163,6 +207,25 @@ export default function ProfilePage() {
               <input value={nameEdit || ''} onChange={(e) => setNameEdit(e.target.value)} maxLength={40} placeholder={user.googleName} autoFocus />
             </label>
             <label className="field">
+              <span>{t('profile.handle.label')}</span>
+              <div className={`handle-input ${['ok'].includes(handleState) ? 'is-ok' : ['', 'checking'].includes(handleState) ? '' : 'is-bad'}`}>
+                <b>@</b>
+                <input
+                  value={handle}
+                  onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9._@]/g, '').replace(/^@/, ''))}
+                  maxLength={20}
+                  placeholder={t('profile.handle.ph')}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <i>{handleState === 'checking' ? '⏳' : handleState === 'ok' ? '✓' : handleState ? '✕' : ''}</i>
+              </div>
+              <small className={handleState && !['ok', 'checking'].includes(handleState) ? 'handle-msg is-bad' : 'muted'}>
+                {handleState && handleState !== 'checking' ? t(`profile.handle.${handleState}`) : t('profile.handle.help')}
+              </small>
+            </label>
+            <label className="field">
               <span>
                 {t('profile.bioLabel')} <small className="muted">{bio.length}/{BIO_MAX}</small>
               </span>
@@ -184,7 +247,10 @@ export default function ProfilePage() {
               <button type="button" className="btn btn--sm btn--ghost" onClick={cancelEdit}>
                 {t('pick.cancel')}
               </button>
-              <button className="btn btn--sm btn--primary" disabled={!(nameEdit || '').trim()}>
+              <button
+                className="btn btn--sm btn--primary"
+                disabled={saving || !(nameEdit || '').trim() || (cleanUsername(handle) !== (p?.username || '') && !!cleanUsername(handle) && handleState !== 'ok')}
+              >
                 {t('admin.save')}
               </button>
             </div>
@@ -192,7 +258,18 @@ export default function ProfilePage() {
         ) : (
           <div className="profile__info">
             <div className="profile__top">
-              <h1 className="profile__name">{prof.name || t('admin.unknownUser')}</h1>
+              <div>
+                <h1 className="profile__name">{prof.name || t('admin.unknownUser')}</h1>
+                {prof.username ? (
+                  <span className="profile__handle">@{prof.username}</span>
+                ) : (
+                  isMe && (
+                    <button className="profile__handle profile__handle--add" onClick={startEdit}>
+                      ＋ {t('profile.handle.add')}
+                    </button>
+                  )
+                )}
+              </div>
               <div className="profile__btns">
                 {isMe ? (
                   <button className="btn btn--sm btn--soft" onClick={startEdit}>

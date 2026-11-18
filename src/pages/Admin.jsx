@@ -6,6 +6,7 @@ import Combobox from '../components/Combobox';
 import { countryName, flagOf } from '../lib/countries';
 import { pName, pCity } from '../lib/lang';
 import { normalize } from '../lib/geo';
+import { useThumbs } from '../lib/useThumbs';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
 import { ROLES, SUPER_ADMINS } from '../lib/adminStore';
@@ -377,6 +378,7 @@ function Reports({ reports }) {
   const { t } = useI18n();
   const { adminApi, user, notify } = useApp();
   const [status, setStatus] = useState('open');
+  const [openId, setOpenId] = useState(null);
   if (!reports) return <Loader />;
   const list = reports.filter((r) => (status === 'all' ? true : r.status === status));
   const act = async (fn, msg) => {
@@ -398,47 +400,129 @@ function Reports({ reports }) {
       </div>
       {list.length === 0 && <Empty emoji="🎉" title={t('admin.noReports')} />}
       {list.map((r) => (
-        <article key={r.id} className="mod-row">
-          <span className="mod-row__photo">
-            <LoadingImage src={r.snapshot?.photo} alt="" fallback={<span>📝</span>} />
-          </span>
-          <div className="mod-row__main">
-            <b>
-              🚩 {t('admin.reason.' + r.reason, {}) || r.reason}
-            </b>
-            <small>
-              {flagOf(r.snapshot?.place?.country)} {pName(r.snapshot?.place)} · {t('admin.by')} {r.snapshot?.authorName} · {t('admin.reportedBy')} {r.byName} · {formatDate(r.createdAt)}
-            </small>
-            {r.snapshot?.caption && <p className="small">“{r.snapshot.caption}”</p>}
+        <ReportRow key={r.id} r={r} open={openId === r.id} onToggle={() => setOpenId(openId === r.id ? null : r.id)} act={act} />
+      ))}
+    </div>
+  );
+}
+
+/** 1 báo cáo: bấm để xem chi tiết (ảnh, ghi chú, người báo cáo, lý do) rồi mới ẩn / bỏ qua */
+function ReportRow({ r, open, onToggle, act }) {
+  const { t } = useI18n();
+  const { adminApi, user, setModal, openProfile } = useApp();
+  const snap = r.snapshot || {};
+  const memLike = useMemo(
+    () => ({ id: r.memoryId, photos: snap.photo ? [snap.photo] : [], photoCount: open ? snap.photoCount || 20 : 0 }),
+    [r.memoryId, snap.photo, snap.photoCount, open],
+  );
+  const photos = useThumbs(memLike);
+  const hide = () =>
+    act(async () => {
+      await adminApi.hideMemory(r.memoryId, user.uid, r.reason, r.memoryOwner, pName(snap.place));
+      await adminApi.updateReport(r.id, { status: 'resolved', resolvedBy: user.uid, resolvedAt: Date.now() });
+    }, t('admin.hiddenDone'));
+  const dismiss = () => act(() => adminApi.updateReport(r.id, { status: 'dismissed', resolvedBy: user.uid, resolvedAt: Date.now() }), t('admin.dismissed'));
+  const actions =
+    r.status === 'open' ? (
+      <>
+        <button className="btn btn--sm btn--primary" onClick={hide}>
+          🙈 {t('admin.hide')}
+        </button>
+        <button className="btn btn--sm btn--soft" onClick={dismiss}>
+          {t('admin.dismiss')}
+        </button>
+      </>
+    ) : (
+      <span className={`report-status report-status--${r.status}`}>{t('admin.reportStatus.' + r.status)}</span>
+    );
+  return (
+    <article className={`report-card ${open ? 'is-open' : ''}`}>
+      <button className="report-card__head" onClick={onToggle} aria-expanded={open}>
+        <span className="mod-row__photo">
+          <LoadingImage src={snap.photo} alt="" fallback={<span>📝</span>} />
+        </span>
+        <span className="mod-row__main">
+          <b>🚩 {t('admin.reason.' + r.reason, {}) || r.reason}</b>
+          <small>
+            {flagOf(snap.place?.country)} {pName(snap.place)} · {t('admin.by')} {snap.authorName} · {t('admin.reportedBy')} {r.byName} · {formatDate(r.createdAt)}
+          </small>
+          {r.note && !open && <small className="report-card__notePreview">💬 “{r.note}”</small>}
+        </span>
+        <span className="report-card__toggle">{open ? t('admin.reportCollapse') : t('admin.reportView')}</span>
+      </button>
+      {open && (
+        <div className="report-card__body">
+          <div className="report-card__grid">
+            <div className="report-card__info">
+              <dl>
+                <dt>{t('admin.reportReason')}</dt>
+                <dd>🚩 {t('admin.reason.' + r.reason, {}) || r.reason}</dd>
+                <dt>{t('admin.reportNote')}</dt>
+                <dd>{r.note ? `“${r.note}”` : <span className="muted">{t('admin.reportNoNote')}</span>}</dd>
+                <dt>{t('admin.reportReporter')}</dt>
+                <dd>
+                  <button className="link" onClick={() => openProfile(r.byUid)}>
+                    {r.byName}
+                  </button>{' '}
+                  · {formatDate(r.createdAt)}
+                </dd>
+                <dt>{t('admin.reportAuthor')}</dt>
+                <dd>
+                  <button className="link" onClick={() => r.memoryOwner && openProfile(r.memoryOwner)}>
+                    {snap.authorName || '—'}
+                  </button>
+                </dd>
+                <dt>{t('admin.reportPlace')}</dt>
+                <dd>
+                  {flagOf(snap.place?.country)} {pName(snap.place)}
+                  {snap.place && <small className="muted"> · {[pCity(snap.place), countryName(snap.place.country)].filter(Boolean).join(', ')}</small>}
+                </dd>
+                {snap.date && (
+                  <>
+                    <dt>{t('admin.reportDate')}</dt>
+                    <dd>
+                      {formatDate(snap.date)}
+                      {snap.occasion ? ` · ${snap.occasion}` : ''}
+                    </dd>
+                  </>
+                )}
+                <dt>{t('admin.reportCaption')}</dt>
+                <dd>{snap.caption ? `“${snap.caption}”` : <span className="muted">—</span>}</dd>
+              </dl>
+            </div>
+            <div className="report-card__photos">
+              {photos.length ? (
+                photos.map((src, i) => (
+                  <a key={i} href={src} target="_blank" rel="noreferrer" className="report-card__photo">
+                    <img src={src} alt="" loading="lazy" />
+                  </a>
+                ))
+              ) : (
+                <span className="muted small">{t('admin.reportNoPhoto')}</span>
+              )}
+            </div>
           </div>
-          <div className="mod-row__actions">
-            {r.status === 'open' ? (
-              <>
-                <button
-                  className="btn btn--sm btn--primary"
-                  onClick={() =>
-                    act(async () => {
-                      await adminApi.hideMemory(r.memoryId, user.uid, r.reason, r.memoryOwner, pName(r.snapshot?.place));
-                      await adminApi.updateReport(r.id, { status: 'resolved', resolvedBy: user.uid, resolvedAt: Date.now() });
-                    }, t('admin.hiddenDone'))
-                  }
-                >
-                  🙈 {t('admin.hide')}
-                </button>
-                <button className="btn btn--sm btn--soft" onClick={() => act(() => adminApi.updateReport(r.id, { status: 'dismissed', resolvedBy: user.uid, resolvedAt: Date.now() }), t('admin.dismissed'))}>
-                  {t('admin.dismiss')}
-                </button>
-              </>
-            ) : (
-              <span className="small muted">{t('admin.reportStatus.' + r.status)}</span>
-            )}
-            <button className="btn btn--sm btn--ghost danger" onClick={() => act(() => adminApi.deleteReport(r.id), t('mem.deleted'))}>
+          <div className="report-card__actions">
+            <button
+              className="btn btn--sm btn--ghost"
+              onClick={() =>
+                setModal({
+                  type: 'viewMemory',
+                  memory: { id: r.memoryId, uid: r.memoryOwner, authorName: snap.authorName, authorPhoto: snap.authorPhoto, place: snap.place, caption: snap.caption, date: snap.date, photos: photos.length ? photos : snap.photo ? [snap.photo] : [], photoCount: photos.length, visibility: 'public' },
+                })
+              }
+            >
+              🔍 {t('admin.reportOpenPost')}
+            </button>
+            <span className="report-card__spacer" />
+            {actions}
+            <button className="btn btn--sm btn--ghost danger" onClick={() => act(() => adminApi.deleteReport(r.id), t('mem.deleted'))} title={t('mem.delete')}>
               🗑️
             </button>
           </div>
-        </article>
-      ))}
-    </div>
+        </div>
+      )}
+    </article>
   );
 }
 

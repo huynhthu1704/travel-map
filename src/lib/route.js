@@ -21,7 +21,10 @@ export function parseRoute(hash = '') {
   });
   const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan', profile: null, profileSub: null };
   if (PAGES.includes(seg[0])) r.view = seg[0];
-  else if (seg[0] === 'u' && seg[1]) {
+  else if (seg[0]?.startsWith('@') && seg[0].length > 1) {
+    r.view = 'profile';
+    r.profile = seg[0].toLowerCase();
+  } else if (seg[0] === 'u' && seg[1]) {
     r.view = 'profile';
     r.profile = seg[1];
     r.profileSub = seg[2] === 'activity' ? 'activity' : null;
@@ -58,7 +61,7 @@ export function buildRoute({ view, country, place, trip, tripDetail, tripTab, pr
     path = tripDetail ? `trips/${encodeURIComponent(tripDetail)}` : 'trips';
     if (tripDetail && tripTab && tripTab !== 'plan') q.set('tab', tripTab);
   }
-  else if (view === 'profile') path = profile ? `u/${encodeURIComponent(profile)}${profileSub === 'activity' ? '/activity' : ''}` : 'memories';
+  else if (view === 'profile') path = profile?.startsWith('@') ? profile : profile ? `u/${encodeURIComponent(profile)}${profileSub === 'activity' ? '/activity' : ''}` : 'memories';
   else path = view;
   if (trip) q.set('trip', trip);
   const s = q.toString();

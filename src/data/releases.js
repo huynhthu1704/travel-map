@@ -28,6 +28,22 @@ export const RELEASES = [
         image: 'releases/profile.webp',
       },
       {
+        icon: '🏷️',
+        title: { vi: 'Tên người dùng (@nickname)', en: 'Usernames (@nickname)' },
+        desc: {
+          vi: 'Đặt một tên người dùng duy nhất trong "Chỉnh sửa hồ sơ", ví dụ @christine.travels. Bạn bè có thể gõ @tên vào ô tìm kiếm để tìm bạn, và link hồ sơ trở nên ngắn gọn hơn.',
+          en: 'Pick a unique username under "Edit profile", e.g. @christine.travels. Friends can type @name in the search bar to find you, and your profile link gets shorter.',
+        },
+      },
+      {
+        icon: '🛂',
+        title: { vi: 'Tem hộ chiếu theo từng quốc gia', en: 'Passport stamps grouped by country' },
+        desc: {
+          vi: 'Trong bố cục Hộ chiếu, tem của mỗi quốc gia đứng trước, theo sau là các thành phố của quốc gia đó, rồi mới đến quốc gia tiếp theo.',
+          en: 'In the Passport layout, each country stamp is followed by its cities before the next country starts.',
+        },
+      },
+      {
         icon: '🔥',
         title: { vi: 'Địa điểm được check-in nhiều nhất', en: 'Most checked-in places' },
         desc: {

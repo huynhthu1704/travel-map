@@ -382,10 +382,16 @@ function layoutPassport(ctx, o, at) {
   fitText(ctx, o.stats.map((s) => `${s.value} ${s.label}`).join('  ·  '), m, 222 * k, W - m * 2, BODY, 28 * k);
   ctx.globalAlpha = 1;
   // tem: mỗi quốc gia 1 tem lớn, mỗi thành phố 1 tem nhỏ
-  const stamps = [
-    ...o.countries.map((cc) => ({ big: true, top: flagOf(cc), label: countryName(cc).toUpperCase(), sub: `${o.places.filter((p) => p.country === cc).length} ✦` })),
-    ...o.cities.map((c) => ({ big: false, top: flagOf(c.cc), label: c.name.toUpperCase(), sub: c.date ? formatDate(c.date) : '' })),
-  ];
+  // thứ tự: tem quốc gia → các thành phố của quốc gia đó (theo ngày) → quốc gia tiếp theo
+  const stamps = [];
+  o.countries.forEach((cc) => {
+    stamps.push({ big: true, top: flagOf(cc), label: countryName(cc).toUpperCase(), sub: `${o.places.filter((p) => p.country === cc).length} ✦` });
+    o.cities
+      .filter((c) => c.cc === cc)
+      .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+      .forEach((c) => stamps.push({ big: false, top: flagOf(c.cc), label: c.name.toUpperCase(), sub: c.date ? formatDate(c.date) : '' }));
+  });
+  o.cities.filter((c) => !o.countries.includes(c.cc)).forEach((c) => stamps.push({ big: false, top: flagOf(c.cc), label: c.name.toUpperCase(), sub: c.date ? formatDate(c.date) : '' }));
   const top = 270 * k;
   const photos = o.imgs.slice(0, sq ? 0 : 3);
   const photoH = photos.length ? (H / W > 1.5 ? 330 : 250) * k : 0;

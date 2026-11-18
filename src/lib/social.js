@@ -10,7 +10,7 @@
  * Thông báo chung (to == 'all') lưu trạng thái đã đọc ở users/{uid}.annRead.
  */
 import {
-  collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, limit, getCountFromServer, arrayUnion, arrayRemove, writeBatch,
+  collection, doc, setDoc, getDoc, getDocs, runTransaction, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, limit, getCountFromServer, arrayUnion, arrayRemove, writeBatch,
 } from 'firebase/firestore';
 import { firebaseEnabled, db } from './firebase';
 import { normalize } from './geo';
@@ -24,7 +24,23 @@ export function nameSearchFields(name = '') {
   });
   return { nameLower: n, searchKeys: [...keys].slice(0, 120) };
 }
+/** Tên người dùng (nickname): 3–20 kí tự a-z, 0-9, dấu chấm, gạch dưới — duy nhất */
+export const USERNAME_RE = /^[a-z0-9._]{3,20}$/;
+const RESERVED = new Set(['admin', 'administrator', 'travelmap', 'travel.map', 'support', 'help', 'root', 'system', 'moderator', 'claude', 'anthropic', 'null', 'undefined']);
+export function usernameProblem(n) {
+  if (!n) return '';
+  if (n.length < 3) return 'short';
+  if (n.length > 20) return 'long';
+  if (!USERNAME_RE.test(n)) return 'chars';
+  if (/^[._]|[._]$/.test(n) || /\.\./.test(n)) return 'dots';
+  if (RESERVED.has(n)) return 'reserved';
+  return '';
+}
+export const cleanUsername = (s = '') => s.trim().replace(/^@/, '').toLowerCase();
+
 const matchName = (p, words) => {
+  const u = (p.username || '').toLowerCase();
+  if (words.length === 1 && u && u.startsWith(words[0].replace(/^@/, ''))) return true;
   const n = normalize(p.name || p.nameLower || '');
   return words.every((w) => n.split(/\s+/).some((x) => x.startsWith(w)) || n.includes(w));
 };
@@ -40,22 +56,48 @@ const fb = {
   watchProfile: (uid, cb) => onSnapshot(doc(db, 'profiles', uid), (s) => cb(s.exists() ? s.data() : null), () => cb(null)),
   saveProfile: (uid, data) => setDoc(doc(db, 'profiles', uid), { ...data, uid, updatedAt: now() }, { merge: true }),
   saveFeed: (uid, items) => setDoc(doc(db, 'feeds', uid), { items, updatedAt: now() }),
+  // Tên người dùng
+  async usernameOwner(name) {
+    const s = await getDoc(doc(db, 'usernames', name));
+    return s.exists() ? s.data().uid : null;
+  },
+  async setUsername(uid, name, old) {
+    await runTransaction(db, async (tx) => {
+      if (name) {
+        const ref = doc(db, 'usernames', name);
+        const cur = await tx.get(ref);
+        if (cur.exists() && cur.data().uid !== uid) throw new Error('taken');
+        if (!cur.exists()) tx.set(ref, { uid, at: now() });
+      }
+      if (old && old !== name) tx.delete(doc(db, 'usernames', old));
+      tx.set(doc(db, 'profiles', uid), { uid, username: name || '', updatedAt: now() }, { merge: true });
+    });
+  },
   // Tìm người dùng theo tên
   async searchUsers(q) {
     const words = queryWords(q);
     if (!words.length) return [];
-    const first = [...words].sort((a, b) => b.length - a.length)[0].slice(0, 20);
+    const handle = cleanUsername(q);
+    const first = [...words].sort((a, b) => b.length - a.length)[0].replace(/^@/, '').slice(0, 20);
     // Hồ sơ cũ chưa có searchKeys (chủ hồ sơ chưa mở bản mới): tải danh sách hồ sơ 1 lần rồi lọc theo tên
     if (!profileCache || Date.now() - profileCache.at > 120000) {
       profileCache = { at: Date.now(), list: getDocs(query(collection(db, 'profiles'), limit(500))).then((s) => s.docs.map((d) => ({ uid: d.id, ...d.data() }))).catch(() => []) };
     }
-    const [hit, all] = await Promise.all([
+    const byHandle =
+      handle.length >= 2 && /^[a-z0-9._]+$/.test(handle)
+        ? getDocs(query(collection(db, 'profiles'), where('username', '>=', handle), where('username', '<=', `${handle}\uf8ff`), limit(10)))
+            .then((s) => s.docs.map((d) => ({ uid: d.id, ...d.data() })))
+            .catch(() => [])
+        : Promise.resolve([]);
+    const [hit, all, hh] = await Promise.all([
       getDocs(query(collection(db, 'profiles'), where('searchKeys', 'array-contains', first), limit(25)))
         .then((s) => s.docs.map((d) => ({ uid: d.id, ...d.data() })))
         .catch(() => []),
       profileCache.list,
+      byHandle,
     ]);
     const out = new Map();
+    hh.forEach((p) => out.set(p.uid, p));
     [...hit, ...all].filter((p) => p.name && matchName(p, words)).forEach((p) => out.set(p.uid, p));
     return [...out.values()].slice(0, 8);
   },
@@ -155,6 +197,17 @@ const local = {
   },
   async getFeed(uid) {
     return st.feeds[uid] || [];
+  },
+  async usernameOwner(name) {
+    return (st.usernames || {})[name] || null;
+  },
+  async setUsername(uid, name, old) {
+    st.usernames ||= {};
+    if (name && st.usernames[name] && st.usernames[name] !== uid) throw new Error('taken');
+    if (old && old !== name) delete st.usernames[old];
+    if (name) st.usernames[name] = uid;
+    st.profiles[uid] = { ...(st.profiles[uid] || {}), uid, username: name || '', updatedAt: now() };
+    persist();
   },
   async searchUsers(q) {
     const words = queryWords(q);

@@ -81,10 +81,10 @@ const fb = {
     return id;
   },
   deleteCustomPlace: (id) => deleteDoc(doc(db, 'customPlaces', id)),
-  reportMemory: (user, m, reason) =>
+  reportMemory: (user, m, reason, note = '') =>
     addDoc(collection(db, 'reports'), {
-      memoryId: m.id, memoryOwner: m.uid, reason, byUid: user.uid, byName: user.name, status: 'open', createdAt: now(),
-      snapshot: { place: m.place || null, caption: m.caption || '', photo: m.photos?.[0] || '', authorName: m.authorName || '' },
+      memoryId: m.id, memoryOwner: m.uid, reason, note: (note || '').slice(0, 500), byUid: user.uid, byName: user.name, status: 'open', createdAt: now(),
+      snapshot: { place: m.place || null, caption: m.caption || '', photo: m.photos?.[0] || '', authorName: m.authorName || '', authorPhoto: m.authorPhoto || '', date: m.date || '', occasion: m.occasion || '', photoCount: Math.max(m.photoCount || 0, m.photos?.length || 0), createdAt: typeof m.createdAt === 'number' ? m.createdAt : m.createdAt?.toMillis?.() || 0 },
     }),
   watchReports: (cb) => onSnapshot(collection(db, 'reports'), (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt)), () => cb([])),
   updateReport: (id, patch) => updateDoc(doc(db, 'reports', id), patch),
@@ -212,10 +212,10 @@ const local = {
     st.custom = st.custom.filter((x) => x.id !== id);
     persist();
   },
-  async reportMemory(user, m, reason) {
+  async reportMemory(user, m, reason, note = '') {
     st.reports.unshift({
-      id: Math.random().toString(36).slice(2), memoryId: m.id, memoryOwner: m.uid, reason, byUid: user.uid, byName: user.name, status: 'open', createdAt: now(),
-      snapshot: { place: m.place || null, caption: m.caption || '', photo: m.photos?.[0] || '', authorName: m.authorName || '' },
+      id: Math.random().toString(36).slice(2), memoryId: m.id, memoryOwner: m.uid, reason, note: (note || '').slice(0, 500), byUid: user.uid, byName: user.name, status: 'open', createdAt: now(),
+      snapshot: { place: m.place || null, caption: m.caption || '', photo: m.photos?.[0] || '', authorName: m.authorName || '', authorPhoto: m.authorPhoto || '', date: m.date || '', occasion: m.occasion || '', photoCount: Math.max(m.photoCount || 0, m.photos?.length || 0), createdAt: typeof m.createdAt === 'number' ? m.createdAt : m.createdAt?.toMillis?.() || 0 },
     });
     persist();
   },

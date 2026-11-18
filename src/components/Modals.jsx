@@ -247,6 +247,7 @@ function ReportModal({ memory, onClose }) {
   const { t } = useI18n();
   const { reportMemory, notify } = useApp();
   const [reason, setReason] = useState('inappropriate');
+  const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   return (
     <Modal title={`🚩 ${t('report.title')}`} onClose={onClose} className="modal--sm">
@@ -260,6 +261,12 @@ function ReportModal({ memory, onClose }) {
             </label>
           ))}
         </div>
+        <label className="field">
+          <span>
+            {t('report.noteLabel')} <small className="muted">({t('report.optional')})</small>
+          </span>
+          <textarea rows={3} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} placeholder={t('report.notePh')} />
+        </label>
         {busy ? (
           <Loader size="sm" />
         ) : (
@@ -272,7 +279,7 @@ function ReportModal({ memory, onClose }) {
               onClick={async () => {
                 setBusy(true);
                 try {
-                  await reportMemory(memory, reason);
+                  await reportMemory(memory, reason, note.trim());
                   notify(t('report.sent'));
                   onClose();
                 } catch (e) {

@@ -3890,3 +3890,16 @@ img.is-loaded {
     text-align: left;
   }
 }
+.mgrid__meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.mgrid__meta span {
+  max-width: 100%;
+}
+.mgrid__meta small {
+  font-weight: 500;
+  opacity: 0.85;
+  font-size: 11px;
+}

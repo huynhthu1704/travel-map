@@ -692,7 +692,9 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
     setBusy(true);
     try {
       // Ngày đến gần nhất của địa điểm = lần check-in muộn nhất
-      const dates = [...memories.filter((m) => m.place?.id === place.id && m.id !== memory?.id).map((m) => m.date), placeById[place.id]?.visitedAt, date].filter(Boolean).sort();
+      // Ngày đến = lần check-in muộn nhất (chỉ tính các lần check-in; lần đến cũ chỉ tính khi chưa có check-in nào)
+      const others = memories.filter((m) => m.place?.id === place.id && m.id !== memory?.id).map((m) => m.date);
+      const dates = [...others, ...(memories.some((m) => m.place?.id === place.id) ? [] : [placeById[place.id]?.visitedAt]), date].filter(Boolean).sort();
       const latest = dates[dates.length - 1] || date;
       if (memory) {
         await api.updateMemory(memory.id, { date, occasion, caption: caption.trim(), tripId: tripId || null, visibility: hasPhotos ? visibility : 'private' });

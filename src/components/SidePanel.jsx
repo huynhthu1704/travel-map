@@ -684,7 +684,7 @@ function PlacePanel() {
 }
 
 export function MemoryGrid({ items }) {
-  const { setModal, placeStatus } = useApp();
+  const { setModal, placeStatus, user } = useApp();
   return (
     <div className="mgrid">
       {items.map((m) => (
@@ -692,8 +692,8 @@ export function MemoryGrid({ items }) {
           <LoadingImage src={m.photos?.[0]} alt={m.caption || m.place?.name} loading="lazy" fallback={<span className="mgrid__noimg">📝</span>} />
           {m.photos?.length > 1 && <span className="mgrid__count">+{m.photos.length - 1}</span>}
           <span className="mgrid__meta">
-            <Avatar name={m.authorName} photo={m.authorPhoto} size={20} />
             <span>{pName(m.place)}</span>
+            {m.uid !== user?.uid && m.authorName && <small>{m.authorName}</small>}
           </span>
           {m.date && <span className="mgrid__date">{formatDate(m.date)}</span>}
           {placeStatus[m.place?.id] === 'wishlist' && <span className="mgrid__wish" title="💛">💛</span>}
@@ -732,8 +732,14 @@ function StickyBar({ watch, compact, children }) {
 function CheckinHistory({ place, saved, mine, tripId }) {
   const { t } = useI18n();
   const { setModal, api, notify, requireLogin, trips } = useApp();
-  // Lần đến cũ chỉ có ngày / dịp (chưa phải check-in đầy đủ) → vẫn hiện như 1 lần check-in
-  const legacy = saved?.status === 'visited' && (saved.visitedAt || saved.occasion) && !mine.some((m) => m.date && m.date === saved.visitedAt) ? saved : null;
+  // Lần đến cũ chỉ có ngày / dịp (chưa có lần check-in nào) → hiện như 1 lần check-in.
+  // Khi đã có check-in thì danh sách check-in là nguồn chính, ngày đến = lần check-in gần nhất.
+  const legacy = saved?.status === 'visited' && (saved.visitedAt || saved.occasion) && mine.length === 0 ? saved : null;
+  const latest = mine.map((m) => m.date).filter(Boolean).sort().pop() || null;
+  const { saveVisited } = useApp();
+  useEffect(() => {
+    if (mine.length && saved?.status === 'visited' && latest && saved.visitedAt !== latest) saveVisited(place, { visitedAt: latest }).catch(() => {});
+  }, [latest, saved?.visitedAt, mine.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const entries = [
     ...mine.map((m) => ({ key: m.id, date: m.date, occasion: m.occasion, caption: m.caption, photos: m.photos || [], tripId: m.tripId, memory: m })),
     ...(legacy ? [{ key: 'legacy', date: legacy.visitedAt, occasion: legacy.occasion, caption: '', photos: [], legacy: true }] : []),

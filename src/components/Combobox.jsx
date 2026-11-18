@@ -24,7 +24,8 @@ export default function Combobox({ value, options, onChange, placeholder, allLab
     document.addEventListener('pointerdown', h);
     return () => document.removeEventListener('pointerdown', h);
   }, []);
-  useEffect(() => setActive(0), [text]);
+  // Đang gõ tìm: chọn sẵn kết quả khớp đầu tiên thay vì mục "Tất cả"
+  useEffect(() => setActive(text.trim() && allLabel ? 1 : 0), [text]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     listRef.current?.querySelector('.combo__opt.is-active')?.scrollIntoView({ block: 'nearest' });
   }, [active]);

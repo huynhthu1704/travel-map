@@ -10,6 +10,7 @@ import { pName, pCity } from '../lib/lang';
 import Combobox from '../components/Combobox';
 import DateInput from '../components/DateInput';
 import { TripPlan, TripChecklists } from './TripPlan';
+import DestinationPicker, { destLabel, cleanDests } from '../components/DestinationPicker';
 
 const TRIP_EMOJIS = ['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'];
 /** Khoảng ngày của chuyến đi: "12/03/2026 → 15/03/2026" */
@@ -25,6 +26,14 @@ function TripEditor({ trip, onClose }) {
   const [start, setStart] = useState(trip.startDate || '');
   const [end, setEnd] = useState(trip.endDate || '');
   const [kind, setKind] = useState(trip.kind || 'domestic');
+  const [dests, setDests] = useState(trip.destinations || []);
+  const { homeCountry } = useApp();
+  const changeDests = (d) => {
+    setDests(d);
+    // Tự chọn loại chuyến theo điểm đến (vẫn đổi tay được)
+    const ccs = cleanDests(d).map((x) => x.cc);
+    if (ccs.length) setKind(ccs.some((c) => c !== homeCountry) ? 'international' : 'domestic');
+  };
   const [busy, setBusy] = useState(false);
   const bad = start && end && end < start;
   const save = async (e) => {
@@ -33,7 +42,7 @@ function TripEditor({ trip, onClose }) {
     if (bad) return notify(t('trip.endBeforeStart'), 'error');
     setBusy(true);
     try {
-      await api.updateTrip(trip.id, { name: name.trim(), emoji, startDate: start || null, endDate: end || null, kind });
+      await api.updateTrip(trip.id, { name: name.trim(), emoji, startDate: start || null, endDate: end || null, kind, destinations: cleanDests(dests) });
       notify(t('trip.updated'));
       onClose();
     } catch (err) {
@@ -58,6 +67,10 @@ function TripEditor({ trip, onClose }) {
           <input className="grow" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={t('trips.namePlaceholder')} />
         </div>
       </label>
+      <div className="field">
+        <span>📍 {t('dest.label')}</span>
+        <DestinationPicker value={dests} onChange={changeDests} />
+      </div>
       <div className="grid-2">
         <label className="field">
           <span>🛫 {t('trip.startDate')}</span>
@@ -368,9 +381,10 @@ function PlaceList({ items, onOpen, emptyText }) {
 }
 
 export function TripsPage() {
-  const { user, trips, api, requireLogin, notify, activeTripId, setActiveTripId, setView, loaded, openTripId: openId, setOpenTripId: setOpenId } = useApp();
+  const { user, trips, api, requireLogin, notify, activeTripId, setActiveTripId, setView, loaded, openTripId: openId, setOpenTripId: setOpenId, homeCountry } = useApp();
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('🧳');
+  const [newDests, setNewDests] = useState([]);
   const [code, setCode] = useState('');
   const [owner, setOwner] = useState('all'); // all | mine | others
   const { t } = useI18n();
@@ -409,8 +423,11 @@ export function TripsPage() {
           onSubmit={async (e) => {
             e.preventDefault();
             if (!name.trim()) return;
-            const tr = await api.createTrip(user, { name: name.trim(), emoji });
+            const destinations = cleanDests(newDests);
+            const kind = destinations.some((d) => d.cc !== homeCountry) ? 'international' : 'domestic';
+            const tr = await api.createTrip(user, { name: name.trim(), emoji, destinations, kind });
             setName('');
+            setNewDests([]);
             notify(t('trips.created', { name: tr.name }));
             setOpenId(tr.id);
           }}
@@ -423,6 +440,10 @@ export function TripsPage() {
               ))}
             </select>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('trips.namePlaceholder')} className="grow" />
+          </div>
+          <div className="field">
+            <span className="small muted">📍 {t('dest.labelOptional')}</span>
+            <DestinationPicker value={newDests} onChange={setNewDests} />
           </div>
           <button className="btn btn--primary">{t('trips.createBtn')}</button>
         </form>
@@ -472,6 +493,7 @@ export function TripsPage() {
                 <span>
                   <b>{tr.name}</b>
                   <small>
+                    {destLabel(tr.destinations) && <>{destLabel(tr.destinations)} · </>}
                     {tripDates(tr) && <>🗓️ {tripDates(tr)} · </>}
                     {t('trips.members', { n: tr.memberIds.length })}
                   </small>
@@ -542,6 +564,7 @@ function TripDetail({ trip, onBack }) {
             {trip.emoji} {trip.name}
           </h1>
           {tripDates(trip) && <p className="trip-dates">🗓️ {tripDates(trip)}</p>}
+          {destLabel(trip.destinations) && <p className="trip-dests">📍 {destLabel(trip.destinations)}</p>}
           <p className="muted">
             {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stopList.length })} · {t('trip.code')} <b className="code">{trip.inviteCode}</b>
           </p>

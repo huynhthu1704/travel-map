@@ -9,18 +9,69 @@ import { countryName, flagOf } from '../lib/countries';
 import { normalize, searchNominatim, isGoogleMapsLink } from '../lib/geo';
 import { getLang, getLocale, pName, pCity } from '../lib/lang';
 import { resolveGoogleMaps } from '../components/Modals';
+import { destLabel } from '../components/DestinationPicker';
 
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 const dayDiff = (a, b) => Math.round((new Date(a) - new Date(b)) / 864e5);
+const distKm = (a, b) => {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+};
+const NEAR_KM = 40; // bán kính coi là "ở thành phố đó"
+
+/** Toạ độ trung tâm các thành phố điểm đến (tra 1 lần qua OpenStreetMap, lưu cache) */
+function useCityCenters(dests) {
+  const key = dests.map((d) => `${d.cc}|${d.city}`).join(';');
+  const [centers, setCenters] = useState({});
+  useEffect(() => {
+    let alive = true;
+    let cache = {};
+    try {
+      cache = JSON.parse(localStorage.getItem('travel-map-city-centers') || '{}');
+    } catch {
+      /* bỏ qua */
+    }
+    const todo = dests.filter((d) => d.city);
+    setCenters(Object.fromEntries(todo.filter((d) => cache[`${d.cc}|${d.city}`]).map((d) => [`${d.cc}|${d.city}`, cache[`${d.cc}|${d.city}`]])));
+    (async () => {
+      for (const d of todo) {
+        const k = `${d.cc}|${d.city}`;
+        if (cache[k]) continue;
+        try {
+          const [r] = await searchNominatim(d.city, undefined, getLang(), { countrycodes: d.cc, limit: 1 });
+          if (r) {
+            cache[k] = { lat: r.lat, lng: r.lng };
+            try {
+              localStorage.setItem('travel-map-city-centers', JSON.stringify(cache));
+            } catch {
+              /* đầy bộ nhớ */
+            }
+            if (alive) setCenters((c) => ({ ...c, [k]: cache[k] }));
+          }
+        } catch {
+          /* mạng lỗi */
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return centers;
+}
+
 const weekday = (iso) => new Date(iso).toLocaleDateString(getLocale(), { weekday: 'short' });
 
 /* ------------------------------------------------------------------ */
 /* Ô tìm địa điểm để thêm vào kế hoạch                                 */
 /* ------------------------------------------------------------------ */
-function PlacePicker({ onPick, placeholder }) {
+function PlacePicker({ onPick, placeholder, countrycodes = '' }) {
   const { t, lang } = useI18n();
   const { allLiveFamous, places, memories } = useApp();
   const [q, setQ] = useState('');
@@ -41,7 +92,7 @@ function PlacePicker({ onPick, placeholder }) {
     const tm = setTimeout(async () => {
       setBusy(true);
       try {
-        setOsm(await searchNominatim(q.trim(), ctl.signal, getLang()));
+        setOsm(await searchNominatim(q.trim(), ctl.signal, getLang(), { countrycodes }));
       } catch {
         /* huỷ */
       }
@@ -51,7 +102,7 @@ function PlacePicker({ onPick, placeholder }) {
       clearTimeout(tm);
       ctl.abort();
     };
-  }, [q]);
+  }, [q, countrycodes]);
   const pick = (p) => {
     onPick(p);
     setQ('');
@@ -248,16 +299,30 @@ export function TripPlan({ trip }) {
     ]);
   };
 
-  // Gợi ý: danh sách Muốn đi của tôi + địa điểm nổi tiếng ở các quốc gia trong kế hoạch
-  const wish = places.filter((p) => p.status === 'wishlist' && !planned.has(p.id));
+  // Gợi ý được khoanh vùng theo điểm đến của chuyến (quốc gia + thành phố);
+  // chưa khai báo điểm đến thì dựa vào các quốc gia đã có trong kế hoạch
   const planCountries = [...new Set(list.map((i) => i.place.country).filter(Boolean))];
-  useEffect(() => planCountries.forEach((cc) => ensureFamous(cc)), [planCountries.join(','), ensureFamous]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dests = trip.destinations?.length ? trip.destinations : planCountries.map((cc) => ({ cc, city: '' }));
+  const destCcs = [...new Set(dests.map((d) => d.cc))];
+  useEffect(() => destCcs.forEach((cc) => ensureFamous(cc)), [destCcs.join(','), ensureFamous]); // eslint-disable-line react-hooks/exhaustive-deps
+  const centers = useCityCenters(dests);
+  const inDest = (p) =>
+    !dests.length ||
+    dests.some((d) => {
+      if (p.country && p.country !== d.cc) return false;
+      if (!d.city) return p.country === d.cc;
+      const c = centers[`${d.cc}|${d.city}`];
+      if (c && p.lat != null && distKm(c, p) <= NEAR_KM) return true;
+      return normalize(`${p.city || ''} ${pCity(p)} ${p.i18n?.en?.city || ''}`).includes(normalize(d.city));
+    });
+  const wish = places.filter((p) => p.status === 'wishlist' && !planned.has(p.id) && inDest(p));
   const wishIds = new Set(wish.map((p) => p.id));
-  const wishNames = new Set([...wish, ...list.map((i) => i.place)].map((p) => normalize(p.name)));
-  const suggested = planCountries
+  const takenNames = new Set([...wish, ...list.map((i) => i.place)].map((p) => normalize(p.name)));
+  const suggested = destCcs
     .flatMap((cc) => famousFor(cc))
-    .filter((p) => !planned.has(p.id) && !wishIds.has(p.id) && !wishNames.has(normalize(p.name)))
-    .slice(0, 12);
+    .filter((p) => inDest(p) && !planned.has(p.id) && !wishIds.has(p.id) && !takenNames.has(normalize(p.name)))
+    .slice(0, 16);
+  const where = destLabel(dests);
 
   const done = list.filter((i) => i.done).length;
   let counter = 0;
@@ -287,15 +352,16 @@ export function TripPlan({ trip }) {
           </div>
         )}
         <div className="plan-add">
-          <PlacePicker onPick={(p) => add(p)} placeholder={t('plan.searchPlaceholder')} />
+          <PlacePicker onPick={(p) => add(p)} placeholder={t('plan.searchPlaceholder')} countrycodes={trip.destinations?.length ? destCcs.join(',') : ''} />
           <label className="field plan-add__date">
             <span>📅 {t('plan.addOnDate')}</span>
             <DateInput value={addDate} onChange={setAddDate} ariaLabel={t('plan.addOnDate')} />
           </label>
         </div>
+        {!trip.destinations?.length && <p className="tiny muted">💡 {t('plan.destHint')}</p>}
         {wish.length > 0 && (
           <div className="stack-sm">
-            <small className="muted">💛 {t('plan.fromWishlist')}</small>
+            <small className="muted">💛 {where ? t('plan.fromWishlistIn', { where }) : t('plan.fromWishlist')}</small>
             <div className="chips chips--wrap">
               {wish.slice(0, 12).map((p) => (
                 <button key={p.id} className="chip" onClick={() => add(p)}>
@@ -307,7 +373,7 @@ export function TripPlan({ trip }) {
         )}
         {suggested.length > 0 && (
           <div className="stack-sm">
-            <small className="muted">✨ {t('plan.suggested')}</small>
+            <small className="muted">✨ {where ? t('plan.suggestedIn', { where }) : t('plan.suggested')}</small>
             <div className="chips chips--wrap">
               {suggested.map((p) => (
                 <button key={p.id} className="chip" onClick={() => add(p)}>

@@ -134,9 +134,9 @@ const firebaseBackend = {
       cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byNewest)),
     );
   },
-  async createTrip(user, { name, emoji }) {
+  async createTrip(user, { name, emoji, destinations = [], kind = 'domestic' }) {
     const data = {
-      name, emoji: emoji || '🧳', ownerId: user.uid, memberIds: [user.uid],
+      name, emoji: emoji || '🧳', destinations, kind, ownerId: user.uid, memberIds: [user.uid],
       members: { [user.uid]: { name: user.name, photo: user.photo || '' } }, inviteCode: makeInviteCode(), createdAt: now(),
     };
     const r = await addDoc(collection(db, 'trips'), data);
@@ -316,9 +316,9 @@ const localBackend = {
   watchTrips(u, cb) {
     return sub(() => cb(state.trips.filter((t) => t.memberIds.includes(u)).sort(byNewest)));
   },
-  async createTrip(user, { name, emoji }) {
+  async createTrip(user, { name, emoji, destinations = [], kind = 'domestic' }) {
     const t = {
-      id: uid(), name, emoji: emoji || '🧳', ownerId: user.uid, memberIds: [user.uid],
+      id: uid(), name, emoji: emoji || '🧳', destinations, kind, ownerId: user.uid, memberIds: [user.uid],
       members: { [user.uid]: { name: user.name, photo: user.photo } }, inviteCode: makeInviteCode(), createdAt: now(),
     };
     state.trips.push(t);

@@ -2897,3 +2897,32 @@ img.is-loaded {
 .checklist form.row {
   flex-wrap: wrap;
 }
+.dest-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dest-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.dest-row:not(:has(.dest-row__x)) {
+  grid-template-columns: 1fr 1fr;
+}
+.dest-add {
+  align-self: flex-start;
+}
+.trip-dests {
+  margin: 2px 0;
+  font-weight: 600;
+}
+@media (max-width: 520px) {
+  .dest-row {
+    grid-template-columns: 1fr auto;
+  }
+  .dest-row > :nth-child(2) {
+    grid-column: 1;
+  }
+}

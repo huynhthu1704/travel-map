@@ -4,7 +4,9 @@ import { useI18n } from '../i18n';
 import { Avatar, Loader, formatDate } from '../components/ui';
 import DateInput from '../components/DateInput';
 import { pName } from '../lib/lang';
-import { CURRENCIES, fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle } from '../lib/money';
+import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase } from '../lib/money';
+import { currencyOfCountry } from '../lib/rates';
+import CurrencyRates from '../components/CurrencyRates';
 
 /* ------------------------------------------------------------------ */
 /* Ô nhập tiền: tự thêm dấu phân cách hàng nghìn                       */
@@ -46,97 +48,170 @@ const Seg = ({ value, set, options }) => (
 /* ------------------------------------------------------------------ */
 /* Form thêm / sửa 1 khoản chi (dự kiến hoặc thực tế)                  */
 /* ------------------------------------------------------------------ */
-function CostForm({ type, initial = {}, trip, plan, cur, onSave, onCancel }) {
+function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates = [], onSave, onCancel }) {
   const { t } = useI18n();
   const { user } = useApp();
   const memberIds = trip.memberIds || [];
+  const n = Math.max(memberIds.length, 1);
   const [title, setTitle] = useState(initial.title || '');
   const [amount, setAmount] = useState(initial.amount ?? null);
   const [per, setPer] = useState(initial.per || 'group');
   const [planItemId, setPlanItemId] = useState(initial.planItemId || '');
+  const [estimateId, setEstimateId] = useState(initial.estimateId || '');
   const [paidBy, setPaidBy] = useState(initial.paidBy || user.uid);
   const [among, setAmong] = useState(initial.splitAmong?.length ? initial.splitAmong : memberIds);
   const [date, setDate] = useState(initial.date || '');
   const [note, setNote] = useState(initial.note || '');
   const linked = plan.find((p) => p.id === planItemId);
+  // Tiền tệ của khoản này: nhập đúng tiền đã trả, chỉ quy đổi khi tính tổng / chia tiền
+  const lastKey = `travel-map-cur-${trip.id}`;
+  const [cur, setCur] = useState(() => initial.currency || (curs.includes(localStorage.getItem(lastKey)) ? localStorage.getItem(lastKey) : base));
+  useEffect(() => {
+    if (initial.currency || !linked || estimateId) return;
+    const c = currencyOfCountry(linked.place.country);
+    if (c && curs.includes(c)) setCur(c);
+  }, [planItemId]); // eslint-disable-line react-hooks/exhaustive-deps
   const finalTitle = title.trim() || (linked ? pName(linked.place) : '');
   const ok = finalTitle && amount > 0 && (type === 'estimate' || (paidBy && among.length));
   const toggle = (id) => setAmong((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+  const fromEstimate = (e) => {
+    setEstimateId(e.id);
+    setTitle(e.title);
+    setAmount(e.per === 'person' ? e.amount * n : e.amount);
+    setCur(e.currency && curs.includes(e.currency) ? e.currency : base);
+    setPlanItemId(e.planItemId || '');
+    if (e.note) setNote(e.note);
+  };
+  const chosenEst = estimates.find((e) => e.id === estimateId);
   const submit = (e) => {
     e.preventDefault();
     if (!ok) return;
-    const base = { type, title: finalTitle, amount, planItemId: planItemId || null, note: note.trim() };
-    if (type === 'estimate') onSave({ ...base, per });
+    try {
+      localStorage.setItem(lastKey, cur);
+    } catch {
+      /* bỏ qua */
+    }
+    const common = { type, title: finalTitle, amount, currency: cur, planItemId: planItemId || null, note: note.trim() };
+    if (type === 'estimate') onSave({ ...common, per });
     else
       onSave({
-        ...base,
+        ...common,
+        estimateId: estimateId || null,
         paidBy,
         paidByName: trip.members?.[paidBy]?.name || '',
         splitAmong: among.length === memberIds.length && memberIds.every((m) => among.includes(m)) ? [] : among,
         date: date || '',
       });
   };
+  const placeSelect = plan.length > 0 && (
+    <label className="cf-field">
+      <span>📍 {t('cost.placeLabel')}</span>
+      <select value={planItemId} onChange={(e) => setPlanItemId(e.target.value)}>
+        <option value="">{t('cost.noPlace')}</option>
+        {plan.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.place.emoji || '📍'} {pName(p.place)}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
   return (
     <form className="cost-form" onSubmit={submit}>
-      <div className="cost-form__row">
-        <input className="grow" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={linked ? pName(linked.place) : t(`cost.titlePh.${type}`)} maxLength={80} autoFocus={!initial.id} />
-        <MoneyInput value={amount} onChange={setAmount} cur={cur} />
-      </div>
-      <div className="cost-form__row">
-        {plan.length > 0 && (
-          <select value={planItemId} onChange={(e) => setPlanItemId(e.target.value)} className="cost-form__link" aria-label={t('cost.linkPlace')}>
-            <option value="">📍 {t('cost.noPlace')}</option>
-            {plan.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.place.emoji || '📍'} {pName(p.place)}
-              </option>
+      {/* Chọn nhanh từ bảng dự kiến */}
+      {type === 'actual' && !initial.id && estimates.length > 0 && (
+        <div className="cf-pick">
+          <span className="small muted">⚡ {t('cost.pickFromEst')}</span>
+          <div className="chips chips--wrap">
+            {estimates.map((e) => (
+              <button key={e.id} type="button" className={`chip chip--sm ${estimateId === e.id ? 'chip--on' : ''}`} onClick={() => fromEstimate(e)}>
+                {e.title} · {fmtMoney(e.per === 'person' ? e.amount * n : e.amount, e.currency || base)}
+              </button>
             ))}
-          </select>
-        )}
-        {type === 'estimate' ? (
-          <Seg value={per} set={setPer} options={[['group', `👥 ${t('cost.perGroup')}`], ['person', `🙋 ${t('cost.perPerson')}`]]} />
-        ) : (
-          <>
-            <label className="cost-form__inline">
-              <span>💳 {t('cost.paidBy')}</span>
-              <select value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
-                {memberIds.map((id) => (
-                  <option key={id} value={id}>
-                    {trip.members?.[id]?.name || id}
-                  </option>
+          </div>
+        </div>
+      )}
+      <div className="cf-main">
+        <label className="cf-field cf-field--grow">
+          <span>{t('cost.item')}</span>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={linked ? pName(linked.place) : t(`cost.titlePh.${type}`)} maxLength={80} autoFocus={!initial.id} />
+        </label>
+        <label className="cf-field">
+          <span>{t('cost.amount')}</span>
+          <div className="cf-amount">
+            <MoneyInput value={amount} onChange={setAmount} cur={cur} />
+            {curs.length > 1 && (
+              <select className="cost-form__cur" value={cur} onChange={(e) => setCur(e.target.value)} aria-label={t('cost.currency')}>
+                {curs.map((c) => (
+                  <option key={c}>{c}</option>
                 ))}
               </select>
-            </label>
-            <DateInput value={date} onChange={setDate} ariaLabel={t('cost.date')} />
-          </>
-        )}
+            )}
+          </div>
+        </label>
       </div>
+      {chosenEst && amount != null && (
+        <small className="muted">
+          {t('cost.vsEstimate', { v: fmtMoney(chosenEst.per === 'person' ? chosenEst.amount * n : chosenEst.amount, chosenEst.currency || base) })}
+        </small>
+      )}
+      {type === 'estimate' ? (
+        <div className="cf-grid">
+          <div className="cf-field">
+            <span>{t('cost.calcBy')}</span>
+            <Seg value={per} set={setPer} options={[['group', `👥 ${t('cost.perGroup')}`], ['person', `🙋 ${t('cost.perPerson')}`]]} />
+          </div>
+          {placeSelect}
+        </div>
+      ) : (
+        <div className="cf-grid">
+          <label className="cf-field">
+            <span>💳 {t('cost.paidBy')}</span>
+            <select value={paidBy} onChange={(e) => setPaidBy(e.target.value)}>
+              {memberIds.map((id) => (
+                <option key={id} value={id}>
+                  {trip.members?.[id]?.name || id}
+                  {id === user.uid ? ` (${t('trips.you')})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="cf-field">
+            <span>📅 {t('cost.date')}</span>
+            <DateInput value={date} onChange={setDate} ariaLabel={t('cost.date')} />
+          </div>
+          {placeSelect}
+        </div>
+      )}
       {type === 'estimate' && amount > 0 && (
         <small className="muted">
           {per === 'group'
-            ? t('cost.groupHint', { each: fmtMoney(amount / Math.max(memberIds.length, 1), cur), n: memberIds.length })
-            : t('cost.personHint', { total: fmtMoney(amount * memberIds.length, cur), n: memberIds.length })}
+            ? t('cost.groupHint', { each: fmtMoney(amount / n, cur), n })
+            : t('cost.personHint', { total: fmtMoney(amount * n, cur), n })}
         </small>
       )}
       {type === 'actual' && memberIds.length > 1 && (
-        <div className="cost-form__split">
-          <span className="small muted">{t('cost.splitAmong')}</span>
-          {memberIds.map((id) => (
-            <button key={id} type="button" className={`chip chip--sm ${among.includes(id) ? 'chip--on' : ''}`} onClick={() => toggle(id)}>
-              {among.includes(id) ? '✓ ' : ''}
-              {trip.members?.[id]?.name || id}
-            </button>
-          ))}
-          {amount > 0 && among.length > 0 && <small className="muted">= {fmtMoney(amount / among.length, cur)} / {t('cost.person')}</small>}
+        <div className="cf-field">
+          <span>
+            ➗ {t('cost.splitAmong')} {amount > 0 && among.length > 0 && <em className="muted">= {fmtMoney(amount / among.length, cur)} / {t('cost.person')}</em>}
+          </span>
+          <div className="cost-form__split">
+            {memberIds.map((id) => (
+              <button key={id} type="button" className={`chip chip--sm ${among.includes(id) ? 'chip--on' : ''}`} onClick={() => toggle(id)}>
+                {among.includes(id) ? '✓ ' : ''}
+                {trip.members?.[id]?.name || id}
+              </button>
+            ))}
+          </div>
         </div>
       )}
-      <div className="cost-form__row">
+      <div className="cf-foot">
         <input className="grow" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('cost.notePh')} maxLength={120} />
-        <button className="btn btn--sm btn--primary" disabled={!ok}>
+        <button className="btn btn--primary" disabled={!ok}>
           {initial.id ? `💾 ${t('trip.save')}` : `＋ ${t('cost.add')}`}
         </button>
         {onCancel && (
-          <button type="button" className="btn btn--sm btn--ghost" onClick={onCancel}>
+          <button type="button" className="btn btn--ghost" onClick={onCancel}>
             {t('pick.cancel')}
           </button>
         )}
@@ -158,7 +233,23 @@ export default function TripCosts({ trip }) {
   const [editId, setEditId] = useState(null);
   useEffect(() => api.watchCosts(trip.id, setCosts), [trip.id, api]);
   useEffect(() => api.watchPlan(trip.id, setPlan), [trip.id, api]);
-  const cur = trip.currency || 'VND';
+  const cur = trip.currency || 'VND'; // tiền quy đổi cuối cùng
+  const rates = trip.rates || {};
+  const curs = [cur, ...Object.keys(rates).filter((c) => c !== cur)];
+  const conv = makeToBase(cur, rates);
+  const suggestCurs = [...new Set((trip.destinations || []).map((d) => currencyOfCountry(d.cc)).filter(Boolean))];
+  /** Số tiền theo tiền gốc + (≈ quy đổi) nếu là ngoại tệ */
+  const Amount = ({ c, value = c.amount, strong }) => {
+    const v = <>{fmtMoney(value, c.currency || cur)}</>;
+    if (!c.currency || c.currency === cur) return strong ? <b>{v}</b> : v;
+    const b = conv(value, c.currency);
+    return (
+      <span className="amt">
+        {strong ? <b>{v}</b> : v}
+        <small className={b == null ? 'warn' : 'muted'}>{b == null ? `⚠️ ${t('fx.needRate')}` : `≈ ${fmtMoney(b, cur)}`}</small>
+      </span>
+    );
+  };
   const memberIds = trip.memberIds || [];
   const n = Math.max(memberIds.length, 1);
   const nameOf = (id, fallback) => trip.members?.[id]?.name || fallback || '—';
@@ -168,10 +259,14 @@ export default function TripCosts({ trip }) {
   const estimates = list.filter((c) => c.type === 'estimate');
   const actuals = list.filter((c) => c.type === 'actual').sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
   const payments = list.filter((c) => c.type === 'payment');
-  const estPerPerson = estimates.reduce((s, c) => s + perPersonOf(c, n), 0);
-  const estGroup = estimates.reduce((s, c) => s + groupTotalOf(c, n), 0);
-  const actualTotal = actuals.reduce((s, c) => s + (Number(c.amount) || 0), 0);
-  const { balances, transfers } = useMemo(() => settle(list, memberIds, cur), [costs, memberIds.join(), cur]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Dự kiến đã được ghi thành chi phí thực tế (qua estimateId)
+  const recorded = Object.fromEntries(estimates.map((e) => [e.id, actuals.filter((a) => a.estimateId === e.id)]));
+  const openEstimates = estimates.filter((e) => !recorded[e.id]?.length);
+  const estPerPerson = estimates.reduce((s, c) => s + perPersonOf(c, n, conv), 0);
+  const estGroup = estimates.reduce((s, c) => s + groupTotalOf(c, n, conv), 0);
+  const actualTotal = actuals.reduce((s, c) => s + (conv(c.amount, c.currency) ?? 0), 0);
+  const missingRate = list.some((c) => c.currency && c.currency !== cur && conv(1, c.currency) == null);
+  const { balances, transfers } = useMemo(() => settle(list, memberIds, cur, conv), [costs, memberIds.join(), cur, JSON.stringify(rates)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async (data, id) => {
     try {
@@ -210,14 +305,10 @@ export default function TripCosts({ trip }) {
           <small>{t('cost.diff')}</small>
           <b>{estGroup > 0 ? `${actualTotal > estGroup ? '+' : actualTotal < estGroup ? '−' : ''}${fmtMoney(Math.abs(actualTotal - estGroup), cur)}` : '—'}</b>
         </div>
-        <label className="cost-cur">
-          <small>{t('cost.currency')}</small>
-          <select value={cur} onChange={(e) => api.updateTrip(trip.id, { currency: e.target.value })}>
-            {CURRENCIES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
+      </div>
+      <div className="card">
+        <CurrencyRates value={{ base: cur, rates }} suggest={suggestCurs} onChange={(v) => api.updateTrip(trip.id, { currency: v.base, rates: v.rates })} />
+        {missingRate && <p className="small warn">⚠️ {t('fx.missingWarn')}</p>}
       </div>
 
       {/* Dự kiến */}
@@ -230,7 +321,7 @@ export default function TripCosts({ trip }) {
             </button>
           )}
         </div>
-        {adding === 'estimate' && <CostForm type="estimate" trip={trip} plan={plan} cur={cur} onSave={(d) => save(d)} onCancel={() => setAdding(null)} />}
+        {adding === 'estimate' && <CostForm type="estimate" trip={trip} plan={plan} cur={cur} curs={curs} onSave={(d) => save(d)} onCancel={() => setAdding(null)} />}
         {estimates.length === 0 && adding !== 'estimate' && <p className="small muted">{t('cost.noEstimates')}</p>}
         {estimates.length > 0 && (
           <div className="cost-table">
@@ -242,7 +333,7 @@ export default function TripCosts({ trip }) {
             </div>
             {estimates.map((c) =>
               editId === c.id ? (
-                <CostForm key={c.id} type="estimate" initial={c} trip={trip} plan={plan} cur={cur} onSave={(d) => save(d, c.id)} onCancel={() => setEditId(null)} />
+                <CostForm key={c.id} type="estimate" initial={c} trip={trip} plan={plan} cur={cur} curs={curs} onSave={(d) => save(d, c.id)} onCancel={() => setEditId(null)} />
               ) : (
                 <div key={c.id} className="cost-row cost-row--est">
                   <span className="cost-row__title">
@@ -252,20 +343,25 @@ export default function TripCosts({ trip }) {
                     )}
                   </span>
                   <span>
-                    {fmtMoney(c.amount, cur)}
+                    <Amount c={c} />
                     <small className="muted"> / {c.per === 'person' ? t('cost.person') : t('cost.group')}</small>
                   </span>
-                  <span>{fmtMoney(perPersonOf(c, n), cur)}</span>
+                  <span>{fmtMoney(perPersonOf(c, n, conv), cur)}</span>
                   <span className="cost-row__actions">
+                    {recorded[c.id]?.length ? (
+                      <span className="est-done" title={t('cost.recordedHelp')}>
+                        ✓ {fmtMoney(recorded[c.id].reduce((x, a) => x + (conv(a.amount, a.currency) ?? 0), 0), cur)}
+                      </span>
+                    ) : null}
                     <button
-                      className="icon-btn icon-btn--sm"
+                      className={`btn btn--sm ${recorded[c.id]?.length ? 'btn--ghost' : 'btn--soft'}`}
                       title={t('cost.toActual')}
                       onClick={() => {
-                        setPrefill({ title: c.title, amount: groupTotalOf(c, n), planItemId: c.planItemId, note: c.note });
+                        setPrefill({ title: c.title, amount: c.per === 'person' ? c.amount * n : c.amount, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id });
                         setAdding('actual');
                       }}
                     >
-                      🧾
+                      🧾 {recorded[c.id]?.length ? '' : t('cost.recordBtn')}
                     </button>
                     <button className="icon-btn icon-btn--sm" title={t('plan.edit')} onClick={() => setEditId(c.id)}>
                       ✏️
@@ -302,9 +398,11 @@ export default function TripCosts({ trip }) {
             key={JSON.stringify(prefill)}
             type="actual"
             initial={prefill || {}}
+            estimates={openEstimates}
             trip={trip}
             plan={plan}
             cur={cur}
+            curs={curs}
             onSave={(d) => save(d)}
             onCancel={() => {
               setAdding(null);
@@ -324,17 +422,24 @@ export default function TripCosts({ trip }) {
             </div>
             {actuals.map((c) =>
               editId === c.id ? (
-                <CostForm key={c.id} type="actual" initial={c} trip={trip} plan={plan} cur={cur} onSave={(d) => save(d, c.id)} onCancel={() => setEditId(null)} />
+                <CostForm key={c.id} type="actual" initial={c} trip={trip} plan={plan} cur={cur} curs={curs} onSave={(d) => save(d, c.id)} onCancel={() => setEditId(null)} />
               ) : (
                 <div key={c.id} className="cost-row cost-row--act">
                   <span className="cost-row__title">
                     <b>{c.title}</b>
                     <small className="muted">
-                      {[placeOf(c) && `📍 ${pName(placeOf(c))}`, c.date && formatDate(c.date), c.note].filter(Boolean).join(' · ')}
+                      {[
+                        placeOf(c) && `📍 ${pName(placeOf(c))}`,
+                        c.date && formatDate(c.date),
+                        c.estimateId && estimates.find((e) => e.id === c.estimateId) && `📝 ${t('cost.fromEstimate')}`,
+                        c.note,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </small>
                   </span>
                   <span>
-                    <b>{fmtMoney(c.amount, cur)}</b>
+                    <Amount c={c} strong />
                   </span>
                   <span className="cost-row__payer">
                     <Avatar name={nameOf(c.paidBy, c.paidByName)} photo={trip.members?.[c.paidBy]?.photo} size={22} />

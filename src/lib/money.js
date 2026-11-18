@@ -1,8 +1,8 @@
 // Tiền tệ, định dạng số tiền và tính chia tiền sau chuyến đi.
 import { getLocale } from './lang';
 
-export const CURRENCIES = ['VND', 'USD', 'EUR', 'SGD', 'MYR', 'THB', 'JPY', 'KRW', 'CNY', 'TWD', 'AUD'];
-const NO_DECIMALS = new Set(['VND', 'JPY', 'KRW', 'TWD']);
+export const CURRENCIES = ['VND', 'USD', 'EUR', 'GBP', 'SGD', 'MYR', 'THB', 'IDR', 'PHP', 'KHR', 'LAK', 'JPY', 'KRW', 'CNY', 'TWD', 'HKD', 'AUD', 'NZD', 'CAD', 'CHF', 'INR', 'AED'];
+const NO_DECIMALS = new Set(['VND', 'JPY', 'KRW', 'TWD', 'IDR', 'KHR', 'LAK', 'CLP', 'HUF', 'ISK', 'UZS', 'MNT']);
 export const decimalsOf = (cur) => (NO_DECIMALS.has(cur) ? 0 : 2);
 export const roundMoney = (n, cur) => {
   const f = 10 ** decimalsOf(cur);
@@ -36,9 +36,26 @@ export function parseMoney(s, cur = 'VND') {
 /** Hiển thị trong ô nhập: 1500000 → "1.500.000" (vi) */
 export const inputMoney = (n, cur) => (n == null || n === '' ? '' : Number(n).toLocaleString(getLocale(), { maximumFractionDigits: decimalsOf(cur) }));
 
+/**
+ * Quy đổi về tiền tệ tính cuối cùng (base) theo tỉ giá của chuyến: rates[CODE] = số base / 1 CODE.
+ * Thiếu tỉ giá → null (để báo người dùng nhập).
+ */
+export const makeToBase = (base, rates = {}) => (amount, cur) => {
+  const a = Number(amount) || 0;
+  if (!cur || cur === base) return a;
+  const r = Number(rates[cur]);
+  return r > 0 ? a * r : null;
+};
+
 /** Chi phí dự kiến cho mỗi người: theo nhóm thì chia đều cho số thành viên */
-export const perPersonOf = (c, members) => (c.per === 'person' ? Number(c.amount) || 0 : (Number(c.amount) || 0) / Math.max(members, 1));
-export const groupTotalOf = (c, members) => (c.per === 'person' ? (Number(c.amount) || 0) * Math.max(members, 1) : Number(c.amount) || 0);
+export const perPersonOf = (c, members, conv = (a) => a) => {
+  const a = conv(Number(c.amount) || 0, c.currency) ?? 0;
+  return c.per === 'person' ? a : a / Math.max(members, 1);
+};
+export const groupTotalOf = (c, members, conv = (a) => a) => {
+  const a = conv(Number(c.amount) || 0, c.currency) ?? 0;
+  return c.per === 'person' ? a * Math.max(members, 1) : a;
+};
 
 /**
  * Tính số dư mỗi người từ chi phí thực tế + các lần đã trả lại nhau.
@@ -47,11 +64,11 @@ export const groupTotalOf = (c, members) => (c.per === 'person' ? (Number(c.amou
  * Trả về { balances: {uid: {paid, share, net}}, transfers: [{from, to, amount}] }
  *   net > 0: được nhận lại; net < 0: cần trả thêm
  */
-export function settle(costs, memberIds, cur) {
+export function settle(costs, memberIds, cur, conv = (a) => a) {
   const b = Object.fromEntries(memberIds.map((id) => [id, { paid: 0, share: 0, net: 0 }]));
   const ensure = (id) => (b[id] ||= { paid: 0, share: 0, net: 0 });
   for (const c of costs) {
-    const amt = Number(c.amount) || 0;
+    const amt = conv(Number(c.amount) || 0, c.currency) ?? 0;
     if (!amt || !c.paidBy) continue;
     if (c.type === 'payment') {
       if (!c.payTo) continue;

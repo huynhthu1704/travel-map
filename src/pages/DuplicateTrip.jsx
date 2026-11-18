@@ -47,6 +47,7 @@ export default function DuplicateTrip({ trip, onClose, onCreated }) {
         startDate: start || null,
         endDate: start && trip.startDate && trip.endDate ? addDays(trip.endDate, shift) : null,
         currency: trip.currency || null,
+        rates: trip.rates || null,
       });
       if (opts.plan) {
         const items = await once((cb) => api.watchPlan(trip.id, cb));
@@ -69,7 +70,7 @@ export default function DuplicateTrip({ trip, onClose, onCreated }) {
       if (opts.estimates) {
         const costs = await once((cb) => api.watchCosts(trip.id, cb));
         for (const c of costs.filter((x) => x.type === 'estimate'))
-          await api.addCost(user, tr.id, { type: 'estimate', title: c.title, amount: c.amount, per: c.per || 'group', planItemId: null, note: c.note || '' });
+          await api.addCost(user, tr.id, { type: 'estimate', title: c.title, amount: c.amount, currency: c.currency || null, per: c.per || 'group', planItemId: null, note: c.note || '' });
       }
       notify(t('dup.done', { name: tr.name }));
       onCreated(tr);

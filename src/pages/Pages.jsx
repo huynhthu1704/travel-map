@@ -12,6 +12,8 @@ import DateInput from '../components/DateInput';
 import { TripPlan, TripChecklists } from './TripPlan';
 import TripCosts from './TripCosts';
 import DuplicateTrip from './DuplicateTrip';
+import CurrencyRates from '../components/CurrencyRates';
+import { currencyOfCountry, fetchMarketRates } from '../lib/rates';
 import DestinationPicker, { destLabel, cleanDests } from '../components/DestinationPicker';
 
 const TRIP_EMOJIS = ['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'];
@@ -29,7 +31,10 @@ function TripEditor({ trip, onClose }) {
   const [end, setEnd] = useState(trip.endDate || '');
   const [kind, setKind] = useState(trip.kind || 'domestic');
   const [dests, setDests] = useState(trip.destinations || []);
+  const [fx, setFx] = useState({ base: trip.currency || 'VND', rates: trip.rates || {} });
   const { homeCountry } = useApp();
+  const destCurs = [...new Set(cleanDests(dests).map((d) => currencyOfCountry(d.cc)).filter(Boolean))];
+  const showFx = destCurs.some((c) => c !== fx.base) || Object.keys(fx.rates).length > 0;
   const changeDests = (d) => {
     setDests(d);
     // Tự chọn loại chuyến theo điểm đến (vẫn đổi tay được)
@@ -44,7 +49,7 @@ function TripEditor({ trip, onClose }) {
     if (bad) return notify(t('trip.endBeforeStart'), 'error');
     setBusy(true);
     try {
-      await api.updateTrip(trip.id, { name: name.trim(), emoji, startDate: start || null, endDate: end || null, kind, destinations: cleanDests(dests) });
+      await api.updateTrip(trip.id, { name: name.trim(), emoji, startDate: start || null, endDate: end || null, kind, destinations: cleanDests(dests), currency: fx.base, rates: fx.rates });
       notify(t('trip.updated'));
       onClose();
     } catch (err) {
@@ -73,6 +78,12 @@ function TripEditor({ trip, onClose }) {
         <span>📍 {t('dest.label')}</span>
         <DestinationPicker value={dests} onChange={changeDests} />
       </div>
+      {showFx && (
+        <div className="field">
+          <span>💱 {t('fx.title')}</span>
+          <CurrencyRates value={fx} onChange={setFx} suggest={destCurs} />
+        </div>
+      )}
       <div className="grid-2">
         <label className="field">
           <span>🛫 {t('trip.startDate')}</span>
@@ -427,7 +438,19 @@ export function TripsPage() {
             if (!name.trim()) return;
             const destinations = cleanDests(newDests);
             const kind = destinations.some((d) => d.cc !== homeCountry) ? 'international' : 'domestic';
-            const tr = await api.createTrip(user, { name: name.trim(), emoji, destinations, kind });
+            // Chuyến có điểm đến nước ngoài: tự thêm tiền tệ nơi đến với tỉ giá thị trường (sửa được sau)
+            const base = 'VND';
+            const curs = [...new Set(destinations.map((d) => currencyOfCountry(d.cc)).filter((c) => c && c !== base))];
+            let rates = {};
+            if (curs.length) {
+              try {
+                const m = await fetchMarketRates(base, curs);
+                curs.forEach((c) => (rates[c] = m[c] ?? null));
+              } catch {
+                curs.forEach((c) => (rates[c] = null));
+              }
+            }
+            const tr = await api.createTrip(user, { name: name.trim(), emoji, destinations, kind, currency: base, rates });
             setName('');
             setNewDests([]);
             notify(t('trips.created', { name: tr.name }));

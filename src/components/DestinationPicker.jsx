@@ -65,7 +65,7 @@ export default function DestinationPicker({ value, onChange }) {
         />
       ))}
       {list[list.length - 1]?.cc && (
-        <button type="button" className="btn btn--sm btn--ghost dest-add" onClick={() => onChange([...list, { cc: '', city: '' }])}>
+        <button type="button" className="btn btn--sm btn--soft dest-add" onClick={() => onChange([...list, { cc: '', city: '' }])}>
           ＋ {t('dest.add')}
         </button>
       )}

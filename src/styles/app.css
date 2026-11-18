@@ -700,6 +700,29 @@ code {
   background: var(--ink-900);
 }
 
+.cluster {
+  border-radius: 50%;
+  background: var(--honey-400);
+  border: 4px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 6px rgba(255, 198, 41, 0.35), 0 6px 16px rgba(77, 53, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: var(--ink-900);
+  font-family: var(--font-heading);
+  transition: transform 0.15s;
+}
+.cluster:hover {
+  transform: scale(1.08);
+}
+.cluster span {
+  font-size: 11px;
+}
+.cluster b {
+  font-size: 14px;
+}
 .legend {
   position: absolute;
   right: 12px;
@@ -1965,7 +1988,30 @@ img.is-loaded {
   .panel {
     width: 360px;
   }
-  .legend {
+  .cluster {
+  border-radius: 50%;
+  background: var(--honey-400);
+  border: 4px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 6px rgba(255, 198, 41, 0.35), 0 6px 16px rgba(77, 53, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  color: var(--ink-900);
+  font-family: var(--font-heading);
+  transition: transform 0.15s;
+}
+.cluster:hover {
+  transform: scale(1.08);
+}
+.cluster span {
+  font-size: 11px;
+}
+.cluster b {
+  font-size: 14px;
+}
+.legend {
     display: none;
   }
 }

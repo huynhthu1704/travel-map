@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { MapContainer, GeoJSON, Marker, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
-import L from 'leaflet';
+import L from '../lib/leafletGlobal';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet/dist/leaflet.css';
 import BaseMap from './BaseMap';
 import { useApp } from '../AppContext';
@@ -22,6 +24,18 @@ function pinIcon(kind, emoji) {
     });
   }
   return iconCache[key];
+}
+
+/** Biểu tượng cụm: vòng tròn vàng mật ong + số địa điểm */
+function clusterIcon(cluster) {
+  const n = cluster.getChildCount();
+  const size = n < 10 ? 40 : n < 50 ? 48 : 56;
+  return L.divIcon({
+    className: '',
+    html: `<div class="cluster" style="width:${size}px;height:${size}px"><span>⭐</span><b>${n}</b></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
 }
 
 function boundsForCountry(feature, cc) {
@@ -123,8 +137,9 @@ export default function MapView() {
   // Marker: địa điểm của tôi (đã đến / muốn đi), địa điểm nổi tiếng của quốc gia đang xem, điểm dừng chuyến đi
   const markers = useMemo(() => {
     const m = new Map();
+    // Địa điểm nổi tiếng: hiện tất cả, các điểm gần nhau sẽ được gom cụm
     const famousCc = selectedCountry || homeCountry;
-    if (famousCc) famousFor(famousCc).slice(0, famousLimit).forEach((p) => m.set(p.id, { place: p, kind: 'famous', emoji: p.emoji }));
+    if (famousCc) famousFor(famousCc).forEach((p) => m.set(p.id, { place: p, kind: 'famous', emoji: p.emoji }));
     memories.forEach((mem) => mem.place && m.set(mem.place.id, { place: mem.place, kind: 'visited', emoji: '👣' }));
     places.forEach((p) => m.set(p.id, { place: p, kind: p.status, emoji: p.status === 'visited' ? '👣' : '💛' }));
     if (activeTripId)
@@ -135,12 +150,28 @@ export default function MapView() {
     return [...m.values()];
   }, [selectedCountry, homeCountry, places, memories, tripStops, activeTripId, selectedPlace, famousFor, famousLimit]);
 
+  const renderMarker = ({ place, kind, emoji, by }) => (
+    <Marker
+      key={kind + place.id}
+      position={[place.lat, place.lng]}
+      icon={pinIcon(kind, emoji)}
+      eventHandlers={{ click: () => openPlace(place, { fly: false }) }}
+      zIndexOffset={kind === 'visited' ? 500 : kind === 'trip' ? 400 : 0}
+    >
+      <Tooltip direction="top">
+        {pName(place)}
+        {by ? ` · ${by}` : ''}
+      </Tooltip>
+    </Marker>
+  );
+
   return (
     <MapContainer
       className="map"
       center={[22, 15]}
       zoom={window.innerWidth < 700 ? 1 : 2}
       minZoom={1}
+      maxZoom={19}
       worldCopyJump
       zoomControl={false}
       maxBounds={[[-85, -400], [85, 400]]}
@@ -159,17 +190,17 @@ export default function MapView() {
           }}
         />
       )}
-      {markers.map(({ place, kind, emoji, by }) => (
-        <Marker
-          key={kind + place.id}
-          position={[place.lat, place.lng]}
-          icon={pinIcon(kind, emoji)}
-          eventHandlers={{ click: () => openPlace(place, { fly: false }) }}
-          zIndexOffset={kind === 'visited' ? 500 : kind === 'trip' ? 400 : 0}
-        >
-          <Tooltip direction="top">{pName(place)}{by ? ` · ${by}` : ''}</Tooltip>
-        </Marker>
-      ))}
+      <MarkerClusterGroup
+        key={selectedCountry || homeCountry}
+        chunkedLoading
+        maxClusterRadius={55}
+        spiderfyOnMaxZoom
+        showCoverageOnHover={false}
+        iconCreateFunction={clusterIcon}
+      >
+        {markers.filter((x) => x.kind === 'famous').map(renderMarker)}
+      </MarkerClusterGroup>
+      {markers.filter((x) => x.kind !== 'famous').map(renderMarker)}
       <FlyController countries={countries} />
       <PickHandler />
     </MapContainer>

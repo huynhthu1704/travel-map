@@ -3336,3 +3336,46 @@ img.is-loaded {
     grid-template-columns: 1fr auto;
   }
 }
+/* Bảng chi phí: cột cố định để các số thẳng hàng */
+.cost-row--est {
+  grid-template-columns: minmax(0, 1fr) 170px 130px 130px 96px;
+}
+.cost-row--act {
+  grid-template-columns: minmax(0, 1fr) 170px 160px 100px 96px;
+}
+.cost-row--bal {
+  grid-template-columns: minmax(0, 1fr) 140px 140px 170px;
+}
+.cost-row > span:nth-child(n + 2),
+.cost-table__head > span:nth-child(n + 2) {
+  text-align: right;
+  justify-content: flex-end;
+}
+.cost-row .cost-row__payer {
+  justify-content: flex-start;
+  text-align: left;
+}
+.cost-row--act > span:nth-child(3),
+.cost-row--act > span:nth-child(4),
+.cost-table__head.cost-row--act > span:nth-child(3),
+.cost-table__head.cost-row--act > span:nth-child(4) {
+  text-align: left;
+  justify-content: flex-start;
+}
+.cost-row .amt {
+  align-items: flex-end;
+}
+.est-done {
+  margin-right: 0;
+}
+@media (max-width: 720px) {
+  .cost-row--est,
+  .cost-row--act,
+  .cost-row--bal {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .cost-row > span:nth-child(n + 3) {
+    text-align: left;
+    justify-content: flex-start;
+  }
+}

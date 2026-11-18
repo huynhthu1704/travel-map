@@ -329,6 +329,7 @@ export default function TripCosts({ trip }) {
               <span>{t('cost.item')}</span>
               <span>{t('cost.amount')}</span>
               <span>{t('cost.perPersonCol')}</span>
+              <span>{t('cost.actualCol')}</span>
               <span />
             </div>
             {estimates.map((c) =>
@@ -347,21 +348,25 @@ export default function TripCosts({ trip }) {
                     <small className="muted"> / {c.per === 'person' ? t('cost.person') : t('cost.group')}</small>
                   </span>
                   <span>{fmtMoney(perPersonOf(c, n, conv), cur)}</span>
-                  <span className="cost-row__actions">
+                  <span>
                     {recorded[c.id]?.length ? (
                       <span className="est-done" title={t('cost.recordedHelp')}>
                         ✓ {fmtMoney(recorded[c.id].reduce((x, a) => x + (conv(a.amount, a.currency) ?? 0), 0), cur)}
                       </span>
-                    ) : null}
+                    ) : (
+                      <span className="muted small">—</span>
+                    )}
+                  </span>
+                  <span className="cost-row__actions">
                     <button
-                      className={`btn btn--sm ${recorded[c.id]?.length ? 'btn--ghost' : 'btn--soft'}`}
+                      className="icon-btn icon-btn--sm"
                       title={t('cost.toActual')}
                       onClick={() => {
                         setPrefill({ title: c.title, amount: c.per === 'person' ? c.amount * n : c.amount, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id });
                         setAdding('actual');
                       }}
                     >
-                      🧾 {recorded[c.id]?.length ? '' : t('cost.recordBtn')}
+                      🧾
                     </button>
                     <button className="icon-btn icon-btn--sm" title={t('plan.edit')} onClick={() => setEditId(c.id)}>
                       ✏️
@@ -377,6 +382,7 @@ export default function TripCosts({ trip }) {
               <span>{t('cost.total')}</span>
               <span>{fmtMoney(estGroup, cur)}</span>
               <span>{fmtMoney(estPerPerson, cur)}</span>
+              <span className="est-done">{actuals.some((a) => a.estimateId) ? `✓ ${fmtMoney(estimates.reduce((x, e) => x + (recorded[e.id] || []).reduce((y, a) => y + (conv(a.amount, a.currency) ?? 0), 0), 0), cur)}` : ''}</span>
               <span />
             </div>
           </div>

@@ -3998,3 +3998,169 @@ img.is-loaded {
 .route-list__main {
   order: 1;
 }
+
+/* ---------- Bảng trang chủ: các mục Tổng quan / Đã đi / Muốn đi / Nổi tiếng ---------- */
+.home-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: var(--ink-100);
+  border-radius: 16px;
+  padding: 4px;
+  position: sticky;
+  top: -8px;
+  z-index: 5;
+}
+.home-tabs button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 7px 4px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+.home-tabs button span {
+  font-size: 18px;
+  line-height: 1.1;
+}
+.home-tabs button small {
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.home-tabs button em {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--honey-400);
+  color: var(--ink-900);
+  border-radius: 999px;
+  padding: 0 5px;
+  line-height: 15px;
+}
+.home-tabs button.on {
+  background: var(--color-bg-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.stat--btn {
+  text-align: left;
+  cursor: pointer;
+}
+.stat--btn:hover {
+  box-shadow: 0 0 0 2px var(--honey-300);
+}
+.grouped__search {
+  width: 100%;
+}
+.grouped__country {
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+  background: var(--color-bg-surface);
+  overflow: hidden;
+}
+.grouped__country summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  background: var(--honey-50, #fffaf0);
+}
+.grouped__country summary::-webkit-details-marker {
+  display: none;
+}
+.grouped__country summary::after {
+  content: '▾';
+  margin-left: 4px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+}
+.grouped__country:not([open]) summary::after {
+  transform: rotate(-90deg);
+}
+.grouped__country summary b {
+  flex: 1;
+}
+.grouped__flag {
+  font-size: 18px;
+}
+.grouped__count {
+  font-size: 12px;
+  font-weight: 800;
+  background: var(--honey-200, #ffe7a3);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.grouped__city {
+  padding: 6px 10px 8px;
+  border-top: 1px dashed var(--ink-100);
+}
+.grouped__cityname {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  padding: 2px 2px 4px;
+}
+.grouped__cityname span {
+  font-weight: 800;
+  margin-left: 2px;
+}
+.grouped__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.grouped__place {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 10px;
+  text-align: left;
+}
+.grouped__place:hover {
+  background: var(--honey-100);
+}
+.grouped__emoji {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--honey-100);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.grouped__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.grouped__text b {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.grouped__text small {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.grouped__quick {
+  display: flex;
+  gap: 2px;
+}
+.grouped__quick .icon-btn--sm,
+.grouped__row > .icon-btn--sm {
+  opacity: 0.55;
+}
+.grouped__quick .is-on {
+  opacity: 1;
+  background: var(--honey-100);
+}

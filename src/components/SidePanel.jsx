@@ -7,6 +7,7 @@ import { useI18n } from '../i18n';
 import { pName, pCity, pDesc, getLocale } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
 import Combobox from './Combobox';
+import { normalize } from '../lib/geo';
 import DateInput from './DateInput';
 import TimeInput from './TimeInput';
 
@@ -259,13 +260,103 @@ function Stat({ value, label, emoji }) {
   );
 }
 
+/** Nhóm địa điểm theo quốc gia → thành phố, có ô tìm, mở / thu gọn từng quốc gia */
+function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, openFirst = 2, sortCountries = 'count' }) {
+  const { openPlace, openCountry } = useApp();
+  const { t, lang } = useI18n();
+  const [q, setQ] = useState('');
+  const n = normalize(q.trim());
+  const filtered = n ? items.filter((p) => normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)}`).includes(n)) : items;
+  const groups = useMemo(() => {
+    const g = {};
+    filtered.forEach((p) => {
+      const cc = p.country || '—';
+      const city = pCity(p) || t('group.otherCity');
+      ((g[cc] ||= {})[city] ||= []).push(p);
+    });
+    const ccs = Object.keys(g).sort((a, b) =>
+      sortCountries === 'count'
+        ? Object.values(g[b]).flat().length - Object.values(g[a]).flat().length || countryName(a).localeCompare(countryName(b), lang)
+        : countryName(a).localeCompare(countryName(b), lang),
+    );
+    return ccs.map((cc) => ({
+      cc,
+      total: Object.values(g[cc]).flat().length,
+      cities: Object.entries(g[cc]).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], lang)),
+    }));
+  }, [filtered, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!items.length) return <Empty emoji={emptyEmoji} title={emptyTitle} text={emptyText} />;
+  return (
+    <div className="stack-sm grouped">
+      {items.length > 6 && <input className="grouped__search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('group.search')} />}
+      {groups.map((g, gi) => (
+        <details key={g.cc} className="grouped__country" open={!!n || gi < openFirst}>
+          <summary>
+            <span className="grouped__flag">{g.cc === '—' ? '🌐' : flagOf(g.cc)}</span>
+            <b>{g.cc === '—' ? t('group.otherCountry') : countryName(g.cc)}</b>
+            <span className="grouped__count">{g.total}</span>
+            {g.cc !== '—' && (
+              <button
+                className="icon-btn icon-btn--sm"
+                title={t('group.viewCountry')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  openCountry(g.cc);
+                }}
+              >
+                🗺️
+              </button>
+            )}
+          </summary>
+          {g.cities.map(([city, list]) => (
+            <div key={city} className="grouped__city">
+              <div className="grouped__cityname">
+                🏙️ {city} <span>{list.length}</span>
+              </div>
+              {list.map((p) => (
+                <div key={p.id} className="grouped__row">
+                  <button className="grouped__place" onClick={() => openPlace(p)}>
+                    <span className="grouped__emoji">{p.emoji || '📍'}</span>
+                    <span className="grouped__text">
+                      <b>{pName(p)}</b>
+                      {p.visitedAt && <small>{formatDate(p.visitedAt)}</small>}
+                    </span>
+                  </button>
+                  {rowExtra?.(p)}
+                </div>
+              ))}
+            </div>
+          ))}
+        </details>
+      ))}
+      {n && !groups.length && <p className="small muted">{t('plan.noResults')}</p>}
+    </div>
+  );
+}
+
+const HOME_TABS = ['overview', 'visited', 'wishlist', 'famous'];
+
 function WorldPanel() {
   const {
-    user, places, visitedCountries, openCountry, openPlace, requireLogin, setModal, trips, activeTripId, setActiveTripId, startPicking,
-    homeCountry, setHomeCountry, famousFor, homeLoading, countries, setFlyTarget,
+    user, places, memories, visitedCountries, openCountry, requireLogin, setModal, trips, activeTripId, setActiveTripId, startPicking,
+    homeCountry, setHomeCountry, famousFor, homeLoading, countries, setFlyTarget, placeStatus, setPlaceStatus,
   } = useApp();
   const { t, lang } = useI18n();
-  const [homeLimit, setHomeLimit] = useState(10);
+  const [tab, setTabState] = useState(() => {
+    try {
+      return HOME_TABS.includes(localStorage.getItem('travel-map-home-tab')) ? localStorage.getItem('travel-map-home-tab') : 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+  const setTab = (v) => {
+    setTabState(v);
+    try {
+      localStorage.setItem('travel-map-home-tab', v);
+    } catch {
+      /* bỏ qua */
+    }
+  };
   const homeFamous = famousFor(homeCountry);
   const countryOptions = useMemo(
     () =>
@@ -279,137 +370,161 @@ function WorldPanel() {
   const chooseHome = (cc) => {
     if (!cc) return;
     setHomeCountry(cc);
-    setHomeLimit(10);
     setFlyTarget({ country: cc, t: Date.now() });
   };
-  const visited = places.filter((p) => p.status === 'visited');
+  // Đã đi = địa điểm đánh dấu đã đến + nơi có kỉ niệm (không trùng)
+  const visitedList = useMemo(() => {
+    const m = new Map();
+    places.filter((p) => p.status === 'visited').forEach((p) => m.set(p.id, p));
+    memories.forEach((mem) => mem.place && !m.has(mem.place.id) && m.set(mem.place.id, { ...mem.place, visitedAt: mem.date }));
+    return [...m.values()];
+  }, [places, memories]);
   const wish = places.filter((p) => p.status === 'wishlist');
   const pct = Math.round((visitedCountries.size / WORLD_COUNTRY_COUNT) * 1000) / 10;
+  const quick = (p) => {
+    const st = placeStatus[p.id];
+    return (
+      <span className="grouped__quick">
+        <button className={`icon-btn icon-btn--sm ${st === 'wishlist' ? 'is-on' : ''}`} title={t('card.wish')} onClick={() => setPlaceStatus(p, 'wishlist')}>
+          {st === 'wishlist' ? '💛' : '🤍'}
+        </button>
+        <button className={`icon-btn icon-btn--sm ${st === 'visited' ? 'is-on' : ''}`} title={t('card.markVisited')} onClick={() => setPlaceStatus(p, 'visited')}>
+          👣
+        </button>
+      </span>
+    );
+  };
+  const tabs = [
+    ['overview', '🏠', t('home.tab.overview')],
+    ['visited', '👣', t('home.tab.visited'), visitedList.length],
+    ['wishlist', '💛', t('home.tab.wishlist'), wish.length],
+    ['famous', '🌍', t('home.tab.famous')],
+  ];
   return (
     <div className="stack">
       <div>
         <p className="eyebrow">{t('world.eyebrow', { name: user ? user.name.split(' ').slice(-1)[0] : t('world.you') })}</p>
         <h1 className="h2">{t('world.title')}</h1>
-        <p className="muted">{t('world.hint')}</p>
       </div>
-      {user && <OnThisDay />}
-      <div className="stats">
-        <Stat value={visitedCountries.size} label={t('stat.countries')} emoji="🌏" />
-        <Stat value={visited.length} label={t('stat.visited')} emoji="👣" />
-        <Stat value={wish.length} label={t('stat.wish')} emoji="💛" />
-      </div>
-      <div className="progress" title={t('world.pctTitle', { pct })}>
-        <div className="progress__bar" style={{ width: `${Math.max(pct, 1)}%` }} />
-        <span>{t('world.pct', { pct })}</span>
-      </div>
-
-      {!user && (
-        <div className="callout">
-          <b>{t('world.ctaTitle')}</b>
-          <p>{t('world.ctaText')}</p>
-          <button className="btn btn--dark" onClick={() => requireLogin(() => {})}>
-            {t('auth.loginGoogle')}
+      <div className="home-tabs" role="tablist">
+        {tabs.map(([id, icon, label, count]) => (
+          <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
+            <span>{icon}</span>
+            <small>{label}</small>
+            {count > 0 && <em>{count}</em>}
           </button>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {user && trips.length > 0 && (
-        <section>
-          <h3 className="section-title">{t('world.showTrip')}</h3>
-          <div className="chips">
-            <Chip active={!activeTripId} onClick={() => setActiveTripId(null)}>{t('common.none')}</Chip>
-            {trips.map((t) => (
-              <Chip key={t.id} active={activeTripId === t.id} onClick={() => setActiveTripId(t.id)}>
-                {t.emoji} {t.name}
-              </Chip>
-            ))}
+      {tab === 'overview' && (
+        <>
+          <p className="muted small">{t('world.hint')}</p>
+          {user && <OnThisDay />}
+          <div className="stats">
+            <button className="stat stat--btn" onClick={() => setTab('visited')}>
+              <div className="stat__value">🌏 {visitedCountries.size}</div>
+              <div className="stat__label">{t('stat.countries')}</div>
+            </button>
+            <button className="stat stat--btn" onClick={() => setTab('visited')}>
+              <div className="stat__value">👣 {visitedList.length}</div>
+              <div className="stat__label">{t('stat.visited')}</div>
+            </button>
+            <button className="stat stat--btn" onClick={() => setTab('wishlist')}>
+              <div className="stat__value">💛 {wish.length}</div>
+              <div className="stat__label">{t('stat.wish')}</div>
+            </button>
           </div>
-        </section>
-      )}
-
-      {visitedCountries.size > 0 && (
-        <section>
-          <h3 className="section-title">{t('world.visitedCountries')}</h3>
-          <div className="chips">
-            {[...visitedCountries].map((cc) => (
-              <Chip key={cc} onClick={() => openCountry(cc)}>
-                {flagOf(cc)} {countryName(cc)}
-              </Chip>
-            ))}
+          <div className="progress" title={t('world.pctTitle', { pct })}>
+            <div className="progress__bar" style={{ width: `${Math.max(pct, 1)}%` }} />
+            <span>{t('world.pct', { pct })}</span>
           </div>
-        </section>
-      )}
-
-      {wish.length > 0 && (
-        <section>
-          <h3 className="section-title">{t('world.wishlist')}</h3>
-          <div className="list">
-            {wish.map((p) => (
-              <button key={p.id} className="list-item" onClick={() => openPlace(p)}>
-                <span className="list-item__emoji">{p.emoji}</span>
-                <span>
-                  <b>{pName(p)}</b>
-                  <small>{[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}</small>
-                </span>
+          {!user && (
+            <div className="callout">
+              <b>{t('world.ctaTitle')}</b>
+              <p>{t('world.ctaText')}</p>
+              <button className="btn btn--dark" onClick={() => requireLogin(() => {})}>
+                {t('auth.loginGoogle')}
               </button>
-            ))}
+            </div>
+          )}
+          {user && trips.length > 0 && (
+            <section>
+              <h3 className="section-title">{t('world.showTrip')}</h3>
+              <div className="chips">
+                <Chip active={!activeTripId} onClick={() => setActiveTripId(null)}>{t('common.none')}</Chip>
+                {trips.map((tr) => (
+                  <Chip key={tr.id} active={activeTripId === tr.id} onClick={() => setActiveTripId(tr.id)}>
+                    {tr.emoji} {tr.name}
+                  </Chip>
+                ))}
+              </div>
+            </section>
+          )}
+          <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
+            {t('world.addMemory')}
+          </button>
+          <div className="btn-stack">
+            {user && (
+              <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'recap', mode: 'year' })}>
+                {t('recap.yearButton')}
+              </button>
+            )}
+            <button className="btn btn--outline btn--block" onClick={() => startPicking('place')}>
+              {t('pick.open')}
+            </button>
+            <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'addLink' })}>
+              {t('link.open')}
+            </button>
           </div>
-        </section>
+          <p className="small muted">{t('pick.tip')}</p>
+        </>
       )}
 
-      <section className="stack home-famous">
-        <div>
-          <h3 className="section-title">{t('home.title')}</h3>
-          <Combobox
-            value={homeCountry}
-            options={countryOptions}
-            onChange={chooseHome}
-            placeholder={t('filter.countryPlaceholder')}
-            ariaLabel={t('filter.byCountry')}
-            icon="🌏"
+      {tab === 'visited' && (
+        <>
+          <p className="small muted">{t('home.visitedSummary', { n: visitedList.length, c: visitedCountries.size })}</p>
+          <GroupedPlaces
+            items={visitedList}
+            emptyEmoji="👣"
+            emptyTitle={t('home.visitedEmpty')}
+            emptyText={t('home.visitedEmptyHint')}
           />
-        </div>
-        <div className="chips chips--scroll">
-          {Object.keys(FAMOUS_PLACES)
-            .filter((cc) => cc !== homeCountry)
-            .map((cc) => (
-              <Chip key={cc} onClick={() => chooseHome(cc)}>
-                {flagOf(cc)} {countryName(cc)}
-              </Chip>
-            ))}
-        </div>
-        <div className="cards">
-          {homeFamous.slice(0, homeLimit).map((p) => (
-            <PlaceCard key={p.id} place={p} />
-          ))}
-        </div>
-        {homeLoading && <Loader text={t('country.loadingMore')} />}
-        {homeFamous.length > homeLimit && (
-          <button className="btn btn--soft btn--block" onClick={() => setHomeLimit((n) => n + 10)}>
-            {t('country.showMore', { n: homeFamous.length - homeLimit })}
-          </button>
-        )}
-        <button className="btn btn--ghost btn--sm" onClick={() => openCountry(homeCountry)}>
-          {t('home.details', { country: countryName(homeCountry) })}
-        </button>
-      </section>
-      <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
-        {t('world.addMemory')}
-      </button>
-      <div className="btn-stack">
-        {user && (
-          <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'recap', mode: 'year' })}>
-            {t('recap.yearButton')}
-          </button>
-        )}
-        <button className="btn btn--outline btn--block" onClick={() => startPicking('place')}>
-          {t('pick.open')}
-        </button>
-        <button className="btn btn--outline btn--block" onClick={() => setModal({ type: 'addLink' })}>
-          {t('link.open')}
-        </button>
-      </div>
-      <p className="small muted">{t('pick.tip')}</p>
+        </>
+      )}
+
+      {tab === 'wishlist' && (
+        <>
+          <p className="small muted">{t('home.wishSummary', { n: wish.length })}</p>
+          <GroupedPlaces
+            items={wish}
+            emptyEmoji="💛"
+            emptyTitle={t('home.wishEmpty')}
+            emptyText={t('home.wishEmptyHint')}
+            rowExtra={(p) => (
+              <button className="icon-btn icon-btn--sm" title={t('card.markVisited')} onClick={() => setPlaceStatus(p, 'visited')}>
+                👣
+              </button>
+            )}
+          />
+        </>
+      )}
+
+      {tab === 'famous' && (
+        <section className="stack home-famous">
+          <Combobox value={homeCountry} options={countryOptions} onChange={chooseHome} placeholder={t('filter.countryPlaceholder')} ariaLabel={t('filter.byCountry')} icon="🌏" />
+          <div className="chips chips--scroll">
+            {Object.keys(FAMOUS_PLACES)
+              .filter((cc) => cc !== homeCountry)
+              .map((cc) => (
+                <Chip key={cc} onClick={() => chooseHome(cc)}>
+                  {flagOf(cc)} {countryName(cc)}
+                </Chip>
+              ))}
+          </div>
+          {homeLoading && <Loader text={t('country.loadingMore')} />}
+          <GroupedPlaces items={homeFamous} emptyEmoji="🏞️" emptyTitle={t('home.famousEmpty')} rowExtra={quick} openFirst={3} />
+        </section>
+      )}
     </div>
   );
 }

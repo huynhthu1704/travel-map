@@ -535,20 +535,27 @@ function WorldPanel() {
           <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
             {t('world.addMemory')}
           </button>
-          <div className="help-links">
-            <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'faq' })}>
-              ❓ {t('faq.open')}
+          <PopularPlaces />
+          <nav className="quick-links" aria-label={t('home.more')}>
+            <button onClick={() => setModal({ type: 'faq' })}>
+              <span className="quick-links__ic">❓</span>
+              <span>{t('home.link.faq')}</span>
             </button>
-            <button className="btn btn--sm btn--ghost" onClick={() => requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'))}>
-              💬 {t('fb.menu')}
+            <button onClick={() => requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'))}>
+              <span className="quick-links__ic">💬</span>
+              <span>{t('home.link.feedback')}</span>
             </button>
-            <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'sponsor' })}>
-              ☕ {t('sponsor.open')}
+            <button onClick={() => setModal({ type: 'sponsor' })}>
+              <span className="quick-links__ic">☕</span>
+              <span>{t('home.link.sponsor')}</span>
             </button>
-            <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'whatsNew' })}>
-              🆕 {t('rn.open')} <span className="muted">v{__APP_VERSION__}</span>
+            <button onClick={() => setModal({ type: 'whatsNew' })}>
+              <span className="quick-links__ic">✨</span>
+              <span>
+                {t('rn.open')} <em>v{__APP_VERSION__}</em>
+              </span>
             </button>
-          </div>
+          </nav>
         </>
       )}
 
@@ -1084,6 +1091,59 @@ function PlaceOccasion({ place, saved, onSave }) {
 }
 
 /** "Ngày này năm xưa": nơi đã đến / kỉ niệm đúng ngày-tháng hôm nay của các năm trước */
+/** Địa điểm được nhiều người check-in công khai nhất (gợi ý trên trang chủ) */
+function PopularPlaces() {
+  const { publicMemories, loadPublic, openPlace } = useApp();
+  const { t } = useI18n();
+  // tải check-in công khai khi trình duyệt rảnh để không làm chậm lần mở trang đầu
+  useEffect(() => {
+    const go = () => loadPublic();
+    const id = window.requestIdleCallback ? window.requestIdleCallback(go, { timeout: 2500 }) : setTimeout(go, 1500);
+    return () => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const top = useMemo(() => {
+    const g = new Map();
+    publicMemories.forEach((m) => {
+      if (!m.place?.id || m.uid === 'trip-stop' || m.uid === 'sample') return;
+      const e = g.get(m.place.id) || { place: m.place, people: new Set(), count: 0, photo: '', last: '' };
+      e.people.add(m.uid);
+      e.count += 1;
+      const d = String(m.date || '');
+      if (m.photos?.[0] && (!e.photo || d > e.last)) {
+        e.photo = m.photos[0];
+        e.last = d;
+      }
+      g.set(m.place.id, e);
+    });
+    return [...g.values()].filter((e) => e.people.size >= 2).sort((a, b) => b.people.size - a.people.size || b.count - a.count).slice(0, 5);
+  }, [publicMemories]);
+  if (!top.length) return null;
+  return (
+    <section className="popular">
+      <h3 className="section-title">🔥 {t('home.popular')}</h3>
+      <div className="popular__list">
+        {top.map((e, i) => (
+          <button key={e.place.id} className="popular__item" onClick={() => openPlace(e.place)}>
+            <span className="popular__rank">{i + 1}</span>
+            <span className="popular__img">
+              <LoadingImage src={e.photo} alt="" loading="lazy" fallback={<span>{e.place.emoji || '📍'}</span>} />
+            </span>
+            <span className="popular__text">
+              <b>{pName(e.place)}</b>
+              <small>
+                {flagOf(e.place.country)} {[pCity(e.place), countryName(e.place.country)].filter(Boolean).join(', ')}
+              </small>
+            </span>
+            <span className="popular__count" title={t('home.popularCount', { people: e.people.size, n: e.count })}>
+              👥 {e.people.size}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function OnThisDay() {
   const { places, memories, openPlace, setModal } = useApp();
   const { t } = useI18n();

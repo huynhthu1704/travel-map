@@ -298,7 +298,7 @@ export function ExplorePage() {
 }
 
 export function MemoriesPage() {
-  const { user, memories, places, requireLogin, setModal, openPlace, startPicking, loaded } = useApp();
+  const { user, memories, places, requireLogin, setModal, openPlace, loaded } = useApp();
   const [tab, setTab] = useState('memories');
   const { t } = useI18n();
   const { filtered, ui } = useFilters(memories, memPlace);
@@ -327,9 +327,6 @@ export function MemoriesPage() {
         <div className="row wrap">
           <button className="btn btn--outline" onClick={() => setModal({ type: 'recap', mode: 'year' })}>
             {t('recap.yearButton')}
-          </button>
-          <button className="btn btn--outline" onClick={() => startPicking('place', tab === 'wishlist' ? 'wishlist' : 'visited')}>
-            {t('pick.addOnMap')}
           </button>
           <button className="btn btn--primary" onClick={() => setModal({ type: 'memory' })}>
             {t('place.addMemory')}

@@ -24,10 +24,14 @@ export function nameSearchFields(name = '') {
   });
   return { nameLower: n, searchKeys: [...keys].slice(0, 120) };
 }
-const matchName = (p, words) => words.every((w) => (p.nameLower || normalize(p.name || '')).split(' ').some((x) => x.startsWith(w)));
+const matchName = (p, words) => {
+  const n = normalize(p.name || p.nameLower || '');
+  return words.every((w) => n.split(/\s+/).some((x) => x.startsWith(w)) || n.includes(w));
+};
 const queryWords = (q) => normalize(q).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
 
 const now = () => Date.now();
+let profileCache = null;
 const fid = (from, to) => `${from}_${to}`;
 
 /* ------------------------------ Firebase ------------------------------ */
@@ -40,9 +44,20 @@ const fb = {
   async searchUsers(q) {
     const words = queryWords(q);
     if (!words.length) return [];
-    const first = words.sort((a, b) => b.length - a.length)[0].slice(0, 20);
-    const s = await getDocs(query(collection(db, 'profiles'), where('searchKeys', 'array-contains', first), limit(25)));
-    return s.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => matchName(p, words)).slice(0, 8);
+    const first = [...words].sort((a, b) => b.length - a.length)[0].slice(0, 20);
+    // Hồ sơ cũ chưa có searchKeys (chủ hồ sơ chưa mở bản mới): tải danh sách hồ sơ 1 lần rồi lọc theo tên
+    if (!profileCache || Date.now() - profileCache.at > 120000) {
+      profileCache = { at: Date.now(), list: getDocs(query(collection(db, 'profiles'), limit(500))).then((s) => s.docs.map((d) => ({ uid: d.id, ...d.data() }))).catch(() => []) };
+    }
+    const [hit, all] = await Promise.all([
+      getDocs(query(collection(db, 'profiles'), where('searchKeys', 'array-contains', first), limit(25)))
+        .then((s) => s.docs.map((d) => ({ uid: d.id, ...d.data() })))
+        .catch(() => []),
+      profileCache.list,
+    ]);
+    const out = new Map();
+    [...hit, ...all].filter((p) => p.name && matchName(p, words)).forEach((p) => out.set(p.uid, p));
+    return [...out.values()].slice(0, 8);
   },
   async getFeed(uid) {
     try {

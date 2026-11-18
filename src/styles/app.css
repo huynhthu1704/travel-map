@@ -6399,3 +6399,128 @@ body.fb-picking * {
     align-items: center;
   }
 }
+
+/* ---------- Trang chủ: liên kết nhanh ---------- */
+.quick-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.quick-links button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+  background: var(--base-white);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-700);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.quick-links button:hover {
+  background: var(--honey-50);
+  border-color: var(--honey-200);
+}
+.quick-links button > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-links__ic {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--ink-100);
+  font-size: 14px;
+}
+.quick-links em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink-500);
+  font-size: 11px;
+}
+
+/* ---------- Trang chủ: địa điểm được check-in nhiều ---------- */
+.popular__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.popular__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+  background: var(--base-white);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.popular__item:hover {
+  background: var(--honey-50);
+}
+.popular__rank {
+  flex: none;
+  width: 20px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--honey-600);
+  font-size: 14px;
+}
+.popular__img {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--honey-100);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+}
+.popular__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.popular__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.popular__text b,
+.popular__text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.popular__text b {
+  font-size: 14px;
+}
+.popular__text small {
+  color: var(--ink-500);
+  font-size: 12px;
+}
+.popular__count {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--honey-100);
+  color: var(--honey-800);
+  font-size: 12px;
+  font-weight: 700;
+}

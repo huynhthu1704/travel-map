@@ -222,12 +222,10 @@ export default function ProfilePage() {
             ) : (
               <p className="profile__bio muted">{isMe ? t('social.bioEmptyMe') : t('social.bioEmpty')}</p>
             )}
-            {isMe || mutual ? (
+            {isMe && (
               <button className="profile__activity" onClick={() => openProfile(uid, 'activity')}>
                 🕒 {t('social.recent')} <span aria-hidden>→</span>
               </button>
-            ) : (
-              <span className="small muted">🔒 {t('social.feedLocked')}</span>
             )}
           </div>
         )}
@@ -327,7 +325,7 @@ function ActivityPage({ uid, prof, isMe, mutual, feed }) {
           <span className="muted small">{prof.name}</span>
         </div>
       </header>
-      {!isMe && !mutual ? (
+      {!isMe ? (
         <Empty emoji="🔒" title={t('social.feedLocked')} />
       ) : !feed ? (
         <Loader />

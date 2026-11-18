@@ -644,7 +644,7 @@ export function AppProvider({ children }) {
     profileUid, setProfileUid, profileSub, setProfileSub, openProfile, myPublic, following, followers, followingIds, followerIds, friendIds, toggleFollow, notes, unread, socialApi, settings, overrides, customPlaces, applyOverride, adminApi,
     reportMemory: (m, reason) => adminApi.reportMemory(userRef.current, m, reason),
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
-    api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
+    api, user, places, memories, publicMemories, loadPublic: () => setNeedPublic(true), trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     placeOrigin, setPlaceOrigin,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

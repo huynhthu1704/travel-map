@@ -563,6 +563,13 @@ function TripDetail({ trip, onBack }) {
   const [stops, setStops] = useState(null);
   const [editing, setEditing] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e) => !e.target.closest?.('.trip-hero__menu') && setMenuOpen(false);
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [menuOpen]);
   const isMember = !!user && (trip.memberIds || []).includes(user.uid);
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
@@ -584,19 +591,78 @@ function TripDetail({ trip, onBack }) {
   return (
     <div className="page">
       <button className="back" onClick={onBack}>{t('trip.back')}</button>
-      <header className="page__head trip-head">
-        <div>
-          <h1 className="h1">
-            {trip.emoji} {trip.name}
-          </h1>
-          {tripDates(trip) && <p className="trip-dates">🗓️ {tripDates(trip)}</p>}
-          {destLabel(trip.destinations) && <p className="trip-dests">📍 {destLabel(trip.destinations)}</p>}
-          <p className="muted">
-            {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stopList.length })}
-          </p>
+      <header className="trip-hero">
+        <div className="trip-hero__top">
+          <span className="trip-hero__emoji">{trip.emoji}</span>
+          <div className="trip-hero__title">
+            <h1>{trip.name}</h1>
+            <div className="trip-hero__facts">
+              {tripDates(trip) && <span className="fact">🗓️ {tripDates(trip)}</span>}
+              {destLabel(trip.destinations) && <span className="fact">{destLabel(trip.destinations)}</span>}
+              <span className="fact">👣 {t('trip.stops', { n: stopList.length })}</span>
+            </div>
+          </div>
+          {isMember && (
+            <div className="trip-hero__menu">
+              <button className="icon-btn" onClick={() => setMenuOpen((v) => !v)} aria-label={t('trip.more')} title={t('trip.more')}>
+                ⋯
+              </button>
+              {menuOpen && (
+                <div className="trip-menu" onMouseLeave={() => setMenuOpen(false)}>
+                  <button
+                    onClick={() => {
+                      setEditing(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    ✏️ {t('trip.edit')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDuplicating(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    📋 {t('dup.button')}
+                  </button>
+                  <hr />
+                  <button
+                    className="danger"
+                    onClick={async () => {
+                      setMenuOpen(false);
+                      const owner = trip.ownerId === user.uid;
+                      if (!confirm(owner ? t('trip.confirmDelete') : t('trip.confirmLeave'))) return;
+                      await api.leaveTrip(user, trip);
+                      setActiveTripId(null);
+                      onBack();
+                    }}
+                  >
+                    {trip.ownerId === user.uid ? t('trip.delete') : t('trip.leave')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <div className="trip-head__side">
-          <div className="trip-head__meta">
+        <div className="trip-hero__bottom">
+          <div className="trip-hero__people">
+            <div className="avatars">
+              {Object.entries(trip.members || {})
+                .sort(([a], [b]) => (a === trip.ownerId ? -1 : b === trip.ownerId ? 1 : 0))
+                .slice(0, 5)
+                .map(([id, m]) => (
+                  <span key={id} title={`${m.name}${id === trip.ownerId ? ` · ${t('trip.owner')}` : ''}`}>
+                    <Avatar name={m.name} photo={m.photo} size={30} />
+                  </span>
+                ))}
+            </div>
+            <span className="small">
+              {Object.values(trip.members || {})
+                .map((m) => m.name)
+                .slice(0, 3)
+                .join(', ')}
+              {Object.keys(trip.members || {}).length > 3 ? ` +${Object.keys(trip.members).length - 3}` : ''}
+            </span>
             <button
               className="invite-code"
               title={t('trip.copyCode')}
@@ -607,62 +673,22 @@ function TripDetail({ trip, onBack }) {
             >
               {t('trip.code')} <b className="code">{trip.inviteCode}</b> 📋
             </button>
-          {isMember && (
-            <div className="trip-manage">
-              {!editing && (
-                <button className="btn btn--sm btn--soft" onClick={() => setEditing(true)}>
-                  ✏️ {t('trip.edit')}
-                </button>
-              )}
-              {!duplicating && (
-                <button className="btn btn--sm btn--soft" onClick={() => setDuplicating(true)} title={t('dup.help')}>
-                  📋 {t('dup.button')}
-                </button>
-              )}
-              {/* Chỉ người tạo được xoá chuyến; thành viên khác chỉ có thể rời chuyến */}
-              {trip.ownerId === user.uid ? (
-                <button
-                  className="btn btn--sm btn--ghost danger"
-                  onClick={async () => {
-                    if (!confirm(t('trip.confirmDelete'))) return;
-                    await api.leaveTrip(user, trip);
-                    setActiveTripId(null);
-                    onBack();
-                  }}
-                >
-                  {t('trip.delete')}
-                </button>
-              ) : (
-                <button
-                  className="btn btn--sm btn--ghost danger"
-                  onClick={async () => {
-                    if (!confirm(t('trip.confirmLeave'))) return;
-                    await api.leaveTrip(user, trip);
-                    setActiveTripId(null);
-                    onBack();
-                  }}
-                >
-                  {t('trip.leave')}
-                </button>
-              )}
-            </div>
-          )}
           </div>
-        <div className="row wrap trip-head__actions">
-          <button className="btn btn--primary" onClick={share}>{t('trip.invite')}</button>
-          <button className="btn btn--outline" disabled={!stopList.length} onClick={() => setModal({ type: 'recap', mode: 'trip', trip, stops: stopList })}>
-            {t('recap.shareTrip')}
-          </button>
-          <button
-            className="btn btn--dark"
-            onClick={() => {
-              setActiveTripId(trip.id);
-              setView('map');
-            }}
-          >
-            {t('trip.onMap')}
-          </button>
-        </div>
+          <div className="trip-hero__actions">
+            <button className="btn btn--primary" onClick={share}>{t('trip.invite')}</button>
+            <button className="btn btn--outline" disabled={!stopList.length} onClick={() => setModal({ type: 'recap', mode: 'trip', trip, stops: stopList })}>
+              {t('recap.shareTrip')}
+            </button>
+            <button
+              className="btn btn--dark"
+              onClick={() => {
+                setActiveTripId(trip.id);
+                setView('map');
+              }}
+            >
+              {t('trip.onMap')}
+            </button>
+          </div>
         </div>
       </header>
       {editing && <TripEditor trip={trip} onClose={() => setEditing(false)} />}
@@ -677,17 +703,6 @@ function TripDetail({ trip, onBack }) {
           }}
         />
       )}
-      <section>
-        <h3 className="section-title">{t('trip.members')}</h3>
-        <div className="row wrap">
-          {Object.entries(trip.members || {}).map(([id, m]) => (
-            <span key={id} className="member">
-              <Avatar name={m.name} photo={m.photo} size={28} /> {m.name}
-              {id === trip.ownerId && <small> · {t('trip.owner')}</small>}
-            </span>
-          ))}
-        </div>
-      </section>
       <div className="chips trip-tabs">
         {[
           ['plan', `🗓️ ${t('plan.tab')}`],

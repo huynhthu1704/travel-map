@@ -228,8 +228,8 @@ export function AppProvider({ children }) {
         const next = current === status ? null : status;
         // Bỏ "đã đến" → hỏi xác nhận trước khi xoá
         if (current === 'visited' && next === null) return setModal({ type: 'confirmRemove', place: placeById[place.id] || place });
-        // Đánh dấu "đã đến" → hỏi ngày đến để sau này nhớ
-        if (next === 'visited') return setModal({ type: 'visitDate', place, tripId });
+        // Đánh dấu "đã đến" = check-in: chọn ngày, dịp, ghi chú, ảnh (tuỳ chọn)
+        if (next === 'visited') return setModal({ type: 'checkin', place, tripId });
         await api.setPlace(u, place, next, tripId);
         notify(
           next === 'visited' ? t('toast.visited', { name: pName(place) }) : next === 'wishlist' ? t('toast.wish', { name: pName(place) }) : t('toast.unmarked'),

@@ -834,7 +834,7 @@ function PlacePanel() {
           🗑️ {t(st === 'visited' ? 'remove.fromVisited' : 'remove.fromWish')}
         </button>
       )}
-      {(st === 'visited' || mine.length > 0) && <CheckinHistory place={p} saved={placeById[p.id]} mine={mine} tripId={tripId} />}
+      <CheckinHistory place={p} saved={placeById[p.id]} mine={mine} tripId={tripId} />
       <section>
         <h3 className="section-title">{t('place.others')}</h3>
         {pub.length ? <MemoryGrid items={pub} /> : <Empty emoji="🌱" title={t('place.noShares')} text={t('place.beFirst')} />}

@@ -1,72 +1,78 @@
-# 🍯 Bản đồ du lịch
+# 🍯 Bản đồ du lịch — Travel Map
 
-Web app giúp bạn **đánh dấu nơi đã đặt chân tới**, lưu **ảnh kỉ niệm** ở từng địa điểm, tạo **chuyến đi chung** với bạn bè và **chia sẻ** thành ảnh / video thật xinh lên mạng xã hội.
+A web app for **marking the places you've set foot in**, saving **photo memories** at each place, planning **shared trips** with friends, and **sharing** them as cute images or videos on social media.
 
-- Design system (Figma): https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ — trang **🍯 Foundations** (màu, typography, spacing, radius) và **🧩 Components** (Button, Chip, Map Pin, Place Card). Token trong `src/styles/tokens.css` khớp 1–1 với Figma variables.
-- Màu chủ đạo: vàng mật ong `#FFC629` · Font: **Lexend** (tiêu đề) + **Be Vietnam Pro** (nội dung) — hiện đại, trẻ trung, hỗ trợ đầy đủ tiếng Việt.
+The app's interface is in Vietnamese.
 
-## Tính năng
+- Design system (Figma): https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ. The **🍯 Foundations** page covers colors, typography, spacing and radius. The **🧩 Components** page has Button, Chip, Map Pin and Place Card. Tokens in `src/styles/tokens.css` map one-to-one to the Figma variables.
+- Primary color: honey yellow `#FFC629`. Fonts: **Lexend** for headings and **Be Vietnam Pro** for body text. Both are modern and fully support Vietnamese.
 
-| | Tính năng | Cần đăng nhập? |
+## Features
+
+| | Feature | Login required? |
 |---|---|---|
-| 🗺️ | Bản đồ thế giới, tô vàng quốc gia đã đến, icon 👣 tại nơi đã đặt chân | Xem: không |
-| 🔍 | Bấm vào quốc gia để zoom, xem địa điểm nổi tiếng, lọc theo thành phố/vùng | Không |
-| 🔎 | Tìm kiếm quốc gia, thành phố, địa điểm bất kỳ (OpenStreetMap) | Không |
-| 💛 | Thêm địa điểm vào danh sách *muốn đi* / *đã đến* | Có |
-| 🧭 | Chỉ đường: chọn mở **Apple Maps** hoặc **Google Maps** | Không |
-| 📸 | Upload ảnh kỉ niệm theo địa điểm (tự nén ảnh, lưu trong Firestore), riêng tư hoặc công khai | Có |
-| ✨ | Studio chia sẻ: 1–4 ảnh, 4 mẫu (Polaroid, Bưu thiếp, Cuộn phim, Bento), 3 khung (Story 9:16, 4:5, 1:1), xuất **ảnh PNG** hoặc **video** có hiệu ứng; trên điện thoại mở thẳng bảng chia sẻ | Có |
-| 🌍 | Trang *Khám phá*: xem ảnh công khai của người khác, lọc theo quốc gia / thành phố | Không |
-| 🧳 | Chuyến đi chung: tạo nhóm, mời bằng link/mã, mọi điểm dừng & ảnh hiện cho cả nhóm, xem trên bản đồ | Có |
-| 📱 | Responsive: desktop (panel bên trái), tablet & mobile (bottom sheet + thanh điều hướng dưới) | — |
+| 🗺️ | World map: visited countries are filled in yellow, with a 👣 pin at each place you've been | Viewing: no |
+| 🔍 | Click a country to zoom in, see famous places, and filter by city or region | No |
+| 🔎 | Search for any country, city or place (OpenStreetMap) | No |
+| 💛 | Add places to your *wishlist* or mark them as *visited* | Yes |
+| 🧭 | Directions: choose to open **Apple Maps** or **Google Maps** | No |
+| 📸 | Upload photo memories per place, kept private or made public. Photos are compressed automatically and stored in Firestore | Yes |
+| ✨ | Share studio: pick 1–4 photos and one of 4 templates (Polaroid, Postcard, Film strip, Bento) and 3 formats (Story 9:16, 4:5, 1:1). Export an animated **PNG image** or **video**. On mobile, it opens the native share sheet | Yes |
+| 🌍 | *Explore* page: browse other people's public photos, filtered by country or city | No |
+| 🧳 | Shared trips: create a group and invite friends by link or code. Every stop and photo is visible to the whole group and shown on the map | Yes |
+| 📱 | Responsive: side panel on desktop, bottom sheet and bottom navigation bar on tablet and mobile | — |
 
-## Chạy thử
+## Getting started
 
 ```bash
 npm install
 npm run dev
 ```
 
-Không cấu hình gì vẫn chạy được ở **chế độ demo** (đăng nhập giả lập, dữ liệu lưu trong `localStorage`).
+Without any configuration, the app runs in **demo mode**: login is simulated and data is stored in `localStorage`.
 
-## Kết nối Firebase (Google login + lưu trữ thật)
+## Connecting Firebase (Google login and real storage)
 
-1. Tạo project tại https://console.firebase.google.com → thêm **Web app**.
-2. **Authentication** → Sign-in method → bật **Google**. Thêm domain deploy vào *Authorized domains*.
-3. Tạo **Firestore Database** (project hiện tại: `asia-southeast1` – Singapore).
-4. Copy `.env.example` → `.env.local`, điền các giá trị `VITE_FIREBASE_*` (project `travel-map-e9657` đã có sẵn Web app `travel-map-web`).
-5. Deploy rules: dán `firestore.rules` vào Firestore → Rules → Publish, hoặc `npx firebase-tools deploy --only firestore:rules`.
+1. Create a project at https://console.firebase.google.com and add a **Web app**.
+2. Go to **Authentication** → Sign-in method and enable **Google**. Add your deployment domain under *Authorized domains*.
+3. Create a **Firestore Database**. The current project uses `asia-southeast1` (Singapore).
+4. Copy `.env.example` to `.env.local` and fill in the `VITE_FIREBASE_*` values. The `travel-map-e9657` project already has a Web app named `travel-map-web`.
+5. Deploy the security rules: paste `firestore.rules` into Firestore → Rules → Publish, or run `npx firebase-tools deploy --only firestore:rules`.
 
-> Ảnh được nén và lưu thẳng trong Firestore (ảnh thu nhỏ trong document kỉ niệm, ảnh đầy đủ ở `memories/{id}/full/{i}`), nên chạy được trên gói **Spark miễn phí** — không cần Firebase Storage/Blaze. Hạn mức miễn phí: 1 GiB dữ liệu (~3.000–5.000 ảnh), 50.000 lượt đọc/ngày.
+> Photos are compressed and stored directly in Firestore, so the app runs on the **free Spark plan**. Firebase Storage and the Blaze plan are not needed. Thumbnails live in the memory document and full-size photos in `memories/{id}/full/{i}`. Free quota: 1 GiB of data (roughly 3,000–5,000 photos) and 50,000 reads per day.
 
-### Mô hình dữ liệu
+### Data model
 
 ```
-users/{uid}/places/{placeId}   địa điểm đã đến / muốn đi
-memories/{id}                  kỉ niệm (ảnh thu nhỏ, ghi chú, public/private, tripId)
-memories/{id}/full/{i}         ảnh độ phân giải đầy đủ
-trips/{id}                     chuyến đi (memberIds, inviteCode)
-trips/{id}/stops/{id}          điểm dừng + ảnh mà cả nhóm cùng thấy
+users/{uid}/places/{placeId}   visited / wishlist places
+memories/{id}                  memories (thumbnails, caption, public/private, tripId)
+memories/{id}/full/{i}         full-resolution photos
+trips/{id}                     trips (memberIds, inviteCode)
+trips/{id}/stops/{id}          stops and photos shared with the whole group
 ```
 
-## Deploy
+## Deployment
 
-- **GitHub Pages**: workflow `.github/workflows/deploy.yml` tự build khi push lên `main`. Vào *Settings → Pages → Source: GitHub Actions*, thêm các secret `VITE_FIREBASE_*` trong *Settings → Secrets → Actions*.
-- **Firebase Hosting**: `npm run build && npx firebase-tools deploy --only hosting`.
+- **GitHub Pages**: the `.github/workflows/deploy.yml` workflow builds the app on every push to `main`. To set it up:
+  1. Go to *Settings → Pages* and set *Source* to *GitHub Actions*.
+  2. Add the `VITE_FIREBASE_*` secrets under *Settings → Secrets → Actions*.
+  3. Add `<username>.github.io` to Firebase *Authorized domains*.
+- **Firebase Hosting**: run `npm run build && npx firebase-tools deploy --only hosting`.
 
-## Cấu trúc
+## Project structure
 
 ```
 src/
-  AppContext.jsx        state chung, auth, yêu cầu đăng nhập
-  lib/store.js          lớp dữ liệu Firebase / demo
-  lib/countries.js      GeoJSON quốc gia, tên tiếng Việt, cờ
-  data/places.js        địa điểm nổi tiếng gợi ý theo quốc gia
-  components/MapView    bản đồ Leaflet + pin
-  components/SidePanel  panel thế giới / quốc gia / địa điểm
-  components/ShareStudio tạo ảnh & video chia sẻ (canvas + MediaRecorder)
-  pages/Pages.jsx       Khám phá, Kỉ niệm, Chuyến đi
-  styles/tokens.css     design tokens (đồng bộ Figma)
+  AppContext.jsx          shared state, auth, login gating
+  lib/store.js            data layer (Firebase / demo)
+  lib/countries.js        country GeoJSON, Vietnamese names, flags
+  lib/image.js            image compression
+  data/places.js          suggested famous places by country
+  components/MapView      Leaflet map and pins
+  components/SidePanel    world / country / place panels
+  components/ShareStudio  share images and videos (canvas + MediaRecorder)
+  pages/Pages.jsx         Explore, Memories, Trips
+  styles/tokens.css       design tokens (synced with Figma)
 ```
 
 Stack: React 18 · Vite · Leaflet / react-leaflet · Firebase (Auth, Firestore) · OpenStreetMap / CARTO tiles · Nominatim.

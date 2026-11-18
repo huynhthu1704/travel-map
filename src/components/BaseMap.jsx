@@ -34,7 +34,8 @@ export default function BaseMap() {
       try {
         const [style, mod] = await Promise.all([loadStyle(), import('@maplibre/maplibre-gl-leaflet')]);
         if (cancelled) return;
-        layer = mod.maplibreGL({ style, attribution: ATTRIBUTION, interactive: false });
+        // preserveDrawingBuffer: để chụp được bản đồ khi người dùng gửi góp ý kèm ảnh màn hình
+        layer = mod.maplibreGL({ style, attribution: ATTRIBUTION, interactive: false, preserveDrawingBuffer: true });
         layer.addTo(map);
       } catch {
         if (!cancelled) setFallback(true);

@@ -6,12 +6,13 @@ import { MemoryGrid } from '../components/SidePanel';
 import { countryName, flagOf } from '../lib/countries';
 import { socialApi } from '../lib/social';
 import { fixMemory } from '../lib/fixes';
+import { makeAvatar } from '../lib/avatar';
 
 const BIO_MAX = 160;
 
 /** Hồ sơ người dùng: quốc gia / thành phố đã đi, check-in công khai, giới thiệu ngắn, theo dõi */
 export default function ProfilePage() {
-  const { profileUid: uid, user, requireLogin, followingIds, followerIds, toggleFollow, notify } = useApp();
+  const { profileUid: uid, profileSub, user, api, requireLogin, followingIds, followerIds, toggleFollow, notify, openProfile } = useApp();
   const { t, lang } = useI18n();
   const [p, setP] = useState(undefined);
   const [checkins, setCheckins] = useState(null);
@@ -19,6 +20,9 @@ export default function ProfilePage() {
   const [feed, setFeed] = useState(null);
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState('');
+  const [nameEdit, setNameEdit] = useState(null); // đang sửa tên: chuỗi tên mới
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [openCc, setOpenCc] = useState({});
   const isMe = user?.uid === uid;
   const mutual = !isMe && followingIds.has(uid) && followerIds.has(uid);
 
@@ -68,7 +72,62 @@ export default function ProfilePage() {
     );
   if (p === undefined) return <div className="page"><Loader /></div>;
   if (!p && !isMe) return <div className="page"><Empty emoji="🔍" title={t('social.notFound')} /></div>;
-  const prof = p || { name: user.name, photo: user.photo, countries: [], cities: [] };
+  const base = p || { name: user.name, photo: user.photo, countries: [], cities: [] };
+  // Của chính mình: lấy tên / ảnh mới nhất từ tài khoản (hồ sơ công khai cập nhật sau vài giây)
+  const prof = isMe ? { ...base, name: user.name, photo: user.photo } : base;
+
+  if (profileSub === 'activity') return <ActivityPage uid={uid} prof={prof} isMe={isMe} mutual={mutual} feed={feed} />;
+
+  const saveName = async (value) => {
+    const v = value.trim();
+    if (!v && value !== '') return;
+    try {
+      await api.setDisplayName(user, value === '' ? '' : v);
+      setNameEdit(null);
+      notify(t('profile.saved'));
+    } catch (e) {
+      notify(e.message, 'error');
+    }
+  };
+  const pickPhoto = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('image/')) return notify(t('profile.photoBad'), 'error');
+    setPhotoBusy(true);
+    try {
+      const photo = await makeAvatar(f);
+      await api.setProfilePhoto(user, photo);
+      notify(t('profile.photoSaved'));
+    } catch (err) {
+      notify(err.message || t('profile.photoBad'), 'error');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+  const resetPhoto = async () => {
+    setPhotoBusy(true);
+    try {
+      await api.setProfilePhoto(user, null);
+      notify(t('profile.photoSaved'));
+    } catch (err) {
+      notify(err.message, 'error');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+  const shareLink = async () => {
+    const url = `${location.origin}${location.pathname}#/u/${encodeURIComponent(uid)}`;
+    try {
+      if (navigator.share && /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)) await navigator.share({ title: prof.name, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        notify(t('social.linkCopied'));
+      }
+    } catch {
+      /* người dùng huỷ */
+    }
+  };
 
   const saveBio = async () => {
     try {
@@ -83,9 +142,47 @@ export default function ProfilePage() {
   return (
     <div className="page profile">
       <header className="profile__head card">
-        <Avatar name={prof.name || '?'} photo={prof.photo} size={96} />
+        <div className="profile__avatar">
+          <Avatar name={prof.name || '?'} photo={prof.photo} size={96} />
+          {isMe && (
+            <label className={`profile__cam ${photoBusy ? 'is-busy' : ''}`} title={t('profile.photoChange')}>
+              {photoBusy ? '⏳' : '📷'}
+              <input type="file" accept="image/*" onChange={pickPhoto} hidden disabled={photoBusy} />
+            </label>
+          )}
+        </div>
         <div className="profile__info">
-          <h1 className="h1">{prof.name || t('admin.unknownUser')}</h1>
+          {nameEdit !== null ? (
+            <form
+              className="profile__nameform"
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveName(nameEdit);
+              }}
+            >
+              <input value={nameEdit} onChange={(e) => setNameEdit(e.target.value)} maxLength={40} placeholder={user.googleName} autoFocus aria-label={t('profile.nameLabel')} />
+              <button className="btn btn--sm btn--primary" disabled={!nameEdit.trim() || nameEdit.trim() === user.name}>
+                💾 {t('admin.save')}
+              </button>
+              <button type="button" className="btn btn--sm btn--ghost" onClick={() => setNameEdit(null)}>
+                {t('pick.cancel')}
+              </button>
+              {user.name !== user.googleName && user.googleName && (
+                <button type="button" className="btn btn--sm btn--ghost" onClick={() => saveName('')}>
+                  ↩️ {t('profile.useGoogle', { name: user.googleName })}
+                </button>
+              )}
+            </form>
+          ) : (
+            <div className="profile__nameRow">
+              <h1 className="h1">{prof.name || t('admin.unknownUser')}</h1>
+              {isMe && (
+                <button className="btn btn--sm btn--ghost" onClick={() => setNameEdit(user.name || '')}>
+                  ✏️ {t('profile.editName')}
+                </button>
+              )}
+            </div>
+          )}
           {editing ? (
             <div className="stack-sm">
               <textarea rows={2} value={bio} maxLength={BIO_MAX} onChange={(e) => setBio(e.target.value)} placeholder={t('social.bioPh')} autoFocus />
@@ -111,6 +208,11 @@ export default function ProfilePage() {
               )}
             </p>
           )}
+          {isMe && photoBusy === false && user.photo && user.googlePhoto && user.photo !== user.googlePhoto && (
+            <button className="btn btn--sm btn--ghost profile__resetPhoto" onClick={resetPhoto}>
+              ↩️ {t('profile.photoGoogle')}
+            </button>
+          )}
           <div className="profile__follow">
             <span>
               <b>{fCount.followers ?? '…'}</b> {t('social.followers')}
@@ -126,6 +228,18 @@ export default function ProfilePage() {
                 {mutual && <span className="profile__friend">🤝 {t('social.friends')}</span>}
               </>
             )}
+          </div>
+          <div className="profile__actions">
+            {isMe || mutual ? (
+              <button className="btn btn--sm btn--soft" onClick={() => openProfile(uid, 'activity')}>
+                🕒 {t('social.recent')}
+              </button>
+            ) : (
+              <span className="small muted">🔒 {t('social.feedLocked')}</span>
+            )}
+            <button className="btn btn--sm btn--ghost" onClick={shareLink}>
+              🔗 {t('social.shareProfile')}
+            </button>
           </div>
         </div>
       </header>
@@ -152,40 +266,92 @@ export default function ProfilePage() {
       {(prof.countries?.length || 0) > 0 && (
         <section className="card stack-sm">
           <h3 className="h3">🌏 {t('social.countriesTitle')}</h3>
-          <div className="chips">
-            {[...prof.countries].sort((a, b) => countryName(a).localeCompare(countryName(b), lang)).map((cc) => (
-              <span key={cc} className="chip">
-                {flagOf(cc)} {countryName(cc)}
-              </span>
-            ))}
+          <div className="place-groups">
+            {[...prof.countries]
+              .map((cc) => [cc, citiesBy.find(([c]) => c === cc)?.[1] || []])
+              .sort((a, b) => b[1].length - a[1].length || countryName(a[0]).localeCompare(countryName(b[0]), lang))
+              .map(([cc, list]) => {
+                const sorted = [...list].sort((a, b) => a.localeCompare(b, lang));
+                const LIMIT = 12;
+                const more = sorted.length > LIMIT && !openCc[cc];
+                return (
+                  <div key={cc} className="place-group">
+                    <div className="place-group__head">
+                      <span className="place-group__flag">{flagOf(cc) || '🌏'}</span>
+                      <b>{countryName(cc)}</b>
+                      <span className="place-group__count">{t('social.cityCount', { n: sorted.length })}</span>
+                    </div>
+                    {sorted.length > 0 && (
+                      <div className="place-group__cities">
+                        {(more ? sorted.slice(0, LIMIT) : sorted).map((c) => (
+                          <span key={c} className="city-chip">
+                            📍 {c}
+                          </span>
+                        ))}
+                        {sorted.length > LIMIT && (
+                          <button className="city-chip city-chip--more" onClick={() => setOpenCc((o) => ({ ...o, [cc]: !o[cc] }))}>
+                            {more ? t('social.moreCities', { n: sorted.length - LIMIT }) : t('social.lessCities')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
           </div>
-          {citiesBy.length > 0 && (
-            <div className="profile__cities">
-              {citiesBy.map(([cc, list]) => (
-                <div key={cc}>
-                  <b>
-                    {flagOf(cc)} {countryName(cc)}
-                  </b>
-                  <span>{list.join(' · ')}</span>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
       )}
-
-      {(isMe || mutual) && (
-        <section className="card stack-sm">
-          <h3 className="h3">🕒 {t('social.recent')}</h3>
-          {!feed ? <Loader size="sm" /> : feed.length ? <FeedList items={feed.slice(0, 12)} /> : <p className="muted small">—</p>}
-        </section>
-      )}
-      {!isMe && !mutual && <p className="small muted">🔒 {t('social.feedLocked')}</p>}
 
       <section className="stack-sm">
         <h3 className="h3">📸 {t('social.publicCheckinsTitle')}</h3>
         {!checkins ? <Loader /> : checkins.length ? <MemoryGrid items={checkins} /> : <Empty emoji="🖼️" title={t('social.noPublic')} />}
       </section>
+    </div>
+  );
+}
+
+/** Trang hoạt động gần đây (#/u/<uid>/activity): chỉ chính chủ và bạn bè theo dõi chéo */
+function ActivityPage({ uid, prof, isMe, mutual, feed }) {
+  const { t, lang } = useI18n();
+  const { openProfile } = useApp();
+  const groups = useMemo(() => {
+    const g = new Map();
+    (feed || []).forEach((it) => {
+      const d = new Date(it.at);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!g.has(k)) g.set(k, { label: d.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-GB', { month: 'long', year: 'numeric' }), items: [] });
+      g.get(k).items.push(it);
+    });
+    return [...g.values()];
+  }, [feed, lang]);
+  return (
+    <div className="page profile">
+      <div className="activity__top">
+        <button className="btn btn--sm btn--ghost" onClick={() => openProfile(uid)}>
+          ← {t('social.backProfile')}
+        </button>
+      </div>
+      <header className="activity__head card">
+        <Avatar name={prof.name || '?'} photo={prof.photo} size={56} />
+        <div>
+          <h1 className="h2">🕒 {t('social.recent')}</h1>
+          <span className="muted small">{prof.name}</span>
+        </div>
+      </header>
+      {!isMe && !mutual ? (
+        <Empty emoji="🔒" title={t('social.feedLocked')} />
+      ) : !feed ? (
+        <Loader />
+      ) : !feed.length ? (
+        <Empty emoji="🌱" title={t('social.noActivity')} />
+      ) : (
+        groups.map((g) => (
+          <section key={g.label} className="card stack-sm">
+            <h3 className="h3 activity__month">{g.label}</h3>
+            <FeedList items={g.items} />
+          </section>
+        ))
+      )}
     </div>
   );
 }

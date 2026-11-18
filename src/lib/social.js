@@ -13,6 +13,19 @@ import {
   collection, doc, setDoc, getDoc, getDocs, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, limit, getCountFromServer, arrayUnion, arrayRemove, writeBatch,
 } from 'firebase/firestore';
 import { firebaseEnabled, db } from './firebase';
+import { normalize } from './geo';
+
+/** Các trường giúp tìm người dùng theo tên (không phân biệt dấu, tìm theo đầu từ) */
+export function nameSearchFields(name = '') {
+  const n = normalize(name).replace(/\s+/g, ' ').trim();
+  const keys = new Set();
+  n.split(' ').filter(Boolean).forEach((w) => {
+    for (let i = 1; i <= Math.min(w.length, 20); i++) keys.add(w.slice(0, i));
+  });
+  return { nameLower: n, searchKeys: [...keys].slice(0, 120) };
+}
+const matchName = (p, words) => words.every((w) => (p.nameLower || normalize(p.name || '')).split(' ').some((x) => x.startsWith(w)));
+const queryWords = (q) => normalize(q).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
 
 const now = () => Date.now();
 const fid = (from, to) => `${from}_${to}`;
@@ -23,6 +36,14 @@ const fb = {
   watchProfile: (uid, cb) => onSnapshot(doc(db, 'profiles', uid), (s) => cb(s.exists() ? s.data() : null), () => cb(null)),
   saveProfile: (uid, data) => setDoc(doc(db, 'profiles', uid), { ...data, uid, updatedAt: now() }, { merge: true }),
   saveFeed: (uid, items) => setDoc(doc(db, 'feeds', uid), { items, updatedAt: now() }),
+  // Tìm người dùng theo tên
+  async searchUsers(q) {
+    const words = queryWords(q);
+    if (!words.length) return [];
+    const first = words.sort((a, b) => b.length - a.length)[0].slice(0, 20);
+    const s = await getDocs(query(collection(db, 'profiles'), where('searchKeys', 'array-contains', first), limit(25)));
+    return s.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((p) => matchName(p, words)).slice(0, 8);
+  },
   async getFeed(uid) {
     try {
       const s = await getDoc(doc(db, 'feeds', uid));
@@ -119,6 +140,11 @@ const local = {
   },
   async getFeed(uid) {
     return st.feeds[uid] || [];
+  },
+  async searchUsers(q) {
+    const words = queryWords(q);
+    if (!words.length) return [];
+    return Object.values(st.profiles).filter((p) => matchName(p, words)).slice(0, 8);
   },
   watchPublicCheckins(uid, cb) {
     let unsub = () => {};

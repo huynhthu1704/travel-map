@@ -15,6 +15,14 @@ const TripsPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.T
 const AdminPage = lazy(() => import('./pages/Admin'));
 const ProfilePage = lazy(() => import('./pages/Profile'));
 import { firebaseEnabled } from './lib/firebase';
+import { hasUnseenRelease } from './lib/release';
+
+/** Có bản phát hành mới mà người dùng chưa xem (tính lại mỗi khi đóng/mở hộp thoại) */
+function useHasNewRelease(modal) {
+  const [v, setV] = useState(hasUnseenRelease);
+  useEffect(() => setV(hasUnseenRelease()), [modal]);
+  return v;
+}
 import { useI18n, LANGS } from './i18n';
 
 const NAV = [
@@ -38,9 +46,10 @@ function LangSwitch() {
 }
 
 function UserMenu() {
-  const { user, api, requireLogin, setModal, openProfile } = useApp();
+  const { user, api, requireLogin, setModal, openProfile, modal } = useApp();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const hasNew = useHasNewRelease(modal);
   if (user === undefined) return <span className="avatar avatar--letter skeleton" />;
   if (!user)
     return (
@@ -52,6 +61,7 @@ function UserMenu() {
     <div className="user-menu">
       <button className="user-menu__btn" onClick={() => setOpen((v) => !v)} aria-label={t('auth.account')}>
         <Avatar name={user.name} photo={user.photo} size={36} />
+        {hasNew && <span className="dot-new dot-new--avatar" />}
       </button>
       {open && (
         <div className="user-menu__pop" onMouseLeave={() => setOpen(false)}>
@@ -69,11 +79,12 @@ function UserMenu() {
           <button
             className="btn btn--sm btn--ghost"
             onClick={() => {
-              setModal({ type: 'profile' });
+              setModal({ type: 'whatsNew' });
               setOpen(false);
             }}
           >
-            ✏️ {t('profile.edit')}
+            🆕 {t('rn.open')}
+            {hasNew && <span className="dot-new" />}
           </button>
           <button
             className="btn btn--sm btn--ghost"
@@ -111,6 +122,7 @@ function UserMenu() {
           >
             {t('auth.logout')}
           </button>
+          <small className="muted user-menu__ver">Travel Map v{__APP_VERSION__}</small>
         </div>
       )}
     </div>

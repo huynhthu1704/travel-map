@@ -545,6 +545,9 @@ function WorldPanel() {
             <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'sponsor' })}>
               ☕ {t('sponsor.open')}
             </button>
+            <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'whatsNew' })}>
+              🆕 {t('rn.open')} <span className="muted">v{__APP_VERSION__}</span>
+            </button>
           </div>
         </>
       )}
@@ -909,7 +912,7 @@ function PlacePanel() {
 }
 
 export function MemoryGrid({ items }) {
-  const { setModal, placeStatus, user } = useApp();
+  const { setModal, placeStatus, user, openProfile } = useApp();
   return (
     <div className="mgrid">
       {items.map((m) => (
@@ -918,7 +921,20 @@ export function MemoryGrid({ items }) {
           {photoCountOf(m) > 1 && <span className="mgrid__count">+{photoCountOf(m) - 1}</span>}
           <span className="mgrid__meta">
             <span>{pName(m.place)}</span>
-            {m.uid !== user?.uid && m.authorName && <small>{m.authorName}</small>}
+            {m.uid !== user?.uid && m.authorName && (
+              <small
+                className="mgrid__author"
+                role="link"
+                title={m.authorName}
+                onClick={(e) => {
+                  if (!m.uid || m.uid === 'sample' || m.uid === 'trip-stop') return;
+                  e.stopPropagation();
+                  openProfile(m.uid);
+                }}
+              >
+                👤 {m.authorName}
+              </small>
+            )}
           </span>
           {m.date && <span className="mgrid__date">{formatDate(m.date)}</span>}
           {placeStatus[m.place?.id] === 'wishlist' && <span className="mgrid__wish" title="💛">💛</span>}

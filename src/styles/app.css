@@ -5956,3 +5956,306 @@ body.fb-picking * {
     margin-top: 4px;
   }
 }
+
+/* ---------- Hồ sơ: ảnh đại diện + tên sửa tại chỗ ---------- */
+.profile__avatar {
+  position: relative;
+  flex: none;
+}
+.profile__cam {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--honey-400);
+  border: 3px solid var(--base-white);
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(31, 26, 20, 0.18);
+  transition: transform 0.15s;
+}
+.profile__cam:hover {
+  transform: scale(1.08);
+}
+.profile__cam.is-busy {
+  cursor: progress;
+}
+.profile__nameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.profile__nameform {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.profile__nameform input {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.profile__resetPhoto {
+  align-self: flex-start;
+}
+.profile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--ink-100);
+}
+@media (max-width: 640px) {
+  .profile__nameRow,
+  .profile__nameform,
+  .profile__actions {
+    justify-content: center;
+  }
+  .profile__resetPhoto {
+    align-self: center;
+  }
+}
+
+/* ---------- Hồ sơ: quốc gia & tỉnh/thành đã đến ---------- */
+.place-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+.place-group {
+  border: 1px solid var(--ink-100);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: var(--honey-50);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.place-group__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.place-group__flag {
+  font-size: 22px;
+  line-height: 1;
+}
+.place-group__count {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--honey-200);
+  color: var(--honey-900);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.place-group__cities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.city-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--base-white);
+  border: 1px solid var(--ink-100);
+  font-size: 13px;
+  color: var(--ink-700);
+  white-space: nowrap;
+}
+.city-chip--more {
+  cursor: pointer;
+  background: transparent;
+  border-style: dashed;
+  color: var(--honey-700);
+  font-weight: 700;
+  font-family: inherit;
+}
+
+/* ---------- Trang hoạt động gần đây ---------- */
+.activity__top {
+  display: flex;
+}
+.activity__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.activity__head h1 {
+  margin: 0;
+}
+.activity__month {
+  text-transform: capitalize;
+}
+
+/* ---------- Tìm người dùng & tác giả check-in ---------- */
+.search__avatar .avatar {
+  width: 28px;
+  height: 28px;
+}
+.search__me {
+  font-style: normal;
+  color: var(--ink-500);
+  font-size: 12px;
+}
+.mgrid__author {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.5);
+  text-underline-offset: 2px;
+}
+.mgrid__author:hover {
+  text-decoration-color: currentColor;
+}
+
+/* ---------- Có gì mới (release notes) ---------- */
+.dot-new {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--coral-500);
+  vertical-align: middle;
+}
+.user-menu__btn {
+  position: relative;
+}
+.dot-new--avatar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--base-white);
+}
+.user-menu__ver {
+  text-align: center;
+  font-size: 11px;
+  padding-top: 4px;
+}
+.rn__current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--honey-100);
+  font-size: 14px;
+}
+.rn__current b {
+  font-size: 18px;
+}
+.rn__day {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rn__date {
+  margin: 4px 0 0;
+  font-size: 15px;
+  text-transform: capitalize;
+  color: var(--ink-700);
+  position: sticky;
+  top: -1px;
+  background: var(--base-white);
+  padding: 6px 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--ink-100);
+}
+.rn__release {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rn__ver {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.rn__tag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ink-900);
+  color: var(--base-white);
+  font-size: 12px;
+  font-weight: 700;
+}
+.rn__now {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--mint-100);
+  color: #1d7a55;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rn__item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+}
+.rn__icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--honey-50);
+  font-size: 20px;
+}
+.rn__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rn__body p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-700);
+}
+.rn__img {
+  margin-top: 6px;
+  padding: 0;
+  border: 1px solid var(--ink-100);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--ink-100);
+  cursor: zoom-in;
+  max-width: 420px;
+}
+.rn__img img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.rn__zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(20, 16, 12, 0.8);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  cursor: zoom-out;
+}
+.rn__zoom img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+}

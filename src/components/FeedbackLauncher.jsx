@@ -13,6 +13,8 @@ export default function FeedbackLauncher() {
   const [picking, setPicking] = useState(false);
   const [box, setBox] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [hidden, setHidden] = useState(false); // ẩn mọi thứ của công cụ góp ý trong lúc chụp
+  const libRef = useRef(null);
   const target = useRef(null);
   // Vị trí nút Góp ý: kéo lên / xuống, kéo sang mép trái / phải; nhớ cho lần sau
   const [pos, setPos] = useState(() => {
@@ -62,6 +64,7 @@ export default function FeedbackLauncher() {
 
   useEffect(() => {
     if (!picking) return undefined;
+    import('../lib/feedback').then((m) => (libRef.current = m));
     const inUi = (el) => el?.closest?.('.fb-ignore');
     const at = (x, y) => {
       const el = document.elementFromPoint(x, y);
@@ -80,19 +83,25 @@ export default function FeedbackLauncher() {
       const el = at(e.clientX, e.clientY) || target.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      setBusy(true);
+      const element = (libRef.current || (await import('../lib/feedback'))).describeElement(el);
+      // Ẩn khung chọn và thanh hướng dẫn trước khi chụp để ảnh giống hệt màn hình người dùng thấy
+      setHidden(true);
       setBox(null);
-      const { captureScreen, describeElement } = await import('../lib/feedback');
+      const lib = libRef.current || (await import('../lib/feedback'));
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       let screenshot = '';
       try {
-        screenshot = await captureScreen(rect);
+        const real = await lib.grabTab(); // ảnh thật của tab (máy tính)
+        setBusy(true);
+        setHidden(false);
+        screenshot = await lib.captureScreen(rect, real);
       } catch {
         /* không chụp được: vẫn cho góp ý */
       }
       setBusy(false);
       setPicking(false);
-      setModal({ type: 'feedback', capture: { screenshot, element: describeElement(el) } });
+      setHidden(false);
+      setModal({ type: 'feedback', capture: { screenshot, element } });
     };
     const block = (e) => {
       if (inUi(e.target)) return;
@@ -136,7 +145,7 @@ export default function FeedbackLauncher() {
           <b>{t('fb.tab')}</b>
         </button>
       )}
-      {picking && (
+      {picking && !hidden && (
         <>
           {box && !busy && <div className="fb-box fb-ignore" style={{ left: box.left - 4, top: box.top - 4, width: box.width + 8, height: box.height + 8 }} />}
           <div className="fb-picker-bar fb-ignore" role="status">

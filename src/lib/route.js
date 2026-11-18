@@ -19,11 +19,12 @@ export function parseRoute(hash = '') {
       return s;
     }
   });
-  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan', profile: null };
+  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan', profile: null, profileSub: null };
   if (PAGES.includes(seg[0])) r.view = seg[0];
   else if (seg[0] === 'u' && seg[1]) {
     r.view = 'profile';
     r.profile = seg[1];
+    r.profileSub = seg[2] === 'activity' ? 'activity' : null;
   }
   else if (seg[0] === 'trips') {
     r.view = 'trips';
@@ -40,7 +41,7 @@ export function parseRoute(hash = '') {
   return r;
 }
 
-export function buildRoute({ view, country, place, trip, tripDetail, tripTab, profile }) {
+export function buildRoute({ view, country, place, trip, tripDetail, tripTab, profile, profileSub }) {
   const q = new URLSearchParams();
   let path = '';
   if (view === 'map') {
@@ -57,7 +58,7 @@ export function buildRoute({ view, country, place, trip, tripDetail, tripTab, pr
     path = tripDetail ? `trips/${encodeURIComponent(tripDetail)}` : 'trips';
     if (tripDetail && tripTab && tripTab !== 'plan') q.set('tab', tripTab);
   }
-  else if (view === 'profile') path = profile ? `u/${encodeURIComponent(profile)}` : 'memories';
+  else if (view === 'profile') path = profile ? `u/${encodeURIComponent(profile)}${profileSub === 'activity' ? '/activity' : ''}` : 'memories';
   else path = view;
   if (trip) q.set('trip', trip);
   const s = q.toString();

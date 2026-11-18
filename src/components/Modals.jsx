@@ -9,6 +9,7 @@ import { firebaseEnabled } from '../lib/firebase';
 const ShareStudio = lazy(() => import('./ShareStudio'));
 const RecapStudio = lazy(() => import('./RecapStudio'));
 const FaqModal = lazy(() => import('./HelpModals').then((m) => ({ default: m.FaqModal })));
+const WhatsNewModal = lazy(() => import('./HelpModals').then((m) => ({ default: m.WhatsNewModal })));
 const SponsorModal = lazy(() => import('./HelpModals').then((m) => ({ default: m.SponsorModal })));
 const FeedbackModal = lazy(() => import('./Feedback').then((m) => ({ default: m.FeedbackModal })));
 import DateInput from './DateInput';
@@ -40,8 +41,6 @@ function renderModal(modal, close) {
       return <LoginModal reason={modal.reason} onClose={close} />;
     case 'checkin':
       return <CheckinModal place={modal.place} tripId={modal.tripId} memory={modal.memory} legacy={modal.legacy} preserve={modal.preserve} onClose={close} />;
-    case 'profile':
-      return <ProfileModal onClose={close} />;
     case 'directions':
       return <DirectionsModal place={modal.place} onClose={close} />;
     case 'memory':
@@ -58,6 +57,8 @@ function renderModal(modal, close) {
       return <ConfirmRemoveModal place={modal.place} onClose={close} />;
     case 'visitDate':
       return <VisitDateModal place={modal.place} tripId={modal.tripId} onClose={close} />;
+    case 'whatsNew':
+      return <WhatsNewModal onClose={close} />;
     case 'faq':
       return <FaqModal onClose={close} />;
     case 'sponsor':
@@ -753,114 +754,6 @@ function MemoryViewer({ memory: m, onClose }) {
           </div>
         </div>
       </div>
-    </Modal>
-  );
-}
-
-/** Đổi tên hiển thị thay cho tên lấy từ Google */
-/** Cắt ảnh vuông ở giữa, thu về 256px, nén JPEG/WebP (≈ 20 KB) */
-async function makeAvatar(file) {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise((res, rej) => {
-      const im = new Image();
-      im.onload = () => res(im);
-      im.onerror = rej;
-      im.src = url;
-    });
-    const side = Math.min(img.naturalWidth, img.naturalHeight);
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
-    let q = 0.85;
-    let out = c.toDataURL('image/jpeg', q);
-    while (out.length > 100000 && q > 0.4) out = c.toDataURL('image/jpeg', (q -= 0.1));
-    return out;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-function ProfileModal({ onClose }) {
-  const { t } = useI18n();
-  const { user, api, notify } = useApp();
-  const [name, setName] = useState(user?.name || '');
-  const [photo, setPhoto] = useState(user?.photo || '');
-  const [busy, setBusy] = useState(false);
-  if (!user) return null;
-  const photoChanged = (photo || '') !== (user.photo || '');
-  const nameChanged = name.trim() !== user.name;
-  const save = async ({ nameValue = name, photoValue = photo, close = true } = {}) => {
-    setBusy(true);
-    try {
-      if (nameValue.trim() !== user.name || nameValue === '') await api.setDisplayName(user, nameValue);
-      if ((photoValue || '') !== (user.photo || '')) await api.setProfilePhoto(user, photoValue && photoValue !== user.googlePhoto ? photoValue : null);
-      notify(t('profile.saved'));
-      if (close) onClose();
-      else setBusy(false);
-    } catch (e) {
-      notify(e.message, 'error');
-      setBusy(false);
-    }
-  };
-  const pick = async (e) => {
-    const f = e.target.files?.[0];
-    e.target.value = '';
-    if (!f) return;
-    if (!f.type.startsWith('image/')) return notify(t('profile.photoBad'), 'error');
-    try {
-      setPhoto(await makeAvatar(f));
-    } catch {
-      notify(t('profile.photoBad'), 'error');
-    }
-  };
-  return (
-    <Modal title={`✏️ ${t('profile.title')}`} onClose={onClose} className="modal--sm">
-      <form
-        className="stack"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (name.trim()) save();
-        }}
-      >
-        <div className="avatar-edit">
-          <label className="avatar-edit__pic" title={t('profile.photoChange')}>
-            <Avatar name={name || user.name} photo={photo} size={88} />
-            <span className="avatar-edit__cam">📷</span>
-            <input type="file" accept="image/*" onChange={pick} hidden />
-          </label>
-          <div className="stack-sm">
-            <b>{name.trim() || user.googleName}</b>
-            <div className="small muted">{user.email}</div>
-            <div className="row wrap">
-              <label className="btn btn--sm btn--soft">
-                📷 {t('profile.photoChange')}
-                <input type="file" accept="image/*" onChange={pick} hidden />
-              </label>
-              {photo && photo !== user.googlePhoto && (
-                <button type="button" className="btn btn--sm btn--ghost" onClick={() => setPhoto(user.googlePhoto || '')}>
-                  ↩️ {user.googlePhoto ? t('profile.photoGoogle') : t('profile.photoRemove')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        <label className="field">
-          <span>{t('profile.nameLabel')}</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={user.googleName} />
-          <small className="muted">{t('profile.help')}</small>
-        </label>
-        <div className="row wrap">
-          <button className="btn btn--primary" disabled={busy || !name.trim() || (!nameChanged && !photoChanged)}>
-            💾 {t('profile.save')}
-          </button>
-          {user.name !== user.googleName && (
-            <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => save({ nameValue: '', photoValue: photo })}>
-              ↩️ {t('profile.useGoogle', { name: user.googleName })}
-            </button>
-          )}
-        </div>
-      </form>
     </Modal>
   );
 }

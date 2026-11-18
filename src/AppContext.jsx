@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/store';
-import { socialApi } from './lib/social';
+import { socialApi, nameSearchFields } from './lib/social';
 import { loadCountries, bboxOf } from './lib/countries';
 import { parseRoute, buildRoute } from './lib/route';
 import { loadFamousLive } from './lib/famousLive';
@@ -49,6 +49,7 @@ export function AppProvider({ children }) {
   const [selectedCountry, setSelectedCountry] = useState(initRoute.country);
   const [selectedPlace, setSelectedPlace] = useState(initRoute.place);
   const [profileUid, setProfileUid] = useState(initRoute.profile); // hồ sơ đang xem (#/u/<uid>)
+  const [profileSub, setProfileSub] = useState(initRoute.profileSub); // trang con của hồ sơ: 'activity'
   const [flyTarget, setFlyTarget] = useState(null);
   // Trang danh sách đã mở địa điểm (để có nút quay lại danh sách)
   const [returnView, setReturnView] = useState(null);
@@ -322,7 +323,7 @@ export function AppProvider({ children }) {
   const routeReplace = useRef(true); // lần đầu & khi bấm Back/Forward: chỉ thay, không thêm lịch sử
   useEffect(() => {
     if (/join=/.test(location.hash)) return;
-    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab, profile: profileUid });
+    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab, profile: profileUid, profileSub });
     const replace = routeReplace.current;
     routeReplace.current = false;
     if (h === location.hash) return;
@@ -330,7 +331,7 @@ export function AppProvider({ children }) {
     const url = location.pathname + location.search + h;
     if (replace || samePath) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
-  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab, profileUid]);
+  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab, profileUid, profileSub]);
   useEffect(() => {
     const onPop = () => {
       const r = parseRoute(location.hash);
@@ -342,6 +343,7 @@ export function AppProvider({ children }) {
       setOpenTripId(r.tripDetail);
       setTripTab(r.tripTab);
       setProfileUid(r.profile);
+      setProfileSub(r.profileSub);
       if (r.view === 'map') {
         if (r.place) setFlyTarget({ lat: r.place.lat, lng: r.place.lng, zoom: 13, t: Date.now() });
         else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
@@ -544,9 +546,11 @@ export function AppProvider({ children }) {
   }, [user?.uid, places, memories, trips, loaded.mine, loaded.trips]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ================= Mạng xã hội =================
-  const openProfile = useCallback((uid) => {
+  const openProfile = useCallback((uid, sub = null) => {
     if (!uid) return;
     setProfileUid(uid);
+    setProfileSub(sub);
+    window.scrollTo?.(0, 0);
     setView('profile');
     setModal(null);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -567,6 +571,7 @@ export function AppProvider({ children }) {
     });
     const data = {
       name: user.name || '',
+      ...nameSearchFields(user.name),
       photo: user.photo || '',
       countries,
       cities: [...cityMap.values()].sort((a, b) => a.cc.localeCompare(b.cc) || a.name.localeCompare(b.name)),
@@ -636,7 +641,7 @@ export function AppProvider({ children }) {
 
   const value = {
     profile, role, isAdmin, isStaff, isSuper, banned,
-    profileUid, setProfileUid, openProfile, myPublic, following, followers, followingIds, followerIds, friendIds, toggleFollow, notes, unread, socialApi, settings, overrides, customPlaces, applyOverride, adminApi,
+    profileUid, setProfileUid, profileSub, setProfileSub, openProfile, myPublic, following, followers, followingIds, followerIds, friendIds, toggleFollow, notes, unread, socialApi, settings, overrides, customPlaces, applyOverride, adminApi,
     reportMemory: (m, reason) => adminApi.reportMemory(userRef.current, m, reason),
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,

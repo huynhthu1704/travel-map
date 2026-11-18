@@ -5,10 +5,13 @@ import { countryName, flagOf } from '../lib/countries';
 import { normalize, searchNominatim, isGoogleMapsLink } from '../lib/geo';
 import { useI18n } from '../i18n';
 import { getLang, pName, pCity } from '../lib/lang';
+import { socialApi } from '../lib/social';
+import { Avatar } from './ui';
 
 /** Ô tìm kiếm: quốc gia, địa điểm nổi tiếng, kỉ niệm của tôi + mọi địa điểm trên OpenStreetMap */
 export default function SearchBox() {
-  const { countries, openCountry, openPlace, memories, setFlyTarget, setModal, allLiveFamous } = useApp();
+  const { countries, openCountry, openPlace, memories, setFlyTarget, setModal, allLiveFamous, user, openProfile } = useApp();
+  const [people, setPeople] = useState([]);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [osm, setOsm] = useState([]);
@@ -53,6 +56,26 @@ export default function SearchBox() {
     };
   }, [q]);
 
+  // Tìm người dùng khác theo tên (cần đăng nhập)
+  useEffect(() => {
+    const s = q.trim();
+    if (!user || s.length < 2 || isGoogleMapsLink(s)) {
+      setPeople([]);
+      return undefined;
+    }
+    let alive = true;
+    const tm = setTimeout(() => {
+      socialApi
+        .searchUsers(s)
+        .then((l) => alive && setPeople(l))
+        .catch(() => alive && setPeople([]));
+    }, 300);
+    return () => {
+      alive = false;
+      clearTimeout(tm);
+    };
+  }, [q, user]);
+
   useEffect(() => {
     const h = (e) => !boxRef.current?.contains(e.target) && setOpen(false);
     document.addEventListener('pointerdown', h);
@@ -65,7 +88,7 @@ export default function SearchBox() {
     setQ('');
   };
 
-  const hasResults = local.countries.length + local.places.length + osm.length > 0;
+  const hasResults = local.countries.length + local.places.length + osm.length + people.length > 0;
 
   return (
     <div className="search" ref={boxRef}>
@@ -88,6 +111,19 @@ export default function SearchBox() {
               <span>{t('link.searchHint')}</span>
             </button>
           )}
+          {people.length > 0 && <div className="search__group">{t('search.people')}</div>}
+          {people.map((u) => (
+            <button key={u.uid} className="search__item" onClick={() => pick(() => openProfile(u.uid))}>
+              <span className="search__emoji search__avatar">
+                <Avatar name={u.name || '?'} photo={u.photo} size={28} />
+              </span>
+              <span>
+                {u.name || '—'}
+                {u.uid === user?.uid && <em className="search__me"> · {t('social.you')}</em>}
+                <small>{t('search.personMeta', { countries: u.countries?.length || 0, cities: u.cities?.length || 0 })}</small>
+              </span>
+            </button>
+          ))}
           {local.countries.length > 0 && <div className="search__group">{t('search.countries')}</div>}
           {local.countries.map((cc) => (
             <button key={cc} className="search__item" onClick={() => pick(() => openCountry(cc))}>

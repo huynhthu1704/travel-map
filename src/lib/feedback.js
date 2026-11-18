@@ -81,24 +81,89 @@ export function describeElement(el) {
   };
 }
 
-/** Chụp màn hình và khoanh vùng phần tử đã chọn. rect: toạ độ trong khung nhìn. */
-export async function captureScreen(rect) {
-  const { default: html2canvas } = await import('html2canvas');
-  const scale = Math.min(window.devicePixelRatio || 1, 1.5);
-  const shot = await html2canvas(document.body, {
-    useCORS: true,
-    logging: false,
-    scale,
-    x: window.scrollX,
-    y: window.scrollY,
+const isTouchDevice = () => /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+const nextFrames = (n = 2) => new Promise((r) => {
+  const step = (k) => (k ? requestAnimationFrame(() => step(k - 1)) : r());
+  step(n);
+});
+
+/**
+ * Chụp đúng y hệt những gì đang hiện trên màn hình: dùng tính năng chia sẻ tab của trình duyệt
+ * (máy tính: Chrome / Edge / Firefox — trình duyệt hỏi "Chia sẻ tab này" một lần mỗi lần chụp).
+ * Trả về canvas có kích thước theo pixel thật của khung nhìn, hoặc null nếu không dùng được.
+ */
+export async function grabTab() {
+  if (!navigator.mediaDevices?.getDisplayMedia || isTouchDevice()) return null;
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { displaySurface: 'browser', frameRate: 10 },
+      audio: false,
+      preferCurrentTab: true,
+      selfBrowserSurface: 'include',
+      surfaceSwitching: 'exclude',
+      monitorTypeSurfaces: 'exclude',
+    });
+  } catch {
+    return null; // người dùng từ chối / không hỗ trợ
+  }
+  try {
+    const track = stream.getVideoTracks()[0];
+    const surface = track.getSettings?.().displaySurface;
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.srcObject = stream;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await Promise.race([video.play(), wait(2000)]);
+    // đợi hộp thoại chia sẻ đóng hẳn và trang vẽ lại
+    await wait(350);
+    await Promise.race([nextFrames(2), wait(300)]);
+    await Promise.race([new Promise((r) => (video.requestVideoFrameCallback ? video.requestVideoFrameCallback(() => r()) : setTimeout(r, 120))), wait(1500)]);
+    if (!video.videoWidth) return null;
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth;
+    c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    // Chỉ dùng được khi đã chọn đúng tab (để khoanh vùng khớp vị trí)
+    if (surface && surface !== 'browser') return null;
+    const ratio = c.width / c.height;
+    const view = window.innerWidth / window.innerHeight;
+    if (Math.abs(ratio - view) > 0.03) return null;
+    return c;
+  } finally {
+    stream.getTracks().forEach((t) => t.stop());
+  }
+}
+
+/** Dự phòng (điện thoại / không cho chia sẻ tab): dựng lại trang thành ảnh */
+async function domShot() {
+  const { domToCanvas } = await import('modern-screenshot');
+  await document.fonts?.ready;
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  return domToCanvas(document.documentElement, {
     width: window.innerWidth,
     height: window.innerHeight,
-    windowWidth: document.documentElement.clientWidth,
-    windowHeight: document.documentElement.clientHeight,
-    ignoreElements: (el) => el.classList?.contains('fb-ignore'),
+    scale,
+    backgroundColor: getComputedStyle(document.body).backgroundColor || '#fffcf5',
+    filter: (node) => !(node.classList && node.classList.contains('fb-ignore')),
+    fetch: { requestInit: { mode: 'cors' }, bypassingCache: false },
   });
+}
+
+/** Chụp màn hình và khoanh vùng phần tử đã chọn. rect: toạ độ trong khung nhìn. base: ảnh đã chụp sẵn (nếu có). */
+export async function captureScreen(rect, base = null) {
+  let shot = base;
+  if (!shot) {
+    try {
+      shot = await domShot();
+    } catch {
+      const { default: html2canvas } = await import('html2canvas');
+      shot = await html2canvas(document.body, { useCORS: true, logging: false, scale: Math.min(window.devicePixelRatio || 1, 1.5), width: window.innerWidth, height: window.innerHeight, ignoreElements: (el) => el.classList?.contains('fb-ignore') });
+    }
+  }
   const c = document.createElement('canvas');
-  const maxW = 1600;
+  const maxW = 1800;
   const k = Math.min(1, maxW / shot.width);
   c.width = Math.round(shot.width * k);
   c.height = Math.round(shot.height * k);
@@ -121,14 +186,13 @@ export async function captureScreen(rect) {
     ctx.restore();
     ctx.lineWidth = Math.max(3, 4 * s);
     ctx.strokeStyle = '#FF3B30';
-    ctx.setLineDash([]);
     ctx.beginPath();
     ctx.roundRect ? ctx.roundRect(x, y, w, h, 10 * s) : ctx.rect(x, y, w, h);
     ctx.stroke();
   }
-  let q = 0.8;
+  let q = 0.82;
   let url = c.toDataURL('image/jpeg', q);
-  while (url.length > 900_000 && q > 0.4) url = c.toDataURL('image/jpeg', (q -= 0.1));
+  while (url.length > 900_000 && q > 0.4) url = c.toDataURL('image/jpeg', (q -= 0.08));
   return url;
 }
 

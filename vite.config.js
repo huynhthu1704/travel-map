@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
   plugins: [react()],
+  // Phiên bản đang chạy (hiện trong “Có gì mới”) — tăng trong package.json mỗi lần phát hành
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // Dùng base tương đối để có thể deploy lên GitHub Pages / Firebase Hosting / Vercel
   base: './',
   build: {

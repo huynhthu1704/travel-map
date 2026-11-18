@@ -8,6 +8,7 @@ import { pName, pCity, pDesc, getLocale } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
 import Combobox from './Combobox';
 import DateInput from './DateInput';
+import TimeInput from './TimeInput';
 
 /**
  * Bảng dưới dạng "bottom sheet" trên điện thoại / máy tính bảng dọc:
@@ -101,6 +102,49 @@ export default function SidePanel() {
   );
 }
 
+/** Đổi ngày / giờ của 1 địa điểm ngay trong bảng lộ trình trên bản đồ (bản đồ đánh số lại ngay) */
+function RouteItemEdit({ item, tripId }) {
+  const { api, notify } = useApp();
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(item.date || '');
+  const [time, setTime] = useState(item.time || '');
+  useEffect(() => {
+    if (!open) {
+      setDate(item.date || '');
+      setTime(item.time || '');
+    }
+  }, [item.date, item.time, open]);
+  const save = async () => {
+    await api.updatePlanItem(tripId, item.id, { date: date || '', time: time || '' });
+    notify(t('plan.saved'));
+    setOpen(false);
+  };
+  return (
+    <>
+      <button className="icon-btn icon-btn--sm route-list__edit" title={t('route.editWhen')} aria-label={t('route.editWhen')} onClick={() => setOpen((v) => !v)}>
+        {open ? '✕' : '🕘'}
+      </button>
+      {open && (
+        <div className="route-edit">
+          <div className="route-edit__row">
+            <DateInput value={date} onChange={setDate} ariaLabel={t('plan.date')} />
+            <TimeInput value={time} onChange={setTime} ariaLabel={t('plan.time')} />
+          </div>
+          <div className="row">
+            <button className="btn btn--sm btn--primary" onClick={save}>
+              💾 {t('trip.save')}
+            </button>
+            <button className="btn btn--sm btn--ghost" onClick={() => setOpen(false)}>
+              {t('pick.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /** Bảng lộ trình chuyến đi trên bản đồ: danh sách địa điểm theo đúng thứ tự & ngày giờ của Kế hoạch */
 function TripRoutePanel() {
   const { trips, activeTripId, setActiveTripId, tripPlan, openPlace, setOpenTripId, setTripTab, setView, setFlyTarget } = useApp();
@@ -181,7 +225,8 @@ function TripRoutePanel() {
             <ol className="route-list">
               {g.list.map(({ it, n }) => (
                 <li key={it.id} className={`${it.done ? 'is-done' : ''} ${it.skipped ? 'is-skipped' : ''}`}>
-                  <button onClick={() => openPlace(it.place)}>
+                  <RouteItemEdit item={it} tripId={trip.id} />
+                  <button className="route-list__main" onClick={() => openPlace(it.place)}>
                     <span className="route-list__n">{it.skipped ? '✕' : n}</span>
                     <span className="route-list__body">
                       <b>

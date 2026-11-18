@@ -3796,7 +3796,7 @@ img.is-loaded {
   flex-direction: column;
   gap: 4px;
 }
-.route-list button {
+.route-list__main {
   display: flex;
   gap: 10px;
   align-items: flex-start;
@@ -3805,7 +3805,7 @@ img.is-loaded {
   padding: 8px;
   border-radius: 12px;
 }
-.route-list button:hover {
+.route-list__main:hover {
   background: var(--honey-100);
 }
 .route-list__n {
@@ -3955,4 +3955,46 @@ img.is-loaded {
     justify-content: flex-start;
     gap: 6px;
   }
+}
+.route-list li {
+  position: relative;
+}
+.route-list__main {
+  padding-right: 40px !important;
+}
+.route-list__edit {
+  position: absolute;
+  right: 4px;
+  top: 8px;
+  z-index: 1;
+  opacity: 0.75;
+}
+.route-list__edit:hover {
+  opacity: 1;
+}
+.route-edit {
+  order: 2;
+  margin: 0 0 8px 46px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--honey-50, #fffaf0);
+  border: 1px solid var(--honey-200, #ffe7a3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.route-edit__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.route-edit .date-input {
+  max-width: 170px;
+}
+.route-list li {
+  display: flex;
+  flex-direction: column;
+}
+.route-list__main {
+  order: 1;
 }

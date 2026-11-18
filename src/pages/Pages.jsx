@@ -362,7 +362,8 @@ export function MemoriesPage() {
           key={tab}
           items={tab === 'visited' ? visited : wish}
           onOpen={openPlace}
-          groupByCountry={tab === 'wishlist'}
+          groupByCountry
+          byRecent={tab === 'visited'}
           emptyText={tab === 'visited' ? t('mine.noVisited') : t('mine.noWish')}
         />
       )}
@@ -370,7 +371,7 @@ export function MemoriesPage() {
   );
 }
 
-function PlaceList({ items, onOpen, emptyText, groupByCountry }) {
+function PlaceList({ items, onOpen, emptyText, groupByCountry, byRecent }) {
   const { filtered, ui } = useFilters(items, (p) => p);
   const { setModal, removePlace, openCountry } = useApp();
   const { t, lang } = useI18n();
@@ -393,33 +394,61 @@ function PlaceList({ items, onOpen, emptyText, groupByCountry }) {
       </button>
     </div>
   );
-  // Gom theo quốc gia (giống bảng ở trang chủ): quốc gia nhiều địa điểm nhất lên trước
+  // Gom theo quốc gia → tỉnh/thành phố (giống bảng ở trang chủ).
+  // Đã đến: nhóm có lần đến gần nhất lên trước; Muốn đi: nhóm nhiều địa điểm nhất lên trước.
   const groups = useMemo(() => {
     if (!groupByCountry) return null;
+    const ts = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
+    const latest = (list) => Math.max(0, ...list.map((p) => ts(p.visitedAt)));
+    const order = (a, b, la, lb, na, nb) => (byRecent ? lb - la : 0) || nb - na || 0;
     const g = {};
-    filtered.forEach((p) => (g[p.country || '—'] ||= []).push(p));
-    return Object.entries(g).sort((a, b) => b[1].length - a[1].length || countryName(a[0]).localeCompare(countryName(b[0]), lang));
-  }, [filtered, groupByCountry, lang]);
+    filtered.forEach((p) => {
+      const cc = p.country || '—';
+      const city = pCity(p) || t('group.otherCity');
+      ((g[cc] ||= {})[city] ||= []).push(p);
+    });
+    return Object.entries(g)
+      .map(([cc, byCity]) => {
+        const all = Object.values(byCity).flat();
+        const cities = Object.entries(byCity).sort(
+          (a, b) => order(a, b, latest(a[1]), latest(b[1]), a[1].length, b[1].length) || a[0].localeCompare(b[0], lang),
+        );
+        return { cc, all, cities };
+      })
+      .sort((a, b) => order(a, b, latest(a.all), latest(b.all), a.all.length, b.all.length) || countryName(a.cc).localeCompare(countryName(b.cc), lang));
+  }, [filtered, groupByCountry, byRecent, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cityBlocks = (cities) =>
+    cities.map(([city, list]) => (
+      <div key={city} className="grouped__city grouped__city--page">
+        <div className="grouped__cityname">
+          🏙️ {city} <span>{list.length}</span>
+        </div>
+        <div className="list list--cards">{list.map(row)}</div>
+      </div>
+    ));
   return (
     <>
       {ui}
       {!filtered.length ? (
         <Empty emoji="🗺️" title={emptyText} />
+      ) : groups && groups.length === 1 ? (
+        // chỉ 1 quốc gia: không cần gom theo quốc gia, chỉ chia theo tỉnh/thành phố
+        <div className="stack-sm grouped grouped--page">{cityBlocks(groups[0].cities)}</div>
       ) : groups ? (
         <div className="stack-sm grouped grouped--page">
-          {groups.map(([cc, list]) => (
+          {groups.map(({ cc, all, cities }) => (
             <details key={cc} className="grouped__country" open={groups.length <= 3}>
               <summary>
                 <span className="grouped__flag">{cc === '—' ? '🌐' : flagOf(cc)}</span>
                 <b>{cc === '—' ? t('group.otherCountry') : countryName(cc)}</b>
-                <span className="grouped__count">{list.length}</span>
+                <span className="grouped__count">{all.length}</span>
                 {cc !== '—' && (
                   <AppLink className="icon-btn icon-btn--sm" href={hrefCountry(cc)} title={t('group.viewCountry')} onClick={() => openCountry(cc)}>
                     🗺️
                   </AppLink>
                 )}
               </summary>
-              <div className="list list--cards">{list.map(row)}</div>
+              <div className="grouped__cities">{cityBlocks(cities)}</div>
             </details>
           ))}
         </div>

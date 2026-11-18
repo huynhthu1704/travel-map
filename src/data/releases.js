@@ -47,8 +47,8 @@ export const RELEASES = [
         icon: '🗂️',
         title: { vi: 'Danh sách Đã đến và Muốn đi gọn hơn', en: 'Tidier Visited and Wishlist' },
         desc: {
-          vi: 'Đã đến xếp theo thời gian, mới nhất trước. Muốn đi được gom theo quốc gia giống bảng ở trang chủ. Biểu tượng xoá cũng rõ ràng hơn.',
-          en: 'Visited is sorted newest first. Wishlist is grouped by country like the home panel. The delete icon is clearer too.',
+          vi: 'Kỉ niệm và Đã đến xếp theo ngày, mới nhất trước. Đã đến và Muốn đi được gom theo quốc gia rồi tỉnh/thành phố (chỉ có 1 quốc gia thì chia luôn theo tỉnh/thành). Biểu tượng xoá cũng rõ ràng hơn.',
+          en: 'Memories and Visited are sorted newest first. Visited and Wishlist are grouped by country, then by city (just by city when there is only one country). The delete icon is clearer too.',
         },
       },
       {

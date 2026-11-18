@@ -6907,3 +6907,15 @@ a.app-link.place-card__title:hover {
   flex-direction: column;
   min-width: 0;
 }
+.grouped--page .grouped__city--page {
+  padding: 8px 10px 10px;
+}
+.grouped--page > .grouped__city--page {
+  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-lg);
+  background: var(--base-white);
+}
+.grouped--page .grouped__cityname {
+  font-size: 13px;
+  padding: 2px 4px 8px;
+}

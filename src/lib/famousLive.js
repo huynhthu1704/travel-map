@@ -5,13 +5,13 @@ import { normalize } from './geo';
 import countriesLib from 'i18n-iso-countries';
 
 const ENDPOINT = 'https://qlever.cs.uni-freiburg.de/api/wikidata';
-const CACHE_KEY = (cc) => `travel-map-famous-v3-${cc}`;
+const CACHE_KEY = (cc) => `travel-map-famous-v4-${cc}`;
 const TTL = 7 * 24 * 3600 * 1000;
 
 // Wikidata classes we treat as "places worth visiting" → emoji
 const TYPES = {
   Q9259: '🏛️', // World Heritage Site (via heritage designation)
-  Q570116: '⭐', // tourist attraction
+  Q570116: '📸', // tourist attraction
   Q46169: '🌲', // national park
   Q16560: '🏰', // palace
   Q23413: '🏰', // castle
@@ -71,7 +71,7 @@ const TYPES = {
   Q54050: '⛰️', // hill
   Q131681: '💧', // reservoir
   Q185113: '🌊', // cape
-  Q2319498: '⭐', // landmark
+  Q2319498: '🏛️', // landmark
 };
 
 const PREFIX = `PREFIX wd: <http://www.wikidata.org/entity/>
@@ -128,7 +128,7 @@ function toPlace(b, cc) {
     country: cc,
     lat: pt.lat,
     lng: pt.lng,
-    emoji: TYPES[type] || '⭐',
+    emoji: TYPES[type] || '📍',
     famous: true,
     rank: Number(b.links?.value || 0),
     wikidata: qid,

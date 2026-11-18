@@ -32,7 +32,7 @@ function clusterIcon(cluster) {
   const size = n < 10 ? 40 : n < 50 ? 48 : 56;
   return L.divIcon({
     className: '',
-    html: `<div class="cluster" style="width:${size}px;height:${size}px"><span>⭐</span><b>${n}</b></div>`,
+    html: `<div class="cluster" style="width:${size}px;height:${size}px"><span>🏞️</span><b>${n}</b></div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });

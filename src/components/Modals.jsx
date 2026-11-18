@@ -597,8 +597,43 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
   );
 }
 
+/** Thích check-in công khai (báo cho chủ check-in) */
+function LikeButton({ memory: m }) {
+  const { user, requireLogin, socialApi, notify } = useApp();
+  const { t } = useI18n();
+  const [info, setInfo] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    socialApi.likeInfo(m.id, user?.uid).then((x) => alive && setInfo(x));
+    return () => {
+      alive = false;
+    };
+  }, [m.id, user?.uid, socialApi]);
+  const toggle = () =>
+    requireLogin(async () => {
+      const liked = !info?.liked;
+      setInfo((x) => ({ liked, count: Math.max(0, (x?.count || 0) + (liked ? 1 : -1)) }));
+      try {
+        if (liked) {
+          await socialApi.like(m.id, user);
+          if (m.uid !== user.uid) socialApi.notify({ to: m.uid, type: 'like', from: user.uid, fromName: user.name || '', fromPhoto: user.photo || '', memoryId: m.id, title: pName(m.place) }).catch(() => {});
+        } else await socialApi.unlike(m.id, user.uid);
+      } catch (e) {
+        notify(e.message, 'error');
+        socialApi.likeInfo(m.id, user.uid).then(setInfo);
+      }
+    }, t('social.loginLike'));
+  return (
+    <button className={`like-btn ${info?.liked ? 'on' : ''}`} onClick={toggle} aria-pressed={!!info?.liked}>
+      <span>{info?.liked ? '❤️' : '🤍'}</span>
+      <b>{info ? info.count : '…'}</b>
+      <small>{t('social.likes')}</small>
+    </button>
+  );
+}
+
 function MemoryViewer({ memory: m, onClose }) {
-  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin } = useApp();
+  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin, openProfile } = useApp();
   const st = placeStatus[m.place?.id];
   const { t } = useI18n();
   const [i, setI] = useState(0);
@@ -648,9 +683,13 @@ function MemoryViewer({ memory: m, onClose }) {
         )}
         <div className="viewer__info stack">
           <div className="row">
-            <Avatar name={m.authorName} photo={m.authorPhoto} />
+            <button className="viewer__author" onClick={() => m.uid && m.uid !== 'sample' && m.uid !== 'trip-stop' && openProfile(m.uid)} title={t('social.viewProfile')}>
+              <Avatar name={m.authorName} photo={m.authorPhoto} />
+            </button>
             <div>
-              <b>{m.authorName}</b>
+              <button className="link viewer__authorname" onClick={() => m.uid && m.uid !== 'sample' && m.uid !== 'trip-stop' && openProfile(m.uid)}>
+                <b>{m.authorName}</b>
+              </button>
               <div className="small muted">
                 {flagOf(m.place?.country)} {[pCity(m.place), countryName(m.place?.country)].filter(Boolean).join(', ')}
                 {m.date ? ` · ${formatDate(m.date)}` : ''}
@@ -658,6 +697,7 @@ function MemoryViewer({ memory: m, onClose }) {
             </div>
           </div>
           {m.caption && <p className="viewer__caption">{m.caption}</p>}
+          {m.visibility === 'public' && m.uid !== 'sample' && m.uid !== 'trip-stop' && <LikeButton memory={m} />}
           <div className="row wrap">
             <button className="btn btn--sm btn--soft" onClick={() => { onClose(); openPlace(m.place); }}>{t('mem.onMap')}</button>
             {st === 'visited' ? (

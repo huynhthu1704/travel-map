@@ -3,7 +3,7 @@
 //   #/                       bản đồ
 //   #/country/VN             bản đồ, đang xem 1 quốc gia
 //   #/place/<id>?lat=&lng=…  bản đồ, đang xem 1 địa điểm
-//   #/explore  #/memories  #/trips  #/trips/<id>  #/admin
+//   #/explore  #/memories  #/trips  #/trips/<id>  #/admin  #/u/<uid> (hồ sơ người dùng)
 //   ?trip=<id>               đang hiện 1 chuyến đi trên bản đồ (dùng được với mọi trang)
 
 const PAGES = ['explore', 'memories', 'admin'];
@@ -19,8 +19,12 @@ export function parseRoute(hash = '') {
       return s;
     }
   });
-  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan' };
+  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan', profile: null };
   if (PAGES.includes(seg[0])) r.view = seg[0];
+  else if (seg[0] === 'u' && seg[1]) {
+    r.view = 'profile';
+    r.profile = seg[1];
+  }
   else if (seg[0] === 'trips') {
     r.view = 'trips';
     r.tripDetail = seg[1] || null;
@@ -36,7 +40,7 @@ export function parseRoute(hash = '') {
   return r;
 }
 
-export function buildRoute({ view, country, place, trip, tripDetail, tripTab }) {
+export function buildRoute({ view, country, place, trip, tripDetail, tripTab, profile }) {
   const q = new URLSearchParams();
   let path = '';
   if (view === 'map') {
@@ -53,6 +57,7 @@ export function buildRoute({ view, country, place, trip, tripDetail, tripTab }) 
     path = tripDetail ? `trips/${encodeURIComponent(tripDetail)}` : 'trips';
     if (tripDetail && tripTab && tripTab !== 'plan') q.set('tab', tripTab);
   }
+  else if (view === 'profile') path = profile ? `u/${encodeURIComponent(profile)}` : 'memories';
   else path = view;
   if (trip) q.set('trip', trip);
   const s = q.toString();

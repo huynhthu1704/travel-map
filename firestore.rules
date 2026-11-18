@@ -31,7 +31,7 @@ service cloud.firestore {
                     && request.resource.data.get('banned', false) == false
                     && validPhoto(request.resource.data);
       allow update: if (signedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt'])
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt', 'annRead'])
                         && validPhoto(request.resource.data))
                     || (isAdmin()
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned'])
@@ -57,6 +57,40 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.byUid == request.auth.uid && request.resource.data.status == 'open';
       allow read, update, delete: if isStaff();
     }
+    // ---- Mạng xã hội ----
+    function follows(a, b) { return exists(/databases/$(database)/documents/follows/$(a + '_' + b)); }
+    // Hồ sơ công khai: ai đăng nhập cũng xem; chỉ chủ hồ sơ sửa
+    match /profiles/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid
+                   && (!('bio' in request.resource.data) || request.resource.data.bio.size() <= 200);
+    }
+    // Bảng tin (hoạt động gần đây): chính chủ và bạn bè theo dõi chéo
+    match /feeds/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || (follows(request.auth.uid, uid) && follows(uid, request.auth.uid)));
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+    // Theo dõi: id = <người theo dõi>_<người được theo dõi>
+    match /follows/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.from == request.auth.uid
+                    && id == request.auth.uid + '_' + request.resource.data.to
+                    && request.resource.data.to != request.auth.uid;
+      allow delete: if signedIn() && resource.data.from == request.auth.uid;
+    }
+    // Thông báo: người dùng gửi được "thích" / "theo dõi" cho người khác; quản trị gửi mọi loại (kể cả cho tất cả)
+    match /notifications/{id} {
+      allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.to == 'all' || isStaff());
+      allow create: if signedIn() && (
+        (request.resource.data.from == request.auth.uid && request.resource.data.type in ['like', 'follow']
+          && request.resource.data.to is string && request.resource.data.to != 'all' && request.resource.data.to != request.auth.uid
+          && request.resource.data.read == false)
+        || isStaff());
+      allow update: if signedIn() && resource.data.to == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if signedIn() && (resource.data.to == request.auth.uid || isStaff());
+    }
+
     // Góp ý / báo lỗi: người gửi xem được của mình; biên tập viên trở lên xem tất cả và đổi trạng thái
     match /feedback/{id} {
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'open';
@@ -100,6 +134,13 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid
                     && request.resource.data.visibility in ['public', 'private'];
       allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      // Lượt thích check-in công khai: mỗi người 1 document (id = uid)
+      match /likes/{likeUid} {
+        allow read: if signedIn() && canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
+        allow create: if signedIn() && likeUid == request.auth.uid && request.resource.data.uid == request.auth.uid
+                      && get(/databases/$(database)/documents/memories/$(id)).data.visibility == 'public';
+        allow delete: if signedIn() && likeUid == request.auth.uid;
+      }
       // Kiểm duyệt: biên tập viên trở lên ẩn / hiện lại / xoá
       allow update: if isStaff()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visibility', 'moderated', 'moderatedBy', 'moderatedAt', 'moderationNote']);

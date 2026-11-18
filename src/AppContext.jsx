@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './lib/store';
+import { socialApi } from './lib/social';
 import { loadCountries, bboxOf } from './lib/countries';
 import { parseRoute, buildRoute } from './lib/route';
 import { loadFamousLive } from './lib/famousLive';
@@ -9,6 +10,7 @@ import { normalize } from './lib/geo';
 import { COORD_FIXES, fixPlace, fixMemory } from './lib/fixes';
 import { translate as t } from './i18n';
 import { pName, getLang } from './lib/lang';
+const pCityOf = (p) => (p?.city || '').trim();
 import { reverseGeocode, googleMapsUrl } from './lib/geo';
 
 const isDesktop = () =>
@@ -46,6 +48,7 @@ export function AppProvider({ children }) {
   const [view, setView] = useState(initRoute.view);
   const [selectedCountry, setSelectedCountry] = useState(initRoute.country);
   const [selectedPlace, setSelectedPlace] = useState(initRoute.place);
+  const [profileUid, setProfileUid] = useState(initRoute.profile); // hồ sơ đang xem (#/u/<uid>)
   const [flyTarget, setFlyTarget] = useState(null);
   // Trang danh sách đã mở địa điểm (để có nút quay lại danh sách)
   const [returnView, setReturnView] = useState(null);
@@ -319,7 +322,7 @@ export function AppProvider({ children }) {
   const routeReplace = useRef(true); // lần đầu & khi bấm Back/Forward: chỉ thay, không thêm lịch sử
   useEffect(() => {
     if (/join=/.test(location.hash)) return;
-    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab });
+    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab, profile: profileUid });
     const replace = routeReplace.current;
     routeReplace.current = false;
     if (h === location.hash) return;
@@ -327,7 +330,7 @@ export function AppProvider({ children }) {
     const url = location.pathname + location.search + h;
     if (replace || samePath) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
-  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab]);
+  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab, profileUid]);
   useEffect(() => {
     const onPop = () => {
       const r = parseRoute(location.hash);
@@ -338,6 +341,7 @@ export function AppProvider({ children }) {
       setActiveTripId(r.trip);
       setOpenTripId(r.tripDetail);
       setTripTab(r.tripTab);
+      setProfileUid(r.profile);
       if (r.view === 'map') {
         if (r.place) setFlyTarget({ lat: r.place.lat, lng: r.place.lng, zoom: 13, t: Date.now() });
         else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
@@ -539,8 +543,100 @@ export function AppProvider({ children }) {
     return () => clearTimeout(tm);
   }, [user?.uid, places, memories, trips, loaded.mine, loaded.trips]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ================= Mạng xã hội =================
+  const openProfile = useCallback((uid) => {
+    if (!uid) return;
+    setProfileUid(uid);
+    setView('profile');
+    setModal(null);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hồ sơ công khai của chính mình: tổng quốc gia / thành phố, số check-in công khai (tự cập nhật khi dữ liệu đổi)
+  const [myPublic, setMyPublic] = useState(null);
+  useEffect(() => (user ? socialApi.watchProfile(user.uid, setMyPublic) : setMyPublic(null)), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pubRef = useRef('');
+  useEffect(() => {
+    if (!user || !loaded.mine) return undefined;
+    const visited = places.filter((p) => p.status === 'visited');
+    const all = [...visited, ...memories.map((m) => m.place).filter(Boolean)];
+    const countries = [...new Set(all.map((p) => p.country).filter(Boolean))].sort();
+    const cityMap = new Map();
+    all.forEach((p) => {
+      const name = pCityOf(p);
+      if (name && p.country) cityMap.set(`${p.country}|${name}`, { name, cc: p.country });
+    });
+    const data = {
+      name: user.name || '',
+      photo: user.photo || '',
+      countries,
+      cities: [...cityMap.values()].sort((a, b) => a.cc.localeCompare(b.cc) || a.name.localeCompare(b.name)),
+      visited: new Set(all.map((p) => p.id)).size,
+      publicCheckins: memories.filter((m) => m.visibility === 'public').length,
+    };
+    // Bảng tin cho bạn bè theo dõi chéo: check-in công khai + lần đầu tới 1 quốc gia / thành phố
+    const ts = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
+    const dated = memories.map((m) => ({ m, at: ts(m.date) || ts(m.createdAt) })).filter((x) => x.m.place);
+    const firstBy = (key) => {
+      const out = new Map();
+      [...dated].sort((a, b) => a.at - b.at).forEach(({ m, at }) => {
+        const k = key(m.place);
+        if (k && !out.has(k)) out.set(k, { place: m.place, at });
+      });
+      return [...out.values()];
+    };
+    const items = [
+      ...dated.filter((x) => x.m.visibility === 'public').map(({ m, at }) => ({ type: 'checkin', name: m.place.name, city: pCityOf(m.place), cc: m.place.country || '', at, memoryId: m.id, public: true })),
+      ...firstBy((p) => p.country).map(({ place, at }) => ({ type: 'country', name: place.name, city: pCityOf(place), cc: place.country, at })),
+      ...firstBy((p) => (pCityOf(p) ? `${p.country}|${pCityOf(p)}` : '')).map(({ place, at }) => ({ type: 'city', name: place.name, city: pCityOf(place), cc: place.country || '', at })),
+    ]
+      .filter((x) => x.at)
+      .sort((a, b) => b.at - a.at)
+      .slice(0, 40);
+    const key = JSON.stringify([data, items]);
+    if (key === pubRef.current) return undefined;
+    const tm = setTimeout(() => {
+      pubRef.current = key;
+      socialApi.saveProfile(user.uid, data).catch(() => {});
+      socialApi.saveFeed(user.uid, items).catch(() => {});
+    }, 3000);
+    return () => clearTimeout(tm);
+  }, [user?.uid, user?.name, user?.photo, places, memories, loaded.mine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Theo dõi: người mình theo dõi / người theo dõi mình → bạn bè = theo dõi chéo
+  const [following, setFollowing] = useState([]);
+  const [followers, setFollowers] = useState([]);
+  useEffect(() => (user ? socialApi.watchFollowing(user.uid, setFollowing) : setFollowing([])), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => (user ? socialApi.watchFollowers(user.uid, setFollowers) : setFollowers([])), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const followingIds = useMemo(() => new Set(following.map((f) => f.to)), [following]);
+  const followerIds = useMemo(() => new Set(followers.map((f) => f.from)), [followers]);
+  const friendIds = useMemo(() => [...followingIds].filter((id) => followerIds.has(id)), [followingIds, followerIds]);
+  const toggleFollow = useCallback(
+    (uid, name) =>
+      requireLogin(async () => {
+        const me = userRef.current;
+        if (!me || uid === me.uid) return;
+        if (followingIds.has(uid)) {
+          await socialApi.unfollow(me.uid, uid);
+          notify(t('social.unfollowed', { name: name || '' }));
+        } else {
+          await socialApi.follow(me, uid);
+          socialApi.notify({ to: uid, type: 'follow', from: me.uid, fromName: me.name || '', fromPhoto: me.photo || '' }).catch(() => {});
+          notify(t('social.followed', { name: name || '' }));
+        }
+      }, t('social.loginFollow')),
+    [followingIds, requireLogin, notify],
+  );
+
+  // Thông báo: của riêng mình + thông báo chung (tính năng mới…)
+  const [notifications, setNotifications] = useState([]);
+  useEffect(() => (user ? socialApi.watchNotifications(user.uid, setNotifications) : setNotifications([])), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const annRead = profile?.annRead;
+  const notes = useMemo(() => notifications.map((n) => (n.broadcast && annRead ? { ...n, read: annRead.includes(n.id) || n.read } : n)), [notifications, annRead]);
+  const unread = notes.filter((n) => !n.read).length;
+
   const value = {
-    profile, role, isAdmin, isStaff, isSuper, banned, settings, overrides, customPlaces, applyOverride, adminApi,
+    profile, role, isAdmin, isStaff, isSuper, banned,
+    profileUid, setProfileUid, openProfile, myPublic, following, followers, followingIds, followerIds, friendIds, toggleFollow, notes, unread, socialApi, settings, overrides, customPlaces, applyOverride, adminApi,
     reportMemory: (m, reason) => adminApi.reportMemory(userRef.current, m, reason),
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,

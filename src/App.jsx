@@ -6,12 +6,14 @@ import PickPanel from './components/PickPanel';
 import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
 import FeedbackLauncher from './components/FeedbackLauncher';
+import Notifications from './components/Notifications';
 import { Avatar, Loader } from './components/ui';
 // Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
 const MemoriesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.MemoriesPage })));
 const TripsPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.TripsPage })));
 const AdminPage = lazy(() => import('./pages/Admin'));
+const ProfilePage = lazy(() => import('./pages/Profile'));
 import { firebaseEnabled } from './lib/firebase';
 import { useI18n, LANGS } from './i18n';
 
@@ -36,7 +38,7 @@ function LangSwitch() {
 }
 
 function UserMenu() {
-  const { user, api, requireLogin, setModal } = useApp();
+  const { user, api, requireLogin, setModal, openProfile } = useApp();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   if (user === undefined) return <span className="avatar avatar--letter skeleton" />;
@@ -55,6 +57,15 @@ function UserMenu() {
         <div className="user-menu__pop" onMouseLeave={() => setOpen(false)}>
           <b>{user.name}</b>
           <small className="muted">{user.email}</small>
+          <button
+            className="btn btn--sm btn--ghost"
+            onClick={() => {
+              openProfile(user.uid);
+              setOpen(false);
+            }}
+          >
+            👤 {t('social.myProfile')}
+          </button>
           <button
             className="btn btn--sm btn--ghost"
             onClick={() => {
@@ -139,6 +150,7 @@ function Shell() {
           ))}
         </nav>
         <LangSwitch />
+        <Notifications />
         <UserMenu />
       </header>
 
@@ -170,6 +182,7 @@ function Shell() {
           {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}
           {mounted.has('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
           {mounted.has('admin') && view === 'admin' && <AdminPage />}
+          {view === 'profile' && <ProfilePage />}
         </Suspense>
       </main>
 

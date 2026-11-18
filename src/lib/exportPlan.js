@@ -252,11 +252,8 @@ export async function exportPlanPdf(trip, items) {
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
+    // Chỉ giữ số trang (dòng tên web / chuyến đi / link ở chân trang đã bỏ theo yêu cầu)
     font('normal', 8.5, MUTED);
-    doc.text(plain(`${t('app.logo1')} ${t('app.logo2')} · ${plain(trip.name)} · `), M, H - 9);
-    const fw = doc.getTextWidth(plain(`${t('app.logo1')} ${t('app.logo2')} · ${plain(trip.name)} · `));
-    font('normal', 8.5, LINK);
-    doc.textWithLink(plain(t('pdf.editOnWeb')), M + fw, H - 9, { url: `${location.origin}${location.pathname}#/trips/${encodeURIComponent(trip.id)}` });
     doc.text(`${i}/${pages}`, W - M, H - 9, { align: 'right' });
   }
 

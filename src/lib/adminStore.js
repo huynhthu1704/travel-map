@@ -112,7 +112,11 @@ const fb = {
     };
   },
   /** Ẩn: chuyển về riêng tư và gắn cờ kiểm duyệt; Hiện lại: công khai như cũ */
-  hideMemory: (id, by, note = '') => updateDoc(doc(db, 'memories', id), { visibility: 'private', moderated: true, moderatedBy: by, moderatedAt: now(), moderationNote: note }),
+  async hideMemory(id, by, note = '', owner = null, placeName = '') {
+    await updateDoc(doc(db, 'memories', id), { visibility: 'private', moderated: true, moderatedBy: by, moderatedAt: now(), moderationNote: note });
+    // Báo cho chủ check-in biết bài đã bị ẩn và vì sao
+    if (owner) await addDoc(collection(db, 'notifications'), { to: owner, type: 'hidden', from: by, memoryId: id, title: placeName || '', body: note || '', read: false, createdAt: now() });
+  },
   unhideMemory: (id) => updateDoc(doc(db, 'memories', id), { visibility: 'public', moderated: false, moderationNote: '' }),
   async deleteMemoryAdmin(m) {
     const [full, mid, thumbs] = await Promise.all(['full', 'mid', 'thumbs'].map((tier) => getDocs(collection(db, 'memories', m.id, tier))));
@@ -235,7 +239,11 @@ const local = {
     import('./store').then(({ api }) => (unsub = api.watchPublicMemories((list) => cb(list.filter((m) => m.uid !== 'sample')))));
     return () => unsub();
   },
-  hideMemory: (id) => import('./store').then(({ api }) => api.updateMemory(id, { visibility: 'private', moderated: true })),
+  hideMemory: (id, by, note = '', owner = null, placeName = '') =>
+    import('./store').then(async ({ api }) => {
+      await api.updateMemory(id, { visibility: 'private', moderated: true, moderationNote: note });
+      if (owner) (await import('./social')).socialApi.notify({ to: owner, type: 'hidden', from: by, memoryId: id, title: placeName, body: note });
+    }),
   unhideMemory: (id) => import('./store').then(({ api }) => api.updateMemory(id, { visibility: 'public', moderated: false })),
   deleteMemoryAdmin: (m) => import('./store').then(({ api }) => api.deleteMemory(m)),
   watchAllTrips(cb) {

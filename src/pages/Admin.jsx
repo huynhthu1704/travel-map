@@ -324,7 +324,7 @@ function MemoryRow({ m, compact, reportCount }) {
               👁️ {t('admin.unhide')}
             </button>
           ) : (
-            <button className="btn btn--sm btn--soft" onClick={() => act(() => adminApi.hideMemory(m.id, user.uid), t('admin.hiddenDone'))}>
+            <button className="btn btn--sm btn--soft" onClick={() => act(() => adminApi.hideMemory(m.id, user.uid, '', m.uid, pName(m.place)), t('admin.hiddenDone'))}>
               🙈 {t('admin.hide')}
             </button>
           )}
@@ -418,7 +418,7 @@ function Reports({ reports }) {
                   className="btn btn--sm btn--primary"
                   onClick={() =>
                     act(async () => {
-                      await adminApi.hideMemory(r.memoryId, user.uid, r.reason);
+                      await adminApi.hideMemory(r.memoryId, user.uid, r.reason, r.memoryOwner, pName(r.snapshot?.place));
                       await adminApi.updateReport(r.id, { status: 'resolved', resolvedBy: user.uid, resolvedAt: Date.now() });
                     }, t('admin.hiddenDone'))
                   }
@@ -793,6 +793,56 @@ function SettingsAdmin() {
       </div>
       <button className="btn btn--primary" onClick={save}>
         💾 {t('admin.saveSettings')}
+      </button>
+      <Broadcast />
+    </div>
+  );
+}
+
+/** Gửi thông báo trong app cho mọi người (tính năng mới, thông báo chung) */
+function Broadcast() {
+  const { t } = useI18n();
+  const { socialApi, user, notify } = useApp();
+  const [type, setType] = useState('feature');
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    if (!title.trim()) return;
+    if (!confirm(t('admin.bcConfirm'))) return;
+    setBusy(true);
+    try {
+      await socialApi.notify({ to: 'all', type, from: user.uid, fromName: user.name || '', title: title.trim(), body: body.trim() });
+      notify(t('admin.bcSent'));
+      setTitle('');
+      setBody('');
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="card stack">
+      <h3 className="h3">📣 {t('admin.bcTitle')}</h3>
+      <p className="small muted">{t('admin.bcHelp')}</p>
+      <div className="segmented">
+        <button className={type === 'feature' ? 'on' : ''} onClick={() => setType('feature')}>
+          🎉 {t('admin.bcFeature')}
+        </button>
+        <button className={type === 'system' ? 'on' : ''} onClick={() => setType('system')}>
+          📢 {t('admin.bcSystem')}
+        </button>
+      </div>
+      <label className="field">
+        <span>{t('admin.bcHeading')}</span>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder={t('admin.bcHeadingPh')} />
+      </label>
+      <label className="field">
+        <span>{t('admin.bcBody')}</span>
+        <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={300} />
+      </label>
+      <button className="btn btn--dark" disabled={busy || !title.trim()} onClick={send}>
+        📨 {t('admin.bcSend')}
       </button>
     </div>
   );

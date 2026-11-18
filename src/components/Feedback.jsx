@@ -483,20 +483,21 @@ export function AdminFeedback() {
           ))}
         </div>
       </div>
-      <div className="fb-admin">
+      <div className={`fb-admin ${open ? 'has-detail' : ''}`}>
         <div className="fb-list">
           {shown.length === 0 && <Empty emoji="🎉" title={t('fb.noneAdmin')} />}
           {shown.map((x) => (
-            <button key={x.id} className={`fb-row ${openId === x.id ? 'on' : ''}`} onClick={() => setOpenId(x.id)}>
-              <TypeTag type={x.type} />
-              <span className="fb-row__main">
-                <b>{x.title}</b>
-                <small>
-                  {x.userName} · {fmtTime(x.createdAt, lang)} · {x.env?.browser} / {x.env?.os}
-                  {x.files?.length ? ` · 📎${x.files.length}` : ''}
-                </small>
+            <button key={x.id} className={`fb-card ${openId === x.id ? 'on' : ''}`} onClick={() => setOpenId(x.id === openId ? null : x.id)}>
+              <span className="fb-card__tags">
+                <TypeTag type={x.type} />
+                <StatusChip status={x.status} />
+                {x.files?.length ? <small className="muted">📎 {x.files.length}</small> : null}
               </span>
-              <StatusChip status={x.status} />
+              <b className="fb-card__title">{x.title}</b>
+              <span className="fb-card__summary">{x.type === 'bug' ? x.actual : x.description}</span>
+              <small className="fb-card__meta">
+                👤 {x.userName} · 🕒 {fmtTime(x.createdAt, lang)} · 🖥️ {x.env?.browser} / {x.env?.os}
+              </small>
             </button>
           ))}
         </div>
@@ -505,6 +506,9 @@ export function AdminFeedback() {
             <Empty emoji="👈" title={t('fb.pickOne')} />
           ) : (
             <div className="stack">
+              <button className="back" onClick={() => setOpenId(null)}>
+                ← {t('fb.backToList')}
+              </button>
               <div className="card stack-sm fb-actions">
                 <b>{t('fb.changeStatus')}</b>
                 <div className="row wrap">

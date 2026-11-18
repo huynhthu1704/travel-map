@@ -106,7 +106,7 @@ const firebaseBackend = {
       cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byNewest)),
     );
   },
-  async addMemory(user, { place, caption, date, visibility, tripId }, files) {
+  async addMemory(user, { place, caption, date, visibility, tripId, occasion = '', visitedAt }, files = []) {
     const memRef = doc(collection(db, 'memories'));
     const thumbs = [];
     const full = [];
@@ -116,7 +116,7 @@ const firebaseBackend = {
     }
     const data = {
       uid: user.uid, authorName: user.name, authorPhoto: user.photo || '', place: pickPlace(place), caption: caption || '',
-      date: date || '', visibility, tripId: tripId || null, photos: thumbs, photoCount: full.length, createdAt: now(),
+      date: date || '', occasion: occasion || '', visibility: thumbs.length ? visibility : 'private', tripId: tripId || null, photos: thumbs, photoCount: full.length, createdAt: now(),
     };
     await setDoc(memRef, data);
     // Mỗi ảnh đầy đủ là 1 document riêng (giới hạn 1MB/document của Firestore)
@@ -126,7 +126,8 @@ const firebaseBackend = {
     // Đặt chân tới đây = đánh dấu "đã đến"
     await setDoc(
       doc(db, 'users', user.uid, 'places', safeId(place.id)),
-      { ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() },
+      // visitedAt = lần check-in gần nhất (người gọi truyền vào nếu biết); giữ chuyến đi đã gắn nếu lần này không chọn
+      { ...pickPlace(place), status: 'visited', ...(tripId ? { tripId } : {}), visitedAt: visitedAt ?? (date || null), updatedAt: now() },
       { merge: true }, // giữ lại "dịp" đã ghi trước đó
     );
     if (tripId) await this.addStop(user, tripId, { place, kind: 'memory', photos: thumbs, caption, memoryId: memRef.id, date });
@@ -351,16 +352,16 @@ const localBackend = {
   watchPublicMemories(cb) {
     return sub(() => cb([...SAMPLE_PUBLIC, ...state.memories.filter((m) => m.visibility === 'public')].sort(byNewest)));
   },
-  async addMemory(user, { place, caption, date, visibility, tripId }, files) {
+  async addMemory(user, { place, caption, date, visibility, tripId, occasion = '', visitedAt }, files = []) {
     const photos = [];
     for (const f of files) photos.push(await blobToDataURL(await compressImage(f, 1000, 0.75)));
     const mem = {
-      id: uid(), uid: user.uid, authorName: user.name, authorPhoto: user.photo || '', place: pickPlace(place), caption, date,
-      visibility, tripId: tripId || null, photos, createdAt: now(),
+      id: uid(), uid: user.uid, authorName: user.name, authorPhoto: user.photo || '', place: pickPlace(place), caption, date, occasion: occasion || '',
+      visibility: photos.length ? visibility : 'private', tripId: tripId || null, photos, createdAt: now(),
     };
     state.memories.push(mem);
     const prev = (state.places[user.uid] ||= {})[place.id] || {};
-    state.places[user.uid][place.id] = { ...prev, ...pickPlace(place), status: 'visited', tripId: tripId || null, visitedAt: date || null, updatedAt: now() };
+    state.places[user.uid][place.id] = { ...prev, ...pickPlace(place), status: 'visited', tripId: tripId || prev.tripId || null, visitedAt: visitedAt ?? (date || null), updatedAt: now() };
     if (tripId) this.addStop(user, tripId, { place, kind: 'memory', photos, caption, date });
     save();
     return mem;

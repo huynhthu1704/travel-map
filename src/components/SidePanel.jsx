@@ -495,19 +495,7 @@ function PlacePanel() {
           🗑️ {t(st === 'visited' ? 'remove.fromVisited' : 'remove.fromWish')}
         </button>
       )}
-      {st === 'visited' && (
-        <label className="field visit-field">
-          <span>{t('visit.edit')}</span>
-          <DateInput value={placeById[p.id]?.visitedAt || ''} onChange={(v) => saveVisited(p, { visitedAt: v || null })} ariaLabel={t('visit.edit')} />
-        </label>
-      )}
-      {st === 'visited' && <PlaceOccasion place={p} saved={placeById[p.id]?.occasion || ''} onSave={(occasion) => saveVisited(p, { occasion })} />}
-      {mine.length > 0 && (
-        <section>
-          <h3 className="section-title">{t('place.yourMemories')}</h3>
-          <MemoryGrid items={mine} />
-        </section>
-      )}
+      {(st === 'visited' || mine.length > 0) && <CheckinHistory place={p} saved={placeById[p.id]} mine={mine} tripId={tripId} />}
       <section>
         <h3 className="section-title">{t('place.others')}</h3>
         {pub.length ? <MemoryGrid items={pub} /> : <Empty emoji="🌱" title={t('place.noShares')} text={t('place.beFirst')} />}
@@ -558,6 +546,86 @@ function StickyBar({ watch, compact, children }) {
         {compact}
       </div>
     </div>
+  );
+}
+
+/** Lịch sử check-in tại 1 địa điểm: mỗi lần đến có ngày, dịp, ghi chú và ảnh riêng */
+function CheckinHistory({ place, saved, mine, tripId }) {
+  const { t } = useI18n();
+  const { setModal, api, notify, requireLogin, trips } = useApp();
+  // Lần đến cũ chỉ có ngày / dịp (chưa phải check-in đầy đủ) → vẫn hiện như 1 lần check-in
+  const legacy = saved?.status === 'visited' && (saved.visitedAt || saved.occasion) && !mine.some((m) => m.date && m.date === saved.visitedAt) ? saved : null;
+  const entries = [
+    ...mine.map((m) => ({ key: m.id, date: m.date, occasion: m.occasion, caption: m.caption, photos: m.photos || [], tripId: m.tripId, memory: m })),
+    ...(legacy ? [{ key: 'legacy', date: legacy.visitedAt, occasion: legacy.occasion, caption: '', photos: [], legacy: true }] : []),
+  ].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const count = entries.length || (saved?.status === 'visited' ? 1 : 0);
+  // Thêm lần mới: lần đến cũ (chỉ có ngày / dịp) được giữ lại thành 1 lần check-in riêng
+  const add = () => requireLogin(() => setModal({ type: 'checkin', place, tripId, preserve: legacy || undefined }), t('reason.saveMemory'));
+  return (
+    <section className="checkins">
+      <div className="trip-summary__head">
+        <h3 className="section-title">
+          👣 {t('checkin.history')} <span className="checkins__count">{t('checkin.times', { n: count })}</span>
+        </h3>
+        <button className="btn btn--sm btn--primary" onClick={add}>
+          ＋ {t('checkin.again')}
+        </button>
+      </div>
+      {entries.length === 0 && <p className="small muted">{t('checkin.none')}</p>}
+      <ol className="checkins__list">
+        {entries.map((e, i) => (
+          <li key={e.key}>
+            <div className="checkins__dot">{entries.length - i}</div>
+            <div className="checkins__body">
+              <div className="checkins__head">
+                <b>{e.date ? formatDate(e.date) : t('checkin.noDate')}</b>
+                {e.occasion && <span className="chip chip--sm">{e.occasion}</span>}
+                {e.tripId && trips.find((x) => x.id === e.tripId) && (
+                  <small className="muted">
+                    {trips.find((x) => x.id === e.tripId).emoji} {trips.find((x) => x.id === e.tripId).name}
+                  </small>
+                )}
+                {e.memory?.visibility === 'public' && <small title={t('checkin.public')}>🌍</small>}
+              </div>
+              {e.caption && <p className="small checkins__note">{e.caption}</p>}
+              {e.photos.length > 0 && (
+                <div className="checkins__photos">
+                  {e.photos.slice(0, 4).map((src, k) => (
+                    <button key={k} onClick={() => setModal({ type: 'viewMemory', memory: e.memory })}>
+                      <LoadingImage src={src} alt="" loading="lazy" />
+                      {k === 3 && e.photos.length > 4 && <span>+{e.photos.length - 4}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="checkins__actions">
+              <button
+                className="icon-btn icon-btn--sm"
+                title={t('plan.edit')}
+                onClick={() => setModal({ type: 'checkin', place, memory: e.memory, legacy: e.legacy ? saved : undefined, tripId })}
+              >
+                ✏️
+              </button>
+              {e.memory && (
+                <button
+                  className="icon-btn icon-btn--sm"
+                  title={t('plan.remove')}
+                  onClick={async () => {
+                    if (!confirm(t('checkin.confirmDelete'))) return;
+                    await api.deleteMemory(e.memory);
+                    notify(t('mem.deleted'));
+                  }}
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 

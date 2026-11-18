@@ -18,6 +18,8 @@ export default function Modals() {
   switch (modal.type) {
     case 'login':
       return <LoginModal reason={modal.reason} onClose={close} />;
+    case 'checkin':
+      return <CheckinModal place={modal.place} tripId={modal.tripId} memory={modal.memory} legacy={modal.legacy} preserve={modal.preserve} onClose={close} />;
     case 'profile':
       return <ProfileModal onClose={close} />;
     case 'directions':
@@ -660,6 +662,124 @@ function ProfileModal({ onClose }) {
               ↩️ {t('profile.useGoogle', { name: user.googleName })}
             </button>
           )}
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+/**
+ * Check-in tại 1 địa điểm (đi nhiều lần được): ngày, dịp, thông tin gợi nhớ, ảnh (tuỳ chọn), chuyến đi.
+ * memory: sửa 1 lần check-in đã có; legacy: lần đến cũ chỉ có ngày / dịp → lưu thành lần check-in đầy đủ.
+ */
+function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, onClose }) {
+  const { api, user, trips, notify, placeById, memories } = useApp();
+  const { t } = useI18n();
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(memory?.date || legacy?.visitedAt || today);
+  const [occasion, setOccasion] = useState(memory?.occasion || legacy?.occasion || '');
+  const [caption, setCaption] = useState(memory?.caption || '');
+  const [files, setFiles] = useState([]);
+  const [tripId, setTripId] = useState(memory?.tripId || initialTrip || '');
+  const [visibility, setVisibility] = useState(memory?.visibility || 'private');
+  const [busy, setBusy] = useState(false);
+  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
+  const hasPhotos = files.length > 0 || (memory?.photos?.length || 0) > 0;
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      // Ngày đến gần nhất của địa điểm = lần check-in muộn nhất
+      const dates = [...memories.filter((m) => m.place?.id === place.id && m.id !== memory?.id).map((m) => m.date), placeById[place.id]?.visitedAt, date].filter(Boolean).sort();
+      const latest = dates[dates.length - 1] || date;
+      if (memory) {
+        await api.updateMemory(memory.id, { date, occasion, caption: caption.trim(), tripId: tripId || null, visibility: hasPhotos ? visibility : 'private' });
+        await api.setPlace(user, { ...(placeById[place.id] || place) }, 'visited', placeById[place.id]?.tripId || tripId || null, latest, placeById[place.id]?.occasion || occasion);
+      } else {
+        if (preserve && !legacy && preserve.visitedAt !== date)
+          await api.addMemory(user, { place, caption: '', date: preserve.visitedAt || '', occasion: preserve.occasion || '', visibility: 'private', tripId: '', visitedAt: latest }, []);
+        await api.addMemory(user, { place, caption: caption.trim(), date, occasion, visibility, tripId, visitedAt: latest }, files);
+      }
+      notify(t('checkin.saved'));
+      onClose();
+    } catch (err) {
+      notify(t('mem.saveFailed', { msg: err.message }), 'error');
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title={`👣 ${memory || legacy ? t('checkin.editTitle') : t('checkin.title')} · ${pName(place)}`} onClose={onClose} wide>
+      <form className="stack" onSubmit={submit}>
+        <div className="grid-2">
+          <label className="field">
+            <span>📅 {t('checkin.date')}</span>
+            <DateInput value={date} onChange={setDate} max={today} ariaLabel={t('checkin.date')} />
+          </label>
+          <label className="field">
+            <span>🧳 {t('mem.trip')}</span>
+            <select value={tripId} onChange={(e) => setTripId(e.target.value)}>
+              <option value="">{t('common.noneOption')}</option>
+              {trips.map((tr) => (
+                <option key={tr.id} value={tr.id}>
+                  {tr.emoji} {tr.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <OccasionField value={occasion} onChange={setOccasion} />
+        <label className="field">
+          <span>📝 {t('checkin.note')}</span>
+          <textarea rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={t('checkin.notePh')} maxLength={500} />
+        </label>
+        <div className="field">
+          <span>📸 {t('checkin.photos')}</span>
+          <div className="uploader">
+            {(memory?.photos || []).map((src) => (
+              <div className="uploader__thumb" key={src}>
+                <img src={src} alt="" />
+              </div>
+            ))}
+            {previews.map((src, i) => (
+              <div className="uploader__thumb" key={src}>
+                <img src={src} alt="" />
+                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={t('mem.removePhoto')}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            {!memory && files.length < 10 && (
+              <label className="uploader__add">
+                <input type="file" accept="image/*" multiple onChange={(e) => setFiles([...files, ...e.target.files].slice(0, 10))} />
+                <span>＋</span>
+                <small>{t('mem.addPhoto')}</small>
+              </label>
+            )}
+          </div>
+          {memory && <small className="muted">{t('checkin.photosLocked')}</small>}
+        </div>
+        {hasPhotos && (
+          <div className="field">
+            <span>{t('checkin.visibility')}</span>
+            <div className="segmented segmented--sm">
+              <button type="button" className={visibility === 'private' ? 'on' : ''} onClick={() => setVisibility('private')}>
+                🔒 {t('checkin.private')}
+              </button>
+              <button type="button" className={visibility === 'public' ? 'on' : ''} onClick={() => setVisibility('public')}>
+                🌍 {t('checkin.public')}
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="row wrap">
+          <button className="btn btn--primary" disabled={busy || !date}>
+            {busy ? `⏳ ${t('common.loading')}` : `💾 ${t('checkin.save')}`}
+          </button>
+          <button type="button" className="btn btn--ghost" onClick={onClose} disabled={busy}>
+            {t('pick.cancel')}
+          </button>
         </div>
       </form>
     </Modal>

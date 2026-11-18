@@ -6,6 +6,15 @@ import { pName, pCity, getLocale } from './lang';
 import { translate as t } from '../i18n';
 
 const BASE = import.meta.env.BASE_URL || './';
+/** Nạp thư viện PDF; nếu trang đang chạy bản cũ (file đã đổi tên sau khi cập nhật) → đánh dấu để tải lại trang */
+export function loadJsPdf() {
+  return import('jspdf').catch((e) => {
+    const err = new Error(e?.message || 'stale');
+    err.stale = true;
+    throw err;
+  });
+}
+
 let fontCache = null;
 async function loadFonts() {
   if (fontCache) return fontCache;
@@ -41,7 +50,7 @@ const fileSafe = (s) => plain(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replac
 
 /** items: kế hoạch đã sắp theo ngày + thứ tự (giống trên web) */
 export async function exportPlanPdf(trip, items) {
-  const [{ jsPDF }, fonts] = await Promise.all([import('jspdf'), loadFonts()]);
+  const [{ jsPDF }, fonts] = await Promise.all([loadJsPdf(), loadFonts()]);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   doc.addFileToVFS('BVP-R.ttf', fonts.regular);
   doc.addFont('BVP-R.ttf', 'BVP', 'normal');

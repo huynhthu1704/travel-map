@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { I18nProvider } from './i18n';
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
+import { setupFreshness } from './lib/freshness';
+
+setupFreshness();
 
 // Windows không hiển thị emoji lá cờ (🇻🇳 thành "VN") → nạp font cờ khi cần
 polyfillCountryFlagEmojis('Twemoji Country Flags', `${import.meta.env.BASE_URL}fonts/TwemojiCountryFlags.woff2`);

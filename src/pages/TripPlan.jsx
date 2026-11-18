@@ -11,7 +11,8 @@ import { normalize, searchNominatim, isGoogleMapsLink } from '../lib/geo';
 import { getLang, getLocale, pName, pCity } from '../lib/lang';
 import { resolveGoogleMaps } from '../components/Modals';
 import { destLabel } from '../components/DestinationPicker';
-import { exportPlanPdf, shareOrDownload } from '../lib/exportPlan';
+import { exportPlanPdf, shareOrDownload, loadJsPdf } from '../lib/exportPlan';
+import { reloadOnce } from '../lib/freshness';
 
 const today = () => {
   const d = new Date();
@@ -367,6 +368,10 @@ export function TripPlan({ trip }) {
   const where = destLabel(dests);
 
   const done = list.filter((i) => i.done).length;
+  // Nạp sẵn công cụ PDF ở nền khi mở tab Kế hoạch để bấm xuất là có ngay
+  useEffect(() => {
+    loadJsPdf().catch(() => {});
+  }, []);
   // Xuất PDF từ dữ liệu mới nhất đang hiển thị (cập nhật trực tiếp từ máy chủ)
   const [exporting, setExporting] = useState(false);
   const canShareFiles = typeof navigator !== 'undefined' && !!navigator.canShare && (() => {
@@ -383,7 +388,11 @@ export function TripPlan({ trip }) {
       const r = await shareOrDownload(file, { preferShare: share });
       if (r === 'downloaded') notify(t('pdf.downloaded', { name: file.name }));
     } catch (e) {
-      notify(t('pdf.error', { msg: e.message }), 'error');
+      if (e.stale) {
+        // Web vừa được cập nhật: tải lại trang (vẫn ở đúng chuyến / tab này) rồi bấm xuất lại
+        notify(t('update.reloading'));
+        setTimeout(() => reloadOnce() || notify(t('pdf.error', { msg: e.message }), 'error'), 1200);
+      } else notify(t('pdf.error', { msg: e.message }), 'error');
     }
     setExporting(false);
   };

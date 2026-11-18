@@ -33,3 +33,16 @@ export function blobToDataURL(blob) {
     r.readAsDataURL(blob);
   });
 }
+
+/** Nén ảnh thành data URL, tự giảm chất lượng/kích thước cho tới khi nhỏ hơn maxBytes. */
+export async function compressToDataURL(file, max, q, maxBytes) {
+  let size = max;
+  let quality = q;
+  for (let i = 0; i < 8; i++) {
+    const url = await blobToDataURL(await compressImage(file, size, quality));
+    if (url.length <= maxBytes) return url;
+    if (quality > 0.55) quality -= 0.1;
+    else size = Math.round(size * 0.8);
+  }
+  return blobToDataURL(await compressImage(file, 600, 0.5));
+}

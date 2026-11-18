@@ -302,10 +302,20 @@ function pickMime() {
 }
 
 export default function ShareStudio({ memory, onClose }) {
-  const { notify } = useApp();
+  const { notify, api } = useApp();
   const [extra, setExtra] = useState([]); // ảnh thêm từ thiết bị
-  const sources = useMemo(() => [...(memory.photos || []), ...extra], [memory, extra]);
-  const [selected, setSelected] = useState(() => (memory.photos || []).slice(0, 4));
+  const [base, setBase] = useState(memory.fullPhotos || memory.photos || []);
+  const sources = useMemo(() => [...base, ...extra], [base, extra]);
+  const [selected, setSelected] = useState(() => base.slice(0, 4));
+  // Tải ảnh độ phân giải đầy đủ (ảnh trong danh sách chỉ là ảnh thu nhỏ)
+  useEffect(() => {
+    if (memory.fullPhotos) return;
+    api.getFullPhotos(memory).then((full) => {
+      if (!full?.length) return;
+      setBase(full);
+      setSelected((sel) => sel.map((s) => full[(memory.photos || []).indexOf(s)] || s));
+    });
+  }, [memory, api]);
   const [tpl, setTpl] = useState('polaroid');
   const [fmt, setFmt] = useState('story');
   const [caption, setCaption] = useState(memory.caption || '');
@@ -462,7 +472,7 @@ export default function ShareStudio({ memory, onClose }) {
           </label>
           {tainted && (
             <p className="small warn">
-              Ảnh trên máy chủ chưa bật CORS nên chưa xuất được. Xem hướng dẫn <code>cors.json</code> trong README, hoặc bấm ＋ để chọn ảnh từ máy.
+              Không đọc được ảnh này để xuất. Hãy bấm ＋ để chọn ảnh từ máy.
             </p>
           )}
           <div className="grid-2">

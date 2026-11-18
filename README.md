@@ -14,7 +14,7 @@ Web app giúp bạn **đánh dấu nơi đã đặt chân tới**, lưu **ảnh 
 | 🔎 | Tìm kiếm quốc gia, thành phố, địa điểm bất kỳ (OpenStreetMap) | Không |
 | 💛 | Thêm địa điểm vào danh sách *muốn đi* / *đã đến* | Có |
 | 🧭 | Chỉ đường: chọn mở **Apple Maps** hoặc **Google Maps** | Không |
-| 📸 | Upload ảnh kỉ niệm theo địa điểm (tự nén ảnh), riêng tư hoặc công khai | Có |
+| 📸 | Upload ảnh kỉ niệm theo địa điểm (tự nén ảnh, lưu trong Firestore), riêng tư hoặc công khai | Có |
 | ✨ | Studio chia sẻ: 1–4 ảnh, 4 mẫu (Polaroid, Bưu thiếp, Cuộn phim, Bento), 3 khung (Story 9:16, 4:5, 1:1), xuất **ảnh PNG** hoặc **video** có hiệu ứng; trên điện thoại mở thẳng bảng chia sẻ | Có |
 | 🌍 | Trang *Khám phá*: xem ảnh công khai của người khác, lọc theo quốc gia / thành phố | Không |
 | 🧳 | Chuyến đi chung: tạo nhóm, mời bằng link/mã, mọi điểm dừng & ảnh hiện cho cả nhóm, xem trên bản đồ | Có |
@@ -33,19 +33,18 @@ Không cấu hình gì vẫn chạy được ở **chế độ demo** (đăng nh
 
 1. Tạo project tại https://console.firebase.google.com → thêm **Web app**.
 2. **Authentication** → Sign-in method → bật **Google**. Thêm domain deploy vào *Authorized domains*.
-3. Tạo **Firestore Database** và **Storage**.
-4. Copy `.env.example` → `.env.local`, điền các giá trị `VITE_FIREBASE_*`.
-5. Deploy rules: `npx firebase-tools deploy --only firestore:rules,storage`
-6. Bật CORS cho Storage để studio chia sẻ đọc được ảnh:
-   ```bash
-   gsutil cors set cors.json gs://<your-bucket>
-   ```
+3. Tạo **Firestore Database** (project hiện tại: `asia-southeast1` – Singapore).
+4. Copy `.env.example` → `.env.local`, điền các giá trị `VITE_FIREBASE_*` (project `travel-map-e9657` đã có sẵn Web app `travel-map-web`).
+5. Deploy rules: dán `firestore.rules` vào Firestore → Rules → Publish, hoặc `npx firebase-tools deploy --only firestore:rules`.
+
+> Ảnh được nén và lưu thẳng trong Firestore (ảnh thu nhỏ trong document kỉ niệm, ảnh đầy đủ ở `memories/{id}/full/{i}`), nên chạy được trên gói **Spark miễn phí** — không cần Firebase Storage/Blaze. Hạn mức miễn phí: 1 GiB dữ liệu (~3.000–5.000 ảnh), 50.000 lượt đọc/ngày.
 
 ### Mô hình dữ liệu
 
 ```
 users/{uid}/places/{placeId}   địa điểm đã đến / muốn đi
-memories/{id}                  kỉ niệm (ảnh, ghi chú, public/private, tripId)
+memories/{id}                  kỉ niệm (ảnh thu nhỏ, ghi chú, public/private, tripId)
+memories/{id}/full/{i}         ảnh độ phân giải đầy đủ
 trips/{id}                     chuyến đi (memberIds, inviteCode)
 trips/{id}/stops/{id}          điểm dừng + ảnh mà cả nhóm cùng thấy
 ```
@@ -70,4 +69,4 @@ src/
   styles/tokens.css     design tokens (đồng bộ Figma)
 ```
 
-Stack: React 18 · Vite · Leaflet / react-leaflet · Firebase (Auth, Firestore, Storage) · OpenStreetMap / CARTO tiles · Nominatim.
+Stack: React 18 · Vite · Leaflet / react-leaflet · Firebase (Auth, Firestore) · OpenStreetMap / CARTO tiles · Nominatim.

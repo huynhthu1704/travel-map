@@ -4,18 +4,19 @@
  *
  * Mô hình dữ liệu (Firestore):
  *  users/{uid}/places/{placeId}  { id,name,city,country,lat,lng,emoji,status:'visited'|'wishlist',tripId?,updatedAt }
- *  memories/{id}                 { uid,authorName,authorPhoto,place{},caption,date,visibility:'public'|'private',tripId?,photos[],createdAt }
+ *  memories/{id}                 { uid,authorName,authorPhoto,place{},caption,date,visibility:'public'|'private',tripId?,photos[] (ảnh thu nhỏ dạng data URL),photoCount,createdAt }
+ *  memories/{id}/full/{i}        { data (ảnh đầy đủ dạng data URL ~≤700KB), uid }
+ *  (Ảnh lưu thẳng trong Firestore để dùng được gói Spark miễn phí — không cần Firebase Storage.)
  *  trips/{id}                    { name,emoji,ownerId,memberIds[],members{uid:{name,photo}},inviteCode,createdAt }
  *  trips/{id}/stops/{stopId}     { place{},kind:'place'|'memory',photos[],caption,byUid,byName,createdAt }
  */
 import {
   collection, doc, setDoc, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, getDocs, limit,
-  serverTimestamp, arrayUnion, arrayRemove, deleteField,
+  serverTimestamp, arrayUnion, arrayRemove, deleteField, writeBatch,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { signInWithPopup, signInWithRedirect, signOut as fbSignOut, onAuthStateChanged } from 'firebase/auth';
-import { firebaseEnabled, auth, db, storage, googleProvider } from './firebase';
-import { compressImage, blobToDataURL } from './image';
+import { firebaseEnabled, auth, db, googleProvider } from './firebase';
+import { compressImage, compressToDataURL, blobToDataURL } from './image';
 
 const now = () => Date.now();
 const toMillis = (v) => (v?.toMillis ? v.toMillis() : v || 0);
@@ -69,27 +70,46 @@ const firebaseBackend = {
   },
   async addMemory(user, { place, caption, date, visibility, tripId }, files) {
     const memRef = doc(collection(db, 'memories'));
-    const photos = [];
-    for (let i = 0; i < files.length; i++) {
-      const blob = await compressImage(files[i]);
-      const r = ref(storage, `memories/${user.uid}/${memRef.id}/${i}-${now()}.jpg`);
-      await uploadBytes(r, blob, { contentType: 'image/jpeg' });
-      photos.push(await getDownloadURL(r));
+    const thumbs = [];
+    const full = [];
+    for (const f of files) {
+      thumbs.push(await compressToDataURL(f, 420, 0.7, 60_000));
+      full.push(await compressToDataURL(f, 1440, 0.82, 700_000));
     }
     const data = {
       uid: user.uid, authorName: user.name, authorPhoto: user.photo || '', place: pickPlace(place), caption: caption || '',
-      date: date || '', visibility, tripId: tripId || null, photos, createdAt: now(),
+      date: date || '', visibility, tripId: tripId || null, photos: thumbs, photoCount: full.length, createdAt: now(),
     };
     await setDoc(memRef, data);
+    // Mỗi ảnh đầy đủ là 1 document riêng (giới hạn 1MB/document của Firestore)
+    for (let i = 0; i < full.length; i++) {
+      await setDoc(doc(db, 'memories', memRef.id, 'full', String(i)), { data: full[i], uid: user.uid, i });
+    }
     // Đặt chân tới đây = đánh dấu "đã đến"
     await setDoc(doc(db, 'users', user.uid, 'places', safeId(place.id)), { ...pickPlace(place), status: 'visited', tripId: tripId || null, updatedAt: now() });
-    if (tripId) await this.addStop(user, tripId, { place, kind: 'memory', photos, caption });
-    return { id: memRef.id, ...data };
+    if (tripId) await this.addStop(user, tripId, { place, kind: 'memory', photos: thumbs, caption, memoryId: memRef.id });
+    return { id: memRef.id, ...data, fullPhotos: full };
+  },
+  /** Lấy ảnh độ phân giải đầy đủ (fallback: ảnh thu nhỏ) */
+  async getFullPhotos(mem) {
+    if (mem.fullPhotos) return mem.fullPhotos;
+    const id = mem.memoryId || mem.id;
+    if (!id || !mem.photoCount && !mem.memoryId) return mem.photos || [];
+    try {
+      const snap = await getDocs(collection(db, 'memories', id, 'full'));
+      const list = snap.docs.map((d) => d.data()).sort((a, b) => a.i - b.i).map((d) => d.data);
+      return list.length ? list : mem.photos || [];
+    } catch {
+      return mem.photos || [];
+    }
   },
   updateMemory: (id, patch) => updateDoc(doc(db, 'memories', id), patch),
   async deleteMemory(mem) {
-    await deleteDoc(doc(db, 'memories', mem.id));
-    await Promise.all((mem.photos || []).map((u) => deleteObject(ref(storage, u)).catch(() => {})));
+    const snap = await getDocs(collection(db, 'memories', mem.id, 'full'));
+    const b = writeBatch(db);
+    snap.docs.forEach((d) => b.delete(d.ref));
+    b.delete(doc(db, 'memories', mem.id));
+    await b.commit();
   },
 
   watchTrips(uid, cb) {
@@ -121,9 +141,9 @@ const firebaseBackend = {
       cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).sort(byNewest)),
     );
   },
-  addStop(user, tripId, { place, kind, photos = [], caption = '' }) {
+  addStop(user, tripId, { place, kind, photos = [], caption = '', memoryId = null }) {
     return addDoc(collection(db, 'trips', tripId, 'stops'), {
-      place: pickPlace(place), kind, photos, caption, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
+      place: pickPlace(place), kind, photos, caption, memoryId, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
     });
   },
 };
@@ -197,6 +217,9 @@ const localBackend = {
     if (tripId) this.addStop(user, tripId, { place, kind: 'memory', photos, caption });
     save();
     return mem;
+  },
+  async getFullPhotos(mem) {
+    return mem.photos || [];
   },
   async updateMemory(id, patch) {
     state.memories = state.memories.map((m) => (m.id === id ? { ...m, ...patch } : m));

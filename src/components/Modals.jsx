@@ -255,8 +255,16 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
 function MemoryViewer({ memory: m, onClose }) {
   const { user, api, setModal, openPlace, setPlaceStatus, notify } = useApp();
   const [i, setI] = useState(0);
+  const [full, setFull] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api.getFullPhotos(m).then((p) => alive && setFull(p));
+    return () => {
+      alive = false;
+    };
+  }, [m, api]);
   const mine = user && m.uid === user.uid;
-  const photos = m.photos || [];
+  const photos = full || m.photos || [];
   return (
     <Modal title={m.place?.name || 'Kỉ niệm'} onClose={onClose} wide>
       <div className="viewer">
@@ -292,7 +300,7 @@ function MemoryViewer({ memory: m, onClose }) {
             <button className="btn btn--sm btn--soft" onClick={() => { onClose(); openPlace(m.place); }}>🗺️ Xem trên bản đồ</button>
             {!mine && <button className="btn btn--sm btn--soft" onClick={() => setPlaceStatus(m.place, 'wishlist')}>💛 Muốn đi</button>}
             <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: m.place })}>🧭 Chỉ đường</button>
-            {mine && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: m })}>✨ Chia sẻ</button>}
+            {mine && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: full ? { ...m, fullPhotos: full } : m })}>✨ Chia sẻ</button>}
             {mine && (
               <button
                 className="btn btn--sm btn--soft"

@@ -334,7 +334,7 @@ function TripDetail({ trip, onBack }) {
                         <button
                           key={p}
                           onClick={() =>
-                            setModal({ type: 'viewMemory', memory: { id: s.id, uid: 'trip-stop', authorName: s.byName, authorPhoto: s.byPhoto, place: s.place, caption: s.caption, photos: s.photos } })
+                            setModal({ type: 'viewMemory', memory: { id: s.id, memoryId: s.memoryId, uid: 'trip-stop', authorName: s.byName, authorPhoto: s.byPhoto, place: s.place, caption: s.caption, photos: s.photos } })
                           }
                         >
                           <img src={p} alt="" loading="lazy" />

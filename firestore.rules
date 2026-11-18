@@ -11,12 +11,26 @@ service cloud.firestore {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
 
-    // Kỉ niệm: công khai thì ai cũng xem được (kể cả chưa đăng nhập)
+    // Kỉ niệm: công khai thì ai cũng xem được (kể cả chưa đăng nhập);
+    // riêng tư thì chỉ chủ sở hữu và thành viên chuyến đi gắn kèm
+    function canReadMemory(m) {
+      return m.visibility == 'public'
+        || (signedIn() && m.uid == request.auth.uid)
+        || (m.tripId != null && isMember(m.tripId));
+    }
     match /memories/{id} {
-      allow read: if resource.data.visibility == 'public' || (signedIn() && resource.data.uid == request.auth.uid);
+      allow read: if canReadMemory(resource.data);
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid
                     && request.resource.data.visibility in ['public', 'private'];
       allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+
+      // Ảnh độ phân giải đầy đủ (mỗi ảnh 1 document)
+      match /full/{photoId} {
+        allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
+        allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+                      && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
+        allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      }
     }
 
     // Chuyến đi chung

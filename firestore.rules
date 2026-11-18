@@ -63,7 +63,17 @@ service cloud.firestore {
     match /profiles/{uid} {
       allow read: if signedIn();
       allow write: if signedIn() && request.auth.uid == uid
-                   && (!('bio' in request.resource.data) || request.resource.data.bio.size() <= 200);
+                   && (!('bio' in request.resource.data) || request.resource.data.bio.size() <= 200)
+                   && (request.resource.data.get('username', '') == ''
+                       || getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == uid);
+    }
+    // Tên người dùng (nickname, duy nhất như Instagram): mỗi tên là 1 tài liệu, ai giữ trước thì là của người đó
+    match /usernames/{name} {
+      allow read: if signedIn();
+      allow create: if signedIn() && name.matches('^[a-z0-9._]{3,20}$')
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid', 'at']);
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
     // Bảng tin (hoạt động gần đây): chính chủ và bạn bè theo dõi chéo
     match /feeds/{uid} {

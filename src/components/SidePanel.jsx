@@ -330,8 +330,24 @@ export function PlaceCard({ place }) {
 }
 
 function PlacePanel() {
-  const { removePlace, saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView } = useApp();
-  const [tripId, setTripId] = useState('');
+  const { removePlace, saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView, api, user, notify } = useApp();
+  // Chuyến đi gắn với địa điểm: lấy theo dữ liệu đã lưu
+  const savedTripId = placeById[p.id]?.tripId || '';
+  const [tripId, setTripId] = useState(savedTripId);
+  useEffect(() => setTripId(savedTripId), [p.id, savedTripId]);
+  const changeTrip = async (next) => {
+    setTripId(next);
+    const status = placeStatus[p.id];
+    if (!status || !user) return; // chưa lưu địa điểm: chuyến đi sẽ được lưu khi bấm Đã đến / Muốn đi
+    try {
+      await api.setPlaceTrip(user, placeById[p.id] || p, status, next, savedTripId);
+      const tr = trips.find((x) => x.id === next);
+      notify(tr ? t('place.tripSaved', { name: tr.name }) : t('place.tripRemoved'));
+    } catch (e) {
+      setTripId(savedTripId);
+      notify(e.message, 'error');
+    }
+  };
   const { t } = useI18n();
   const { src: img, loading: findingImg } = usePlaceImage(p);
   const st = placeStatus[p.id];
@@ -388,7 +404,7 @@ function PlacePanel() {
       {trips.length > 0 && (
         <label className="field">
           <span>{t('place.withTrip')}</span>
-          <select value={tripId} onChange={(e) => setTripId(e.target.value)}>
+          <select value={tripId} onChange={(e) => changeTrip(e.target.value)}>
             <option value="">{t('common.noneOption')}</option>
             {trips.map((t) => (
               <option key={t.id} value={t.id}>
@@ -396,6 +412,7 @@ function PlacePanel() {
               </option>
             ))}
           </select>
+          {tripId && !st && <small className="muted">{t('place.tripHint')}</small>}
         </label>
       )}
 
@@ -403,7 +420,7 @@ function PlacePanel() {
         <button className={`btn ${st === 'visited' ? 'btn--primary' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'visited', tripId)}>
           👣 {st === 'visited' ? t('place.visited') : t('place.markVisited')}
         </button>
-        <button className={`btn ${st === 'wishlist' ? 'btn--coral' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'wishlist')}>
+        <button className={`btn ${st === 'wishlist' ? 'btn--coral' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'wishlist', tripId)}>
           {st === 'wishlist' ? t('place.inWishlist') : t('place.addWishlist')}
         </button>
         <button className="btn btn--dark" onClick={() => setModal({ type: 'directions', place: p })}>

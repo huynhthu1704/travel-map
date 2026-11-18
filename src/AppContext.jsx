@@ -22,6 +22,8 @@ export function AppProvider({ children }) {
   const [initRoute] = useState(() => parseRoute(location.hash));
   const [activeTripId, setActiveTripId] = useState(initRoute.trip);
   const [openTripId, setOpenTripId] = useState(initRoute.tripDetail);
+  const [tripTab, setTripTab] = useState(initRoute.tripTab); // tab trong trang chuyến đi: plan | checklist | journey
+  const [tripPlan, setTripPlan] = useState([]); // kế hoạch của chuyến đang hiện trên bản đồ
   const [tripStops, setTripStops] = useState([]);
   const [countries, setCountries] = useState(null);
   const [loaded, setLoaded] = useState({ public: false, mine: false, trips: false });
@@ -113,6 +115,10 @@ export function AppProvider({ children }) {
       return;
     }
     return api.watchStops(activeTripId, setTripStops);
+  }, [activeTripId, user]);
+  useEffect(() => {
+    if (!activeTripId || !user) return setTripPlan([]);
+    return api.watchPlan(activeTripId, setTripPlan);
   }, [activeTripId, user]);
 
   // Tải thêm địa điểm nổi tiếng (Wikidata) khi mở một quốc gia
@@ -237,7 +243,7 @@ export function AppProvider({ children }) {
   const routeReplace = useRef(true); // lần đầu & khi bấm Back/Forward: chỉ thay, không thêm lịch sử
   useEffect(() => {
     if (/join=/.test(location.hash)) return;
-    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId });
+    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab });
     const replace = routeReplace.current;
     routeReplace.current = false;
     if (h === location.hash) return;
@@ -245,7 +251,7 @@ export function AppProvider({ children }) {
     const url = location.pathname + location.search + h;
     if (replace || samePath) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
-  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId]);
+  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab]);
   useEffect(() => {
     const onPop = () => {
       const r = parseRoute(location.hash);
@@ -255,6 +261,7 @@ export function AppProvider({ children }) {
       setSelectedPlace(r.place);
       setActiveTripId(r.trip);
       setOpenTripId(r.tripDetail);
+      setTripTab(r.tripTab);
       if (r.view === 'map') {
         if (r.place) setFlyTarget({ lat: r.place.lat, lng: r.place.lng, zoom: 13, t: Date.now() });
         else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
@@ -279,14 +286,14 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (!activeTripId) return void (fittedTrip.current = null);
     if (fittedTrip.current === activeTripId) return;
-    const stops = tripStops.filter((s) => s.tripId === activeTripId && s.place);
+    const stops = [...tripStops, ...tripPlan].filter((s) => s.tripId === activeTripId && s.place);
     if (!stops.length) return;
     fittedTrip.current = activeTripId;
     const la = stops.map((s) => s.place.lat);
     const ln = stops.map((s) => s.place.lng);
     const pad = 0.05;
     setFlyTarget({ bbox: [Math.min(...la) - pad, Math.max(...la) + pad, Math.min(...ln) - pad, Math.max(...ln) + pad], t: Date.now() });
-  }, [activeTripId, tripStops]);
+  }, [activeTripId, tripStops, tripPlan]);
 
   const openCountry = useCallback(
     (cc) => {
@@ -378,7 +385,7 @@ export function AppProvider({ children }) {
 
   const value = {
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
-    api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId,
+    api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, tripTab, setTripTab, tripPlan,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };

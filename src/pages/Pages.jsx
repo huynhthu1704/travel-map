@@ -9,6 +9,7 @@ import { useI18n } from '../i18n';
 import { pName, pCity } from '../lib/lang';
 import Combobox from '../components/Combobox';
 import DateInput from '../components/DateInput';
+import { TripPlan, TripChecklists } from './TripPlan';
 
 const TRIP_EMOJIS = ['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'];
 /** Khoảng ngày của chuyến đi: "12/03/2026 → 15/03/2026" */
@@ -23,6 +24,7 @@ function TripEditor({ trip, onClose }) {
   const [emoji, setEmoji] = useState(trip.emoji || '🧳');
   const [start, setStart] = useState(trip.startDate || '');
   const [end, setEnd] = useState(trip.endDate || '');
+  const [kind, setKind] = useState(trip.kind || 'domestic');
   const [busy, setBusy] = useState(false);
   const bad = start && end && end < start;
   const save = async (e) => {
@@ -31,7 +33,7 @@ function TripEditor({ trip, onClose }) {
     if (bad) return notify(t('trip.endBeforeStart'), 'error');
     setBusy(true);
     try {
-      await api.updateTrip(trip.id, { name: name.trim(), emoji, startDate: start || null, endDate: end || null });
+      await api.updateTrip(trip.id, { name: name.trim(), emoji, startDate: start || null, endDate: end || null, kind });
       notify(t('trip.updated'));
       onClose();
     } catch (err) {
@@ -67,6 +69,16 @@ function TripEditor({ trip, onClose }) {
         </label>
       </div>
       {bad && <p className="warn small">{t('trip.endBeforeStart')}</p>}
+      <div className="field">
+        <span>{t('trip.kindLabel')}</span>
+        <div className="segmented">
+          {['domestic', 'international'].map((k) => (
+            <button key={k} type="button" className={kind === k ? 'on' : ''} onClick={() => setKind(k)}>
+              {k === 'domestic' ? '🏠' : '🌏'} {t('trip.kind.' + k)}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="row wrap">
         <button className="btn btn--primary" disabled={busy || bad}>💾 {t('trip.save')}</button>
         <button type="button" className="btn btn--ghost" onClick={onClose}>{t('pick.cancel')}</button>
@@ -472,7 +484,8 @@ export function TripsPage() {
 }
 
 function TripDetail({ trip, onBack }) {
-  const { user, api, notify, setActiveTripId, setView, openPlace, setModal } = useApp();
+  const { user, api, notify, setActiveTripId, setView, openPlace, setModal, tripTab, setTripTab } = useApp();
+  const tab = ['plan', 'checklist', 'journey'].includes(tripTab) ? tripTab : 'plan';
   const { t } = useI18n();
   const [stops, setStops] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -540,8 +553,21 @@ function TripDetail({ trip, onBack }) {
           ))}
         </div>
       </section>
-      {stopList.length > 0 && <TripSummary trip={trip} stops={stopList} />}
-      <section>
+      <div className="chips trip-tabs">
+        {[
+          ['plan', `🗓️ ${t('plan.tab')}`],
+          ['checklist', `✅ ${t('check.tab')}`],
+          ['journey', `👣 ${t('trip.journey')} (${stopList.length})`],
+        ].map(([id, label]) => (
+          <button key={id} className={`chip ${tab === id ? 'chip--on' : ''}`} onClick={() => setTripTab(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'plan' && <TripPlan trip={trip} />}
+      {tab === 'checklist' && <TripChecklists trip={trip} />}
+      {tab === 'journey' && stopList.length > 0 && <TripSummary trip={trip} stops={stopList} />}
+      {tab === 'journey' && <section>
         <h3 className="section-title">{t('trip.journey')}</h3>
         {!stops ? (
           <Loader />
@@ -580,7 +606,7 @@ function TripDetail({ trip, onBack }) {
             ))}
           </ol>
         )}
-      </section>
+      </section>}
       <button
         className="btn btn--ghost danger"
         onClick={async () => {

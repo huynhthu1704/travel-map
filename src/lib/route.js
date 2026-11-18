@@ -19,7 +19,7 @@ export function parseRoute(hash = '') {
       return s;
     }
   });
-  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null };
+  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan' };
   if (PAGES.includes(seg[0])) r.view = seg[0];
   else if (seg[0] === 'trips') {
     r.view = 'trips';
@@ -36,7 +36,7 @@ export function parseRoute(hash = '') {
   return r;
 }
 
-export function buildRoute({ view, country, place, trip, tripDetail }) {
+export function buildRoute({ view, country, place, trip, tripDetail, tripTab }) {
   const q = new URLSearchParams();
   let path = '';
   if (view === 'map') {
@@ -49,7 +49,10 @@ export function buildRoute({ view, country, place, trip, tripDetail }) {
       if (place.country) q.set('cc', place.country);
       if (place.emoji && place.emoji !== '📍') q.set('e', place.emoji);
     } else if (country) path = `country/${country}`;
-  } else if (view === 'trips') path = tripDetail ? `trips/${encodeURIComponent(tripDetail)}` : 'trips';
+  } else if (view === 'trips') {
+    path = tripDetail ? `trips/${encodeURIComponent(tripDetail)}` : 'trips';
+    if (tripDetail && tripTab && tripTab !== 'plan') q.set('tab', tripTab);
+  }
   else path = view;
   if (trip) q.set('trip', trip);
   const s = q.toString();

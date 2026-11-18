@@ -114,7 +114,7 @@ function DirectionsModal({ place, onClose }) {
 }
 
 /** Đọc link Google Maps → địa điểm { id, name, city, country, lat, lng } */
-async function resolveGoogleMaps(text) {
+export async function resolveGoogleMaps(text) {
   let parsed = parseGoogleMapsInput(text);
   // Link rút gọn (maps.app.goo.gl): thử mở rộng qua dịch vụ trung gian công khai
   if (parsed.shortOnly) {

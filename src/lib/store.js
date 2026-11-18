@@ -8,7 +8,9 @@
  *  memories/{id}/full/{i}        { data (ảnh đầy đủ dạng data URL ~≤700KB), uid }
  *  (Ảnh lưu thẳng trong Firestore để dùng được gói Spark miễn phí — không cần Firebase Storage.)
  *  trips/{id}                    { name,emoji,ownerId,memberIds[],members{uid:{name,photo}},inviteCode,createdAt }
- *  trips/{id}/stops/{stopId}     { place{},kind:'place'|'memory',photos[],caption,byUid,byName,createdAt }
+ *  trips/{id}/stops/{stopId}     { place{},kind:'place'|'memory'|'wishlist',photos[],caption,byUid,byName,createdAt }
+ *  trips/{id}/plan/{itemId}      { place{},date?,time?,note,order,done,doneBy,doneAt,addedBy,addedByName,createdAt }
+ *  trips/{id}/checklists/{id}    { title,phase:'before'|'return',scope:'shared'|'personal',ownerUid?,items[{id,text,done,doneBy}],createdBy,createdAt }
  */
 import {
   collection, doc, setDoc, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, getDocs, limit,
@@ -23,6 +25,8 @@ import { FAMOUS_BY_ID } from '../data/places';
 const now = () => Date.now();
 const toMillis = (v) => (v?.toMillis ? v.toMillis() : v || 0);
 const byNewest = (a, b) => toMillis(b.createdAt) - toMillis(a.createdAt);
+// Kế hoạch: theo ngày dự định (mục chưa có ngày để cuối), rồi theo thứ tự người dùng sắp
+const byPlanOrder = (a, b) => (a.date || '9999') .localeCompare(b.date || '9999') || (a.order ?? 0) - (b.order ?? 0);
 const safeId = (s) => String(s).replace(/[^\w-]/g, '_').slice(0, 120);
 export const makeInviteCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 const pickPlace = (p) => ({
@@ -156,6 +160,51 @@ const firebaseBackend = {
     return onSnapshot(collection(db, 'trips', tripId, 'stops'), (s) =>
       cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).sort(byNewest)),
     );
+  },
+  // ---- Kế hoạch chuyến đi: trips/{id}/plan/{itemId} ----
+  watchPlan(tripId, cb) {
+    return onSnapshot(collection(db, 'trips', tripId, 'plan'), (s) => cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).sort(byPlanOrder)));
+  },
+  addPlanItem(user, tripId, { place, date = '', time = '', note = '', order }) {
+    return addDoc(collection(db, 'trips', tripId, 'plan'), {
+      place: pickPlace(place), date, time, note, order: order ?? now(), done: false, doneBy: null, doneAt: null,
+      addedBy: user.uid, addedByName: user.name, createdAt: now(),
+    });
+  },
+  updatePlanItem(tripId, id, patch) {
+    return updateDoc(doc(db, 'trips', tripId, 'plan', id), patch);
+  },
+  deletePlanItem(tripId, id) {
+    return deleteDoc(doc(db, 'trips', tripId, 'plan', id));
+  },
+  /** Ghi lại thứ tự mới: [{id, order}] */
+  async reorderPlan(tripId, list) {
+    const b = writeBatch(db);
+    list.forEach(({ id, order }) => b.update(doc(db, 'trips', tripId, 'plan', id), { order }));
+    await b.commit();
+  },
+  // ---- Checklist: trips/{id}/checklists/{listId} ----
+  /** Checklist chung của nhóm + checklist cá nhân của mình (2 truy vấn vì checklist cá nhân của người khác bị chặn đọc) */
+  watchChecklists(tripId, cb, uid) {
+    const col = collection(db, 'trips', tripId, 'checklists');
+    let shared = [];
+    let mine = [];
+    const emit = () => cb([...shared, ...mine].sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt)));
+    const map = (s) => s.docs.map((d) => ({ id: d.id, tripId, ...d.data() }));
+    const u1 = onSnapshot(query(col, where('scope', '==', 'shared')), (s) => ((shared = map(s)), emit()));
+    const u2 = onSnapshot(query(col, where('ownerUid', '==', uid || '-')), (s) => ((mine = map(s)), emit()));
+    return () => (u1(), u2());
+  },
+  addChecklist(user, tripId, { title, phase, scope, items }) {
+    return addDoc(collection(db, 'trips', tripId, 'checklists'), {
+      title, phase, scope, ownerUid: scope === 'personal' ? user.uid : null, items, createdBy: user.uid, createdByName: user.name, createdAt: now(),
+    });
+  },
+  updateChecklist(tripId, id, patch) {
+    return updateDoc(doc(db, 'trips', tripId, 'checklists', id), patch);
+  },
+  deleteChecklist(tripId, id) {
+    return deleteDoc(doc(db, 'trips', tripId, 'checklists', id));
   },
   /** Gắn / đổi / bỏ chuyến đi cho 1 địa điểm đã lưu: cập nhật địa điểm và điểm dừng trong chuyến */
   async setPlaceTrip(user, place, status, newTripId, oldTripId) {
@@ -295,6 +344,49 @@ const localBackend = {
   },
   watchStops(tripId, cb) {
     return sub(() => cb((state.stops[tripId] || []).map((s) => ({ ...s, tripId })).sort(byNewest)));
+  },
+  watchPlan(tripId, cb) {
+    return sub(() => cb(((state.plan ||= {})[tripId] || []).map((x) => ({ ...x, tripId })).sort(byPlanOrder)));
+  },
+  async addPlanItem(user, tripId, { place, date = '', time = '', note = '', order }) {
+    ((state.plan ||= {})[tripId] ||= []).push({
+      id: uid(), place: pickPlace(place), date, time, note, order: order ?? now(), done: false, doneBy: null, doneAt: null, addedBy: user.uid, addedByName: user.name, createdAt: now(),
+    });
+    save();
+  },
+  async updatePlanItem(tripId, id, patch) {
+    const it = ((state.plan ||= {})[tripId] || []).find((x) => x.id === id);
+    if (it) Object.assign(it, patch);
+    save();
+  },
+  async deletePlanItem(tripId, id) {
+    state.plan[tripId] = (state.plan?.[tripId] || []).filter((x) => x.id !== id);
+    save();
+  },
+  async reorderPlan(tripId, list) {
+    list.forEach(({ id, order }) => {
+      const it = (state.plan?.[tripId] || []).find((x) => x.id === id);
+      if (it) it.order = order;
+    });
+    save();
+  },
+  watchChecklists(tripId, cb) {
+    return sub(() => cb(((state.checklists ||= {})[tripId] || []).map((x) => ({ ...x, tripId }))));
+  },
+  async addChecklist(user, tripId, { title, phase, scope, items }) {
+    ((state.checklists ||= {})[tripId] ||= []).push({
+      id: uid(), title, phase, scope, ownerUid: scope === 'personal' ? user.uid : null, items, createdBy: user.uid, createdByName: user.name, createdAt: now(),
+    });
+    save();
+  },
+  async updateChecklist(tripId, id, patch) {
+    const c = (state.checklists?.[tripId] || []).find((x) => x.id === id);
+    if (c) Object.assign(c, patch);
+    save();
+  },
+  async deleteChecklist(tripId, id) {
+    state.checklists[tripId] = (state.checklists?.[tripId] || []).filter((x) => x.id !== id);
+    save();
   },
   async setPlaceTrip(user, place, status, newTripId, oldTripId) {
     const m = (state.places[user.uid] ||= {});

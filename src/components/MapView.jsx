@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { MapContainer, GeoJSON, Marker, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
+import { MapContainer, GeoJSON, Marker, Polyline, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from '../lib/leafletGlobal';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -108,17 +108,21 @@ function PickHandler() {
 
 export default function MapView() {
   const {
-    countries, visitedCountries, selectedCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace, pickMode, famousFor, famousLimit, homeCountry,
+    countries, visitedCountries, selectedCountry, places, memories, openPlace, tripStops, tripPlan, activeTripId, selectedPlace, pickMode, famousFor, famousLimit, homeCountry,
   } = useApp();
   const pickRef = useRef(pickMode);
   pickRef.current = pickMode;
   const geoRef = useRef();
   const { lang } = useI18n();
 
+  const planOrder = useMemo(() => (activeTripId ? tripPlan.filter((it) => it.tripId === activeTripId && it.place) : []), [activeTripId, tripPlan]);
   // Tô màu quốc gia: của chuyến đi đang xem, hoặc tất cả quốc gia đã đến
   const shownCountries = useMemo(
-    () => (activeTripId ? new Set(tripStops.filter((s) => s.tripId === activeTripId).map((s) => s.place?.country).filter(Boolean)) : visitedCountries),
-    [activeTripId, tripStops, visitedCountries],
+    () =>
+      activeTripId
+        ? new Set([...tripStops.filter((s) => s.tripId === activeTripId), ...planOrder].map((s) => s.place?.country).filter(Boolean))
+        : visitedCountries,
+    [activeTripId, tripStops, planOrder, visitedCountries],
   );
   const style = useMemo(
     () => (f) => {
@@ -149,6 +153,11 @@ export default function MapView() {
       tripStops
         .filter((s) => s.tripId === activeTripId && s.place)
         .forEach((s) => m.set(s.place.id, { place: s.place, kind: 'trip', emoji: s.kind === 'wishlist' ? '💛' : '👣', by: s.byName }));
+      // Kế hoạch: đánh số theo thứ tự dự định; điểm đã đi hiện dấu chân
+      planOrder.forEach((it, i) => {
+        if (it.done) m.set(it.place.id, { place: it.place, kind: 'trip', emoji: '👣', by: it.doneBy });
+        else if (!m.has(it.place.id)) m.set(it.place.id, { place: it.place, kind: 'plan', emoji: String(i + 1) });
+      });
       if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
       return [...m.values()];
     }
@@ -159,7 +168,7 @@ export default function MapView() {
     places.forEach((p) => m.set(p.id, { place: p, kind: p.status, emoji: p.status === 'visited' ? '👣' : '💛' }));
     if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
     return [...m.values()];
-  }, [selectedCountry, homeCountry, places, memories, tripStops, activeTripId, selectedPlace, famousFor, famousLimit]);
+  }, [selectedCountry, homeCountry, places, memories, tripStops, planOrder, activeTripId, selectedPlace, famousFor, famousLimit]);
 
   const renderMarker = ({ place, kind, emoji, by }) => (
     <Marker
@@ -200,6 +209,9 @@ export default function MapView() {
             layer.bindTooltip(f.properties.cc ? countryName(f.properties.cc) : f.properties.name, { sticky: true, className: 'country-tip', direction: 'top' });
           }}
         />
+      )}
+      {planOrder.length > 1 && (
+        <Polyline positions={planOrder.map((it) => [it.place.lat, it.place.lng])} pathOptions={{ color: '#E0A100', weight: 3, dashArray: '6 8', opacity: 0.9 }} />
       )}
       <MarkerClusterGroup
         key={activeTripId ? `trip-${activeTripId}` : selectedCountry || homeCountry}

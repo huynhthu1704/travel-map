@@ -413,6 +413,18 @@ function PlacePanel() {
             ))}
           </select>
           {tripId && !st && <small className="muted">{t('place.tripHint')}</small>}
+          {tripId && (
+            <button
+              type="button"
+              className="btn btn--sm btn--soft"
+              onClick={async () => {
+                await api.addPlanItem(user, tripId, { place: placeById[p.id] || p, order: Date.now() });
+                notify(t('plan.added', { name: pName(p) }));
+              }}
+            >
+              🗓️ {t('place.addToPlan')}
+            </button>
+          )}
         </label>
       )}
 

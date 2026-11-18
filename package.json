@@ -23,6 +23,7 @@
     "country-flag-emoji-polyfill": "^0.1.10",
     "firebase": "^13.4.0",
     "i18n-iso-countries": "^7.14.0",
+    "jspdf": "^2.5.2",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "maplibre-gl": "^4.7.1",

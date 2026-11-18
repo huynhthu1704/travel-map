@@ -2926,3 +2926,20 @@ img.is-loaded {
     grid-column: 1;
   }
 }
+.plan-item__note {
+  text-align: left;
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+.plan-item__add-note {
+  align-self: flex-start;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--honey-600, #b07d00);
+  margin-top: 2px;
+  opacity: 0.8;
+}
+.plan-item__add-note:hover {
+  opacity: 1;
+  text-decoration: underline;
+}

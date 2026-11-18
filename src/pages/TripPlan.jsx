@@ -10,6 +10,7 @@ import { normalize, searchNominatim, isGoogleMapsLink } from '../lib/geo';
 import { getLang, getLocale, pName, pCity } from '../lib/lang';
 import { resolveGoogleMaps } from '../components/Modals';
 import { destLabel } from '../components/DestinationPicker';
+import { exportPlanPdf, shareOrDownload } from '../lib/exportPlan';
 
 const today = () => {
   const d = new Date();
@@ -191,7 +192,16 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
           {item.time && <> · 🕘 {item.time}</>}
           {item.done && item.doneBy && <> · {t('plan.doneBy', { name: item.doneBy })}</>}
         </small>
-        {item.note && !editing && <p className="small plan-item__note">📝 {item.note}</p>}
+        {item.note && !editing && (
+          <button className="small plan-item__note" onClick={() => setEditing(true)} title={t('plan.edit')}>
+            📝 {item.note}
+          </button>
+        )}
+        {!item.note && !editing && (
+          <button className="plan-item__add-note" onClick={() => setEditing(true)}>
+            ＋ {t('plan.addNote')}
+          </button>
+        )}
         {editing && (
           <div className="plan-item__edit">
             <div className="row wrap">
@@ -206,7 +216,8 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
             </div>
             <label className="field">
               <span>📝 {t('plan.note')}</span>
-              <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('plan.notePlaceholder')} maxLength={200} />
+              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('plan.notePlaceholder')} maxLength={500} autoFocus={!item.note && !item.date} />
+              <small className="muted">{t('plan.noteHelp')}</small>
             </label>
             <div className="row wrap">
               <button className="btn btn--sm btn--primary" onClick={save}>
@@ -325,6 +336,26 @@ export function TripPlan({ trip }) {
   const where = destLabel(dests);
 
   const done = list.filter((i) => i.done).length;
+  // Xuất PDF từ dữ liệu mới nhất đang hiển thị (cập nhật trực tiếp từ máy chủ)
+  const [exporting, setExporting] = useState(false);
+  const canShareFiles = typeof navigator !== 'undefined' && !!navigator.canShare && (() => {
+    try {
+      return navigator.canShare({ files: [new File(['x'], 'x.pdf', { type: 'application/pdf' })] });
+    } catch {
+      return false;
+    }
+  })();
+  const doExport = async (share) => {
+    setExporting(true);
+    try {
+      const file = await exportPlanPdf(trip, list);
+      const r = await shareOrDownload(file, { preferShare: share });
+      if (r === 'downloaded') notify(t('pdf.downloaded', { name: file.name }));
+    } catch (e) {
+      notify(t('pdf.error', { msg: e.message }), 'error');
+    }
+    setExporting(false);
+  };
   let counter = 0;
   return (
     <section className="stack">
@@ -332,15 +363,25 @@ export function TripPlan({ trip }) {
         <div className="trip-summary__head">
           <h3 className="h3">🗓️ {t('plan.title')}</h3>
           {list.length > 0 && (
-            <button
-              className="btn btn--sm btn--dark"
-              onClick={() => {
-                setActiveTripId(trip.id);
-                setView('map');
-              }}
-            >
-              🗺️ {t('plan.onMap')}
-            </button>
+            <div className="row wrap">
+              <button className="btn btn--sm btn--primary" onClick={() => doExport(false)} disabled={exporting}>
+                {exporting ? `⏳ ${t('pdf.making')}` : `📄 ${t('pdf.export')}`}
+              </button>
+              {canShareFiles && (
+                <button className="btn btn--sm btn--outline" onClick={() => doExport(true)} disabled={exporting}>
+                  📤 {t('pdf.share')}
+                </button>
+              )}
+              <button
+                className="btn btn--sm btn--dark"
+                onClick={() => {
+                  setActiveTripId(trip.id);
+                  setView('map');
+                }}
+              >
+                🗺️ {t('plan.onMap')}
+              </button>
+            </div>
           )}
         </div>
         {list.length > 0 && (

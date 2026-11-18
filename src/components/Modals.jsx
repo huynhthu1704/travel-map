@@ -10,6 +10,7 @@ import RecapStudio from './RecapStudio';
 import DateInput from './DateInput';
 import { useI18n } from '../i18n';
 import { pName, pCity, getLang } from '../lib/lang';
+import { getNetQuality } from '../lib/network';
 
 export default function Modals() {
   const { modal, setModal } = useApp();
@@ -524,22 +525,38 @@ function MemoryViewer({ memory: m, onClose }) {
   const st = placeStatus[m.place?.id];
   const { t } = useI18n();
   const [i, setI] = useState(0);
-  const [full, setFull] = useState(null);
+  // Ảnh tải dần: hiện ảnh thu nhỏ ngay, rồi tải bản vừa / gốc tuỳ tốc độ mạng
+  const [quality, setQuality] = useState(() => getNetQuality());
+  const [better, setBetter] = useState(null); // { q, photos }
+  const [loadingBetter, setLoadingBetter] = useState(false);
   useEffect(() => {
     let alive = true;
-    api.getFullPhotos(m).then((p) => alive && setFull(p));
+    if (quality === 'low') return setBetter(null);
+    setLoadingBetter(true);
+    api.getPhotos(m, quality).then((p) => {
+      if (!alive) return;
+      setBetter({ q: quality, photos: p });
+      setLoadingBetter(false);
+    });
     return () => {
       alive = false;
     };
-  }, [m, api]);
+  }, [m, api, quality]);
+  const full = better?.q === 'high' ? better.photos : null;
   const mine = user && m.uid === user.uid;
-  const photos = full || m.photos || [];
+  const photos = better?.photos?.length ? better.photos : m.photos || [];
+  const hasMore = (m.photoCount || m.memoryId) && quality !== 'high';
   return (
     <Modal title={pName(m.place) || t('mem.title')} onClose={onClose} wide>
       <div className="viewer">
         {photos.length > 0 && (
           <div className="viewer__media">
             <LoadingImage key={photos[i]} src={photos[i]} alt={m.caption} loaderSize="md" />
+            {hasMore && (
+              <button className="viewer__hq" onClick={() => setQuality('high')} disabled={loadingBetter}>
+                {loadingBetter ? `⏳ ${t('img.loading')}` : `🔍 ${t(quality === 'low' ? 'img.loadClearer' : 'img.loadOriginal')}`}
+              </button>
+            )}
             {photos.length > 1 && (
               <>
                 <button className="viewer__nav viewer__nav--l" onClick={() => setI((i - 1 + photos.length) % photos.length)} aria-label={t('mem.prev')}>‹</button>

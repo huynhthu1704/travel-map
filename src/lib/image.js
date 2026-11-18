@@ -1,5 +1,20 @@
-/** Nén ảnh trước khi upload: cạnh dài tối đa `max` px, JPEG chất lượng `q`. */
-export async function compressImage(file, max = 1600, q = 0.85) {
+// WebP nhẹ hơn JPEG ~25–35% cùng chất lượng; trình duyệt không mã hoá được WebP thì dùng JPEG
+let webpOk = null;
+export const supportsWebp = () => {
+  if (webpOk == null) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1;
+      webpOk = c.toDataURL('image/webp').startsWith('data:image/webp');
+    } catch {
+      webpOk = false;
+    }
+  }
+  return webpOk;
+};
+
+/** Nén ảnh trước khi upload: cạnh dài tối đa `max` px, WebP (hoặc JPEG) chất lượng `q`. */
+export async function compressImage(file, max = 1600, q = 0.85, type = supportsWebp() ? 'image/webp' : 'image/jpeg') {
   const url = URL.createObjectURL(file);
   try {
     const img = await loadImage(url);
@@ -10,7 +25,7 @@ export async function compressImage(file, max = 1600, q = 0.85) {
     c.width = w;
     c.height = h;
     c.getContext('2d').drawImage(img, 0, 0, w, h);
-    return await new Promise((res) => c.toBlob(res, 'image/jpeg', q));
+    return await new Promise((res) => c.toBlob((b) => (b && b.type === type ? res(b) : c.toBlob(res, 'image/jpeg', q)), type, q));
   } finally {
     URL.revokeObjectURL(url);
   }

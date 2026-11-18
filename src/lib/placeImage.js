@@ -1,3 +1,4 @@
+import { sizedWikiImage } from './network';
 // Ảnh minh hoạ cho địa điểm nổi tiếng: ưu tiên ảnh Wikidata (Wikimedia Commons),
 // nếu không có thì lấy ảnh đại diện bài Wikipedia tìm theo tên. Có cache trong localStorage.
 import { useEffect, useState } from 'react';
@@ -109,5 +110,6 @@ export function usePlaceImage(p) {
       alive = false;
     };
   }, [p?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  return state;
+  // Ảnh Wikipedia: chọn kích thước theo tốc độ mạng của người dùng
+  return { ...state, src: sizedWikiImage(state.src) };
 }

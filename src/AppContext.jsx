@@ -33,6 +33,22 @@ export function AppProvider({ children }) {
 
   const [modal, setModal] = useState(null); // {type, ...props}
   const [liveFamous, setLiveFamous] = useState({}); // cc → [places] | 'loading'
+  // Quốc gia mặc định để hiện danh lam thắng cảnh (mặc định Việt Nam, người dùng đổi được)
+  const [homeCountry, setHomeCountryState] = useState(() => {
+    try {
+      return localStorage.getItem('travel-map-home') || 'VN';
+    } catch {
+      return 'VN';
+    }
+  });
+  const setHomeCountry = useCallback((cc) => {
+    setHomeCountryState(cc);
+    try {
+      localStorage.setItem('travel-map-home', cc);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const [pickMode, setPickMode] = useState(null); // null | 'place' (thêm nhiều) | 'memory' (chọn 1 cho kỉ niệm)
   const [pickStatus, setPickStatus] = useState('visited');
   const [picked, setPicked] = useState([]); // địa điểm đã thêm trong lượt chọn này
@@ -103,6 +119,14 @@ export function AppProvider({ children }) {
     [countries],
   );
   useEffect(() => ensureFamous(selectedCountry), [selectedCountry, ensureFamous]);
+  useEffect(() => ensureFamous(homeCountry), [homeCountry, ensureFamous]);
+  // Lần đầu mở web: đưa bản đồ tới quốc gia mặc định để thấy danh lam thắng cảnh
+  const didInitialFly = useRef(false);
+  useEffect(() => {
+    if (!countries || didInitialFly.current) return;
+    didInitialFly.current = true;
+    setFlyTarget({ country: homeCountry, t: Date.now() });
+  }, [countries]); // eslint-disable-line react-hooks/exhaustive-deps
   const famousFor = useCallback(
     (cc) => {
       const live = liveFamous[cc];
@@ -111,6 +135,7 @@ export function AppProvider({ children }) {
     [liveFamous],
   );
   const famousLoading = liveFamous[selectedCountry] === 'loading';
+  const homeLoading = liveFamous[homeCountry] === 'loading';
   const [famousLimit, setFamousLimit] = useState(15); // số địa điểm nổi tiếng đang hiện (nút "Xem thêm")
   useEffect(() => setFamousLimit(15), [selectedCountry]);
   const allLiveFamous = useMemo(() => Object.values(liveFamous).filter(Array.isArray).flat(), [liveFamous]);
@@ -282,7 +307,7 @@ export function AppProvider({ children }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = {
-    loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
+    loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

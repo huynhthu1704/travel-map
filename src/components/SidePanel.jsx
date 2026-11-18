@@ -6,6 +6,7 @@ import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage } from './ui';
 import { useI18n } from '../i18n';
 import { pName, pCity, pDesc } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
+import Combobox from './Combobox';
 
 export default function SidePanel() {
   const { selectedPlace, selectedCountry } = useApp();
@@ -34,8 +35,28 @@ function Stat({ value, label, emoji }) {
 }
 
 function WorldPanel() {
-  const { user, places, visitedCountries, openCountry, openPlace, requireLogin, setModal, trips, activeTripId, setActiveTripId, startPicking } = useApp();
-  const { t } = useI18n();
+  const {
+    user, places, visitedCountries, openCountry, openPlace, requireLogin, setModal, trips, activeTripId, setActiveTripId, startPicking,
+    homeCountry, setHomeCountry, famousFor, homeLoading, countries, setFlyTarget,
+  } = useApp();
+  const { t, lang } = useI18n();
+  const [homeLimit, setHomeLimit] = useState(10);
+  const homeFamous = famousFor(homeCountry);
+  const countryOptions = useMemo(
+    () =>
+      (countries?.features || [])
+        .map((f) => f.properties.cc)
+        .filter(Boolean)
+        .map((cc) => ({ value: cc, label: countryName(cc), icon: flagOf(cc) }))
+        .sort((a, b) => a.label.localeCompare(b.label, lang)),
+    [countries, lang],
+  );
+  const chooseHome = (cc) => {
+    if (!cc) return;
+    setHomeCountry(cc);
+    setHomeLimit(10);
+    setFlyTarget({ country: cc, t: Date.now() });
+  };
   const visited = places.filter((p) => p.status === 'visited');
   const wish = places.filter((p) => p.status === 'wishlist');
   const pct = Math.round((visitedCountries.size / WORLD_COUNTRY_COUNT) * 1000) / 10;
@@ -110,15 +131,41 @@ function WorldPanel() {
         </section>
       )}
 
-      <section>
-        <h3 className="section-title">{t('world.suggest')}</h3>
-        <div className="chips">
-          {Object.keys(FAMOUS_PLACES).map((cc) => (
-            <Chip key={cc} onClick={() => openCountry(cc)}>
-              {flagOf(cc)} {countryName(cc)}
-            </Chip>
+      <section className="stack home-famous">
+        <div>
+          <h3 className="section-title">{t('home.title')}</h3>
+          <Combobox
+            value={homeCountry}
+            options={countryOptions}
+            onChange={chooseHome}
+            placeholder={t('filter.countryPlaceholder')}
+            ariaLabel={t('filter.byCountry')}
+            icon="🌏"
+          />
+        </div>
+        <div className="chips chips--scroll">
+          {Object.keys(FAMOUS_PLACES)
+            .filter((cc) => cc !== homeCountry)
+            .map((cc) => (
+              <Chip key={cc} onClick={() => chooseHome(cc)}>
+                {flagOf(cc)} {countryName(cc)}
+              </Chip>
+            ))}
+        </div>
+        <div className="cards">
+          {homeFamous.slice(0, homeLimit).map((p) => (
+            <PlaceCard key={p.id} place={p} />
           ))}
         </div>
+        {homeLoading && <Loader text={t('country.loadingMore')} />}
+        {homeFamous.length > homeLimit && (
+          <button className="btn btn--soft btn--block" onClick={() => setHomeLimit((n) => n + 10)}>
+            {t('country.showMore', { n: homeFamous.length - homeLimit })}
+          </button>
+        )}
+        <button className="btn btn--ghost btn--sm" onClick={() => openCountry(homeCountry)}>
+          {t('home.details', { country: countryName(homeCountry) })}
+        </button>
       </section>
       <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
         {t('world.addMemory')}

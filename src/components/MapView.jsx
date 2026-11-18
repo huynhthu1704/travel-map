@@ -63,17 +63,24 @@ function FlyController({ countries }) {
 function PickHandler() {
   const { pickMode, setPickMode, pinPlace, addPickedAt } = useApp();
   const map = useMap();
+  const clickTimer = useRef(null);
   useEffect(() => {
     map.getContainer().classList.toggle('map--picking', !!pickMode);
   }, [pickMode, map]);
   useMapEvents({
     click: (e) => {
-      if (pickMode === 'place') addPickedAt(e.latlng.lat, e.latlng.lng);
-      else if (pickMode === 'memory') {
-        setPickMode(null);
-        pinPlace(e.latlng.lat, e.latlng.lng, { purpose: 'memory' });
-      }
+      const { lat, lng } = e.latlng;
+      // Đợi một chút để không ghim khi người dùng nhấp đúp để phóng to
+      clearTimeout(clickTimer.current);
+      clickTimer.current = setTimeout(() => {
+        if (pickMode === 'place') addPickedAt(lat, lng);
+        else if (pickMode === 'memory') {
+          setPickMode(null);
+          pinPlace(lat, lng, { purpose: 'memory' });
+        } else pinPlace(lat, lng); // chạm bất kỳ đâu = chọn vị trí đó để thêm
+      }, 260);
     },
+    dblclick: () => clearTimeout(clickTimer.current),
     contextmenu: (e) => {
       if (pickMode === 'place') return addPickedAt(e.latlng.lat, e.latlng.lng);
       setPickMode(null);
@@ -85,7 +92,7 @@ function PickHandler() {
 
 export default function MapView() {
   const {
-    countries, visitedCountries, selectedCountry, openCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace, pickMode, famousFor, famousLimit,
+    countries, visitedCountries, selectedCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace, pickMode, famousFor, famousLimit, homeCountry,
   } = useApp();
   const pickRef = useRef(pickMode);
   pickRef.current = pickMode;
@@ -116,7 +123,8 @@ export default function MapView() {
   // Marker: địa điểm của tôi (đã đến / muốn đi), địa điểm nổi tiếng của quốc gia đang xem, điểm dừng chuyến đi
   const markers = useMemo(() => {
     const m = new Map();
-    if (selectedCountry) famousFor(selectedCountry).slice(0, famousLimit).forEach((p) => m.set(p.id, { place: p, kind: 'famous', emoji: p.emoji }));
+    const famousCc = selectedCountry || homeCountry;
+    if (famousCc) famousFor(famousCc).slice(0, famousLimit).forEach((p) => m.set(p.id, { place: p, kind: 'famous', emoji: p.emoji }));
     memories.forEach((mem) => mem.place && m.set(mem.place.id, { place: mem.place, kind: 'visited', emoji: '👣' }));
     places.forEach((p) => m.set(p.id, { place: p, kind: p.status, emoji: p.status === 'visited' ? '👣' : '💛' }));
     if (activeTripId)
@@ -125,7 +133,7 @@ export default function MapView() {
       });
     if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
     return [...m.values()];
-  }, [selectedCountry, places, memories, tripStops, activeTripId, selectedPlace, famousFor, famousLimit]);
+  }, [selectedCountry, homeCountry, places, memories, tripStops, activeTripId, selectedPlace, famousFor, famousLimit]);
 
   return (
     <MapContainer
@@ -146,11 +154,7 @@ export default function MapView() {
           data={countries}
           style={style}
           onEachFeature={(f, layer) => {
-            layer.on({
-              click: () => !pickRef.current && f.properties.cc && openCountry(f.properties.cc),
-              mouseover: (e) => e.target.setStyle({ fillOpacity: 0.6, fillColor: '#FFD452' }),
-              mouseout: (e) => e.target.setStyle(styleRef.current(f)),
-            });
+            // Không còn zoom vào quốc gia khi bấm: bấm bản đồ = ghim vị trí (xử lý ở PickHandler)
             layer.bindTooltip(f.properties.cc ? countryName(f.properties.cc) : f.properties.name, { sticky: true, className: 'country-tip', direction: 'top' });
           }}
         />

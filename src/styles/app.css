@@ -474,6 +474,10 @@ code {
   background: #eaf3f7;
   font-family: var(--font-body);
 }
+.base-tiles {
+  /* làm dịu màu bản đồ OSM cho hợp tông vàng mật ong */
+  filter: saturate(0.7) sepia(0.12) brightness(1.03);
+}
 .map--near path.leaflet-interactive {
   fill-opacity: 0.08 !important;
 }

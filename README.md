@@ -75,4 +75,4 @@ src/
   styles/tokens.css       design tokens (synced with Figma)
 ```
 
-Stack: React 18 · Vite · Leaflet / react-leaflet · Firebase (Auth, Firestore) · OpenStreetMap / CARTO tiles · Nominatim.
+Stack: React 18 · Vite · Leaflet / react-leaflet · Firebase (Auth, Firestore) · OpenStreetMap tiles · Nominatim.

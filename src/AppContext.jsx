@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api } from './lib/store';
 import { loadCountries, bboxOf } from './lib/countries';
 import { fixPlace, fixMemory } from './lib/fixes';
+import { parseRoute, buildRoute } from './lib/route';
 import { loadFamousLive } from './lib/famousLive';
 import { famousIn } from './data/places';
 import { translate as t } from './i18n';
@@ -17,15 +18,18 @@ export function AppProvider({ children }) {
   const [memories, setMemories] = useState([]);
   const [publicMemories, setPublicMemories] = useState([]);
   const [trips, setTrips] = useState([]);
-  const [activeTripId, setActiveTripId] = useState(null);
+  // Trang đang mở lấy từ đường dẫn, để tải lại trang vẫn ở đúng chỗ
+  const [initRoute] = useState(() => parseRoute(location.hash));
+  const [activeTripId, setActiveTripId] = useState(initRoute.trip);
+  const [openTripId, setOpenTripId] = useState(initRoute.tripDetail);
   const [tripStops, setTripStops] = useState([]);
   const [countries, setCountries] = useState(null);
   const [loaded, setLoaded] = useState({ public: false, mine: false, trips: false });
   const markLoaded = (k) => setLoaded((l) => (l[k] ? l : { ...l, [k]: true }));
 
-  const [view, setView] = useState('map');
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [view, setView] = useState(initRoute.view);
+  const [selectedCountry, setSelectedCountry] = useState(initRoute.country);
+  const [selectedPlace, setSelectedPlace] = useState(initRoute.place);
   const [flyTarget, setFlyTarget] = useState(null);
   // Trang danh sách đã mở địa điểm (để có nút quay lại danh sách)
   const [returnView, setReturnView] = useState(null);
@@ -129,7 +133,10 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (!countries || didInitialFly.current) return;
     didInitialFly.current = true;
-    setFlyTarget({ country: homeCountry, t: Date.now() });
+    const r = initRoute;
+    if (r.place) setFlyTarget({ lat: r.place.lat, lng: r.place.lng, zoom: 13, t: Date.now() });
+    else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
+    else if (!r.trip) setFlyTarget({ country: homeCountry, t: Date.now() });
   }, [countries]); // eslint-disable-line react-hooks/exhaustive-deps
   const famousFor = useCallback(
     (cc) => {
@@ -226,6 +233,61 @@ export function AppProvider({ children }) {
     [notify],
   );
 
+  // ---- Đồng bộ trang đang xem với đường dẫn (#/...) ----
+  const routeReplace = useRef(true); // lần đầu & khi bấm Back/Forward: chỉ thay, không thêm lịch sử
+  useEffect(() => {
+    if (/join=/.test(location.hash)) return;
+    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId });
+    const replace = routeReplace.current;
+    routeReplace.current = false;
+    if (h === location.hash) return;
+    const samePath = h.split('?')[0] === location.hash.split('?')[0];
+    const url = location.pathname + location.search + h;
+    if (replace || samePath) history.replaceState(null, '', url);
+    else history.pushState(null, '', url);
+  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId]);
+  useEffect(() => {
+    const onPop = () => {
+      const r = parseRoute(location.hash);
+      routeReplace.current = true;
+      setView(r.view);
+      setSelectedCountry(r.country);
+      setSelectedPlace(r.place);
+      setActiveTripId(r.trip);
+      setOpenTripId(r.tripDetail);
+      if (r.view === 'map') {
+        if (r.place) setFlyTarget({ lat: r.place.lat, lng: r.place.lng, zoom: 13, t: Date.now() });
+        else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  // Địa điểm mở từ đường dẫn chỉ có thông tin cơ bản: khi dữ liệu tải xong thì thay bằng bản đầy đủ (ảnh, mô tả…)
+  useEffect(() => {
+    const p = selectedPlace;
+    if (!p?.restored) return;
+    const found =
+      placeById[p.id] ||
+      memories.find((m) => m.place?.id === p.id)?.place ||
+      (p.country ? famousFor(p.country).find((x) => x.id === p.id) : null);
+    if (found) setSelectedPlace(found);
+  }, [selectedPlace, placeById, memories, famousFor]);
+
+  // Khi bật 1 chuyến đi trên bản đồ: thu phóng vừa các điểm dừng của chuyến đó
+  const fittedTrip = useRef(initRoute.place ? initRoute.trip : null);
+  useEffect(() => {
+    if (!activeTripId) return void (fittedTrip.current = null);
+    if (fittedTrip.current === activeTripId) return;
+    const stops = tripStops.filter((s) => s.tripId === activeTripId && s.place);
+    if (!stops.length) return;
+    fittedTrip.current = activeTripId;
+    const la = stops.map((s) => s.place.lat);
+    const ln = stops.map((s) => s.place.lng);
+    const pad = 0.05;
+    setFlyTarget({ bbox: [Math.min(...la) - pad, Math.max(...la) + pad, Math.min(...ln) - pad, Math.max(...ln) + pad], t: Date.now() });
+  }, [activeTripId, tripStops]);
+
   const openCountry = useCallback(
     (cc) => {
       setView('map');
@@ -316,7 +378,7 @@ export function AppProvider({ children }) {
 
   const value = {
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
-    api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
+    api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };

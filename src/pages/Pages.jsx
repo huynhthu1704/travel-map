@@ -356,12 +356,15 @@ function PlaceList({ items, onOpen, emptyText }) {
 }
 
 export function TripsPage() {
-  const { user, trips, api, requireLogin, notify, activeTripId, setActiveTripId, setView, loaded } = useApp();
+  const { user, trips, api, requireLogin, notify, activeTripId, setActiveTripId, setView, loaded, openTripId: openId, setOpenTripId: setOpenId } = useApp();
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('🧳');
   const [code, setCode] = useState('');
-  const [openId, setOpenId] = useState(null);
   const { t } = useI18n();
+  // Đường dẫn trỏ tới chuyến đi không còn / không có quyền xem → về danh sách
+  useEffect(() => {
+    if (openId && loaded.trips && user && !trips.some((tr) => tr.id === openId)) setOpenId(null);
+  }, [openId, loaded.trips, trips, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!user)
     return (

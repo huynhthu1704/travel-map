@@ -63,7 +63,9 @@ function FlyController({ countries }) {
       if (f) map.flyToBounds(boundsForCountry(f, flyTarget.country), { padding: [40, 40], duration: 0.9, maxZoom: 7 });
     } else if (flyTarget.bbox) {
       const [s, n, w, e] = flyTarget.bbox;
-      map.flyToBounds([[s, w], [n, e]], { duration: 0.9, maxZoom: 13 });
+      // Chừa chỗ cho bảng bên trái (máy tính) để không che mất điểm nào
+      const wide = map.getSize().x >= 900;
+      map.flyToBounds([[s, w], [n, e]], { duration: 0.9, maxZoom: 13, paddingTopLeft: wide ? [440, 80] : [30, 80], paddingBottomRight: [40, 40] });
     } else if (flyTarget.world) {
       map.flyTo([22, 15], map.getSize().x < 700 ? 1 : 2, { duration: 0.8 });
     } else if (flyTarget.lat != null) {
@@ -113,10 +115,15 @@ export default function MapView() {
   const geoRef = useRef();
   const { lang } = useI18n();
 
+  // Tô màu quốc gia: của chuyến đi đang xem, hoặc tất cả quốc gia đã đến
+  const shownCountries = useMemo(
+    () => (activeTripId ? new Set(tripStops.filter((s) => s.tripId === activeTripId).map((s) => s.place?.country).filter(Boolean)) : visitedCountries),
+    [activeTripId, tripStops, visitedCountries],
+  );
   const style = useMemo(
     () => (f) => {
       const cc = f.properties.cc;
-      const visited = visitedCountries.has(cc);
+      const visited = shownCountries.has(cc);
       const sel = cc === selectedCountry;
       return {
         weight: sel ? 2.5 : 0.8,
@@ -125,7 +132,7 @@ export default function MapView() {
         fillOpacity: visited ? (sel ? 0.55 : 0.45) : sel ? 0.35 : 0.05,
       };
     },
-    [visitedCountries, selectedCountry],
+    [shownCountries, selectedCountry],
   );
 
   const styleRef = useRef(style);
@@ -137,15 +144,19 @@ export default function MapView() {
   // Marker: địa điểm của tôi (đã đến / muốn đi), địa điểm nổi tiếng của quốc gia đang xem, điểm dừng chuyến đi
   const markers = useMemo(() => {
     const m = new Map();
+    // Đang xem 1 chuyến đi: chỉ hiện các điểm dừng của chuyến đó
+    if (activeTripId) {
+      tripStops
+        .filter((s) => s.tripId === activeTripId && s.place)
+        .forEach((s) => m.set(s.place.id, { place: s.place, kind: 'trip', emoji: s.kind === 'wishlist' ? '💛' : '👣', by: s.byName }));
+      if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
+      return [...m.values()];
+    }
     // Địa điểm nổi tiếng: hiện tất cả, các điểm gần nhau sẽ được gom cụm
     const famousCc = selectedCountry || homeCountry;
     if (famousCc) famousFor(famousCc).forEach((p) => m.set(p.id, { place: p, kind: 'famous', emoji: p.emoji }));
     memories.forEach((mem) => mem.place && m.set(mem.place.id, { place: mem.place, kind: 'visited', emoji: '👣' }));
     places.forEach((p) => m.set(p.id, { place: p, kind: p.status, emoji: p.status === 'visited' ? '👣' : '💛' }));
-    if (activeTripId)
-      tripStops.forEach((s) => {
-        if (!m.has(s.place.id) || m.get(s.place.id).kind === 'famous') m.set(s.place.id, { place: s.place, kind: 'trip', emoji: '🧳', by: s.byName });
-      });
     if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
     return [...m.values()];
   }, [selectedCountry, homeCountry, places, memories, tripStops, activeTripId, selectedPlace, famousFor, famousLimit]);
@@ -191,7 +202,7 @@ export default function MapView() {
         />
       )}
       <MarkerClusterGroup
-        key={selectedCountry || homeCountry}
+        key={activeTripId ? `trip-${activeTripId}` : selectedCountry || homeCountry}
         chunkedLoading
         maxClusterRadius={55}
         spiderfyOnMaxZoom

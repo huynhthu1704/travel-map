@@ -6984,3 +6984,26 @@ a.app-link.place-card__title:hover {
     padding-bottom: 20px;
   }
 }
+
+/* Danh sách Đã đến / Muốn đi: nút Chỉ đường + Xoá */
+.list-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+@media (max-width: 640px) {
+  .list-item--place {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .list-item--place .list-item__main {
+    flex: 1 1 0;
+  }
+  /* trên điện thoại: nút xuống dòng dưới, thẳng hàng với tên địa điểm */
+  .list-item--place .list-item__actions {
+    flex-basis: 100%;
+    padding-left: 52px;
+    justify-content: space-between;
+  }
+}

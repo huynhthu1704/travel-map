@@ -564,7 +564,7 @@ function PlaceList({ items, onOpen, emptyText, groupByCountry, byRecent }) {
   const { setModal, removePlace, openCountry } = useApp();
   const { t, lang } = useI18n();
   const row = (p) => (
-    <div key={p.id} className="list-item">
+    <div key={p.id} className="list-item list-item--place">
       <span className="list-item__emoji">{p.emoji || "📍"}</span>
       <AppLink
         className="list-item__main"
@@ -579,20 +579,22 @@ function PlaceList({ items, onOpen, emptyText, groupByCountry, byRecent }) {
           {p.occasion ? ` · ${p.occasion}` : ""}
         </small>
       </AppLink>
-      <button
-        className="btn btn--sm btn--soft"
-        onClick={() => setModal({ type: "directions", place: p })}
-      >
-        <DirectionsIcon /> {t("common.directions")}
-      </button>
-      <button
-        className="icon-btn icon-btn--danger"
-        onClick={() => removePlace(p)}
-        aria-label={t("remove.confirm")}
-        title={t("remove.confirm")}
-      >
-        <TrashIcon />
-      </button>
+      <div className="list-item__actions">
+        <button
+          className="btn btn--sm btn--soft"
+          onClick={() => setModal({ type: "directions", place: p })}
+        >
+          <DirectionsIcon /> {t("common.directions")}
+        </button>
+        <button
+          className="icon-btn icon-btn--danger"
+          onClick={() => removePlace(p)}
+          aria-label={t("remove.confirm")}
+          title={t("remove.confirm")}
+        >
+          <TrashIcon />
+        </button>
+      </div>
     </div>
   );
   // Gom theo quốc gia → tỉnh/thành phố (giống bảng ở trang chủ).
@@ -770,7 +772,11 @@ export function TripsPage() {
       </header>
       {panel && (
         <Modal
-          title={panel === "create" ? `＋ ${t("trips.create")}` : `🔑 ${t("trips.join")}`}
+          title={
+            panel === "create"
+              ? `＋ ${t("trips.create")}`
+              : `🔑 ${t("trips.join")}`
+          }
           onClose={() => setPanel(null)}
           className="modal--sm"
         >

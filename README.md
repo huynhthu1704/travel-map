@@ -55,7 +55,7 @@ trips/{id}/stops/{id}          stops and photos shared with the whole group
 
 - **GitHub Pages**: the `.github/workflows/deploy.yml` workflow builds the app on every push to `main`. To set it up:
   1. Go to *Settings → Pages* and set *Source* to *GitHub Actions*.
-  2. Add the `VITE_FIREBASE_*` secrets under *Settings → Secrets → Actions*.
+  2. The Firebase web config is read from `.env.production` (committed on purpose: Firebase web config is public by design and data access is protected by `firestore.rules`).
   3. Add `<username>.github.io` to Firebase *Authorized domains*.
 - **Firebase Hosting**: run `npm run build && npx firebase-tools deploy --only hosting`.
 

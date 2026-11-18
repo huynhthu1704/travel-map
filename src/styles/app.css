@@ -226,6 +226,19 @@ code {
   color: #c4472a;
   box-shadow: inset 0 0 0 1.5px #ffb8a6;
 }
+.btn--danger {
+  background: #c4472a;
+  color: #fff;
+}
+.btn--danger:hover {
+  background: #a83a21;
+}
+.icon-btn--danger:hover {
+  background: var(--coral-100);
+}
+.remove-btn {
+  align-self: flex-start;
+}
 .btn--google {
   background: var(--base-white);
   border: 1.5px solid var(--color-border-strong);

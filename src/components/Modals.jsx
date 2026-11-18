@@ -24,6 +24,8 @@ export default function Modals() {
       return <MemoryViewer memory={modal.memory} onClose={close} />;
     case 'share':
       return <ShareStudio memory={modal.memory} onClose={close} />;
+    case 'confirmRemove':
+      return <ConfirmRemoveModal place={modal.place} onClose={close} />;
     case 'visitDate':
       return <VisitDateModal place={modal.place} tripId={modal.tripId} onClose={close} />;
     case 'addLink':
@@ -176,6 +178,43 @@ const today = () => {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 };
+
+/** Xác nhận xoá địa điểm khỏi danh sách Đã đến / Muốn đi */
+function ConfirmRemoveModal({ place, onClose }) {
+  const { t } = useI18n();
+  const { confirmRemovePlace, placeStatus } = useApp();
+  const [busy, setBusy] = useState(false);
+  const status = placeStatus[place.id] || place.status;
+  return (
+    <Modal title={t('remove.title')} onClose={onClose} className="modal--sm">
+      <div className="stack">
+        <p>
+          {t(status === 'wishlist' ? 'remove.textWish' : 'remove.textVisited', { name: pName(place) })}
+        </p>
+        <p className="small muted">{t('remove.note')}</p>
+        {busy ? (
+          <Loader size="sm" />
+        ) : (
+          <div className="grid-2">
+            <button className="btn btn--soft" onClick={onClose}>
+              {t('pick.cancel')}
+            </button>
+            <button
+              className="btn btn--danger"
+              onClick={async () => {
+                setBusy(true);
+                await confirmRemovePlace(place);
+                onClose();
+              }}
+            >
+              🗑️ {t('remove.confirm')}
+            </button>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 /** Hỏi ngày đã đến khi đánh dấu "đã tới" */
 function VisitDateModal({ place, tripId, onClose }) {

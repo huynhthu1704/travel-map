@@ -269,7 +269,7 @@ export function PlaceCard({ place }) {
 }
 
 function PlacePanel() {
-  const { saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView } = useApp();
+  const { removePlace, saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView } = useApp();
   const [tripId, setTripId] = useState('');
   const { t } = useI18n();
   const { src: img, loading: findingImg } = usePlaceImage(p);
@@ -356,6 +356,11 @@ function PlacePanel() {
         </button>
       </div>
 
+      {st && (
+        <button className="btn btn--ghost btn--sm danger remove-btn" onClick={() => removePlace(placeById[p.id] || p)}>
+          🗑️ {t(st === 'visited' ? 'remove.fromVisited' : 'remove.fromWish')}
+        </button>
+      )}
       {st === 'visited' && (
         <label className="field visit-field">
           <span>{t('visit.edit')}</span>

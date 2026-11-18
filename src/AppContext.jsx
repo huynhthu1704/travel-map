@@ -172,6 +172,8 @@ export function AppProvider({ children }) {
         const u = userRef.current;
         const current = placeStatus[place.id];
         const next = current === status ? null : status;
+        // Bỏ "đã đến" → hỏi xác nhận trước khi xoá
+        if (current === 'visited' && next === null) return setModal({ type: 'confirmRemove', place: placeById[place.id] || place });
         // Đánh dấu "đã đến" → hỏi ngày đến để sau này nhớ
         if (next === 'visited') return setModal({ type: 'visitDate', place, tripId });
         await api.setPlace(u, place, next, tripId);
@@ -179,7 +181,17 @@ export function AppProvider({ children }) {
           next === 'visited' ? t('toast.visited', { name: pName(place) }) : next === 'wishlist' ? t('toast.wish', { name: pName(place) }) : t('toast.unmarked'),
         );
       }, t('reason.savePlace')),
-    [requireLogin, placeStatus, notify],
+    [requireLogin, placeStatus, notify, placeById],
+  );
+
+  /** Xoá địa điểm khỏi danh sách Đã đến / Muốn đi (có hỏi xác nhận) */
+  const removePlace = useCallback((place) => setModal({ type: 'confirmRemove', place }), []);
+  const confirmRemovePlace = useCallback(
+    async (place) => {
+      await api.setPlace(userRef.current, place, null);
+      notify(t('remove.done', { name: pName(place) }));
+    },
+    [notify],
   );
 
   const openCountry = useCallback(
@@ -270,7 +282,7 @@ export function AppProvider({ children }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const value = {
-    loaded, placeById, saveVisited, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
+    loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

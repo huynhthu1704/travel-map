@@ -185,7 +185,7 @@ export function MemoriesPage() {
 
 function PlaceList({ items, onOpen, emptyText }) {
   const { filtered, ui } = useFilters(items, (p) => p);
-  const { setModal } = useApp();
+  const { setModal, removePlace } = useApp();
   const { t } = useI18n();
   return (
     <>
@@ -204,6 +204,9 @@ function PlaceList({ items, onOpen, emptyText }) {
               </button>
               <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: p })}>
                 {t('common.directions')}
+              </button>
+              <button className="icon-btn icon-btn--danger" onClick={() => removePlace(p)} aria-label={t('remove.confirm')} title={t('remove.confirm')}>
+                🗑️
               </button>
             </div>
           ))}

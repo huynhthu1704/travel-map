@@ -260,11 +260,76 @@ function Stat({ value, label, emoji }) {
   );
 }
 
-/** Nhóm địa điểm theo quốc gia → thành phố, có ô tìm, mở / thu gọn từng quốc gia */
-function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, openFirst = 2, sortCountries = 'count' }) {
-  const { openPlace, openCountry } = useApp();
+/* Trạng thái danh sách (ô tìm, địa điểm đang mở xem nhanh) — giữ lại khi vào trang chi tiết rồi quay về */
+const listMemory = {};
+
+/** Xem nhanh một địa điểm ngay trong danh sách: ảnh, mô tả, check-in, muốn đi, chỉ đường, chi tiết */
+function PlacePreview({ place: p, onDetail }) {
+  const { t } = useI18n();
+  const { placeStatus, setPlaceStatus, setModal, requireLogin, memories } = useApp();
+  const { src, loading } = usePlaceImage(p);
+  const st = placeStatus[p.id];
+  const times = memories.filter((m) => m.place?.id === p.id).length || (st === 'visited' ? 1 : 0);
+  const desc = pDesc(p);
+  return (
+    <div className="pv">
+      <div className="pv__top">
+        {(src || loading) && (
+          <div className="pv__img">
+            <LoadingImage src={src} finding={loading} alt="" loading="lazy" />
+          </div>
+        )}
+        <div className="pv__text">
+          <small className="muted">
+            {[pCity(p), countryName(p.country)].filter(Boolean).join(', ')} {flagOf(p.country)}
+          </small>
+          {desc && <p className="pv__desc">{desc}</p>}
+          {st === 'visited' && <span className="pv__badge pv__badge--done">✓ {t('checkin.been')} · {t('checkin.times', { n: times })}</span>}
+          {st === 'wishlist' && <span className="pv__badge">💛 {t('pv.inWish')}</span>}
+        </div>
+      </div>
+      <div className="pv__actions">
+        <button className="btn btn--sm btn--primary" onClick={() => requireLogin(() => setModal({ type: 'checkin', place: p }), t('reason.saveMemory'))}>
+          {st === 'visited' ? `＋ ${t('checkin.ctaAgain')}` : `👣 ${t('checkin.title')}`}
+        </button>
+        {st !== 'visited' && (
+          <button className={`btn btn--sm ${st === 'wishlist' ? 'btn--coral' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'wishlist')}>
+            {st === 'wishlist' ? '💛' : '🤍'} {t('pv.wish')}
+          </button>
+        )}
+        <button className="btn btn--sm btn--outline" title={t('common.directions')} onClick={() => setModal({ type: 'directions', place: p })}>
+          🧭
+        </button>
+        <button className="btn btn--sm btn--dark pv__more" onClick={onDetail}>
+          {t('pv.detail')} →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Nhóm địa điểm theo quốc gia → thành phố, có ô tìm, mở / thu gọn từng quốc gia.
+    Bấm một địa điểm → mở xem nhanh ngay tại chỗ + bay bản đồ tới; "Chi tiết" mới mở trang riêng. */
+function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, openFirst = 2, sortCountries = 'count', memKey = 'list' }) {
+  const { openPlace, openCountry, setFlyTarget } = useApp();
   const { t, lang } = useI18n();
-  const [q, setQ] = useState('');
+  const mem = (listMemory[memKey] ||= { q: '', openId: null });
+  const [q, setQState] = useState(mem.q);
+  const [openId, setOpenIdState] = useState(mem.openId);
+  const setQ = (v) => setQState((mem.q = v));
+  const setOpenId = (v) => setOpenIdState((mem.openId = v));
+  const rootRef = useRef(null);
+  // Quay về từ trang chi tiết: cuộn tới địa điểm đang mở
+  useEffect(() => {
+    if (!mem.openId) return;
+    const el = rootRef.current?.querySelector(`[data-pid="${CSS.escape(mem.openId)}"]`);
+    el?.scrollIntoView({ block: 'center' });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggle = (p) => {
+    if (openId === p.id) return setOpenId(null);
+    setOpenId(p.id);
+    if (p.lat != null) setFlyTarget({ lat: p.lat, lng: p.lng, zoom: 12, t: Date.now() });
+  };
   const n = normalize(q.trim());
   const filtered = n ? items.filter((p) => normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)}`).includes(n)) : items;
   const groups = useMemo(() => {
@@ -287,10 +352,10 @@ function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, ope
   }, [filtered, lang]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!items.length) return <Empty emoji={emptyEmoji} title={emptyTitle} text={emptyText} />;
   return (
-    <div className="stack-sm grouped">
+    <div className="stack-sm grouped" ref={rootRef}>
       {items.length > 6 && <input className="grouped__search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('group.search')} />}
       {groups.map((g, gi) => (
-        <details key={g.cc} className="grouped__country" open={!!n || gi < openFirst}>
+        <details key={g.cc} className="grouped__country" open={!!n || gi < openFirst || g.cities.some(([, l]) => l.some((p) => p.id === openId))}>
           <summary>
             <span className="grouped__flag">{g.cc === '—' ? '🌐' : flagOf(g.cc)}</span>
             <b>{g.cc === '—' ? t('group.otherCountry') : countryName(g.cc)}</b>
@@ -314,15 +379,21 @@ function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, ope
                 🏙️ {city} <span>{list.length}</span>
               </div>
               {list.map((p) => (
-                <div key={p.id} className="grouped__row">
-                  <button className="grouped__place" onClick={() => openPlace(p)}>
-                    <span className="grouped__emoji">{p.emoji || '📍'}</span>
-                    <span className="grouped__text">
-                      <b>{pName(p)}</b>
-                      {p.visitedAt && <small>{formatDate(p.visitedAt)}</small>}
-                    </span>
-                  </button>
-                  {rowExtra?.(p)}
+                <div key={p.id} className={`grouped__item ${openId === p.id ? 'is-open' : ''}`} data-pid={p.id}>
+                  <div className="grouped__row">
+                    <button className="grouped__place" aria-expanded={openId === p.id} onClick={() => toggle(p)}>
+                      <span className="grouped__emoji">{p.emoji || '📍'}</span>
+                      <span className="grouped__text">
+                        <b>{pName(p)}</b>
+                        {p.visitedAt && <small>{formatDate(p.visitedAt)}</small>}
+                      </span>
+                      <span className="grouped__chev" aria-hidden>
+                        ›
+                      </span>
+                    </button>
+                    {openId !== p.id && rowExtra?.(p)}
+                  </div>
+                  {openId === p.id && <PlacePreview place={p} onDetail={() => openPlace(p, { from: 'list' })} />}
                 </div>
               ))}
             </div>
@@ -485,6 +556,7 @@ function WorldPanel() {
           <p className="small muted">{t('home.visitedSummary', { n: visitedList.length, c: visitedCountries.size })}</p>
           <GroupedPlaces
             items={visitedList}
+            memKey="visited"
             emptyEmoji="👣"
             emptyTitle={t('home.visitedEmpty')}
             emptyText={t('home.visitedEmptyHint')}
@@ -497,6 +569,7 @@ function WorldPanel() {
           <p className="small muted">{t('home.wishSummary', { n: wish.length })}</p>
           <GroupedPlaces
             items={wish}
+            memKey="wishlist"
             emptyEmoji="💛"
             emptyTitle={t('home.wishEmpty')}
             emptyText={t('home.wishEmptyHint')}
@@ -522,7 +595,7 @@ function WorldPanel() {
               ))}
           </div>
           {homeLoading && <Loader text={t('country.loadingMore')} />}
-          <GroupedPlaces items={homeFamous} emptyEmoji="🏞️" emptyTitle={t('home.famousEmpty')} rowExtra={quick} openFirst={3} />
+          <GroupedPlaces items={homeFamous} memKey={`famous-${homeCountry}`} emptyEmoji="🏞️" emptyTitle={t('home.famousEmpty')} rowExtra={quick} openFirst={3} />
         </section>
       )}
     </div>
@@ -713,7 +786,7 @@ function PlacePanel() {
   const { removePlace, saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView, api, user, notify } = useApp();
   // Chuyến đi gắn với địa điểm: lấy theo dữ liệu đã lưu
   const savedTripId = placeById[p.id]?.tripId || '';
-  const { setOpenTripId, setTripTab, openTripId } = useApp();
+  const { setOpenTripId, setTripTab, openTripId, placeOrigin } = useApp();
   // Chuyến đi có địa điểm này trong kế hoạch → tự chọn sẵn, không bắt chọn lại
   const planTrips = useTripsWithPlace(p.id, trips);
   const planTripId = planTrips.includes(openTripId) ? openTripId : planTrips[0] || '';
@@ -765,7 +838,7 @@ function PlacePanel() {
             setReturnView(null);
           }}
         >
-          ← {p.country ? countryName(p.country) : t('common.back')}
+          ← {placeOrigin === 'list' ? t('pv.backToList') : p.country ? countryName(p.country) : t('common.back')}
         </button>
       </StickyBar>
       {(img || findingImg) && (

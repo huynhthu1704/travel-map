@@ -336,11 +336,14 @@ export function AppProvider({ children }) {
     [],
   );
 
-  const openPlace = useCallback((place, { fly = true } = {}) => {
+  // Mở chi tiết từ danh sách bên trái → nút quay lại trở về đúng danh sách đó
+  const [placeOrigin, setPlaceOrigin] = useState(null);
+  const openPlace = useCallback((place, { fly = true, from = null } = {}) => {
     setReturnView(viewRef.current !== 'map' ? viewRef.current : null);
     setView('map');
+    setPlaceOrigin(from);
     setSelectedPlace(place);
-    if (place.country) setSelectedCountry(place.country);
+    if (place.country && from !== 'list') setSelectedCountry(place.country);
     if (fly) setFlyTarget({ lat: place.lat, lng: place.lng, zoom: 13, t: Date.now() });
   }, []);
 
@@ -417,6 +420,7 @@ export function AppProvider({ children }) {
   const value = {
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
+    placeOrigin, setPlaceOrigin,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };

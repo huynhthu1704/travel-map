@@ -365,7 +365,7 @@ function NewChecklist({ trip, onClose, defaultPhase }) {
     onClose();
   };
   const Seg = ({ value, set, options }) => (
-    <div className="segmented">
+    <div className="segmented segmented--sm">
       {options.map(([v, label]) => (
         <button key={v} type="button" className={value === v ? 'on' : ''} onClick={() => set(v)}>
           {label}
@@ -374,33 +374,37 @@ function NewChecklist({ trip, onClose, defaultPhase }) {
     </div>
   );
   return (
-    <div className="card stack">
-      <div className="trip-summary__head">
-        <h3 className="h3">＋ {t('check.new')}</h3>
-        <button className="icon-btn" onClick={onClose} aria-label={t('common.close')}>
+    <div className="card new-check">
+      <div className="new-check__head">
+        <b>＋ {t('check.new')}</b>
+        <button className="icon-btn icon-btn--sm" onClick={onClose} aria-label={t('common.close')}>
           ✕
         </button>
       </div>
-      <div className="field">
-        <span>{t('check.scopeQ')}</span>
-        <Seg value={scope} set={setScope} options={[['personal', `🙋 ${t('check.scope.personal')}`], ['shared', `👥 ${t('check.scope.shared')}`]]} />
+      <div className="new-check__grid">
+        <div className="new-check__field">
+          <span title={t('check.scopeHelp.' + scope)}>{t('check.scopeQShort')}</span>
+          <Seg value={scope} set={setScope} options={[['personal', `🙋 ${t('check.scope.personal')}`], ['shared', `👥 ${t('check.scope.sharedShort')}`]]} />
+        </div>
+        <div className="new-check__field">
+          <span>{t('check.phaseQ')}</span>
+          <Seg value={phase} set={setPhase} options={[['before', `🛫 ${t('check.phase.beforeShort')}`], ['return', `🛬 ${t('check.phase.returnShort')}`]]} />
+        </div>
+        <div className="new-check__field">
+          <span>{t('check.kindQ')}</span>
+          <Seg value={kind} set={setKind} options={[['domestic', `🏠 ${t('trip.kind.domestic')}`], ['international', `🌏 ${t('trip.kind.international')}`]]} />
+        </div>
+      </div>
+      <div className="new-check__foot">
+        <label className="switch small">
+          <input type="checkbox" checked={useTemplate} onChange={(e) => setUseTemplate(e.target.checked)} />
+          <span>{t('check.useTemplate')}</span>
+        </label>
         <small className="muted">{t('check.scopeHelp.' + scope)}</small>
+        <button className="btn btn--sm btn--primary" onClick={create}>
+          {t('check.create')}
+        </button>
       </div>
-      <div className="field">
-        <span>{t('check.phaseQ')}</span>
-        <Seg value={phase} set={setPhase} options={[['before', `🛫 ${t('check.phase.before')}`], ['return', `🛬 ${t('check.phase.return')}`]]} />
-      </div>
-      <div className="field">
-        <span>{t('check.kindQ')}</span>
-        <Seg value={kind} set={setKind} options={[['domestic', `🏠 ${t('trip.kind.domestic')}`], ['international', `🌏 ${t('trip.kind.international')}`]]} />
-      </div>
-      <label className="switch">
-        <input type="checkbox" checked={useTemplate} onChange={(e) => setUseTemplate(e.target.checked)} />
-        <span>{t('check.useTemplate')}</span>
-      </label>
-      <button className="btn btn--primary" onClick={create}>
-        {t('check.create')}
-      </button>
     </div>
   );
 }
@@ -409,26 +413,90 @@ function Checklist({ list, trip }) {
   const { t } = useI18n();
   const { api, user } = useApp();
   const [text, setText] = useState('');
+  const [newScope, setNewScope] = useState('shared'); // mục mới: 👥 cả nhóm tick chung / 🙋 mỗi người tự tick
   const [collapsed, setCollapsed] = useState(false);
-  const items = list.items || [];
-  const done = items.filter((i) => i.done).length;
+  const sharedList = list.scope === 'shared';
+  const memberCount = trip.memberIds?.length || 1;
+  // Mục "mỗi người" trong checklist chung: ai cũng tick riêng (doneMap: {uid: tên})
+  const perPerson = (it) => sharedList && it.scope === 'personal';
+  const isDone = (it) => (perPerson(it) ? !!it.doneMap?.[user.uid] : !!it.done);
+
+  // Kéo thả để sắp xếp (chuột & cảm ứng): giữ ⠿ rồi kéo lên / xuống
+  const [drag, setDrag] = useState(null); // { id, draft: [...] }
+  const ulRef = useRef(null);
+  const items = drag ? drag.draft : list.items || [];
   const save = (next) => api.updateChecklist(trip.id, list.id, { items: next });
-  const toggle = (it) => save(items.map((x) => (x.id === it.id ? { ...x, done: !x.done, doneBy: !x.done ? user.name : null } : x)));
+  const onDragStart = (e, it) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setDrag({ id: it.id, draft: list.items || [] });
+  };
+  const onDragMove = (e) => {
+    if (!drag || !ulRef.current) return;
+    // Vị trí mới = số mục khác có điểm giữa nằm trên con trỏ (bỏ qua chính mục đang kéo)
+    const others = [...ulRef.current.children].filter((li) => li.dataset.id !== drag.id);
+    const to = others.filter((li) => {
+      const r = li.getBoundingClientRect();
+      return r.top + r.height / 2 < e.clientY;
+    }).length;
+    const rest = drag.draft.filter((x) => x.id !== drag.id);
+    const moved = drag.draft.find((x) => x.id === drag.id);
+    const next = [...rest.slice(0, to), moved, ...rest.slice(to)];
+    if (next.map((x) => x.id).join() !== drag.draft.map((x) => x.id).join()) setDrag({ ...drag, draft: next });
+  };
+  const onDragEnd = () => {
+    if (!drag) return;
+    if (drag.draft.map((x) => x.id).join() !== (list.items || []).map((x) => x.id).join()) save(drag.draft);
+    setDrag(null);
+  };
+  const moveBy = (it, dir) => {
+    const arr = [...(list.items || [])];
+    const i = arr.findIndex((x) => x.id === it.id);
+    const j = i + dir;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    save(arr);
+  };
+
+  const done = items.filter(isDone).length;
+  const toggle = (it) =>
+    save(
+      items.map((x) => {
+        if (x.id !== it.id) return x;
+        if (perPerson(x)) {
+          const m = { ...(x.doneMap || {}) };
+          if (m[user.uid]) delete m[user.uid];
+          else m[user.uid] = user.name;
+          return { ...x, doneMap: m };
+        }
+        return { ...x, done: !x.done, doneBy: !x.done ? user.name : null };
+      }),
+    );
+  const switchScope = (it) => save(items.map((x) => (x.id === it.id ? { ...x, scope: x.scope === 'personal' ? 'shared' : 'personal' } : x)));
   const remove = (it) => save(items.filter((x) => x.id !== it.id));
   const addItem = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    save([...items, { id: Math.random().toString(36).slice(2, 10), text: text.trim(), done: false, doneBy: null }]);
+    save([...items, { id: Math.random().toString(36).slice(2, 10), text: text.trim(), scope: sharedList ? newScope : 'personal', done: false, doneBy: null, doneMap: {} }]);
     setText('');
   };
+  const reset = () =>
+    save(
+      items.map((x) => {
+        if (!perPerson(x)) return { ...x, done: false, doneBy: null };
+        const m = { ...(x.doneMap || {}) };
+        delete m[user.uid];
+        return { ...x, doneMap: m };
+      }),
+    );
   return (
-    <div className={`card stack checklist ${done === items.length && items.length ? 'is-complete' : ''}`}>
+    <div className={`card checklist ${done === items.length && items.length ? 'is-complete' : ''}`}>
       <div className="trip-summary__head">
         <button className="link checklist__title" onClick={() => setCollapsed((c) => !c)}>
           <b>
             {list.phase === 'return' ? '🛬' : '🛫'} {list.title}
           </b>
-          <span className={`role role--${list.scope === 'shared' ? 'editor' : 'user'}`}>{list.scope === 'shared' ? `👥 ${t('check.scope.shared')}` : `🙋 ${t('check.scope.personal')}`}</span>
+          <span className={`role role--${sharedList ? 'editor' : 'user'}`}>{sharedList ? `👥 ${t('check.scope.shared')}` : `🙋 ${t('check.scope.personal')}`}</span>
         </button>
         <span className="small muted">
           {done}/{items.length} {collapsed ? '▸' : '▾'}
@@ -439,34 +507,72 @@ function Checklist({ list, trip }) {
       </div>
       {!collapsed && (
         <>
-          <ul className="check-items">
-            {items.map((it) => (
-              <li key={it.id} className={it.done ? 'is-done' : ''}>
-                <label>
-                  <input type="checkbox" checked={!!it.done} onChange={() => toggle(it)} />
-                  <span>{it.text}</span>
-                </label>
-                {list.scope === 'shared' && it.done && it.doneBy && <small className="muted">{it.doneBy}</small>}
-                <button className="icon-btn icon-btn--sm" onClick={() => remove(it)} aria-label={t('plan.remove')}>
-                  ✕
-                </button>
-              </li>
-            ))}
+          {sharedList && <p className="tiny muted check-legend">{t('check.legend')}</p>}
+          <ul className={`check-items ${drag ? 'is-sorting' : ''}`} ref={ulRef}>
+            {items.map((it) => {
+              const pp = perPerson(it);
+              const names = Object.values(it.doneMap || {});
+              return (
+                <li key={it.id} data-id={it.id} className={`${isDone(it) ? 'is-done' : ''} ${drag?.id === it.id ? 'is-dragging' : ''}`}>
+                  <button
+                    type="button"
+                    className="check-handle"
+                    aria-label={t('check.reorder')}
+                    title={t('check.reorder')}
+                    onPointerDown={(e) => onDragStart(e, it)}
+                    onPointerMove={onDragMove}
+                    onPointerUp={onDragEnd}
+                    onPointerCancel={onDragEnd}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp') (e.preventDefault(), moveBy(it, -1));
+                      if (e.key === 'ArrowDown') (e.preventDefault(), moveBy(it, 1));
+                    }}
+                  >
+                    ⠿
+                  </button>
+                  <label>
+                    <input type="checkbox" checked={isDone(it)} onChange={() => toggle(it)} />
+                    <span>{it.text}</span>
+                  </label>
+                  {sharedList && !pp && it.done && it.doneBy && <small className="muted">✓ {it.doneBy}</small>}
+                  {sharedList && (
+                    <button
+                      type="button"
+                      className={`item-scope ${pp ? 'item-scope--each' : ''}`}
+                      onClick={() => switchScope(it)}
+                      title={(pp ? t('check.itemEachHelp') : t('check.itemGroupHelp')) + (pp && names.length ? ` — ✓ ${names.join(', ')}` : '') + ` · ${t('check.tapToSwitch')}`}
+                    >
+                      {pp ? `🙋 ${names.length}/${memberCount}` : '👥'}
+                    </button>
+                  )}
+                  <button className="icon-btn icon-btn--sm" onClick={() => remove(it)} aria-label={t('plan.remove')}>
+                    ✕
+                  </button>
+                </li>
+              );
+            })}
           </ul>
           <form className="row" onSubmit={addItem}>
+            {sharedList && (
+              <div className="segmented segmented--sm check-new-scope" role="group" aria-label={t('check.itemScope')}>
+                <button type="button" className={newScope === 'shared' ? 'on' : ''} onClick={() => setNewScope('shared')} title={t('check.itemGroupHelp')}>
+                  👥 {t('check.itemGroup')}
+                </button>
+                <button type="button" className={newScope === 'personal' ? 'on' : ''} onClick={() => setNewScope('personal')} title={t('check.itemEachHelp')}>
+                  🙋 {t('check.itemEach')}
+                </button>
+              </div>
+            )}
             <input className="grow" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('check.addPlaceholder')} maxLength={120} />
             <button className="btn btn--sm btn--soft">＋ {t('check.add')}</button>
           </form>
           <div className="row wrap">
             {done > 0 && (
-              <button className="btn btn--sm btn--ghost" onClick={() => save(items.map((x) => ({ ...x, done: false, doneBy: null })))}>
+              <button className="btn btn--sm btn--ghost" onClick={reset}>
                 ↺ {t('check.reset')}
               </button>
             )}
-            <button
-              className="btn btn--sm btn--ghost danger"
-              onClick={() => confirm(t('check.confirmDelete')) && api.deleteChecklist(trip.id, list.id)}
-            >
+            <button className="btn btn--sm btn--ghost danger" onClick={() => confirm(t('check.confirmDelete')) && api.deleteChecklist(trip.id, list.id)}>
               🗑️ {t('check.delete')}
             </button>
           </div>
@@ -491,24 +597,26 @@ export function TripChecklists({ trip }) {
       {!lists ? (
         <Loader />
       ) : (
-        phases.map((ph) => {
+        <div className="check-columns">
+        {phases.map((ph) => {
           const ls = mine.filter((l) => (l.phase || 'before') === ph);
           return (
             <div key={ph} className="stack">
-              <div className="trip-summary__head">
+              <div className="trip-summary__head check-col__head">
                 <h3 className="h3">
                   {ph === 'before' ? '🛫' : '🛬'} {t('check.phase.' + ph)}
                 </h3>
                 {!creating && (
-                  <button className="btn btn--sm btn--primary" onClick={() => setCreating(ph)}>
-                    ＋ {t('check.new')}
+                  <button className="btn btn--sm btn--soft" onClick={() => setCreating(ph)}>
+                    ＋ {t('check.newShort')}
                   </button>
                 )}
               </div>
-              {ls.length ? ls.map((l) => <Checklist key={l.id} list={l} trip={trip} />) : <p className="muted small">{t('check.none.' + ph)}</p>}
+              {ls.length ? ls.map((l) => <Checklist key={l.id} list={l} trip={trip} />) : <p className="muted small check-empty">{t('check.none.' + ph)}</p>}
             </div>
           );
-        })
+        })}
+        </div>
       )}
     </section>
   );

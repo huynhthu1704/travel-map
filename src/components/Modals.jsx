@@ -531,14 +531,15 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
   return (
     <Modal title={t('mem.add')} onClose={onClose} wide>
       <form className="stack" onSubmit={submit}>
-        <label className="field">
+        {/* div (không phải label): bấm vào vùng này không được tự kích hoạt nút "Đổi" làm mất địa điểm đã chọn */}
+        <div className="field">
           <span>{t('mem.place')}</span>
           <PlacePicker
             value={place}
             onChange={setPlace}
             onPickOnMap={() => startPicking('memory')}
           />
-        </label>
+        </div>
         <div className="field">
           <span>{t('mem.photos', { n: files.length })}</span>
           <div className="uploader">

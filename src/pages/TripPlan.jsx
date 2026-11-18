@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { Empty, Loader, formatDate } from '../components/ui';
+import { Empty, Loader, formatDate, DirectionsIcon } from '../components/ui';
 import DateInput from '../components/DateInput';
 import TimeInput from '../components/TimeInput';
 import { ALL_FAMOUS } from '../data/places';
@@ -278,7 +278,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
             ✏️
           </button>
           <button className="icon-btn" onClick={() => setModal({ type: 'directions', place: item.place })} aria-label={t('common.directions')} title={t('common.directions')}>
-            🧭
+            <DirectionsIcon />
           </button>
           <button
             className="icon-btn"

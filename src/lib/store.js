@@ -74,6 +74,24 @@ const firebaseBackend = {
       await b.commit();
     }
   },
+  /** Đổi ảnh đại diện (null = dùng lại ảnh Google) và cập nhật ảnh ở kỉ niệm, chuyến đi đã có */
+  async setProfilePhoto(user, photo) {
+    await setDoc(doc(db, 'users', user.uid), { photo: photo || null, updatedAt: now() }, { merge: true });
+    const shown = photo || user.googlePhoto || '';
+    const [mem, tr] = await Promise.all([
+      getDocs(query(collection(db, 'memories'), where('uid', '==', user.uid))),
+      getDocs(query(collection(db, 'trips'), where('memberIds', 'array-contains', user.uid))),
+    ]);
+    const ops = [
+      ...mem.docs.map((d) => [d.ref, { authorPhoto: shown }]),
+      ...tr.docs.map((d) => [d.ref, { [`members.${user.uid}.photo`]: shown }]),
+    ];
+    for (let i = 0; i < ops.length; i += 400) {
+      const b = writeBatch(db);
+      ops.slice(i, i + 400).forEach(([ref, patch]) => b.update(ref, patch));
+      await b.commit();
+    }
+  },
   async signIn() {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -340,10 +358,17 @@ const localBackend = {
   },
   async setDisplayName(user, name) {
     const clean = (name || '').trim().slice(0, 40);
-    (state.profiles ||= {})[user.uid] = { displayName: clean || null };
+    ((state.profiles ||= {})[user.uid] ||= {}).displayName = clean || null;
     const shown = clean || user.googleName || user.name;
     state.memories.forEach((m) => m.uid === user.uid && (m.authorName = shown));
     state.trips.forEach((t) => t.members?.[user.uid] && (t.members[user.uid].name = shown));
+    save();
+  },
+  async setProfilePhoto(user, photo) {
+    ((state.profiles ||= {})[user.uid] ||= {}).photo = photo || null;
+    const shown = photo || user.googlePhoto || '';
+    state.memories.forEach((m) => m.uid === user.uid && (m.authorPhoto = shown));
+    state.trips.forEach((t) => t.members?.[user.uid] && (t.members[user.uid].photo = shown));
     save();
   },
   async signIn() {

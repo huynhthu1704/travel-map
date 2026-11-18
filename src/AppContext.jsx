@@ -15,9 +15,13 @@ export const useApp = () => useContext(Ctx);
 export function AppProvider({ children }) {
   const [authUser, setAuthUser] = useState(undefined); // undefined = đang kiểm tra
   const [displayName, setDisplayName] = useState(null); // tên người dùng tự đặt (thay cho tên Google)
+  const [profilePhoto, setProfilePhoto] = useState(null); // ảnh đại diện tự chọn (thay cho ảnh Google)
   const user = useMemo(
-    () => (authUser ? { ...authUser, googleName: authUser.name, name: displayName || authUser.name } : authUser),
-    [authUser, displayName],
+    () =>
+      authUser
+        ? { ...authUser, googleName: authUser.name, googlePhoto: authUser.photo, name: displayName || authUser.name, photo: profilePhoto || authUser.photo }
+        : authUser,
+    [authUser, displayName, profilePhoto],
   );
   const [places, setPlaces] = useState([]);
   const [memories, setMemories] = useState([]);
@@ -75,8 +79,14 @@ export function AppProvider({ children }) {
 
   useEffect(() => api.onAuth(setAuthUser), []);
   useEffect(() => {
-    if (!authUser) return setDisplayName(null);
-    return api.watchProfile(authUser.uid, (p) => setDisplayName(p?.displayName || null));
+    if (!authUser) {
+      setProfilePhoto(null);
+      return setDisplayName(null);
+    }
+    return api.watchProfile(authUser.uid, (p) => {
+      setDisplayName(p?.displayName || null);
+      setProfilePhoto(p?.photo || null);
+    });
   }, [authUser?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(
     () =>

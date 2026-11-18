@@ -10,7 +10,9 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow create, update: if signedIn() && request.auth.uid == uid
-                            && request.resource.data.keys().hasOnly(['displayName', 'updatedAt']);
+                            && request.resource.data.keys().hasOnly(['displayName', 'photo', 'updatedAt'])
+                            && (!('photo' in request.resource.data) || request.resource.data.photo == null
+                                || (request.resource.data.photo is string && request.resource.data.photo.size() < 120000));
     }
 
     // Địa điểm đã đến / muốn đi của từng người

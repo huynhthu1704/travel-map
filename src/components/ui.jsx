@@ -26,6 +26,17 @@ export function Modal({ onClose, title, children, wide, className = '' }) {
   );
 }
 
+/** Biển chỉ đường (hình thoi, mũi tên rẽ phải) — dễ nhận ra hơn la bàn */
+export function DirectionsIcon({ size = 18 }) {
+  return (
+    <svg className="dir-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="3" transform="rotate(45 12 12)" fill="#1A73E8" />
+      <path d="M8.6 15.6v-3.1c0-.9.7-1.6 1.6-1.6h3.6" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.6 8.7l2.3 2.2-2.3 2.2" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function Avatar({ name = '?', photo, size = 32 }) {
   return photo ? (
     <img className="avatar" src={photo} alt={name} width={size} height={size} referrerPolicy="no-referrer" />

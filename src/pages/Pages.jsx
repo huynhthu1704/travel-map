@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { MemoryGrid } from '../components/SidePanel';
-import { Avatar, Chip, Empty, formatDate, Loader, LoadingImage } from '../components/ui';
+import { Avatar, Chip, Empty, formatDate, Loader, LoadingImage, DirectionsIcon } from '../components/ui';
 import { countryName, flagOf } from '../lib/countries';
 import { normalize, searchNominatim } from '../lib/geo';
 import { PlaceCard } from '../components/SidePanel';
@@ -200,15 +200,18 @@ function PlaceMatches({ text, cc, city }) {
   const [busy, setBusy] = useState(false);
   const [limit, setLimit] = useState(8);
   const q = text.trim();
+  // Chỉ chọn bộ lọc (quốc gia / thành phố) mà không gõ từ khoá → vẫn hiện danh sách địa điểm tương ứng
+  const filterOnly = q.length < 2 && !!cc;
   const local = useMemo(() => {
+    const nc = normalize(city.trim());
+    if (filterOnly) return famousFor(cc).filter((p) => !nc || normalize(`${p.city} ${pCity(p)}`).includes(nc));
     if (q.length < 2) return [];
     const n = normalize(q);
-    const nc = normalize(city.trim());
     const pool = cc ? famousFor(cc) : allLiveFamous || [];
     return pool.filter(
       (p) => normalize(`${p.name} ${pName(p)} ${p.desc || ''}`).includes(n) && (!nc || normalize(`${p.city} ${pCity(p)}`).includes(nc)),
     );
-  }, [q, cc, city, famousFor, allLiveFamous, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, cc, city, famousFor, allLiveFamous, lang, filterOnly]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setLimit(8);
     if (q.length < 2) return setOsm([]);
@@ -228,7 +231,7 @@ function PlaceMatches({ text, cc, city }) {
       ctl.abort();
     };
   }, [q, cc, city, lang]);
-  if (q.length < 2) return null;
+  if (q.length < 2 && !filterOnly) return null;
   const seen = new Set(local.map((p) => normalize(p.name)));
   const list = [...local, ...osm.filter((p) => !seen.has(normalize(p.name)) && p.type !== 'country')];
   return (
@@ -378,7 +381,7 @@ function PlaceList({ items, onOpen, emptyText }) {
                 </small>
               </button>
               <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: p })}>
-                {t('common.directions')}
+                <DirectionsIcon /> {t('common.directions')}
               </button>
               <button className="icon-btn icon-btn--danger" onClick={() => removePlace(p)} aria-label={t('remove.confirm')} title={t('remove.confirm')}>
                 🗑️

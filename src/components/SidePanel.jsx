@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
-import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage, OccasionField } from './ui';
+import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage, OccasionField, DirectionsIcon } from './ui';
 import { useI18n } from '../i18n';
 import { pName, pCity, pDesc, getLocale } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
@@ -297,8 +297,8 @@ function PlacePreview({ place: p, onDetail }) {
             {st === 'wishlist' ? '💛' : '🤍'} {t('pv.wish')}
           </button>
         )}
-        <button className="btn btn--sm btn--outline" title={t('common.directions')} onClick={() => setModal({ type: 'directions', place: p })}>
-          🧭
+        <button className="btn btn--sm btn--outline" title={t('common.directions')} aria-label={t('common.directions')} onClick={() => setModal({ type: 'directions', place: p })}>
+          <DirectionsIcon />
         </button>
         <button className="btn btn--sm btn--dark pv__more" onClick={onDetail}>
           {t('pv.detail')} →
@@ -548,6 +548,14 @@ function WorldPanel() {
             </button>
           </div>
           <p className="small muted">{t('pick.tip')}</p>
+          <div className="help-links">
+            <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'faq' })}>
+              ❓ {t('faq.open')}
+            </button>
+            <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'sponsor' })}>
+              ☕ {t('sponsor.open')}
+            </button>
+          </div>
         </>
       )}
 
@@ -732,8 +740,8 @@ export function PlaceCard({ place }) {
           <button className={`btn btn--sm ${st === 'visited' ? 'btn--primary' : 'btn--soft'}`} onClick={() => setPlaceStatus(place, 'visited')}>
             👣 {st === 'visited' ? t('card.visited') : t('card.markVisited')}
           </button>
-          <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'directions', place })}>
-            🧭
+          <button className="btn btn--sm btn--ghost" title={t('common.directions')} aria-label={t('common.directions')} onClick={() => setModal({ type: 'directions', place })}>
+            <DirectionsIcon />
           </button>
         </div>
       </div>
@@ -867,7 +875,7 @@ function PlacePanel() {
       <CheckinHistory place={p} saved={placeById[p.id]} mine={mine} tripId={tripId}>
         <div className="place-actions">
           <button className="btn btn--outline" onClick={() => setModal({ type: 'directions', place: p })}>
-            {t('common.directions')}
+            <DirectionsIcon /> {t('common.directions')}
           </button>
           {st !== 'visited' && (
             <button className={`btn ${st === 'wishlist' ? 'btn--coral' : 'btn--outline'}`} onClick={() => setPlaceStatus(p, 'wishlist', tripId)}>

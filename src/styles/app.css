@@ -4402,3 +4402,116 @@ img.is-loaded {
   font: 800 12px/22px var(--font-body, sans-serif);
   color: var(--ink-900);
 }
+
+/* ---------- Ảnh đại diện ---------- */
+.avatar-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+.avatar-edit__pic {
+  position: relative;
+  flex: none;
+  cursor: pointer;
+  border-radius: 50%;
+}
+.avatar-edit__pic:hover {
+  filter: brightness(0.92);
+}
+.avatar-edit__cam {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--honey-400);
+  border: 3px solid var(--base-white);
+  font-size: 14px;
+}
+.avatar-edit .btn {
+  cursor: pointer;
+}
+
+/* ---------- FAQ & Ủng hộ ---------- */
+.faq__item {
+  border-radius: 14px;
+  background: var(--honey-50);
+  border: 1px solid var(--honey-100);
+}
+.faq__item summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.faq__item summary::after {
+  content: '＋';
+  color: var(--honey-700);
+}
+.faq__item[open] summary::after {
+  content: '－';
+}
+.faq__item p {
+  padding: 0 14px 14px;
+  color: var(--ink-700);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.sponsor__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--honey-50);
+  border: 2px dashed var(--honey-300);
+}
+.sponsor__qr img {
+  width: min(280px, 100%);
+  height: auto;
+  border-radius: 12px;
+  background: #fff;
+}
+.sponsor__qr figcaption {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sponsor__qr figcaption b {
+  font-size: 22px;
+}
+.sponsor__qr figcaption small {
+  color: var(--ink-500);
+}
+.sponsor__bank {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--ink-100);
+}
+.sponsor__bank div {
+  display: flex;
+  flex-direction: column;
+}
+.help-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dir-icon {
+  flex: none;
+  vertical-align: -0.2em;
+}

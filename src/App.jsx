@@ -60,6 +60,24 @@ function UserMenu() {
             ✏️ {t('profile.edit')}
           </button>
           <button
+            className="btn btn--sm btn--ghost"
+            onClick={() => {
+              setModal({ type: 'faq' });
+              setOpen(false);
+            }}
+          >
+            ❓ {t('faq.open')}
+          </button>
+          <button
+            className="btn btn--sm btn--ghost"
+            onClick={() => {
+              setModal({ type: 'sponsor' });
+              setOpen(false);
+            }}
+          >
+            ☕ {t('sponsor.open')}
+          </button>
+          <button
             className="btn btn--sm btn--soft"
             onClick={() => {
               api.signOut();

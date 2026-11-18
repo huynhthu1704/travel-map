@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
-import { Modal, Avatar, formatDate, Loader, LoadingImage, OccasionField } from './ui';
+import { Modal, Avatar, formatDate, Loader, LoadingImage, OccasionField, DirectionsIcon } from './ui';
 import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize, parseGoogleMapsInput, reverseGeocode, isGoogleMapsLink } from '../lib/geo';
 import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
 import { firebaseEnabled } from '../lib/firebase';
 import ShareStudio from './ShareStudio';
 import RecapStudio from './RecapStudio';
+import { FaqModal, SponsorModal } from './HelpModals';
 import DateInput from './DateInput';
 import { useI18n } from '../i18n';
 import { pName, pCity, getLang } from '../lib/lang';
@@ -37,6 +38,10 @@ export default function Modals() {
       return <ConfirmRemoveModal place={modal.place} onClose={close} />;
     case 'visitDate':
       return <VisitDateModal place={modal.place} tripId={modal.tripId} onClose={close} />;
+    case 'faq':
+      return <FaqModal onClose={close} />;
+    case 'sponsor':
+      return <SponsorModal onClose={close} />;
     case 'addLink':
       return <AddLinkModal text={modal.text} onClose={close} />;
     default:
@@ -596,7 +601,7 @@ function MemoryViewer({ memory: m, onClose }) {
                 {st === 'wishlist' ? t('mem.wishAdded') : t('mem.wish')}
               </button>
             )}
-            <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: m.place })}>{t('common.directions')}</button>
+            <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: m.place })}><DirectionsIcon /> {t('common.directions')}</button>
             {mine && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: full ? { ...m, fullPhotos: full } : m })}>{t('mem.share')}</button>}
             {mine && (
               <button
@@ -632,21 +637,60 @@ function MemoryViewer({ memory: m, onClose }) {
 }
 
 /** Đổi tên hiển thị thay cho tên lấy từ Google */
+/** Cắt ảnh vuông ở giữa, thu về 256px, nén JPEG/WebP (≈ 20 KB) */
+async function makeAvatar(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = rej;
+      im.src = url;
+    });
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
+    let q = 0.85;
+    let out = c.toDataURL('image/jpeg', q);
+    while (out.length > 100000 && q > 0.4) out = c.toDataURL('image/jpeg', (q -= 0.1));
+    return out;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function ProfileModal({ onClose }) {
   const { t } = useI18n();
   const { user, api, notify } = useApp();
   const [name, setName] = useState(user?.name || '');
+  const [photo, setPhoto] = useState(user?.photo || '');
   const [busy, setBusy] = useState(false);
   if (!user) return null;
-  const save = async (value) => {
+  const photoChanged = (photo || '') !== (user.photo || '');
+  const nameChanged = name.trim() !== user.name;
+  const save = async ({ nameValue = name, photoValue = photo, close = true } = {}) => {
     setBusy(true);
     try {
-      await api.setDisplayName(user, value);
+      if (nameValue.trim() !== user.name || nameValue === '') await api.setDisplayName(user, nameValue);
+      if ((photoValue || '') !== (user.photo || '')) await api.setProfilePhoto(user, photoValue && photoValue !== user.googlePhoto ? photoValue : null);
       notify(t('profile.saved'));
-      onClose();
+      if (close) onClose();
+      else setBusy(false);
     } catch (e) {
       notify(e.message, 'error');
       setBusy(false);
+    }
+  };
+  const pick = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!f.type.startsWith('image/')) return notify(t('profile.photoBad'), 'error');
+    try {
+      setPhoto(await makeAvatar(f));
+    } catch {
+      notify(t('profile.photoBad'), 'error');
     }
   };
   return (
@@ -655,27 +699,42 @@ function ProfileModal({ onClose }) {
         className="stack"
         onSubmit={(e) => {
           e.preventDefault();
-          if (name.trim()) save(name);
+          if (name.trim()) save();
         }}
       >
-        <div className="row">
-          <Avatar name={name || user.name} photo={user.photo} size={48} />
-          <div>
+        <div className="avatar-edit">
+          <label className="avatar-edit__pic" title={t('profile.photoChange')}>
+            <Avatar name={name || user.name} photo={photo} size={88} />
+            <span className="avatar-edit__cam">📷</span>
+            <input type="file" accept="image/*" onChange={pick} hidden />
+          </label>
+          <div className="stack-sm">
             <b>{name.trim() || user.googleName}</b>
             <div className="small muted">{user.email}</div>
+            <div className="row wrap">
+              <label className="btn btn--sm btn--soft">
+                📷 {t('profile.photoChange')}
+                <input type="file" accept="image/*" onChange={pick} hidden />
+              </label>
+              {photo && photo !== user.googlePhoto && (
+                <button type="button" className="btn btn--sm btn--ghost" onClick={() => setPhoto(user.googlePhoto || '')}>
+                  ↩️ {user.googlePhoto ? t('profile.photoGoogle') : t('profile.photoRemove')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
         <label className="field">
           <span>{t('profile.nameLabel')}</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} autoFocus placeholder={user.googleName} />
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={user.googleName} />
           <small className="muted">{t('profile.help')}</small>
         </label>
         <div className="row wrap">
-          <button className="btn btn--primary" disabled={busy || !name.trim() || name.trim() === user.name}>
+          <button className="btn btn--primary" disabled={busy || !name.trim() || (!nameChanged && !photoChanged)}>
             💾 {t('profile.save')}
           </button>
           {user.name !== user.googleName && (
-            <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => save('')}>
+            <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => save({ nameValue: '', photoValue: photo })}>
               ↩️ {t('profile.useGoogle', { name: user.googleName })}
             </button>
           )}

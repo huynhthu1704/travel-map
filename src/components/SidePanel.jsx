@@ -328,7 +328,7 @@ function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, ope
   const toggle = (p) => {
     if (openId === p.id) return setOpenId(null);
     setOpenId(p.id);
-    if (p.lat != null) setFlyTarget({ lat: p.lat, lng: p.lng, zoom: 12, t: Date.now() });
+    if (p.lat != null) setFlyTarget({ lat: p.lat, lng: p.lng, zoom: 15, focus: true, t: Date.now() });
   };
   const n = normalize(q.trim());
   const filtered = n ? items.filter((p) => normalize(`${p.name} ${pName(p)} ${p.city} ${pCity(p)} ${countryName(p.country)}`).includes(n)) : items;

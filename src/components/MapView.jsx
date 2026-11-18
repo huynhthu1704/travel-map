@@ -82,6 +82,30 @@ function FlyController({ countries }) {
       map.flyToBounds([[s, w], [n, e]], { duration: 0.9, maxZoom: 13, paddingTopLeft: wide ? [440, 80] : [30, 80], paddingBottomRight: [40, bottom] });
     } else if (flyTarget.world) {
       map.flyTo([22, 15], map.getSize().x < 700 ? 1 : 2, { duration: 0.8 });
+    } else if (flyTarget.lat != null && flyTarget.focus) {
+      // Xem nhanh từ danh sách: bay mượt tới địa danh, zoom gần, đặt vào giữa phần bản đồ không bị bảng che
+      const z = flyTarget.zoom || 15;
+      const ll = L.latLng(flyTarget.lat, flyTarget.lng);
+      const mapRect = map.getContainer().getBoundingClientRect();
+      const panel = document.querySelector('.panel')?.getBoundingClientRect();
+      let dx = 0;
+      let dy = 0;
+      if (panel && panel.width && panel.height) {
+        if (mobileSheet()) dy = Math.max(0, mapRect.bottom - panel.top) / 2;
+        else dx = Math.max(0, panel.right - mapRect.left) / 2;
+      }
+      const target = map.unproject(map.project(ll, z).add([-dx, dy]), z);
+      // Thời gian bay theo quãng đường: gần thì nhanh, xa thì chậm để mắt theo kịp
+      const far = map.getCenter().distanceTo(ll) / 1000; // km
+      const duration = Math.min(2.6, 1.1 + Math.log10(1 + far) * 0.45);
+      map.flyTo(target, z, { duration, easeLinearity: 0.15 });
+      // Đáp xuống → nhấp nháy vòng sáng ở đúng địa danh
+      const pulse = () => {
+        const m = L.marker(ll, { icon: L.divIcon({ className: 'focus-pulse', html: '<i></i><i></i>', iconSize: [24, 24] }), interactive: false, keyboard: false }).addTo(map);
+        setTimeout(() => m.remove(), 3200);
+      };
+      map.once('moveend', pulse);
+      return () => map.off('moveend', pulse);
     } else if (flyTarget.lat != null) {
       const z = flyTarget.zoom || 12;
       // Điện thoại: bảng dưới che nửa dưới bản đồ → đặt điểm vào giữa phần bản đồ còn thấy

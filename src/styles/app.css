@@ -4308,3 +4308,23 @@ img.is-loaded {
 .pv__more {
   flex: 1 1 100% !important;
 }
+
+/* Vòng sáng đánh dấu địa danh vừa bay tới */
+.focus-pulse {
+  pointer-events: none;
+}
+.focus-pulse i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid var(--honey-500);
+  background: rgba(255, 198, 41, 0.25);
+  animation: focus-pulse 1.4s ease-out 2 both;
+}
+.focus-pulse i + i {
+  animation-delay: 0.45s;
+}
+@keyframes focus-pulse {
+  from { transform: scale(0.6); opacity: 1; }
+  to { transform: scale(4); opacity: 0; }
+}

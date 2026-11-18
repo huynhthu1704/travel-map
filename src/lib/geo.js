@@ -1,7 +1,30 @@
+import countriesLib from 'i18n-iso-countries';
+import { FAMOUS_BY_ID } from '../data/places';
+
+/**
+ * Điểm đến dạng chữ để Google/Apple Maps tìm đúng địa điểm (thay vì chỉ toạ độ → ra Plus Code).
+ * Nước ngoài dùng tên tiếng Anh; Việt Nam dùng tên tiếng Việt. Ghim tự chọn (không có tên thật) dùng toạ độ.
+ */
+export function destinationQuery(p) {
+  if (!p) return '';
+  const coords = `${p.lat},${p.lng}`;
+  if (p.custom || /^pin-|^gm-/.test(p.id || '')) return coords;
+  const en = p.i18n?.en || FAMOUS_BY_ID[p.id]?.i18n?.en;
+  const foreign = p.country && p.country !== 'VN';
+  const name = foreign ? en?.name || p.name : p.name;
+  const city = foreign ? en?.city || p.city : p.city;
+  const country = p.country ? countriesLib.getName(p.country, foreign ? 'en' : 'vi') || countriesLib.getName(p.country, 'en') : '';
+  return [name, city, country].filter((x, i, arr) => x && arr.indexOf(x) === i).join(', ') || coords;
+}
+
 /** Link chỉ đường */
-export const appleMapsUrl = (p) => `https://maps.apple.com/?daddr=${p.lat},${p.lng}&q=${encodeURIComponent(p.name)}`;
-export const googleMapsUrl = (p) =>
-  `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}&destination_place_id=&travelmode=driving`;
+export const appleMapsUrl = (p) => {
+  const q = destinationQuery(p);
+  // Apple Maps: daddr = điểm đến (tên + địa chỉ), sll = toạ độ gợi ý để tìm đúng khu vực
+  return `https://maps.apple.com/?daddr=${encodeURIComponent(q)}&sll=${p.lat},${p.lng}`;
+};
+// Không ép travelmode: ở một số nước (VD Hàn Quốc) Google Maps không hỗ trợ chỉ đường lái xe
+export const googleMapsUrl = (p) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinationQuery(p))}`;
 
 /** Chữ Latin (kể cả tiếng Việt có dấu)? Dùng để tránh hiển thị chữ địa phương như 東京, 서울, กรุงเทพ… */
 export const isLatin = (s = '') => !/[^\u0000-ɏḀ-ỿ -⁯₠-⃏\s]/u.test(s.replace(/\p{Emoji_Presentation}/gu, ''));

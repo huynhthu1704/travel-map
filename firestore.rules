@@ -57,6 +57,20 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.byUid == request.auth.uid && request.resource.data.status == 'open';
       allow read, update, delete: if isStaff();
     }
+    // Góp ý / báo lỗi: người gửi xem được của mình; biên tập viên trở lên xem tất cả và đổi trạng thái
+    match /feedback/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'open';
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isStaff());
+      allow update: if isStaff()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt', 'handledBy', 'history']);
+      allow delete: if isAdmin();
+      match /files/{fileId} {
+        allow read: if signedIn() && (get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid || isStaff());
+        allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+                      && get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid;
+        allow delete: if isAdmin();
+      }
+    }
     // Đếm số mục kế hoạch / chi phí / checklist cho trang thống kê (chỉ quản trị viên)
     match /{path=**}/plan/{itemId} {
       allow read: if isAdmin();

@@ -10,6 +10,7 @@ const ShareStudio = lazy(() => import('./ShareStudio'));
 const RecapStudio = lazy(() => import('./RecapStudio'));
 const FaqModal = lazy(() => import('./HelpModals').then((m) => ({ default: m.FaqModal })));
 const SponsorModal = lazy(() => import('./HelpModals').then((m) => ({ default: m.SponsorModal })));
+const FeedbackModal = lazy(() => import('./Feedback').then((m) => ({ default: m.FeedbackModal })));
 import DateInput from './DateInput';
 import { useI18n } from '../i18n';
 import { pName, pCity, getLang } from '../lib/lang';
@@ -61,6 +62,8 @@ function renderModal(modal, close) {
       return <FaqModal onClose={close} />;
     case 'sponsor':
       return <SponsorModal onClose={close} />;
+    case 'feedback':
+      return <FeedbackModal capture={modal.capture} onClose={close} />;
     case 'addLink':
       return <AddLinkModal text={modal.text} onClose={close} />;
     default:

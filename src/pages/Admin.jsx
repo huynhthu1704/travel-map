@@ -10,6 +10,7 @@ import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
 import { ROLES, SUPER_ADMINS } from '../lib/adminStore';
 import AdminInsights from './AdminInsights';
+import { AdminFeedback } from '../components/Feedback';
 
 /* ------------------------------------------------------------------ */
 /* Trang quản trị: người dùng & phân quyền, kiểm duyệt nội dung,       */
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'insights', icon: '📊', admin: true },
   { id: 'users', icon: '👥', staff: true },
   { id: 'content', icon: '🖼️', staff: true },
+  { id: 'feedback', icon: '💬', staff: true },
   { id: 'reports', icon: '🚩', staff: true },
   { id: 'places', icon: '🏞️', staff: true },
   { id: 'trips', icon: '🧳', staff: true },
@@ -79,6 +81,7 @@ export default function AdminPage() {
           {tab === 'users' && <Users users={people} />}
           {tab === 'content' && <Content memories={memories} reports={reports} />}
           {tab === 'reports' && <Reports reports={reports} />}
+          {tab === 'feedback' && <AdminFeedback />}
           {tab === 'places' && <PlacesAdmin />}
           {tab === 'trips' && <TripsAdmin trips={trips} />}
           {tab === 'settings' && isAdmin && <SettingsAdmin />}

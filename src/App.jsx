@@ -5,6 +5,7 @@ import SidePanel from './components/SidePanel';
 import PickPanel from './components/PickPanel';
 import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
+import FeedbackLauncher from './components/FeedbackLauncher';
 import { Avatar, Loader } from './components/ui';
 // Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
@@ -71,6 +72,15 @@ function UserMenu() {
             }}
           >
             ❓ {t('faq.open')}
+          </button>
+          <button
+            className="btn btn--sm btn--ghost"
+            onClick={() => {
+              setModal({ type: 'feedback' });
+              setOpen(false);
+            }}
+          >
+            💬 {t('fb.menu')}
           </button>
           <button
             className="btn btn--sm btn--ghost"
@@ -190,6 +200,7 @@ function Shell() {
       {banned && <div className="announce announce--floating announce--warning">{t('admin.bannedNotice')}</div>}
       {toast && <div className={`toast toast--${toast.kind}`} key={toast.id}>{toast.msg}</div>}
       <Modals />
+      {user && <FeedbackLauncher />}
       {(!countries || user === undefined) && <Loader page size="md" />}
     </div>
   );

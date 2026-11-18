@@ -539,6 +539,9 @@ function WorldPanel() {
             <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'faq' })}>
               ❓ {t('faq.open')}
             </button>
+            <button className="btn btn--sm btn--ghost" onClick={() => requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'))}>
+              💬 {t('fb.menu')}
+            </button>
             <button className="btn btn--sm btn--ghost" onClick={() => setModal({ type: 'sponsor' })}>
               ☕ {t('sponsor.open')}
             </button>

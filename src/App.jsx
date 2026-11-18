@@ -31,7 +31,7 @@ function LangSwitch() {
 }
 
 function UserMenu() {
-  const { user, api, requireLogin } = useApp();
+  const { user, api, requireLogin, setModal } = useApp();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   if (user === undefined) return <span className="avatar avatar--letter skeleton" />;
@@ -50,6 +50,15 @@ function UserMenu() {
         <div className="user-menu__pop" onMouseLeave={() => setOpen(false)}>
           <b>{user.name}</b>
           <small className="muted">{user.email}</small>
+          <button
+            className="btn btn--sm btn--ghost"
+            onClick={() => {
+              setModal({ type: 'profile' });
+              setOpen(false);
+            }}
+          >
+            ✏️ {t('profile.edit')}
+          </button>
           <button
             className="btn btn--sm btn--soft"
             onClick={() => {

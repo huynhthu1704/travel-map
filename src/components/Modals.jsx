@@ -18,6 +18,8 @@ export default function Modals() {
   switch (modal.type) {
     case 'login':
       return <LoginModal reason={modal.reason} onClose={close} />;
+    case 'profile':
+      return <ProfileModal onClose={close} />;
     case 'directions':
       return <DirectionsModal place={modal.place} onClose={close} />;
     case 'memory':
@@ -582,6 +584,60 @@ function MemoryViewer({ memory: m, onClose }) {
           </div>
         </div>
       </div>
+    </Modal>
+  );
+}
+
+/** Đổi tên hiển thị thay cho tên lấy từ Google */
+function ProfileModal({ onClose }) {
+  const { t } = useI18n();
+  const { user, api, notify } = useApp();
+  const [name, setName] = useState(user?.name || '');
+  const [busy, setBusy] = useState(false);
+  if (!user) return null;
+  const save = async (value) => {
+    setBusy(true);
+    try {
+      await api.setDisplayName(user, value);
+      notify(t('profile.saved'));
+      onClose();
+    } catch (e) {
+      notify(e.message, 'error');
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title={`✏️ ${t('profile.title')}`} onClose={onClose} className="modal--sm">
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (name.trim()) save(name);
+        }}
+      >
+        <div className="row">
+          <Avatar name={name || user.name} photo={user.photo} size={48} />
+          <div>
+            <b>{name.trim() || user.googleName}</b>
+            <div className="small muted">{user.email}</div>
+          </div>
+        </div>
+        <label className="field">
+          <span>{t('profile.nameLabel')}</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} autoFocus placeholder={user.googleName} />
+          <small className="muted">{t('profile.help')}</small>
+        </label>
+        <div className="row wrap">
+          <button className="btn btn--primary" disabled={busy || !name.trim() || name.trim() === user.name}>
+            💾 {t('profile.save')}
+          </button>
+          {user.name !== user.googleName && (
+            <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => save('')}>
+              ↩️ {t('profile.useGoogle', { name: user.googleName })}
+            </button>
+          )}
+        </div>
+      </form>
     </Modal>
   );
 }

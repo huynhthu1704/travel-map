@@ -6,6 +6,13 @@ service cloud.firestore {
       return signedIn() && request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds;
     }
 
+    // Hồ sơ: tên hiển thị người dùng tự đặt
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+                            && request.resource.data.keys().hasOnly(['displayName', 'updatedAt']);
+    }
+
     // Địa điểm đã đến / muốn đi của từng người
     match /users/{uid}/places/{placeId} {
       allow read, write: if signedIn() && request.auth.uid == uid;

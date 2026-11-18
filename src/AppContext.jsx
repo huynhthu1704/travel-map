@@ -13,7 +13,12 @@ const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
 
 export function AppProvider({ children }) {
-  const [user, setUser] = useState(undefined); // undefined = đang kiểm tra
+  const [authUser, setAuthUser] = useState(undefined); // undefined = đang kiểm tra
+  const [displayName, setDisplayName] = useState(null); // tên người dùng tự đặt (thay cho tên Google)
+  const user = useMemo(
+    () => (authUser ? { ...authUser, googleName: authUser.name, name: displayName || authUser.name } : authUser),
+    [authUser, displayName],
+  );
   const [places, setPlaces] = useState([]);
   const [memories, setMemories] = useState([]);
   const [publicMemories, setPublicMemories] = useState([]);
@@ -68,7 +73,11 @@ export function AppProvider({ children }) {
   const [toast, setToast] = useState(null);
   const pendingAction = useRef(null);
 
-  useEffect(() => api.onAuth(setUser), []);
+  useEffect(() => api.onAuth(setAuthUser), []);
+  useEffect(() => {
+    if (!authUser) return setDisplayName(null);
+    return api.watchProfile(authUser.uid, (p) => setDisplayName(p?.displayName || null));
+  }, [authUser?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(
     () =>
       api.watchPublicMemories((list) => {
@@ -107,7 +116,7 @@ export function AppProvider({ children }) {
       u2();
       u3();
     };
-  }, [user]);
+  }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!activeTripId || !user) {
@@ -115,11 +124,11 @@ export function AppProvider({ children }) {
       return;
     }
     return api.watchStops(activeTripId, setTripStops);
-  }, [activeTripId, user]);
+  }, [activeTripId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!activeTripId || !user) return setTripPlan([]);
     return api.watchPlan(activeTripId, setTripPlan);
-  }, [activeTripId, user]);
+  }, [activeTripId, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tải thêm địa điểm nổi tiếng (Wikidata) khi mở một quốc gia
   const liveRef = useRef(liveFamous);

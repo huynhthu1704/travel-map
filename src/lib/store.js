@@ -45,6 +45,28 @@ const firebaseBackend = {
       cb(u ? { uid: u.uid, name: u.displayName || u.email, photo: u.photoURL, email: u.email } : null),
     );
   },
+  watchProfile(uid, cb) {
+    return onSnapshot(doc(db, 'users', uid), (s) => cb(s.exists() ? s.data() : null), () => cb(null));
+  },
+  /** Đổi tên hiển thị (rỗng = dùng lại tên Google) và cập nhật tên ở kỉ niệm, chuyến đi đã có */
+  async setDisplayName(user, name) {
+    const clean = (name || '').trim().slice(0, 40);
+    await setDoc(doc(db, 'users', user.uid), { displayName: clean || null, updatedAt: now() }, { merge: true });
+    const shown = clean || user.googleName || user.name;
+    const [mem, tr] = await Promise.all([
+      getDocs(query(collection(db, 'memories'), where('uid', '==', user.uid))),
+      getDocs(query(collection(db, 'trips'), where('memberIds', 'array-contains', user.uid))),
+    ]);
+    const ops = [
+      ...mem.docs.map((d) => [d.ref, { authorName: shown }]),
+      ...tr.docs.map((d) => [d.ref, { [`members.${user.uid}.name`]: shown }]),
+    ];
+    for (let i = 0; i < ops.length; i += 400) {
+      const b = writeBatch(db);
+      ops.slice(i, i + 400).forEach(([ref, patch]) => b.update(ref, patch));
+      await b.commit();
+    }
+  },
   async signIn() {
     try {
       await signInWithPopup(auth, googleProvider);
@@ -261,6 +283,17 @@ const localBackend = {
   mode: 'demo',
   onAuth(cb) {
     return sub(() => cb(state.user));
+  },
+  watchProfile(uid, cb) {
+    return sub(() => cb((state.profiles || {})[uid] || null));
+  },
+  async setDisplayName(user, name) {
+    const clean = (name || '').trim().slice(0, 40);
+    (state.profiles ||= {})[user.uid] = { displayName: clean || null };
+    const shown = clean || user.googleName || user.name;
+    state.memories.forEach((m) => m.uid === user.uid && (m.authorName = shown));
+    state.trips.forEach((t) => t.members?.[user.uid] && (t.members[user.uid].name = shown));
+    save();
   },
   async signIn() {
     state.user = { uid: 'demo-user', name: 'Bạn (demo)', photo: '', email: 'demo@local' };

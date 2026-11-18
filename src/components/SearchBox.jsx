@@ -6,7 +6,8 @@ import { normalize, searchNominatim, isGoogleMapsLink } from '../lib/geo';
 import { useI18n } from '../i18n';
 import { getLang, pName, pCity } from '../lib/lang';
 import { socialApi } from '../lib/social';
-import { Avatar } from './ui';
+import { Avatar, AppLink } from './ui';
+import { hrefProfile, hrefCountry, hrefPlace } from '../lib/route';
 
 /** Ô tìm kiếm: quốc gia, địa điểm nổi tiếng, kỉ niệm của tôi + mọi địa điểm trên OpenStreetMap */
 export default function SearchBox() {
@@ -113,7 +114,7 @@ export default function SearchBox() {
           )}
           {people.length > 0 && <div className="search__group">{t('search.people')}</div>}
           {people.map((u) => (
-            <button key={u.uid} className="search__item" onClick={() => pick(() => openProfile(u.uid))}>
+            <AppLink key={u.uid} className="search__item" href={hrefProfile(u.username ? `@${u.username}` : u.uid)} onClick={() => pick(() => openProfile(u.uid))}>
               <span className="search__emoji search__avatar">
                 <Avatar name={u.name || '?'} photo={u.photo} size={28} />
               </span>
@@ -125,30 +126,31 @@ export default function SearchBox() {
                   {t('search.personMeta', { countries: u.countries?.length || 0, cities: u.cities?.length || 0 })}
                 </small>
               </span>
-            </button>
+            </AppLink>
           ))}
           {local.countries.length > 0 && <div className="search__group">{t('search.countries')}</div>}
           {local.countries.map((cc) => (
-            <button key={cc} className="search__item" onClick={() => pick(() => openCountry(cc))}>
+            <AppLink key={cc} className="search__item" href={hrefCountry(cc)} onClick={() => pick(() => openCountry(cc))}>
               <span className="search__emoji">{flagOf(cc)}</span>
               <span>{countryName(cc)}</span>
-            </button>
+            </AppLink>
           ))}
           {local.places.length > 0 && <div className="search__group">{t('search.places')}</div>}
           {local.places.map((p) => (
-            <button key={p.id} className="search__item" onClick={() => pick(() => openPlace(p))}>
+            <AppLink key={p.id} className="search__item" href={hrefPlace(p)} onClick={() => pick(() => openPlace(p))}>
               <span className="search__emoji">{p.emoji || '📍'}</span>
               <span>
                 {pName(p)}
                 <small>{[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}</small>
               </span>
-            </button>
+            </AppLink>
           ))}
           {osm.length > 0 && <div className="search__group">{t('search.osm')}</div>}
           {osm.map((p) => (
-            <button
+            <AppLink
               key={p.id}
               className="search__item"
+              href={hrefPlace(p)}
               onClick={() =>
                 pick(() => {
                   openPlace(p, { fly: false });
@@ -161,7 +163,7 @@ export default function SearchBox() {
                 {p.name}
                 <small>{p.display}</small>
               </span>
-            </button>
+            </AppLink>
           ))}
           {loading && <div className="search__hint">{t('search.loading')}</div>}
           {!loading && !hasResults && q.trim().length >= 3 && !isGoogleMapsLink(q) && <div className="search__hint">{t('search.empty')}</div>}

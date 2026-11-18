@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { Avatar, Empty, Loader, LoadingImage, formatDate } from '../components/ui';
+import { Avatar, Empty, Loader, LoadingImage, formatDate, AppLink, TrashIcon } from '../components/ui';
+import { hrefProfile, hrefPlace } from '../lib/route';
 import Combobox from '../components/Combobox';
 import { countryName, flagOf } from '../lib/countries';
 import { pName, pCity } from '../lib/lang';
@@ -333,7 +334,7 @@ function MemoryRow({ m, compact, reportCount }) {
             className="btn btn--sm btn--ghost danger"
             onClick={() => confirm(t('admin.confirmDeleteMemory')) && act(() => adminApi.deleteMemoryAdmin(m), t('mem.deleted'))}
           >
-            🗑️
+            <TrashIcon />
           </button>
         </div>
       )}
@@ -508,16 +509,16 @@ function ReportRow({ r, open, onToggle, act }) {
                 <dd>{r.note ? `“${r.note}”` : <span className="muted">{t('admin.reportNoNote')}</span>}</dd>
                 <dt>{t('admin.reportReporter')}</dt>
                 <dd>
-                  <button className="link" onClick={() => openProfile(r.byUid)}>
+                  <AppLink className="link" href={hrefProfile(r.byUid)} onClick={() => openProfile(r.byUid)}>
                     {r.byName}
-                  </button>{' '}
+                  </AppLink>{' '}
                   · {formatDate(r.createdAt)}
                 </dd>
                 <dt>{t('admin.reportAuthor')}</dt>
                 <dd>
-                  <button className="link" onClick={() => r.memoryOwner && openProfile(r.memoryOwner)}>
+                  <AppLink className="link" href={hrefProfile(r.memoryOwner)} onClick={() => r.memoryOwner && openProfile(r.memoryOwner)}>
                     {snap.authorName || '—'}
-                  </button>
+                  </AppLink>
                 </dd>
                 <dt>{t('admin.reportPlace')}</dt>
                 <dd>
@@ -567,7 +568,7 @@ function ReportRow({ r, open, onToggle, act }) {
             <span className="report-card__spacer" />
             {actions}
             <button className="btn btn--sm btn--ghost danger" onClick={() => act(() => adminApi.deleteReport(r.id), t('mem.deleted'))} title={t('mem.delete')}>
-              🗑️
+              <TrashIcon />
             </button>
           </div>
         </div>
@@ -602,9 +603,9 @@ function PlaceAdminRow({ p, onEdit }) {
         </small>
       </div>
       <div className="mod-row__actions">
-        <button className="btn btn--sm btn--soft" onClick={() => openPlace(p)} title={t('common.viewOnMap')}>
+        <AppLink className="btn btn--sm btn--soft" href={hrefPlace(p)} onClick={() => openPlace(p)} title={t('common.viewOnMap')}>
           🗺️
-        </button>
+        </AppLink>
         <button className="btn btn--sm btn--soft" onClick={() => onEdit(p)}>
           ✏️ {t('admin.edit')}
         </button>
@@ -766,7 +767,7 @@ function PlaceEditor({ place, cc, onClose }) {
               onClose();
             }}
           >
-            🗑️ {t('admin.deletePlace')}
+            <TrashIcon /> {t('admin.deletePlace')}
           </button>
         )}
       </div>
@@ -847,7 +848,7 @@ function TripsAdmin({ trips }) {
                   notify(t('mem.deleted'));
                 }}
               >
-                🗑️
+                <TrashIcon />
               </button>
             </div>
           )}

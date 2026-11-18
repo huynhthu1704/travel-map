@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { Modal, Avatar, Loader, Empty } from './ui';
+import { Modal, Avatar, Loader, Empty, TrashIcon } from './ui';
 import { feedbackApi, feedbackDraft, envInfo, prepareFile, FEEDBACK_STATUSES, MAX_VIDEO_MB } from '../lib/feedback';
 
 /* ------------------------------------------------------------------ */
@@ -536,7 +536,7 @@ export function AdminFeedback() {
                       className="btn btn--sm btn--ghost danger"
                       onClick={() => confirm(t('fb.confirmDelete')) && act(() => feedbackApi.remove(open.id).then(() => setOpenId(null)), t('mem.deleted'))}
                     >
-                      🗑️ {t('fb.delete')}
+                      <TrashIcon /> {t('fb.delete')}
                     </button>
                   )}
                 </div>

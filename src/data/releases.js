@@ -28,6 +28,30 @@ export const RELEASES = [
         image: 'releases/profile.webp',
       },
       {
+        icon: '🔗',
+        title: { vi: 'Mở trong tab mới', en: 'Open in a new tab' },
+        desc: {
+          vi: 'Thanh điều hướng, tên người dùng, địa điểm và chuyến đi giờ là link thật: chuột phải → "Mở trong tab mới", hoặc giữ Ctrl/⌘ khi bấm.',
+          en: 'Navigation tabs, people, places and trips are now real links: right-click → "Open in new tab", or hold Ctrl/⌘ while clicking.',
+        },
+      },
+      {
+        icon: '🖼️',
+        title: { vi: 'Thẻ địa điểm trong Khám phá hiện trọn ảnh', en: 'Explore cards show the full photo' },
+        desc: {
+          vi: 'Ảnh nằm ở trên, tên và mô tả ở dưới để bạn xem được trọn bức ảnh.',
+          en: 'The photo sits on top with the name and description below, so you see the whole picture.',
+        },
+      },
+      {
+        icon: '🗂️',
+        title: { vi: 'Danh sách Đã đến và Muốn đi gọn hơn', en: 'Tidier Visited and Wishlist' },
+        desc: {
+          vi: 'Đã đến xếp theo thời gian, mới nhất trước. Muốn đi được gom theo quốc gia giống bảng ở trang chủ. Biểu tượng xoá cũng rõ ràng hơn.',
+          en: 'Visited is sorted newest first. Wishlist is grouped by country like the home panel. The delete icon is clearer too.',
+        },
+      },
+      {
         icon: '🏷️',
         title: { vi: 'Tên người dùng (@nickname)', en: 'Usernames (@nickname)' },
         desc: {

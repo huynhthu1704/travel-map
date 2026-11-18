@@ -7,7 +7,8 @@ import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
 import FeedbackLauncher from './components/FeedbackLauncher';
 import Notifications from './components/Notifications';
-import { Avatar, Loader } from './components/ui';
+import { Avatar, Loader, AppLink } from './components/ui';
+import { hrefView, hrefProfile } from './lib/route';
 // Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
 const MemoriesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.MemoriesPage })));
@@ -67,7 +68,8 @@ function UserMenu() {
         <div className="user-menu__pop" onMouseLeave={() => setOpen(false)}>
           <b>{user.name}</b>
           <small className="muted">{user.email}</small>
-          <button
+          <AppLink
+            href={hrefProfile(user.uid)}
             className="btn btn--sm btn--ghost"
             onClick={() => {
               openProfile(user.uid);
@@ -75,7 +77,7 @@ function UserMenu() {
             }}
           >
             👤 {t('social.myProfile')}
-          </button>
+          </AppLink>
           <button
             className="btn btn--sm btn--ghost"
             onClick={() => {
@@ -147,18 +149,18 @@ function Shell() {
   return (
     <div className={`app view-${view}`}>
       <header className="topbar">
-        <button className="logo" onClick={goHome} title={t('app.home')}>
+        <AppLink href="#/" className="logo" onClick={goHome} title={t('app.home')}>
           <span className="logo__mark">📍</span>
           <span className="logo__text">
             {t('app.logo1')} <em>{t('app.logo2')}</em>
           </span>
-        </button>
+        </AppLink>
         <SearchBox />
         <nav className="nav nav--top">
           {nav.map((n) => (
-            <button key={n.id} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
+            <AppLink key={n.id} href={hrefView(n.id)} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
               {n.icon} {t('nav.' + n.id)}
-            </button>
+            </AppLink>
           ))}
         </nav>
         <LangSwitch />
@@ -200,10 +202,10 @@ function Shell() {
 
       <nav className="nav nav--bottom">
         {nav.map((n) => (
-          <button key={n.id} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
+          <AppLink key={n.id} href={hrefView(n.id)} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
             <span>{n.icon}</span>
             {t('nav.' + n.id)}
-          </button>
+          </AppLink>
         ))}
       </nav>
 

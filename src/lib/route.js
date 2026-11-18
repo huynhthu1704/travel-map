@@ -67,3 +67,10 @@ export function buildRoute({ view, country, place, trip, tripDetail, tripTab, pr
   const s = q.toString();
   return `#/${path}${s ? `?${s}` : ''}`;
 }
+
+/* Đường dẫn để các nút điều hướng là link thật (chuột phải → mở tab mới) */
+export const hrefView = (view) => (view === 'map' ? '#/' : `#/${view}`);
+export const hrefProfile = (uid, sub = null) => (uid ? buildRoute({ view: 'profile', profile: uid, profileSub: sub }) : undefined);
+export const hrefCountry = (cc) => (cc ? `#/country/${cc}` : undefined);
+export const hrefPlace = (place) => (place?.id && place.lat != null ? buildRoute({ view: 'map', place }) : place?.country ? hrefCountry(place.country) : undefined);
+export const hrefTrip = (id) => (id ? `#/trips/${encodeURIComponent(id)}` : '#/trips');

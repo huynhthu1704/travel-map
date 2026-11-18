@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
-import { Modal, Avatar, formatDate, Loader, LoadingImage, OccasionField, DirectionsIcon } from './ui';
+import { Modal, Avatar, formatDate, Loader, LoadingImage, OccasionField, DirectionsIcon, AppLink, TrashIcon } from './ui';
+import { hrefProfile, hrefPlace } from '../lib/route';
 import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize, parseGoogleMapsInput, reverseGeocode, isGoogleMapsLink } from '../lib/geo';
 import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
@@ -325,7 +326,7 @@ function ConfirmRemoveModal({ place, onClose }) {
                 onClose();
               }}
             >
-              🗑️ {t('remove.confirm')}
+              <TrashIcon /> {t('remove.confirm')}
             </button>
           </div>
         )}
@@ -407,9 +408,9 @@ function AddLinkModal({ text, onClose }) {
               <button className={`btn ${st === 'visited' ? 'btn--primary' : 'btn--outline'}`} onClick={() => setPlaceStatus(place, 'visited')}>
                 👣 {st === 'visited' ? t('place.visited') : t('place.markVisited')}
               </button>
-              <button className="btn btn--soft" onClick={() => { onClose(); openPlace(place); }}>
+              <AppLink className="btn btn--soft" href={hrefPlace(place)} onClick={() => { onClose(); openPlace(place); }}>
                 {t('common.viewOnMap')}
-              </button>
+              </AppLink>
               <button className="btn btn--primary" onClick={() => requireLogin(() => setModal({ type: 'memory', place }), t('reason.saveMemory'))}>
                 {t('place.addMemory')}
               </button>
@@ -642,6 +643,7 @@ function LikeButton({ memory: m }) {
 
 function MemoryViewer({ memory: m, onClose }) {
   const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin, openProfile } = useApp();
+  const realAuthor = !!m?.uid && m.uid !== 'sample' && m.uid !== 'trip-stop';
   const st = placeStatus[m.place?.id];
   const { t } = useI18n();
   const [i, setI] = useState(0);
@@ -691,13 +693,13 @@ function MemoryViewer({ memory: m, onClose }) {
         )}
         <div className="viewer__info stack">
           <div className="row">
-            <button className="viewer__author" onClick={() => m.uid && m.uid !== 'sample' && m.uid !== 'trip-stop' && openProfile(m.uid)} title={t('social.viewProfile')}>
+            <AppLink className="viewer__author" href={realAuthor ? hrefProfile(m.uid) : undefined} onClick={() => realAuthor && openProfile(m.uid)} title={t('social.viewProfile')}>
               <Avatar name={m.authorName} photo={m.authorPhoto} />
-            </button>
+            </AppLink>
             <div>
-              <button className="link viewer__authorname" onClick={() => m.uid && m.uid !== 'sample' && m.uid !== 'trip-stop' && openProfile(m.uid)}>
+              <AppLink className="link viewer__authorname" href={realAuthor ? hrefProfile(m.uid) : undefined} onClick={() => realAuthor && openProfile(m.uid)}>
                 <b>{m.authorName}</b>
-              </button>
+              </AppLink>
               <div className="small muted">
                 {flagOf(m.place?.country)} {[pCity(m.place), countryName(m.place?.country)].filter(Boolean).join(', ')}
                 {m.date ? ` · ${formatDate(m.date)}` : ''}
@@ -707,7 +709,7 @@ function MemoryViewer({ memory: m, onClose }) {
           {m.caption && <p className="viewer__caption">{m.caption}</p>}
           {m.visibility === 'public' && m.uid !== 'sample' && m.uid !== 'trip-stop' && <LikeButton memory={m} />}
           <div className="row wrap">
-            <button className="btn btn--sm btn--soft" onClick={() => { onClose(); openPlace(m.place); }}>{t('mem.onMap')}</button>
+            <AppLink className="btn btn--sm btn--soft" href={hrefPlace(m.place)} onClick={() => { onClose(); openPlace(m.place); }}>{t('mem.onMap')}</AppLink>
             {st === 'visited' ? (
               <span className="status-pill status-pill--visited">{t('mem.alreadyVisited')}</span>
             ) : (
@@ -755,7 +757,7 @@ function MemoryViewer({ memory: m, onClose }) {
                   onClose();
                 }}
               >
-                {t('mem.delete')}
+                <TrashIcon /> {t('mem.delete')}
               </button>
             )}
           </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { Avatar, Loader, formatDate } from '../components/ui';
+import { Avatar, Loader, formatDate, TrashIcon } from '../components/ui';
 import DateInput from '../components/DateInput';
 import { pName } from '../lib/lang';
 import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase, actualAmountOf, participantsOf } from '../lib/money';
@@ -392,7 +392,7 @@ export default function TripCosts({ trip }) {
                       ✏️
                     </button>
                     <button className="icon-btn icon-btn--sm" title={t('plan.remove')} onClick={() => remove(c)}>
-                      🗑️
+                      <TrashIcon />
                     </button>
                   </span>
                 </div>
@@ -484,7 +484,7 @@ export default function TripCosts({ trip }) {
                       ✏️
                     </button>
                     <button className="icon-btn icon-btn--sm" title={t('plan.remove')} onClick={() => remove(c)}>
-                      🗑️
+                      <TrashIcon />
                     </button>
                   </span>
                 </div>

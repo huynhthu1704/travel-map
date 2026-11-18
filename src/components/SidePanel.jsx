@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
-import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage, OccasionField, DirectionsIcon } from './ui';
+import { Chip, Empty, formatDate, Avatar, Loader, LoadingImage, OccasionField, DirectionsIcon, AppLink, TrashIcon } from './ui';
+import { hrefPlace, hrefProfile, hrefCountry } from '../lib/route';
 import { useI18n } from '../i18n';
 import { pName, pCity, pDesc, getLocale } from '../lib/lang';
 import { usePlaceImage } from '../lib/placeImage';
@@ -228,7 +229,7 @@ function TripRoutePanel() {
               {g.list.map(({ it, n }) => (
                 <li key={it.id} className={`${it.done ? 'is-done' : ''} ${it.skipped ? 'is-skipped' : ''}`}>
                   <RouteItemEdit item={it} tripId={trip.id} />
-                  <button className="route-list__main" onClick={() => openPlace(it.place)}>
+                  <AppLink className="route-list__main" href={hrefPlace(it.place)} onClick={() => openPlace(it.place)}>
                     <span className="route-list__n">{it.skipped ? '✕' : n}</span>
                     <span className="route-list__body">
                       <b>
@@ -239,7 +240,7 @@ function TripRoutePanel() {
                       </small>
                       {it.note && <small className="route-list__note">📝 {it.note}</small>}
                     </span>
-                  </button>
+                  </AppLink>
                 </li>
               ))}
             </ol>
@@ -362,16 +363,9 @@ function GroupedPlaces({ items, emptyEmoji, emptyTitle, emptyText, rowExtra, sor
             <b>{g.cc === '—' ? t('group.otherCountry') : countryName(g.cc)}</b>
             <span className="grouped__count">{g.total}</span>
             {g.cc !== '—' && (
-              <button
-                className="icon-btn icon-btn--sm"
-                title={t('group.viewCountry')}
-                onClick={(e) => {
-                  e.preventDefault();
-                  openCountry(g.cc);
-                }}
-              >
+              <AppLink className="icon-btn icon-btn--sm" href={hrefCountry(g.cc)} title={t('group.viewCountry')} onClick={() => openCountry(g.cc)}>
                 🗺️
-              </button>
+              </AppLink>
             )}
           </summary>
           {g.cities.map(([city, list]) => (
@@ -663,7 +657,7 @@ function CountryPanel() {
           <h3 className="section-title">{t('country.yourPlaces')}</h3>
           <div className="list">
             {mine.filter(byCity).map((p) => (
-              <button key={p.id} className="list-item" onClick={() => openPlace(p)}>
+              <AppLink key={p.id} className="list-item" href={hrefPlace(p)} onClick={() => openPlace(p)}>
                 <span className="list-item__emoji">{p.status === 'visited' ? '👣' : '💛'}</span>
                 <span>
                   <b>{pName(p)}</b>
@@ -673,7 +667,7 @@ function CountryPanel() {
                     {p.occasion ? ` · ${p.occasion}` : ''}
                   </small>
                 </span>
-              </button>
+              </AppLink>
             ))}
           </div>
         </section>
@@ -717,14 +711,14 @@ export function PlaceCard({ place }) {
   const st = placeStatus[place.id];
   return (
     <article className="place-card">
-      <button className="place-card__cover" onClick={() => openPlace(place)} aria-label={pName(place)}>
+      <AppLink className="place-card__cover" href={hrefPlace(place)} onClick={() => openPlace(place)} aria-label={pName(place)}>
         <LoadingImage src={img} finding={finding} alt={pName(place)} loading="lazy" fallback={<span>{place.emoji}</span>} />
         {img && <span className="place-card__badge">{place.emoji}</span>}
-      </button>
+      </AppLink>
       <div className="place-card__body">
-        <button className="place-card__title" onClick={() => openPlace(place)}>
+        <AppLink className="place-card__title" href={hrefPlace(place)} onClick={() => openPlace(place)}>
           {pName(place)}
-        </button>
+        </AppLink>
         <p className="muted small">{pCity(place)}{pDesc(place) ? ` · ${pDesc(place)}` : ''}</p>
         {st === 'visited' && (visitedAt || placeById[place.id]?.occasion) && (
           <p className="visit-date">
@@ -907,7 +901,7 @@ function PlacePanel() {
 
       {st && (
         <button className="btn btn--ghost btn--sm danger remove-btn" onClick={() => removePlace(placeById[p.id] || p)}>
-          🗑️ {t(st === 'visited' ? 'remove.fromVisited' : 'remove.fromWish')}
+          <TrashIcon /> {t(st === 'visited' ? 'remove.fromVisited' : 'remove.fromWish')}
         </button>
       )}
       <section>
@@ -923,29 +917,36 @@ export function MemoryGrid({ items }) {
   return (
     <div className="mgrid">
       {items.map((m) => (
-        <button key={m.id} className="mgrid__item" onClick={() => setModal({ type: 'viewMemory', memory: m })}>
+        <div
+          key={m.id}
+          className="mgrid__item"
+          role="button"
+          tabIndex={0}
+          onClick={() => setModal({ type: 'viewMemory', memory: m })}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setModal({ type: 'viewMemory', memory: m }))}
+        >
           <LoadingImage src={m.photos?.[0]} alt={m.caption || m.place?.name} loading="lazy" fallback={<span className="mgrid__noimg">📝</span>} />
           {photoCountOf(m) > 1 && <span className="mgrid__count">+{photoCountOf(m) - 1}</span>}
           <span className="mgrid__meta">
             <span>{pName(m.place)}</span>
             {m.uid !== user?.uid && m.authorName && (
-              <small
+              <AppLink
                 className="mgrid__author"
-                role="link"
+                href={m.uid && m.uid !== 'sample' && m.uid !== 'trip-stop' ? hrefProfile(m.uid) : undefined}
                 title={m.authorName}
                 onClick={(e) => {
-                  if (!m.uid || m.uid === 'sample' || m.uid === 'trip-stop') return;
                   e.stopPropagation();
+                  if (!m.uid || m.uid === 'sample' || m.uid === 'trip-stop') return setModal({ type: 'viewMemory', memory: m });
                   openProfile(m.uid);
                 }}
               >
-                👤 {m.authorName}
-              </small>
+                <small>👤 {m.authorName}</small>
+              </AppLink>
             )}
           </span>
           {m.date && <span className="mgrid__date">{formatDate(m.date)}</span>}
           {placeStatus[m.place?.id] === 'wishlist' && <span className="mgrid__wish" title="💛">💛</span>}
-        </button>
+        </div>
       ))}
     </div>
   );
@@ -1055,7 +1056,7 @@ function CheckinHistory({ place, saved, mine, tripId, children }) {
                     notify(t('mem.deleted'));
                   }}
                 >
-                  🗑️
+                  <TrashIcon />
                 </button>
               )}
             </div>
@@ -1123,7 +1124,7 @@ function PopularPlaces() {
       <h3 className="section-title">🔥 {t('home.popular')}</h3>
       <div className="popular__list">
         {top.map((e, i) => (
-          <button key={e.place.id} className="popular__item" onClick={() => openPlace(e.place)}>
+          <AppLink key={e.place.id} className="popular__item" href={hrefPlace(e.place)} onClick={() => openPlace(e.place)}>
             <span className="popular__rank">{i + 1}</span>
             <span className="popular__img">
               <LoadingImage src={e.photo} alt="" loading="lazy" fallback={<span>{e.place.emoji || '📍'}</span>} />
@@ -1137,7 +1138,7 @@ function PopularPlaces() {
             <span className="popular__count" title={t('home.popularCount', { people: e.people.size, n: e.count })}>
               👥 {e.people.size}
             </span>
-          </button>
+          </AppLink>
         ))}
       </div>
     </section>

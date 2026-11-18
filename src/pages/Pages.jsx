@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { MemoryGrid } from '../components/SidePanel';
-import { Avatar, Chip, Empty, formatDate, Loader, LoadingImage, DirectionsIcon } from '../components/ui';
+import { Avatar, Chip, Empty, formatDate, Loader, LoadingImage, DirectionsIcon, AppLink, TrashIcon } from '../components/ui';
+import { hrefPlace, hrefCountry, hrefTrip } from '../lib/route';
 import { countryName, flagOf } from '../lib/countries';
 import { normalize, searchNominatim } from '../lib/geo';
 import { PlaceCard } from '../components/SidePanel';
@@ -286,9 +287,9 @@ export function ExplorePage() {
           text={t('explore.emptyHint')}
           action={
             cc && (
-              <button className="btn btn--primary" onClick={() => openCountry(cc)}>
+              <AppLink className="btn btn--primary" href={hrefCountry(cc)} onClick={() => openCountry(cc)}>
                 {t('explore.seeFamous', { country: countryName(cc) })}
-              </button>
+              </AppLink>
             )
           }
         />
@@ -303,7 +304,11 @@ export function MemoriesPage() {
   const { t } = useI18n();
   const { filtered, ui } = useFilters(memories, memPlace);
   const wish = places.filter((p) => p.status === 'wishlist');
-  const visited = places.filter((p) => p.status === 'visited');
+  // Đã đến: mới nhất trước (theo ngày đến, chưa có ngày thì theo lần cập nhật)
+  const ts = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
+  const visited = places
+    .filter((p) => p.status === 'visited')
+    .sort((a, b) => (ts(b.visitedAt) || 0) - (ts(a.visitedAt) || 0) || ts(b.updatedAt) - ts(a.updatedAt));
 
   if (!user)
     return (
@@ -351,43 +356,73 @@ export function MemoriesPage() {
         </>
       )}
       {tab !== 'memories' && (
-        <PlaceList items={tab === 'visited' ? visited : wish} onOpen={openPlace} emptyText={tab === 'visited' ? t('mine.noVisited') : t('mine.noWish')} />
+        <PlaceList
+          key={tab}
+          items={tab === 'visited' ? visited : wish}
+          onOpen={openPlace}
+          groupByCountry={tab === 'wishlist'}
+          emptyText={tab === 'visited' ? t('mine.noVisited') : t('mine.noWish')}
+        />
       )}
     </div>
   );
 }
 
-function PlaceList({ items, onOpen, emptyText }) {
+function PlaceList({ items, onOpen, emptyText, groupByCountry }) {
   const { filtered, ui } = useFilters(items, (p) => p);
-  const { setModal, removePlace } = useApp();
-  const { t } = useI18n();
+  const { setModal, removePlace, openCountry } = useApp();
+  const { t, lang } = useI18n();
+  const row = (p) => (
+    <div key={p.id} className="list-item">
+      <span className="list-item__emoji">{p.emoji || '📍'}</span>
+      <AppLink className="list-item__main" href={hrefPlace(p)} onClick={() => onOpen(p)}>
+        <b>{pName(p)}</b>
+        <small>
+          {flagOf(p.country)} {[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}
+          {p.visitedAt ? ` · 📅 ${formatDate(p.visitedAt)}` : ''}
+          {p.occasion ? ` · ${p.occasion}` : ''}
+        </small>
+      </AppLink>
+      <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: p })}>
+        <DirectionsIcon /> {t('common.directions')}
+      </button>
+      <button className="icon-btn icon-btn--danger" onClick={() => removePlace(p)} aria-label={t('remove.confirm')} title={t('remove.confirm')}>
+        <TrashIcon />
+      </button>
+    </div>
+  );
+  // Gom theo quốc gia (giống bảng ở trang chủ): quốc gia nhiều địa điểm nhất lên trước
+  const groups = useMemo(() => {
+    if (!groupByCountry) return null;
+    const g = {};
+    filtered.forEach((p) => (g[p.country || '—'] ||= []).push(p));
+    return Object.entries(g).sort((a, b) => b[1].length - a[1].length || countryName(a[0]).localeCompare(countryName(b[0]), lang));
+  }, [filtered, groupByCountry, lang]);
   return (
     <>
       {ui}
-      {filtered.length ? (
-        <div className="list list--cards">
-          {filtered.map((p) => (
-            <div key={p.id} className="list-item">
-              <span className="list-item__emoji">{p.emoji || '📍'}</span>
-              <button className="list-item__main" onClick={() => onOpen(p)}>
-                <b>{pName(p)}</b>
-                <small>
-                  {flagOf(p.country)} {[pCity(p), countryName(p.country)].filter(Boolean).join(', ')}
-                  {p.visitedAt ? ` · 📅 ${formatDate(p.visitedAt)}` : ''}
-                  {p.occasion ? ` · ${p.occasion}` : ''}
-                </small>
-              </button>
-              <button className="btn btn--sm btn--soft" onClick={() => setModal({ type: 'directions', place: p })}>
-                <DirectionsIcon /> {t('common.directions')}
-              </button>
-              <button className="icon-btn icon-btn--danger" onClick={() => removePlace(p)} aria-label={t('remove.confirm')} title={t('remove.confirm')}>
-                🗑️
-              </button>
-            </div>
+      {!filtered.length ? (
+        <Empty emoji="🗺️" title={emptyText} />
+      ) : groups ? (
+        <div className="stack-sm grouped grouped--page">
+          {groups.map(([cc, list]) => (
+            <details key={cc} className="grouped__country" open={groups.length <= 3}>
+              <summary>
+                <span className="grouped__flag">{cc === '—' ? '🌐' : flagOf(cc)}</span>
+                <b>{cc === '—' ? t('group.otherCountry') : countryName(cc)}</b>
+                <span className="grouped__count">{list.length}</span>
+                {cc !== '—' && (
+                  <AppLink className="icon-btn icon-btn--sm" href={hrefCountry(cc)} title={t('group.viewCountry')} onClick={() => openCountry(cc)}>
+                    🗺️
+                  </AppLink>
+                )}
+              </summary>
+              <div className="list list--cards">{list.map(row)}</div>
+            </details>
           ))}
         </div>
       ) : (
-        <Empty emoji="🗺️" title={emptyText} />
+        <div className="list list--cards">{filtered.map(row)}</div>
       )}
     </>
   );
@@ -513,7 +548,7 @@ export function TripsPage() {
         <div className="trip-list">
           {trips.filter((tr) => (owner === 'mine' ? tr.ownerId === user.uid : owner === 'others' ? tr.ownerId !== user.uid : true)).map((tr) => (
             <article key={tr.id} className="trip-card">
-              <button className="trip-card__main" onClick={() => setOpenId(tr.id)}>
+              <AppLink className="trip-card__main" href={hrefTrip(tr.id)} onClick={() => setOpenId(tr.id)}>
                 <span className="trip-card__emoji">{tr.emoji}</span>
                 <span>
                   <b>{tr.name}</b>
@@ -523,7 +558,7 @@ export function TripsPage() {
                     {t('trips.members', { n: tr.memberIds.length })}
                   </small>
                 </span>
-              </button>
+              </AppLink>
               <div className="trip-card__people">
                 <div className="avatars">
                   {Object.entries(tr.members || {})
@@ -637,7 +672,13 @@ function TripDetail({ trip, onBack }) {
                       onBack();
                     }}
                   >
-                    {trip.ownerId === user.uid ? t('trip.delete') : t('trip.leave')}
+                    {trip.ownerId === user.uid ? (
+                      <>
+                        <TrashIcon /> {t('trip.delete')}
+                      </>
+                    ) : (
+                      t('trip.leave')
+                    )}
                   </button>
                 </div>
               )}
@@ -728,9 +769,9 @@ function TripDetail({ trip, onBack }) {
               <li key={s.id}>
                 <div className="timeline__dot">{s.kind === 'memory' ? '📸' : '👣'}</div>
                 <div className="timeline__body">
-                  <button className="link" onClick={() => openPlace(s.place)}>
+                  <AppLink className="link" href={hrefPlace(s.place)} onClick={() => openPlace(s.place)}>
                     <b>{pName(s.place)}</b>
-                  </button>
+                  </AppLink>
                   <div className="small muted">
                     {flagOf(s.place.country)} {[pCity(s.place), countryName(s.place.country)].filter(Boolean).join(', ')} · {t('trip.by', { name: s.byName })}
                     {s.createdAt ? ` · ${formatDate(s.createdAt)}` : ''}
@@ -823,10 +864,10 @@ function TripSummary({ trip, stops }) {
                 <span className="muted small">🏙️ {city}</span>
                 <div className="chips">
                   {ps.map((p) => (
-                    <button key={p.id} className="chip chip--sm" onClick={() => openPlace(p)}>
+                    <AppLink key={p.id} className="chip chip--sm" href={hrefPlace(p)} onClick={() => openPlace(p)}>
                       {p.emoji || '📍'} {pName(p)}
                       {sum.byPlace[p.id]?.photos ? ` · 📸${sum.byPlace[p.id].photos}` : ''}
-                    </button>
+                    </AppLink>
                   ))}
                 </div>
               </div>

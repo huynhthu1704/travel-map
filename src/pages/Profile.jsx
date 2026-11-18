@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { Avatar, Empty, Loader } from '../components/ui';
+import { Avatar, Empty, Loader, AppLink } from '../components/ui';
+import { hrefProfile } from '../lib/route';
 import { MemoryGrid } from '../components/SidePanel';
 import { countryName, flagOf } from '../lib/countries';
 import { socialApi, cleanUsername, usernameProblem } from '../lib/social';
@@ -300,9 +301,9 @@ export default function ProfilePage() {
               <p className="profile__bio muted">{isMe ? t('social.bioEmptyMe') : t('social.bioEmpty')}</p>
             )}
             {isMe && (
-              <button className="profile__activity" onClick={() => openProfile(uid, 'activity')}>
+              <AppLink className="profile__activity" href={hrefProfile(uid, 'activity')} onClick={() => openProfile(uid, 'activity')}>
                 🕒 {t('social.recent')} <span aria-hidden>→</span>
-              </button>
+              </AppLink>
             )}
           </div>
         )}
@@ -391,9 +392,9 @@ function ActivityPage({ uid, prof, isMe, mutual, feed }) {
   return (
     <div className="page profile">
       <div className="activity__top">
-        <button className="btn btn--sm btn--ghost" onClick={() => openProfile(uid)}>
+        <AppLink className="btn btn--sm btn--ghost" href={hrefProfile(uid)} onClick={() => openProfile(uid)}>
           ← {t('social.backProfile')}
-        </button>
+        </AppLink>
       </div>
       <header className="activity__head card">
         <Avatar name={prof.name || '?'} photo={prof.photo} size={56} />
@@ -431,9 +432,9 @@ export function FeedList({ items, who }) {
           <span className="feed__ic">{it.type === 'country' ? flagOf(it.cc) || '🌏' : it.type === 'city' ? '🏙️' : '📍'}</span>
           <span className="feed__text">
             {who && (
-              <button className="link" onClick={() => openProfile(who.uid)}>
+              <AppLink className="link" href={hrefProfile(who.uid)} onClick={() => openProfile(who.uid)}>
                 {who.name}
-              </button>
+              </AppLink>
             )}{' '}
             {it.type === 'country'
               ? t('social.feed.country', { country: countryName(it.cc) })

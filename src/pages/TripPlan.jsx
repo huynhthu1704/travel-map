@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { Empty, Loader, formatDate, DirectionsIcon } from '../components/ui';
+import { Empty, Loader, formatDate, DirectionsIcon, AppLink, TrashIcon } from '../components/ui';
+import { hrefPlace } from '../lib/route';
 import DateInput from '../components/DateInput';
 import TimeInput from '../components/TimeInput';
 import { ALL_FAMOUS } from '../data/places';
@@ -201,9 +202,9 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
         {item.done ? '✓' : item.skipped ? '✕' : index + 1}
       </button>
       <div className="plan-item__body">
-        <button className="link plan-item__name" onClick={() => openPlace(item.place)}>
+        <AppLink className="link plan-item__name" href={hrefPlace(item.place)} onClick={() => openPlace(item.place)}>
           {item.place.emoji || '📍'} <b>{pName(item.place)}</b>
-        </button>
+        </AppLink>
         <small className="muted">
           {flagOf(item.place.country)} {[pCity(item.place), countryName(item.place.country)].filter(Boolean).join(', ')}
           {item.time && <> · 🕘 {item.time}</>}
@@ -286,7 +287,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
             aria-label={t('plan.remove')}
             title={t('plan.remove')}
           >
-            🗑️
+            <TrashIcon />
           </button>
         </div>
       )}
@@ -773,7 +774,7 @@ function Checklist({ list, trip }) {
               </button>
             )}
             <button className="btn btn--sm btn--ghost danger" onClick={() => confirm(t('check.confirmDelete')) && api.deleteChecklist(trip.id, list.id)}>
-              🗑️ {t('check.delete')}
+              <TrashIcon /> {t('check.delete')}
             </button>
           </div>
         </>

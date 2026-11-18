@@ -37,6 +37,18 @@ export function DirectionsIcon({ size = 18 }) {
   );
 }
 
+/** Biểu tượng xoá (thùng rác) — rõ ràng hơn emoji thùng rác trên Windows */
+export function TrashIcon({ size = 16 }) {
+  return (
+    <svg className="trash-icon" width={size} height={size} viewBox="0 0 24 24" aria-hidden focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16" />
+      <path d="M9.5 7V4.8c0-.4.4-.8.8-.8h3.4c.4 0 .8.4.8.8V7" />
+      <path d="M6.5 7l.9 12.2c.1.9.8 1.8 1.8 1.8h5.6c1 0 1.7-.9 1.8-1.8L17.5 7" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
 export function Avatar({ name = '?', photo, size = 32 }) {
   return photo ? (
     <img className="avatar" src={photo} alt={name} width={size} height={size} referrerPolicy="no-referrer" />
@@ -149,4 +161,28 @@ export function formatDate(v) {
   const d = typeof v === 'string' ? new Date(v) : new Date(v?.toMillis ? v.toMillis() : v);
   if (isNaN(d)) return '';
   return d.toLocaleDateString(getLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/**
+ * Link điều hướng trong app: là thẻ <a href> thật nên chuột phải / Ctrl+bấm / chuột giữa mở được tab mới;
+ * bấm thường thì chạy onClick (không tải lại trang).
+ */
+export function AppLink({ href, onClick, className = '', children, ...rest }) {
+  return (
+    <a
+      href={href || undefined}
+      className={`app-link ${className}`}
+      onClick={(e) => {
+        if (e.defaultPrevented) return;
+        if (href && (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return; // để trình duyệt mở tab mới
+        e.preventDefault();
+        onClick?.(e);
+      }}
+      role={href ? undefined : 'button'}
+      tabIndex={href ? undefined : 0}
+      {...rest}
+    >
+      {children}
+    </a>
+  );
 }

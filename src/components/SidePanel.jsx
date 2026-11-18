@@ -50,6 +50,8 @@ function useBottomSheet(placeId, country, tripId) {
   useEffect(() => {
     document.documentElement.style.setProperty('--sheet-h', mobile ? `${height}px` : '0px');
   }, [height, mobile]);
+  // bảng bị ẩn (vd. đang chọn điểm trên bản đồ): trả nút bản đồ về sát đáy
+  useEffect(() => () => document.documentElement.style.setProperty('--sheet-h', '0px'), []);
   const handleProps = {
     onPointerDown: (e) => {
       if (!mobile) return;

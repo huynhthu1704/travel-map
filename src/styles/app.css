@@ -7007,3 +7007,40 @@ a.app-link.place-card__title:hover {
     justify-content: space-between;
   }
 }
+
+/* iPhone tự phóng to trang khi chạm vào ô nhập có chữ < 16px (trang bị lệch, không bấm tiếp được) */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Ô tìm kiếm trên điện thoại: khi đang gõ thì giãn hết thanh trên, kết quả hiện full màn hình ngang */
+@media (max-width: 760px) {
+  .topbar:has(.search:focus-within) > :not(.search):not(.logo) {
+    display: none;
+  }
+  .search__dropdown {
+    position: fixed;
+    top: calc(var(--topbar-h, 64px) + 6px);
+    left: 8px;
+    right: 8px;
+    max-height: calc(100dvh - var(--topbar-h, 64px) - 90px);
+    border-radius: 18px;
+    z-index: 1200;
+  }
+  .search__item {
+    align-items: center;
+  }
+  .search__item > span:last-child {
+    min-width: 0;
+  }
+  .search__item > span:last-child,
+  .search__item small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

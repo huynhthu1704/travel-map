@@ -28,6 +28,14 @@ export const RELEASES = [
         image: 'releases/profile.webp',
       },
       {
+        icon: '📱',
+        title: { vi: 'Dùng trên điện thoại mượt hơn', en: 'Smoother on phones' },
+        desc: {
+          vi: 'Trang không còn tự phóng to khi chạm vào ô nhập trên iPhone; kết quả tìm kiếm hiện rộng hết màn hình; khi chọn vị trí trên bản đồ, bảng bên dưới tự ẩn để bạn chạm được bản đồ; các popup nằm giữa màn hình.',
+          en: 'Pages no longer zoom in when you tap a text field on iPhone; search results use the full screen width; the bottom panel hides while you pick a spot on the map; popups sit in the middle of the screen.',
+        },
+      },
+      {
         icon: '🔗',
         title: { vi: 'Mở trong tab mới', en: 'Open in a new tab' },
         desc: {

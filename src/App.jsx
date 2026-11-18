@@ -189,7 +189,8 @@ function Shell() {
             <span><i className="dot dot--famous" />{t('legend.famous')}</span>
             {activeTrip && <span><i className="dot dot--trip" />{t('legend.trip')}</span>}
           </div>
-          {view === 'map' && (pickMode === 'place' ? <PickPanel /> : <SidePanel />)}
+          {/* Đang chọn 1 điểm cho kỉ niệm: ẩn bảng bên để chạm được bản đồ (nhất là trên điện thoại) */}
+          {view === 'map' && (pickMode === 'place' ? <PickPanel /> : pickMode === 'memory' ? null : <SidePanel />)}
         </div>
         <Suspense fallback={view !== 'map' ? <div className="page"><Loader /></div> : null}>
           {mounted.has('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}

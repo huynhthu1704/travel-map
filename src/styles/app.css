@@ -3196,3 +3196,7 @@ img.is-loaded {
   order: 2;
   flex-basis: 100%;
 }
+.btn.in-plan {
+  color: #2e9e5b;
+  background: #eaf7ef;
+}

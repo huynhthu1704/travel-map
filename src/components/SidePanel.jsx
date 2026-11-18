@@ -329,10 +329,39 @@ export function PlaceCard({ place }) {
   );
 }
 
+/** Nút thêm vào kế hoạch chuyến: nếu địa điểm đã có trong kế hoạch thì báo "đã nằm trong chuyến này" */
+function PlanButton({ tripId, place, onOpen }) {
+  const { api, user, notify } = useApp();
+  const { t } = useI18n();
+  const [plan, setPlan] = useState(null);
+  useEffect(() => api.watchPlan(tripId, setPlan), [tripId, api]);
+  if (!plan) return null;
+  const inPlan = plan.some((it) => it.place?.id === place.id);
+  if (inPlan)
+    return (
+      <button type="button" className="btn btn--sm btn--ghost in-plan" onClick={onOpen} title={t('place.openPlan')}>
+        ✅ {t('place.inPlan')} →
+      </button>
+    );
+  return (
+    <button
+      type="button"
+      className="btn btn--sm btn--soft"
+      onClick={async () => {
+        await api.addPlanItem(user, tripId, { place, order: Date.now() });
+        notify(t('plan.added', { name: pName(place) }));
+      }}
+    >
+      🗓️ {t('place.addToPlan')}
+    </button>
+  );
+}
+
 function PlacePanel() {
   const { removePlace, saveVisited, placeById, selectedPlace: p, setSelectedPlace, placeStatus, setPlaceStatus, setModal, memories, publicMemories, requireLogin, trips, returnView, setReturnView, setView, api, user, notify } = useApp();
   // Chuyến đi gắn với địa điểm: lấy theo dữ liệu đã lưu
   const savedTripId = placeById[p.id]?.tripId || '';
+  const { setOpenTripId, setTripTab } = useApp();
   const [tripId, setTripId] = useState(savedTripId);
   useEffect(() => setTripId(savedTripId), [p.id, savedTripId]);
   const changeTrip = async (next) => {
@@ -413,18 +442,11 @@ function PlacePanel() {
             ))}
           </select>
           {tripId && !st && <small className="muted">{t('place.tripHint')}</small>}
-          {tripId && (
-            <button
-              type="button"
-              className="btn btn--sm btn--soft"
-              onClick={async () => {
-                await api.addPlanItem(user, tripId, { place: placeById[p.id] || p, order: Date.now() });
-                notify(t('plan.added', { name: pName(p) }));
-              }}
-            >
-              🗓️ {t('place.addToPlan')}
-            </button>
-          )}
+          {tripId && user && <PlanButton tripId={tripId} place={placeById[p.id] || p} onOpen={() => {
+            setOpenTripId(tripId);
+            setTripTab('plan');
+            setView('trips');
+          }} />}
         </label>
       )}
 

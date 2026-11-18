@@ -1,4 +1,4 @@
-# 🍯 Bản đồ du lịch — Travel Map
+# 🍯 Travel Map
 
 A web app for **marking the places you've set foot in**, saving **photo memories** at each place, planning **shared trips** with friends, and **sharing** them as cute images or videos on social media.
 

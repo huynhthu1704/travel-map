@@ -11,6 +11,7 @@ import {
   DirectionsIcon,
   AppLink,
   TrashIcon,
+  Modal,
 } from "../components/ui";
 import { hrefPlace, hrefCountry, hrefTrip } from "../lib/route";
 import { countryName, flagOf } from "../lib/countries";
@@ -768,10 +769,14 @@ export function TripsPage() {
         </div>
       </header>
       {panel && (
-        <div className="trip-form-panel">
+        <Modal
+          title={panel === "create" ? `＋ ${t("trips.create")}` : `🔑 ${t("trips.join")}`}
+          onClose={() => setPanel(null)}
+          className="modal--sm"
+        >
           {panel === "create" && (
             <form
-              className="card stack"
+              className="stack"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!name.trim()) return;
@@ -812,17 +817,6 @@ export function TripsPage() {
                 setOpenId(tr.id);
               }}
             >
-              <div className="trip-form-panel__head">
-                <h3 className="h3">{t("trips.create")}</h3>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  onClick={() => setPanel(null)}
-                  aria-label={t("pick.cancel")}
-                >
-                  ✕
-                </button>
-              </div>
               <div className="row">
                 <select
                   value={emoji}
@@ -854,7 +848,7 @@ export function TripsPage() {
           )}
           {panel === "join" && (
             <form
-              className="card stack"
+              className="stack"
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
@@ -867,17 +861,6 @@ export function TripsPage() {
                 }
               }}
             >
-              <div className="trip-form-panel__head">
-                <h3 className="h3">{t("trips.join")}</h3>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  onClick={() => setPanel(null)}
-                  aria-label={t("pick.cancel")}
-                >
-                  ✕
-                </button>
-              </div>
               <div className="row">
                 <input
                   className="grow"
@@ -891,7 +874,7 @@ export function TripsPage() {
               </div>
             </form>
           )}
-        </div>
+        </Modal>
       )}
       {!loaded.trips ? (
         <Loader />

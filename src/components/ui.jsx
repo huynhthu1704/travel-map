@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { useI18n } from '../i18n';
 import { getLocale } from '../lib/lang';
@@ -13,7 +14,8 @@ export function Modal({ onClose, title, children, wide, className = '' }) {
       document.body.classList.remove('no-scroll');
     };
   }, [onClose]);
-  return (
+  // Gắn vào <body> để luôn nằm trên mọi thứ (kể cả thanh điều hướng dưới trên điện thoại)
+  return createPortal(
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
       <div className={`modal ${wide ? 'modal--wide' : ''} ${className}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal__head">
@@ -23,7 +25,7 @@ export function Modal({ onClose, title, children, wide, className = '' }) {
         <div className="modal__body">{children}</div>
       </div>
     </div>
-  );
+  , document.body);
 }
 
 /** Biển chỉ đường (hình thoi, mũi tên rẽ phải) — dễ nhận ra hơn la bàn */

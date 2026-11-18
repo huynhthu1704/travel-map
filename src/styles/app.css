@@ -6969,3 +6969,18 @@ a.app-link.place-card__title:hover {
     padding: 10px 10px 10px 14px;
   }
 }
+/* Popup nhỏ (tạo / tham gia chuyến, báo cáo…): luôn nằm giữa màn hình, kể cả trên điện thoại */
+@media (max-width: 760px) {
+  .modal-backdrop:has(> .modal--sm) {
+    place-items: center;
+    padding: 16px;
+  }
+  .modal-backdrop > .modal--sm {
+    width: 100%;
+    border-radius: var(--radius-xl);
+    max-height: calc(100dvh - 32px);
+  }
+  .modal-backdrop > .modal--sm .modal__body {
+    padding-bottom: 20px;
+  }
+}

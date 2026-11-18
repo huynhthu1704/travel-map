@@ -6,6 +6,7 @@ import { countryName, flagOf } from '../lib/countries';
 import { normalize } from '../lib/geo';
 import { useI18n } from '../i18n';
 import { pName, pCity } from '../lib/lang';
+import Combobox from '../components/Combobox';
 
 /** Bộ lọc dùng chung: tìm theo chữ + chọn bất kỳ quốc gia + gõ/chọn thành phố */
 function useFilters(items, getPlace) {
@@ -46,54 +47,40 @@ function useFilters(items, getPlace) {
     });
   }, [items, text, cc, city, getPlace, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const countryOptions = useMemo(
+    () => [
+      ...allCountries.top.map((c) => ({ value: c, label: countryName(c), icon: flagOf(c), group: t('filter.withData') })),
+      ...allCountries.rest.map((c) => ({ value: c, label: countryName(c), icon: flagOf(c), group: t('filter.allWorld') })),
+    ],
+    [allCountries, t],
+  );
+  const cityOptions = useMemo(() => cities.map((c) => ({ value: c, label: c })), [cities]);
+
   const ui = (
     <div className="filters">
       <input className="filters__search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('filter.search')} />
-      <select
+      <Combobox
         value={cc}
-        onChange={(e) => {
-          setCc(e.target.value);
+        options={countryOptions}
+        onChange={(v) => {
+          setCc(v);
           setCity('');
         }}
-        aria-label={t('filter.byCountry')}
-      >
-        <option value="">{t('filter.allCountries')}</option>
-        {allCountries.top.length > 0 && (
-          <optgroup label={t('filter.withData')}>
-            {allCountries.top.map((c) => (
-              <option key={c} value={c}>
-                {flagOf(c)} {countryName(c)}
-              </option>
-            ))}
-          </optgroup>
-        )}
-        <optgroup label={t('filter.allWorld')}>
-          {allCountries.rest.map((c) => (
-            <option key={c} value={c}>
-              {flagOf(c)} {countryName(c)}
-            </option>
-          ))}
-        </optgroup>
-      </select>
-      <div className="filters__city">
-        <input
-          list={listId}
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder={t('filter.cityPlaceholder')}
-          aria-label={t('filter.byCity')}
-        />
-        {city && (
-          <button type="button" className="filters__clear" onClick={() => setCity('')} aria-label={t('common.close')}>
-            ✕
-          </button>
-        )}
-        <datalist id={listId}>
-          {cities.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-      </div>
+        placeholder={t('filter.countryPlaceholder')}
+        allLabel={t('filter.allCountries')}
+        ariaLabel={t('filter.byCountry')}
+        icon="🌏"
+      />
+      <Combobox
+        value={city}
+        options={cityOptions}
+        onChange={setCity}
+        placeholder={t('filter.cityPlaceholder')}
+        allLabel={t('filter.allCities')}
+        ariaLabel={t('filter.byCity')}
+        allowFree
+        icon="🏙️"
+      />
     </div>
   );
   return { filtered, ui, cc, city };

@@ -138,6 +138,9 @@ const firebaseBackend = {
     const r = await addDoc(collection(db, 'trips'), data);
     return { id: r.id, ...data };
   },
+  updateTrip(id, patch) {
+    return updateDoc(doc(db, 'trips', id), { ...patch, updatedAt: now() });
+  },
   async joinTrip(user, code) {
     const s = await getDocs(query(collection(db, 'trips'), where('inviteCode', '==', code.trim().toUpperCase()), limit(1)));
     if (s.empty) throw new Error(translate('err.tripNotFound'));
@@ -255,6 +258,11 @@ const localBackend = {
     state.trips.push(t);
     save();
     return t;
+  },
+  async updateTrip(id, patch) {
+    const t = state.trips.find((x) => x.id === id);
+    if (t) Object.assign(t, patch, { updatedAt: now() });
+    save();
   },
   async joinTrip(user, code) {
     const t = state.trips.find((x) => x.inviteCode === code.trim().toUpperCase());

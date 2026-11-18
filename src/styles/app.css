@@ -2433,3 +2433,16 @@ img.is-loaded {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;
 }
+
+/* Sửa thông tin chuyến đi */
+.trip-dates {
+  font-weight: 600;
+  color: var(--ink, #2b2118);
+  margin: 2px 0;
+}
+.trip-edit-btn {
+  margin-top: 8px;
+}
+.trip-editor {
+  margin-bottom: 20px;
+}

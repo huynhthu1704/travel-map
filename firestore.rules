@@ -42,7 +42,10 @@ service cloud.firestore {
       // Chủ chuyến đi sửa/xoá; thành viên mới chỉ được thêm/bớt chính mình
       allow update: if signedIn() && (
         resource.data.ownerId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members']) ||
+        // Thành viên được sửa tên, biểu tượng và ngày đi / ngày về
+        (request.auth.uid in resource.data.memberIds &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'emoji', 'startDate', 'endDate', 'updatedAt']))
       );
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
 

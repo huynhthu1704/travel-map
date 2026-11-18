@@ -8,6 +8,72 @@ import { PlaceCard } from '../components/SidePanel';
 import { useI18n } from '../i18n';
 import { pName, pCity } from '../lib/lang';
 import Combobox from '../components/Combobox';
+import DateInput from '../components/DateInput';
+
+const TRIP_EMOJIS = ['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'];
+/** Khoảng ngày của chuyến đi: "12/03/2026 → 15/03/2026" */
+export const tripDates = (tr) =>
+  tr?.startDate ? `${formatDate(tr.startDate)}${tr.endDate && tr.endDate !== tr.startDate ? ` → ${formatDate(tr.endDate)}` : ''}` : tr?.endDate ? `→ ${formatDate(tr.endDate)}` : '';
+
+/** Sửa tên, biểu tượng, ngày xuất phát và ngày quay về của chuyến đi */
+function TripEditor({ trip, onClose }) {
+  const { api, notify } = useApp();
+  const { t } = useI18n();
+  const [name, setName] = useState(trip.name || '');
+  const [emoji, setEmoji] = useState(trip.emoji || '🧳');
+  const [start, setStart] = useState(trip.startDate || '');
+  const [end, setEnd] = useState(trip.endDate || '');
+  const [busy, setBusy] = useState(false);
+  const bad = start && end && end < start;
+  const save = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return notify(t('trip.nameRequired'), 'error');
+    if (bad) return notify(t('trip.endBeforeStart'), 'error');
+    setBusy(true);
+    try {
+      await api.updateTrip(trip.id, { name: name.trim(), emoji, startDate: start || null, endDate: end || null });
+      notify(t('trip.updated'));
+      onClose();
+    } catch (err) {
+      notify(err.message, 'error');
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="card stack trip-editor" onSubmit={save}>
+      <div className="trip-summary__head">
+        <h3 className="h3">✏️ {t('trip.editTitle')}</h3>
+        <button type="button" className="icon-btn" onClick={onClose} aria-label={t('common.close')}>✕</button>
+      </div>
+      <label className="field">
+        <span>{t('trip.nameLabel')}</span>
+        <div className="row">
+          <select value={emoji} onChange={(e) => setEmoji(e.target.value)} className="emoji-select" aria-label={t('trips.icon')}>
+            {[...new Set([emoji, ...TRIP_EMOJIS])].map((x) => (
+              <option key={x}>{x}</option>
+            ))}
+          </select>
+          <input className="grow" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} placeholder={t('trips.namePlaceholder')} />
+        </div>
+      </label>
+      <div className="grid-2">
+        <label className="field">
+          <span>🛫 {t('trip.startDate')}</span>
+          <DateInput value={start} onChange={setStart} ariaLabel={t('trip.startDate')} />
+        </label>
+        <label className="field">
+          <span>🛬 {t('trip.endDate')}</span>
+          <DateInput value={end} onChange={setEnd} ariaLabel={t('trip.endDate')} />
+        </label>
+      </div>
+      {bad && <p className="warn small">{t('trip.endBeforeStart')}</p>}
+      <div className="row wrap">
+        <button className="btn btn--primary" disabled={busy || bad}>💾 {t('trip.save')}</button>
+        <button type="button" className="btn btn--ghost" onClick={onClose}>{t('pick.cancel')}</button>
+      </div>
+    </form>
+  );
+}
 
 /** Bộ lọc dùng chung: tìm theo chữ + chọn bất kỳ quốc gia + gõ/chọn thành phố */
 function useFilters(items, getPlace) {
@@ -336,7 +402,7 @@ export function TripsPage() {
           <h3 className="h3">{t('trips.create')}</h3>
           <div className="row">
             <select value={emoji} onChange={(e) => setEmoji(e.target.value)} className="emoji-select" aria-label={t('trips.icon')}>
-              {['🧳', '🏖️', '🏔️', '🌸', '🍜', '🎒', '🚗', '✈️', '🏕️', '🎉'].map((x) => (
+              {TRIP_EMOJIS.map((x) => (
                 <option key={x}>{x}</option>
               ))}
             </select>
@@ -374,7 +440,10 @@ export function TripsPage() {
                 <span className="trip-card__emoji">{tr.emoji}</span>
                 <span>
                   <b>{tr.name}</b>
-                  <small>{t('trips.meta', { n: tr.memberIds.length, code: tr.inviteCode })}</small>
+                  <small>
+                    {tripDates(tr) && <>🗓️ {tripDates(tr)} · </>}
+                    {t('trips.meta', { n: tr.memberIds.length, code: tr.inviteCode })}
+                  </small>
                 </span>
               </button>
               <div className="avatars">
@@ -403,6 +472,8 @@ function TripDetail({ trip, onBack }) {
   const { user, api, notify, setActiveTripId, setView, openPlace, setModal } = useApp();
   const { t } = useI18n();
   const [stops, setStops] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const isMember = !!user && (trip.memberIds || []).includes(user.uid);
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
   const share = async () => {
@@ -428,9 +499,15 @@ function TripDetail({ trip, onBack }) {
           <h1 className="h1">
             {trip.emoji} {trip.name}
           </h1>
+          {tripDates(trip) && <p className="trip-dates">🗓️ {tripDates(trip)}</p>}
           <p className="muted">
             {countries.map(flagOf).join(' ')} {t('trip.stops', { n: stopList.length })} · {t('trip.code')} <b className="code">{trip.inviteCode}</b>
           </p>
+          {isMember && !editing && (
+            <button className="btn btn--sm btn--soft trip-edit-btn" onClick={() => setEditing(true)}>
+              ✏️ {t('trip.edit')}
+            </button>
+          )}
         </div>
         <div className="row wrap">
           <button className="btn btn--primary" onClick={share}>{t('trip.invite')}</button>
@@ -448,6 +525,7 @@ function TripDetail({ trip, onBack }) {
           </button>
         </div>
       </header>
+      {editing && <TripEditor trip={trip} onClose={() => setEditing(false)} />}
       <section>
         <h3 className="section-title">{t('trip.members')}</h3>
         <div className="row wrap">
@@ -562,10 +640,9 @@ function TripSummary({ trip, stops }) {
         <div className="stat"><div className="stat__value">🏙️ {sum.cities}</div><div className="stat__label">{t('recap.cities')}</div></div>
         <div className="stat"><div className="stat__value">📸 {sum.photos}</div><div className="stat__label">{t('recap.photos')}</div></div>
       </div>
-      {sum.from && (
+      {(tripDates(trip) || sum.from) && (
         <p className="small muted">
-          🗓️ {formatDate(sum.from)}
-          {sum.to && sum.to !== sum.from ? ` → ${formatDate(sum.to)}` : ''} · 👥 {Object.keys(trip.members || {}).length} {t('recap.members')}
+          🗓️ {tripDates(trip) || formatDate(sum.from) + (sum.to && formatDate(sum.to) !== formatDate(sum.from) ? ` → ${formatDate(sum.to)}` : '')} · 👥 {Object.keys(trip.members || {}).length} {t('recap.members')}
         </p>
       )}
       <div className="trip-groups">

@@ -30,18 +30,51 @@ export const HEAD = '700 {s}px "Twemoji Country Flags", Lexend, "Be Vietnam Pro"
 export const BODY = '500 {s}px "Twemoji Country Flags", "Be Vietnam Pro", sans-serif';
 export const font = (tpl, s) => tpl.replace('{s}', Math.round(s));
 
-/* Vẽ chữ một dòng vừa khung: tự giảm cỡ chữ, nếu vẫn dài thì cắt "…".
-   Không dùng tham số maxWidth của fillText vì Safari iOS canh giữa sai. */
+/* Vẽ chữ một dòng vừa khung (dùng cho tiêu đề / dòng phụ).
+   Safari iOS đo và canh giữa sai khi dòng chữ có emoji cờ, nên:
+   - tách emoji (cờ, 📍…) ra vẽ riêng với bề rộng cố định,
+   - đo phần chữ bằng font không có emoji,
+   - tự tính toạ độ và luôn vẽ canh trái;
+   - quá dài thì giảm cỡ chữ, rồi mới cắt "…". */
+const EMOJI_RE = /(\p{Regional_Indicator}{2}|\p{Extended_Pictographic}\uFE0F?)/u;
+const textOnly = (tpl) => tpl.replace('"Twemoji Country Flags", ', '');
+function lineParts(text) {
+  return text.split(EMOJI_RE).filter(Boolean).map((t) => ({ t, emoji: EMOJI_RE.test(t) && t.match(EMOJI_RE)[0] === t }));
+}
+function lineWidth(ctx, parts, tpl, s) {
+  ctx.font = font(textOnly(tpl), s);
+  return parts.reduce((w, p) => w + (p.emoji ? s * 1.3 : ctx.measureText(p.t).width), 0);
+}
 export function fitText(ctx, text, x, y, maxW, tpl, size, minSize = size * 0.6) {
+  const align = ctx.textAlign;
+  let parts = lineParts(text);
   let s = size;
-  ctx.font = font(tpl, s);
-  while (s > minSize && ctx.measureText(text).width > maxW) { s -= 2; ctx.font = font(tpl, s); }
-  let t = text;
-  if (ctx.measureText(t).width > maxW) {
-    while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
-    t = t.trimEnd() + '…';
+  while (s > minSize && lineWidth(ctx, parts, tpl, s) > maxW) s -= 2;
+  if (lineWidth(ctx, parts, tpl, s) > maxW) {
+    // cắt dần ký tự cuối của phần chữ rồi thêm "…"
+    while (parts.length && lineWidth(ctx, [...parts, { t: '…' }], tpl, s) > maxW) {
+      const last = parts[parts.length - 1];
+      if (last.emoji || last.t.length <= 1) parts = parts.slice(0, -1);
+      else parts = [...parts.slice(0, -1), { t: last.t.slice(0, -1) }];
+    }
+    if (parts.length) parts[parts.length - 1] = { ...parts[parts.length - 1], t: parts[parts.length - 1].t.trimEnd() };
+    parts = [...parts, { t: '…' }];
   }
-  ctx.fillText(t, x, y);
+  const w = lineWidth(ctx, parts, tpl, s);
+  let cx = align === 'center' ? x - w / 2 : align === 'right' || align === 'end' ? x - w : x;
+  ctx.textAlign = 'left';
+  for (const p of parts) {
+    if (p.emoji) {
+      ctx.font = font(tpl, s * 1.05);
+      ctx.fillText(p.t, cx, y);
+      cx += s * 1.3;
+    } else {
+      ctx.font = font(textOnly(tpl), s);
+      ctx.fillText(p.t, cx, y);
+      cx += ctx.measureText(p.t).width;
+    }
+  }
+  ctx.textAlign = align;
 }
 export const ease = (t) => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
 

@@ -4,7 +4,7 @@ import { useI18n } from '../i18n';
 import { useApp } from '../AppContext';
 import { normalize } from '../lib/geo';
 import { FAQ } from '../data/faq';
-import { SPONSOR, sponsorReady, vietQrUrl } from '../config/sponsor';
+import { SPONSOR, sponsorReady } from '../config/sponsor';
 
 /** Câu hỏi thường gặp: tìm nhanh + mở / đóng từng câu */
 export function FaqModal({ onClose }) {
@@ -47,21 +47,15 @@ export function FaqModal({ onClose }) {
   );
 }
 
-const fmtVnd = (n) => `${Number(n).toLocaleString('vi-VN')} ₫`;
-
-/** Ủng hộ người làm Travel Map qua VietQR (quét bằng app ngân hàng / ví) */
+/** Ủng hộ người làm Travel Map: quét mã VietQR bằng app ngân hàng / ví */
 export function SponsorModal({ onClose }) {
   const { t } = useI18n();
-  const { notify, user } = useApp();
-  const [amount, setAmount] = useState(SPONSOR.defaultAmount);
-  const [custom, setCustom] = useState('');
-  const value = custom ? Math.max(1000, Math.round(Number(custom.replace(/\D/g, '')) || 0)) : amount;
-  const note = `${SPONSOR.note}${user?.name ? ` - ${user.name}` : ''}`.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').slice(0, 50);
+  const { notify } = useApp();
   const ready = sponsorReady();
-  const copy = async (text) => {
+  const copy = async (text, msg) => {
     try {
       await navigator.clipboard.writeText(text);
-      notify(t('sponsor.copied'));
+      notify(msg);
     } catch {
       notify(text);
     }
@@ -77,43 +71,28 @@ export function SponsorModal({ onClose }) {
           </div>
         ) : (
           <>
-            <div className="chips">
-              {SPONSOR.amounts.map((a) => (
-                <button
-                  key={a}
-                  className={`chip ${!custom && amount === a ? 'chip--on' : ''}`}
-                  onClick={() => {
-                    setCustom('');
-                    setAmount(a);
-                  }}
-                >
-                  {a === 5000 ? '☕ ' : a === 10000 ? '🧋 ' : a === 20000 ? '🍜 ' : '🍰 '}
-                  {fmtVnd(a)}
-                </button>
-              ))}
-            </div>
-            <label className="field">
-              <span>{t('sponsor.custom')}</span>
-              <input inputMode="numeric" value={custom} onChange={(e) => setCustom(e.target.value.replace(/[^\d.]/g, ''))} placeholder="5.000" />
-            </label>
             <figure className="sponsor__qr">
-              <img src={vietQrUrl(value, note)} alt={t('sponsor.qrAlt', { amount: fmtVnd(value) })} width="280" height="280" />
+              <img src={`${import.meta.env.BASE_URL}${SPONSOR.qrImage}`} alt={t('sponsor.qrAlt')} width="320" height="352" />
               <figcaption>
-                <b>{fmtVnd(value)}</b>
                 <small>{t('sponsor.scan')}</small>
               </figcaption>
             </figure>
             <div className="sponsor__bank">
               <div>
-                <small className="muted">{SPONSOR.bankName || SPONSOR.bankId.toUpperCase()}</small>
-                <b>{SPONSOR.accountNo}</b>
+                <small className="muted">{SPONSOR.bankName}</small>
+                <b>{SPONSOR.accountNoDisplay || SPONSOR.accountNo}</b>
                 <small>{SPONSOR.accountName}</small>
               </div>
-              <button className="btn btn--sm btn--soft" onClick={() => copy(SPONSOR.accountNo)}>
+              <button className="btn btn--sm btn--soft" onClick={() => copy(SPONSOR.accountNo, t('sponsor.copied'))}>
                 📋 {t('sponsor.copyAcc')}
               </button>
             </div>
-            <p className="small muted">{t('sponsor.note', { note })}</p>
+            <p className="small muted">
+              {t('sponsor.noteHint')} <b>{SPONSOR.note}</b>{' '}
+              <button className="link" onClick={() => copy(SPONSOR.note, t('sponsor.noteCopied'))}>
+                ({t('sponsor.copyNote')})
+              </button>
+            </p>
           </>
         )}
         <p className="small muted">{t('sponsor.thanks')}</p>

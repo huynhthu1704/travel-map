@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip, useMap, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, Marker, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useApp } from '../AppContext';
@@ -58,10 +58,34 @@ function FlyController({ countries }) {
   return null;
 }
 
+/** Chọn vị trí: bấm khi đang ở chế độ chọn, hoặc chạm giữ / chuột phải bất kỳ lúc nào */
+function PickHandler() {
+  const { pickMode, setPickMode, pinPlace } = useApp();
+  const map = useMap();
+  useEffect(() => {
+    map.getContainer().classList.toggle('map--picking', !!pickMode);
+  }, [pickMode, map]);
+  useMapEvents({
+    click: (e) => {
+      if (!pickMode) return;
+      const purpose = pickMode;
+      setPickMode(null);
+      pinPlace(e.latlng.lat, e.latlng.lng, { purpose });
+    },
+    contextmenu: (e) => {
+      setPickMode(null);
+      pinPlace(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 export default function MapView() {
   const {
-    countries, visitedCountries, selectedCountry, openCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace,
+    countries, visitedCountries, selectedCountry, openCountry, places, memories, openPlace, tripStops, activeTripId, selectedPlace, pickMode,
   } = useApp();
+  const pickRef = useRef(pickMode);
+  pickRef.current = pickMode;
   const geoRef = useRef();
   const { lang } = useI18n();
 
@@ -124,7 +148,7 @@ export default function MapView() {
           style={style}
           onEachFeature={(f, layer) => {
             layer.on({
-              click: () => f.properties.cc && openCountry(f.properties.cc),
+              click: () => !pickRef.current && f.properties.cc && openCountry(f.properties.cc),
               mouseover: (e) => e.target.setStyle({ fillOpacity: 0.6, fillColor: '#FFD452' }),
               mouseout: (e) => e.target.setStyle(styleRef.current(f)),
             });
@@ -144,6 +168,7 @@ export default function MapView() {
         </Marker>
       ))}
       <FlyController countries={countries} />
+      <PickHandler />
     </MapContainer>
   );
 }

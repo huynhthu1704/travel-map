@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { api } from './lib/store';
 import { loadCountries } from './lib/countries';
 import { translate as t } from './i18n';
-import { pName } from './lib/lang';
+import { pName, getLang } from './lib/lang';
+import { reverseGeocode } from './lib/geo';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -27,6 +28,7 @@ export function AppProvider({ children }) {
   viewRef.current = view;
 
   const [modal, setModal] = useState(null); // {type, ...props}
+  const [pickMode, setPickMode] = useState(null); // null | 'place' | 'memory'
   const [toast, setToast] = useState(null);
   const pendingAction = useRef(null);
 
@@ -141,7 +143,24 @@ export function AppProvider({ children }) {
     if (fly) setFlyTarget({ lat: place.lat, lng: place.lng, zoom: 13, t: Date.now() });
   }, []);
 
+  /** Tạo địa điểm tự do từ toạ độ (chọn trên bản đồ / link Google Maps), rồi lấy tên bằng reverse geocode. */
+  const pinPlace = useCallback(
+    async (lat, lng, { name = '', purpose = 'place', fly = false } = {}) => {
+      const id = `pin-${lat.toFixed(5)}_${lng.toFixed(5)}`;
+      const draft = { id, name: name || t('pick.loading'), city: '', country: '', lat, lng, emoji: '📍', custom: true };
+      openPlace(draft, { fly });
+      const geo = await reverseGeocode(lat, lng, getLang());
+      const place = { ...draft, name: name || geo.name || t('pick.loading'), city: geo.city, country: geo.country };
+      setSelectedPlace((cur) => (cur?.id === id ? place : cur));
+      if (place.country) setSelectedCountry(place.country);
+      if (purpose === 'memory') requireLogin(() => setModal({ type: 'memory', place }), t('reason.saveMemory'));
+      return place;
+    },
+    [openPlace, requireLogin],
+  );
+
   const value = {
+    pickMode, setPickMode, pinPlace,
     api, user, places, memories, publicMemories, trips, countries, activeTripId, setActiveTripId, tripStops,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
     modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,

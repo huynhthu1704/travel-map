@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { ALL_FAMOUS } from '../data/places';
 import { countryName, flagOf } from '../lib/countries';
-import { normalize, searchNominatim } from '../lib/geo';
+import { normalize, searchNominatim, isGoogleMapsLink } from '../lib/geo';
 import { useI18n } from '../i18n';
 import { getLang, pName, pCity } from '../lib/lang';
 
 /** Ô tìm kiếm: quốc gia, địa điểm nổi tiếng, kỉ niệm của tôi + mọi địa điểm trên OpenStreetMap */
 export default function SearchBox() {
-  const { countries, openCountry, openPlace, memories, setFlyTarget } = useApp();
+  const { countries, openCountry, openPlace, memories, setFlyTarget, setModal } = useApp();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [osm, setOsm] = useState([]);
@@ -32,7 +32,7 @@ export default function SearchBox() {
   }, [q, countries, memories, lang]);
 
   useEffect(() => {
-    if (q.trim().length < 3) {
+    if (q.trim().length < 3 || isGoogleMapsLink(q)) {
       setOsm([]);
       return;
     }
@@ -82,6 +82,12 @@ export default function SearchBox() {
       />
       {open && q.trim() && (
         <div className="search__dropdown">
+          {isGoogleMapsLink(q) && (
+            <button className="search__item" onClick={() => pick(() => setModal({ type: 'addLink', text: q.trim() }))}>
+              <span className="search__emoji">🔗</span>
+              <span>{t('link.searchHint')}</span>
+            </button>
+          )}
           {local.countries.length > 0 && <div className="search__group">{t('search.countries')}</div>}
           {local.countries.map((cc) => (
             <button key={cc} className="search__item" onClick={() => pick(() => openCountry(cc))}>
@@ -119,7 +125,7 @@ export default function SearchBox() {
             </button>
           ))}
           {loading && <div className="search__hint">{t('search.loading')}</div>}
-          {!loading && !hasResults && q.trim().length >= 3 && <div className="search__hint">{t('search.empty')}</div>}
+          {!loading && !hasResults && q.trim().length >= 3 && !isGoogleMapsLink(q) && <div className="search__hint">{t('search.empty')}</div>}
         </div>
       )}
     </div>

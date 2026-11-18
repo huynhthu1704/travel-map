@@ -499,6 +499,46 @@ code {
   /* làm dịu màu bản đồ OSM cho hợp tông vàng mật ong */
   filter: saturate(0.7) sepia(0.12) brightness(1.03);
 }
+.leaflet-interactive:focus {
+  outline: none;
+}
+.map--picking,
+.map--picking .leaflet-interactive {
+  cursor: crosshair !important;
+}
+.pick-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 800;
+  background: var(--color-bg-brand);
+  color: var(--ink-900);
+  font-weight: 700;
+  padding: 10px 10px 10px 18px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-pop);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+  animation: pop 0.2s ease;
+}
+.pick-banner button {
+  background: var(--ink-900);
+  color: #fff;
+  border-radius: var(--radius-full);
+  padding: 6px 14px;
+  font-weight: 600;
+}
+.picker__alt {
+  margin: 4px 0 8px;
+}
+.picked__name {
+  padding: 6px 10px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
 .map--near path.leaflet-interactive {
   fill-opacity: 0.08 !important;
 }
@@ -1574,6 +1614,10 @@ button.list-item:hover,
   }
   .leaflet-bottom.leaflet-right {
     bottom: 44%;
+  }
+  .pick-banner {
+    top: 12px;
+    bottom: auto;
   }
   .viewer,
   .studio {

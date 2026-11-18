@@ -65,7 +65,7 @@ function UserMenu() {
 }
 
 function Shell() {
-  const { view, setView, toast, activeTripId, trips, setActiveTripId } = useApp();
+  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode } = useApp();
   const { t } = useI18n();
   const activeTrip = trips.find((t) => t.id === activeTripId);
   // Giữ các trang đã mở trong DOM để khi quay lại vẫn còn tab, bộ lọc và vị trí cuộn
@@ -100,6 +100,12 @@ function Shell() {
             <div className="trip-badge">
               {activeTrip.emoji} {t('map.viewingTrip')} <b>{activeTrip.name}</b>
               <button onClick={() => setActiveTripId(null)} aria-label={t('map.off')}>✕</button>
+            </div>
+          )}
+          {pickMode && view === 'map' && (
+            <div className="pick-banner">
+              📍 {t('pick.banner')}
+              <button onClick={() => setPickMode(null)}>{t('pick.cancel')}</button>
             </div>
           )}
           <div className="legend">

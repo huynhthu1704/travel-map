@@ -33,7 +33,7 @@ function Stat({ value, label, emoji }) {
 }
 
 function WorldPanel() {
-  const { user, places, visitedCountries, openCountry, openPlace, requireLogin, setModal, trips, activeTripId, setActiveTripId } = useApp();
+  const { user, places, visitedCountries, openCountry, openPlace, requireLogin, setModal, trips, activeTripId, setActiveTripId, setPickMode } = useApp();
   const { t } = useI18n();
   const visited = places.filter((p) => p.status === 'visited');
   const wish = places.filter((p) => p.status === 'wishlist');
@@ -122,6 +122,15 @@ function WorldPanel() {
       <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
         {t('world.addMemory')}
       </button>
+      <div className="grid-2">
+        <button className="btn btn--outline btn--sm" onClick={() => setPickMode('place')}>
+          {t('pick.open')}
+        </button>
+        <button className="btn btn--outline btn--sm" onClick={() => setModal({ type: 'addLink' })}>
+          {t('link.open')}
+        </button>
+      </div>
+      <p className="small muted">{t('pick.tip')}</p>
     </div>
   );
 }
@@ -281,6 +290,12 @@ function PlacePanel() {
           </p>
         </div>
       </div>
+      {p.custom && (
+        <label className="field">
+          <span>{t('place.rename')}</span>
+          <input value={p.name} onChange={(e) => setSelectedPlace({ ...p, name: e.target.value })} maxLength={80} />
+        </label>
+      )}
       {pDesc(p) && <p>{pDesc(p)}</p>}
 
       {trips.length > 0 && (

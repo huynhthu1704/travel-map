@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { Modal, Avatar, formatDate } from './ui';
-import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize } from '../lib/geo';
+import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize, parseGoogleMapsInput, reverseGeocode, isGoogleMapsLink } from '../lib/geo';
 import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
 import { firebaseEnabled } from '../lib/firebase';
 import ShareStudio from './ShareStudio';
 import { useI18n } from '../i18n';
-import { pName, pCity } from '../lib/lang';
+import { pName, pCity, getLang } from '../lib/lang';
 
 export default function Modals() {
   const { modal, setModal } = useApp();
@@ -24,6 +24,8 @@ export default function Modals() {
       return <MemoryViewer memory={modal.memory} onClose={close} />;
     case 'share':
       return <ShareStudio memory={modal.memory} onClose={close} />;
+    case 'addLink':
+      return <AddLinkModal text={modal.text} onClose={close} />;
     default:
       return null;
   }
@@ -103,8 +105,118 @@ function DirectionsModal({ place, onClose }) {
   );
 }
 
-function PlacePicker({ value, onChange }) {
+/** Đọc link Google Maps → địa điểm { id, name, city, country, lat, lng } */
+async function resolveGoogleMaps(text) {
+  let parsed = parseGoogleMapsInput(text);
+  // Link rút gọn (maps.app.goo.gl): thử mở rộng qua dịch vụ trung gian công khai
+  if (parsed.shortOnly) {
+    try {
+      const url = text.match(/https?:\/\/\S+/)[0];
+      const ctl = new AbortController();
+      setTimeout(() => ctl.abort(), 8000);
+      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: ctl.signal }).then((x) => x.json());
+      const finalUrl = r?.status?.url || '';
+      const fromBody = (r?.contents || '').match(/https:\/\/www\.google\.[a-z.]+\/maps\/[^"'\s<]+/)?.[0] || '';
+      parsed = parseGoogleMapsInput(finalUrl.includes('/maps') ? finalUrl : fromBody.replace(/\\u0026/g, '&'));
+    } catch {
+      /* bỏ qua */
+    }
+  }
+  const lang = getLang();
+  if (parsed.lat != null) {
+    const geo = await reverseGeocode(parsed.lat, parsed.lng, lang);
+    return {
+      id: `gm-${parsed.lat.toFixed(5)}_${parsed.lng.toFixed(5)}`, name: parsed.name || geo.name, city: geo.city, country: geo.country,
+      lat: parsed.lat, lng: parsed.lng, emoji: '📍', custom: true,
+    };
+  }
+  if (parsed.query) {
+    const [hit] = await searchNominatim(parsed.query, undefined, lang);
+    if (hit) return { ...hit, id: `gm-${hit.lat.toFixed(5)}_${hit.lng.toFixed(5)}`, name: parsed.name || hit.name, custom: true };
+  }
+  return null;
+}
+
+function GoogleLinkInput({ initial = '', onFound, autoRun }) {
+  const { t } = useI18n();
+  const [text, setText] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const run = async (value = text) => {
+    if (!value.trim()) return;
+    setBusy(true);
+    setError('');
+    const place = await resolveGoogleMaps(value);
+    setBusy(false);
+    if (place) onFound(place);
+    else setError(t('link.notFound'));
+  };
+  useEffect(() => {
+    if (autoRun && initial) run(initial);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="stack link-input">
+      <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder={t('link.placeholder')} />
+      <small className="muted">{t('link.howto')}</small>
+      {error && <p className="small warn">{error}</p>}
+      <button type="button" className="btn btn--dark" disabled={busy || !text.trim()} onClick={() => run()}>
+        {busy ? t('link.finding') : t('link.find')}
+      </button>
+    </div>
+  );
+}
+
+function AddLinkModal({ text, onClose }) {
+  const { t } = useI18n();
+  const { placeStatus, setPlaceStatus, setModal, openPlace, requireLogin } = useApp();
+  const [place, setPlace] = useState(null);
+  const st = place && placeStatus[place.id];
+  return (
+    <Modal title={t('link.title')} onClose={onClose}>
+      <div className="stack">
+        {!place ? (
+          <>
+            <p className="small">{t('link.label')}</p>
+            <GoogleLinkInput initial={text || ''} autoRun={!!text} onFound={setPlace} />
+          </>
+        ) : (
+          <>
+            <div className="picked">
+              <span>📍</span>
+              <span>
+                <input className="picked__name" value={place.name} onChange={(e) => setPlace({ ...place, name: e.target.value })} placeholder={t('link.namePlaceholder')} />
+                <small>
+                  {[place.city, countryName(place.country)].filter(Boolean).join(', ')} {flagOf(place.country)}
+                </small>
+              </span>
+              <button type="button" className="btn btn--sm btn--ghost" onClick={() => setPlace(null)}>
+                {t('mem.change')}
+              </button>
+            </div>
+            <div className="grid-2">
+              <button className={`btn ${st === 'wishlist' ? 'btn--coral' : 'btn--outline'}`} onClick={() => setPlaceStatus(place, 'wishlist')}>
+                {st === 'wishlist' ? t('place.inWishlist') : t('place.addWishlist')}
+              </button>
+              <button className={`btn ${st === 'visited' ? 'btn--primary' : 'btn--outline'}`} onClick={() => setPlaceStatus(place, 'visited')}>
+                👣 {st === 'visited' ? t('place.visited') : t('place.markVisited')}
+              </button>
+              <button className="btn btn--soft" onClick={() => { onClose(); openPlace(place); }}>
+                {t('common.viewOnMap')}
+              </button>
+              <button className="btn btn--primary" onClick={() => requireLogin(() => setModal({ type: 'memory', place }), t('reason.saveMemory'))}>
+                {t('place.addMemory')}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+function PlacePicker({ value, onChange, onPickOnMap }) {
   const { memories, places } = useApp();
+  const [linkMode, setLinkMode] = useState(false);
   const { t } = useI18n();
   const [q, setQ] = useState('');
   const [osm, setOsm] = useState([]);
@@ -140,9 +252,31 @@ function PlacePicker({ value, onChange }) {
         </button>
       </div>
     );
+  if (linkMode)
+    return (
+      <div className="picker">
+        <GoogleLinkInput onFound={(p) => { setLinkMode(false); onChange(p); }} />
+        <button type="button" className="btn btn--sm btn--ghost" onClick={() => setLinkMode(false)}>
+          ← {t('common.back')}
+        </button>
+      </div>
+    );
   return (
     <div className="picker">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('mem.pickPlaceholder')} autoFocus />
+      <input
+        value={q}
+        onChange={(e) => (isGoogleMapsLink(e.target.value) ? setLinkMode(true) : setQ(e.target.value))}
+        placeholder={t('mem.pickPlaceholder')}
+        autoFocus
+      />
+      <div className="row wrap picker__alt">
+        <button type="button" className="btn btn--sm btn--soft" onClick={onPickOnMap}>
+          {t('pick.short')}
+        </button>
+        <button type="button" className="btn btn--sm btn--soft" onClick={() => setLinkMode(true)}>
+          {t('link.open')}
+        </button>
+      </div>
       <div className="picker__list">
         {[...local, ...osm].map((p) => (
           <button type="button" key={p.id} className="search__item" onClick={() => onChange(p)}>
@@ -159,7 +293,7 @@ function PlacePicker({ value, onChange }) {
 }
 
 function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
-  const { api, user, trips, notify, setModal } = useApp();
+  const { api, user, trips, notify, setModal, setPickMode } = useApp();
   const { t } = useI18n();
   const [place, setPlace] = useState(initialPlace || null);
   const [files, setFiles] = useState([]);
@@ -191,7 +325,14 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
       <form className="stack" onSubmit={submit}>
         <label className="field">
           <span>{t('mem.place')}</span>
-          <PlacePicker value={place} onChange={setPlace} />
+          <PlacePicker
+            value={place}
+            onChange={setPlace}
+            onPickOnMap={() => {
+              setModal(null);
+              setPickMode('memory');
+            }}
+          />
         </label>
         <div className="field">
           <span>{t('mem.photos', { n: files.length })}</span>

@@ -99,6 +99,15 @@ export async function exportPlanPdf(trip, items) {
   doc.text(l1, M + 6, y + 10);
   y += 14 + (l1.length - 1) * 3.8;
   doc.text(plain(line2), M + 6, y);
+  // Link mở chuyến đi trên web để sửa kế hoạch và xuất lại bản mới
+  const tripUrl = `${location.origin}${location.pathname}#/trips/${encodeURIComponent(trip.id)}`;
+  y += 5;
+  font('bold', 9, LINK);
+  const linkLabel = plain(t('pdf.openTrip'));
+  doc.textWithLink(linkLabel, M + 6, y, { url: tripUrl });
+  const lw = doc.getTextWidth(linkLabel);
+  font('normal', 8, MUTED);
+  doc.textWithLink(plain(tripUrl), M + 8 + lw, y, { url: tripUrl });
   y += 6;
 
   if (!items.length) {
@@ -159,7 +168,7 @@ export async function exportPlanPdf(trip, items) {
       const nameLines = doc.splitTextToSize(plain(pName(p)) || '—', PLACE_W);
       font('normal', 8, MUTED);
       const loc = [...new Set([pCity(p), countryName(p.country)].filter(Boolean))].join(', ');
-      const status = it.done ? ` · ${t('pdf.visited')}` : '';
+      const status = it.done ? ` · ${t('pdf.visited')}` : it.skipped ? ` · ${t('plan.statusSkip')}` : '';
       const locLines = doc.splitTextToSize(plain(loc + status), PLACE_W);
       font('normal', 8.5);
       const noteLines = it.note ? doc.splitTextToSize(plain(it.note), NOTE_W) : [];
@@ -209,7 +218,10 @@ export async function exportPlanPdf(trip, items) {
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     font('normal', 8.5, MUTED);
-    doc.text(plain(`${t('app.logo1')} ${t('app.logo2')} · ${plain(trip.name)}`), M, H - 9);
+    doc.text(plain(`${t('app.logo1')} ${t('app.logo2')} · ${plain(trip.name)} · `), M, H - 9);
+    const fw = doc.getTextWidth(plain(`${t('app.logo1')} ${t('app.logo2')} · ${plain(trip.name)} · `));
+    font('normal', 8.5, LINK);
+    doc.textWithLink(plain(t('pdf.editOnWeb')), M + fw, H - 9, { url: `${location.origin}${location.pathname}#/trips/${encodeURIComponent(trip.id)}` });
     doc.text(`${i}/${pages}`, W - M, H - 9, { align: 'right' });
   }
 

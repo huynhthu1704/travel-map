@@ -115,7 +115,7 @@ export default function MapView() {
   const geoRef = useRef();
   const { lang } = useI18n();
 
-  const planOrder = useMemo(() => (activeTripId ? tripPlan.filter((it) => it.tripId === activeTripId && it.place) : []), [activeTripId, tripPlan]);
+  const planOrder = useMemo(() => (activeTripId ? tripPlan.filter((it) => it.tripId === activeTripId && it.place && !it.skipped) : []), [activeTripId, tripPlan]);
   // Tô màu quốc gia: của chuyến đi đang xem, hoặc tất cả quốc gia đã đến
   const shownCountries = useMemo(
     () =>

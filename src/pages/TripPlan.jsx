@@ -178,21 +178,27 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
     setEditing(false);
     notify(t('plan.saved'));
   };
+  // Trạng thái: chưa đi / đã đi / không đi (bấm lại nút đang chọn để quay về "chưa đi")
+  const setSkipped = async () => {
+    if (item.skipped) return api.updatePlanItem(trip.id, item.id, { skipped: false });
+    await api.updatePlanItem(trip.id, item.id, { skipped: true, done: false, doneBy: user.name, doneAt: null });
+    notify(t('plan.skippedToast', { name: pName(item.place) }));
+  };
   const toggleDone = async () => {
     if (item.done) {
       await api.updatePlanItem(trip.id, item.id, { done: false, doneBy: null, doneAt: null });
       return;
     }
-    await api.updatePlanItem(trip.id, item.id, { done: true, doneBy: user.name, doneAt: Date.now() });
+    await api.updatePlanItem(trip.id, item.id, { done: true, skipped: false, doneBy: user.name, doneAt: Date.now() });
     // Đánh dấu "đã đến" trên bản đồ của mình + thêm vào hành trình chuyến đi
     const d = item.date && item.date <= today() ? item.date : today();
     await saveVisited(item.place, { visitedAt: d }, trip.id);
     notify(t('plan.doneToast', { name: pName(item.place) }));
   };
   return (
-    <li className={`plan-item ${item.done ? 'is-done' : ''}`}>
+    <li className={`plan-item ${item.done ? 'is-done' : ''} ${item.skipped ? 'is-skipped' : ''}`}>
       <button className="plan-item__check" onClick={toggleDone} aria-pressed={!!item.done} title={item.done ? t('plan.undo') : t('plan.markDone')}>
-        {item.done ? '✓' : index + 1}
+        {item.done ? '✓' : item.skipped ? '✕' : index + 1}
       </button>
       <div className="plan-item__body">
         <button className="link plan-item__name" onClick={() => openPlace(item.place)}>
@@ -201,8 +207,16 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
         <small className="muted">
           {flagOf(item.place.country)} {[pCity(item.place), countryName(item.place.country)].filter(Boolean).join(', ')}
           {item.time && <> · 🕘 {item.time}</>}
-          {item.done && item.doneBy && <> · {t('plan.doneBy', { name: item.doneBy })}</>}
+          {(item.done || item.skipped) && item.doneBy && <> · {t(item.skipped ? 'plan.skippedBy' : 'plan.doneBy', { name: item.doneBy })}</>}
         </small>
+        <div className="plan-status" role="group" aria-label={t('plan.status')}>
+          <button type="button" className={`plan-status__btn ${item.done ? 'on on--done' : ''}`} onClick={toggleDone} aria-pressed={!!item.done}>
+            👣 {t('plan.statusDone')}
+          </button>
+          <button type="button" className={`plan-status__btn ${item.skipped ? 'on on--skip' : ''}`} onClick={setSkipped} aria-pressed={!!item.skipped}>
+            🚫 {t('plan.statusSkip')}
+          </button>
+        </div>
         {item.note && !editing && (
           <button className="small plan-item__note" onClick={() => setEditing(true)} title={t('plan.edit')}>
             📝 {item.note}
@@ -368,6 +382,7 @@ export function TripPlan({ trip }) {
   const where = destLabel(dests);
 
   const done = list.filter((i) => i.done).length;
+  const skipped = list.filter((i) => i.skipped).length;
   // Nạp sẵn công cụ PDF ở nền khi mở tab Kế hoạch để bấm xuất là có ngay
   useEffect(() => {
     loadJsPdf().catch(() => {});
@@ -427,9 +442,12 @@ export function TripPlan({ trip }) {
         {list.length > 0 && (
           <div className="plan-progress">
             <div className="plan-progress__bar">
-              <i style={{ width: `${(done / list.length) * 100}%` }} />
+              <i style={{ width: `${(done / Math.max(list.length - skipped, 1)) * 100}%` }} />
             </div>
-            <small>{t('plan.progress', { done, n: list.length })}</small>
+            <small>
+              {t('plan.progress', { done, n: list.length - skipped })}
+              {skipped > 0 && ` · ${t('plan.skippedCount', { n: skipped })}`}
+            </small>
           </div>
         )}
         <div className="plan-add">

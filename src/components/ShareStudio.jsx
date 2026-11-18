@@ -519,15 +519,18 @@ export default function ShareStudio({ memory, onClose }) {
     await done;
     setBusy('');
     const blob = new Blob(chunks, { type: mime.split(';')[0] });
-    deliver(blob, `travel-map-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}`);
+    setResult({ url: URL.createObjectURL(blob), blob, name: `travel-map-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}` });
   };
+  // Video đã tạo: xem lại trước khi lưu / chia sẻ
+  const [result, setResult] = useState(null);
+  useEffect(() => () => result && URL.revokeObjectURL(result.url), [result]);
 
   return (
     <Modal title={t('studio.title')} onClose={onClose} wide className="modal--studio">
       <div className="studio">
         <div className="studio__preview">
           {loaded.length ? (
-            <div className="studio__stage">
+            <div className="studio__stage" style={result ? { display: 'none' } : undefined}>
               <canvas
                 ref={canvasRef}
                 onPointerDown={onPointerDown}
@@ -550,7 +553,9 @@ export default function ShareStudio({ memory, onClose }) {
                 </div>
               )}
             </div>
-          ) : (
+          ) : null}
+          {loaded.length > 0 && result && <video className="studio__video" src={result.url} controls autoPlay loop playsInline />}
+          {loaded.length ? null : (
             selected.length ? <Loader size="md" /> : <div className="studio__empty">{t('studio.empty')}</div>
           )}
         </div>
@@ -637,14 +642,28 @@ export default function ShareStudio({ memory, onClose }) {
             <input value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={120} placeholder={t('studio.captionPlaceholder')} />
           </label>
           {tainted && <p className="small warn">{t('studio.tainted')}</p>}
-          <div className="grid-2">
-            <button className="btn btn--primary" disabled={!loaded.length || tainted || !!busy} onClick={exportImage}>
-              {t('studio.saveImage')}
-            </button>
-            <button className="btn btn--dark" disabled={!loaded.length || tainted || !!busy} onClick={exportVideo}>
-              {busy || t('studio.makeVideo')}
-            </button>
-          </div>
+          {result ? (
+            <div className="stack-sm">
+              <p className="small">✅ {t('studio.videoReady')}</p>
+              <div className="grid-2">
+                <button className="btn btn--primary" onClick={() => deliver(result.blob, result.name)}>
+                  {t('studio.saveVideo')}
+                </button>
+                <button className="btn btn--outline" onClick={() => setResult(null)}>
+                  ← {t('studio.backToEdit')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid-2">
+              <button className="btn btn--primary" disabled={!loaded.length || tainted || !!busy} onClick={exportImage}>
+                {t('studio.saveImage')}
+              </button>
+              <button className="btn btn--dark" disabled={!loaded.length || tainted || !!busy} onClick={exportVideo}>
+                {busy || t('studio.makeVideo')}
+              </button>
+            </div>
+          )}
           <p className="small muted">{t('studio.mobileHint')}</p>
         </div>
       </div>

@@ -546,13 +546,14 @@ function layoutTimeline(ctx, o, at) {
 
 /** Trình chiếu: từng ảnh tràn màn hình (zoom chậm), cuối cùng là thẻ tổng kết. Ảnh tĩnh = thẻ tổng kết trên nền ảnh bìa. */
 const SLIDE = 2.4;
+const SUMMARY = 4.5; // trình chiếu: thẻ tổng kết trước, rồi tới ảnh của từng chuyến
 function layoutSlideshow(ctx, o, at, time) {
   const { W, H, k } = o;
   const imgs = o.imgs;
-  const slidesEnd = time === Infinity ? 0 : imgs.length * SLIDE;
-  if (time !== Infinity && time < slidesEnd) {
-    const i = Math.floor(time / SLIDE);
-    const local = (time - i * SLIDE) / SLIDE;
+  if (time !== Infinity && time >= SUMMARY && imgs.length) {
+    const st = time - SUMMARY;
+    const i = Math.min(imgs.length - 1, Math.floor(st / SLIDE));
+    const local = Math.min(1, (st - i * SLIDE) / SLIDE);
     const im = imgs[i];
     const z = 1.04 + 0.1 * local;
     ctx.fillStyle = '#000';
@@ -577,8 +578,8 @@ function layoutSlideshow(ctx, o, at, time) {
     ctx.globalAlpha = 1;
     return;
   }
-  // thẻ tổng kết
-  const t2 = time === Infinity ? Infinity : time - slidesEnd;
+  // thẻ tổng kết (mở đầu video; cũng là ảnh tĩnh)
+  const t2 = time;
   const at2 = (t0, dur = 0.6) => (t2 === Infinity ? 1 : ease((t2 - t0) / dur));
   const o2 = { ...o, time: t2 };
   if (imgs[0]) {
@@ -609,7 +610,7 @@ function renderRecap(ctx, o, time = Infinity) {
 
 function videoDuration(o) {
   const n = o.places.length;
-  if (o.layout === 'slideshow') return o.imgs.length * SLIDE + 4.5;
+  if (o.layout === 'slideshow') return SUMMARY + o.imgs.length * SLIDE + 0.3;
   if (o.layout === 'collage') return 1.2 + Math.min(9, o.imgs.length) * 0.22 + Math.min(2, n * 0.08) + 3;
   if (o.layout === 'passport') return 0.6 + 2.4 + 3.5;
   if (o.layout === 'timeline') return 0.8 + 3 + 3;
@@ -843,7 +844,41 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
 
   const exportImage = () => canvasRef.current.toBlob((b) => b && deliver(b, `travel-map-recap-${Date.now()}.png`), 'image/png');
 
+  // Xem trước chuyển động ngay trên khung xem trước (không ghi video)
+  const [playing, setPlaying] = useState(false);
+  const playRef = useRef(0);
+  const stopPreview = () => {
+    cancelAnimationFrame(playRef.current);
+    setPlaying(false);
+    const c = canvasRef.current;
+    if (c) renderRecap(c.getContext('2d'), opts);
+  };
+  const playPreview = () => {
+    const c = canvasRef.current;
+    if (!c) return;
+    if (layout === 'slideshow' && !imgs.length) return notify(t('recap.needPhotos'), 'error');
+    setPlaying(true);
+    const ctx = c.getContext('2d');
+    const duration = videoDuration(opts);
+    const t0 = performance.now();
+    const tick = () => {
+      const time = (performance.now() - t0) / 1000;
+      renderRecap(ctx, opts, Math.min(time, duration));
+      if (time < duration) playRef.current = requestAnimationFrame(tick);
+      else setTimeout(stopPreview, 600);
+    };
+    tick();
+  };
+  useEffect(() => () => cancelAnimationFrame(playRef.current), []);
+  useEffect(() => {
+    if (playing) stopPreview();
+  }, [opts]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Video đã tạo: xem lại trước khi lưu / chia sẻ
+  const [result, setResult] = useState(null); // { url, blob, name }
+  useEffect(() => () => result && URL.revokeObjectURL(result.url), [result]);
+
   const exportVideo = async () => {
+    stopPreview();
     const mime = pickMime();
     if (!mime) return notify(t('studio.noVideo'), 'error');
     if (layout === 'slideshow' && !imgs.length) return notify(t('recap.needPhotos'), 'error');
@@ -871,7 +906,8 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     rec.stop();
     await done;
     setBusy('');
-    deliver(new Blob(chunks, { type: mime.split(';')[0] }), `travel-map-recap-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}`);
+    const blob = new Blob(chunks, { type: mime.split(';')[0] });
+    setResult({ url: URL.createObjectURL(blob), blob, name: `travel-map-recap-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}` });
   };
 
   const maxFor = LAYOUTS.find((l) => l.id === layout).max;
@@ -879,7 +915,16 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
   return (
     <Modal title={mode === 'trip' ? t('recap.tripModal') : t('recap.yearModal')} onClose={onClose} wide className="modal--studio">
       <div className="studio">
-        <div className="studio__preview">{countries ? <canvas ref={canvasRef} /> : <Loader size="md" />}</div>
+        <div className="studio__preview">
+          {!countries ? (
+            <Loader size="md" />
+          ) : (
+            <>
+              <canvas ref={canvasRef} style={result ? { display: 'none' } : undefined} />
+              {result && <video className="studio__video" src={result.url} controls autoPlay loop playsInline />}
+            </>
+          )}
+        </div>
         <div className="studio__controls stack">
           {mode === 'year' && (
             <div className="field">
@@ -961,14 +1006,31 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
           </div>
           {busy ? (
             <Loader text={busy} />
+          ) : result ? (
+            <div className="stack-sm">
+              <p className="small">✅ {t('studio.videoReady')}</p>
+              <div className="grid-2">
+                <button className="btn btn--primary" onClick={() => deliver(result.blob, result.name)}>
+                  {t('studio.saveVideo')}
+                </button>
+                <button className="btn btn--outline" onClick={() => setResult(null)}>
+                  ← {t('studio.backToEdit')}
+                </button>
+              </div>
+            </div>
           ) : (
-            <div className="grid-2">
-              <button className="btn btn--primary" disabled={!countries} onClick={exportImage}>
-                {t('studio.saveImage')}
+            <div className="stack-sm">
+              <button className="btn btn--outline btn--block" disabled={!countries} onClick={playing ? stopPreview : playPreview}>
+                {playing ? `⏹ ${t('studio.stopPreview')}` : `▶ ${t('studio.playPreview')}`}
               </button>
-              <button className="btn btn--dark" disabled={!countries} onClick={exportVideo}>
-                {t('studio.makeVideo')}
-              </button>
+              <div className="grid-2">
+                <button className="btn btn--primary" disabled={!countries} onClick={exportImage}>
+                  {t('studio.saveImage')}
+                </button>
+                <button className="btn btn--dark" disabled={!countries} onClick={exportVideo}>
+                  {t('studio.makeVideo')}
+                </button>
+              </div>
             </div>
           )}
           <p className="small muted">{t('studio.mobileHint')}</p>

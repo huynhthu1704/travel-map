@@ -5414,3 +5414,16 @@ body.fb-picking * {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* Ô "Thêm ảnh": chừa lề để chữ không dính viền */
+.uploader__add {
+  padding: 8px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+.uploader__add small {
+  display: block;
+  text-align: center;
+  line-height: 1.3;
+  font-size: 12px;
+}

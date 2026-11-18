@@ -253,10 +253,10 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
       </div>
       {!editing && (
         <div className="plan-item__actions">
-          <button className="icon-btn" onClick={() => onMove(-1)} disabled={!canUp} aria-label={t('plan.up')} title={t('plan.up')}>
+          <button className="icon-btn" onClick={() => onMove(-1)} disabled={!canUp} aria-label={t('plan.up')} title={item.time && !canUp ? t('plan.sortedByTime') : t('plan.up')}>
             ↑
           </button>
-          <button className="icon-btn" onClick={() => onMove(1)} disabled={!canDown} aria-label={t('plan.down')} title={t('plan.down')}>
+          <button className="icon-btn" onClick={() => onMove(1)} disabled={!canDown} aria-label={t('plan.down')} title={item.time && !canDown ? t('plan.sortedByTime') : t('plan.down')}>
             ↓
           </button>
           <button className="icon-btn" onClick={() => setEditing(true)} aria-label={t('plan.edit')} title={t('plan.edit')}>
@@ -476,7 +476,16 @@ export function TripPlan({ trip }) {
             </h4>
             <ol className="plan-list">
               {group.map((it, i) => (
-                <PlanItem key={it.id} item={it} trip={trip} index={counter++} canUp={i > 0} canDown={i < group.length - 1} onMove={(dir) => move(group, i, dir)} />
+                <PlanItem
+                  key={it.id}
+                  item={it}
+                  trip={trip}
+                  index={counter++}
+                  // Mục có giờ được xếp tự động theo giờ; chỉ đổi chỗ được giữa các mục cùng giờ / chưa có giờ
+                  canUp={i > 0 && (group[i - 1].time || '') === (it.time || '')}
+                  canDown={i < group.length - 1 && (group[i + 1].time || '') === (it.time || '')}
+                  onMove={(dir) => move(group, i, dir)}
+                />
               ))}
             </ol>
           </div>

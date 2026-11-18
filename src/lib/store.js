@@ -26,8 +26,10 @@ import { FAMOUS_BY_ID } from '../data/places';
 const now = () => Date.now();
 const toMillis = (v) => (v?.toMillis ? v.toMillis() : v || 0);
 const byNewest = (a, b) => toMillis(b.createdAt) - toMillis(a.createdAt);
-// Kế hoạch: theo ngày dự định (mục chưa có ngày để cuối), rồi theo thứ tự người dùng sắp
-const byPlanOrder = (a, b) => (a.date || '9999') .localeCompare(b.date || '9999') || (a.order ?? 0) - (b.order ?? 0);
+// Kế hoạch: theo ngày dự định (mục chưa có ngày để cuối), trong ngày theo giờ sớm → muộn
+// (mục chưa có giờ để sau), cuối cùng theo thứ tự người dùng tự sắp
+const byPlanOrder = (a, b) =>
+  (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99:99').localeCompare(b.time || '99:99') || (a.order ?? 0) - (b.order ?? 0);
 const safeId = (s) => String(s).replace(/[^\w-]/g, '_').slice(0, 120);
 export const makeInviteCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 const pickPlace = (p) => ({

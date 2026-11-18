@@ -3379,3 +3379,26 @@ img.is-loaded {
     justify-content: flex-start;
   }
 }
+.cf-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cf-calc {
+  font-weight: 700;
+  color: var(--honey-700, #7a5300);
+}
+@media (max-width: 720px) {
+  .cf-grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
+/* Chọn người tham gia: đã chọn = vàng mật ong, chưa chọn = viền mờ */
+.cost-form__split .chip {
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+}
+.cost-form__split .chip--on,
+.cost-form__split .chip--on:hover {
+  background: var(--honey-400);
+  border-color: var(--honey-500, #e0a100);
+  color: var(--ink-900);
+}

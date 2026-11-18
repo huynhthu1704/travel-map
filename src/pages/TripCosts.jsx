@@ -4,7 +4,7 @@ import { useI18n } from '../i18n';
 import { Avatar, Loader, formatDate } from '../components/ui';
 import DateInput from '../components/DateInput';
 import { pName } from '../lib/lang';
-import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase } from '../lib/money';
+import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase, actualAmountOf, participantsOf } from '../lib/money';
 import { currencyOfCountry } from '../lib/rates';
 import CurrencyRates from '../components/CurrencyRates';
 
@@ -60,6 +60,9 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
   const [estimateId, setEstimateId] = useState(initial.estimateId || '');
   const [paidBy, setPaidBy] = useState(initial.paidBy || user.uid);
   const [among, setAmong] = useState(initial.splitAmong?.length ? initial.splitAmong : memberIds);
+  // Ai tham gia khoản chi: cả nhóm hoặc chọn từng người
+  const [who, setWho] = useState(initial.splitAmong?.length ? 'some' : 'all');
+  const people = who === 'all' ? memberIds : among;
   const [date, setDate] = useState(initial.date || '');
   const [note, setNote] = useState(initial.note || '');
   const linked = plan.find((p) => p.id === planItemId);
@@ -72,12 +75,13 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
     if (c && curs.includes(c)) setCur(c);
   }, [planItemId]); // eslint-disable-line react-hooks/exhaustive-deps
   const finalTitle = title.trim() || (linked ? pName(linked.place) : '');
-  const ok = finalTitle && amount > 0 && (type === 'estimate' || (paidBy && among.length));
+  const ok = finalTitle && amount > 0 && (type === 'estimate' || (paidBy && people.length));
   const toggle = (id) => setAmong((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
   const fromEstimate = (e) => {
     setEstimateId(e.id);
     setTitle(e.title);
-    setAmount(e.per === 'person' ? e.amount * n : e.amount);
+    setAmount(e.amount);
+    setPer(e.per || 'group');
     setCur(e.currency && curs.includes(e.currency) ? e.currency : base);
     setPlanItemId(e.planItemId || '');
     if (e.note) setNote(e.note);
@@ -97,9 +101,10 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
       onSave({
         ...common,
         estimateId: estimateId || null,
+        per,
         paidBy,
         paidByName: trip.members?.[paidBy]?.name || '',
-        splitAmong: among.length === memberIds.length && memberIds.every((m) => among.includes(m)) ? [] : among,
+        splitAmong: who === 'all' || (among.length === memberIds.length && memberIds.every((m) => among.includes(m))) ? [] : among,
         date: date || '',
       });
   };
@@ -152,7 +157,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
       </div>
       {chosenEst && amount != null && (
         <small className="muted">
-          {t('cost.vsEstimate', { v: fmtMoney(chosenEst.per === 'person' ? chosenEst.amount * n : chosenEst.amount, chosenEst.currency || base) })}
+          {t('cost.vsEstimate', { v: `${fmtMoney(chosenEst.amount, chosenEst.currency || base)} / ${chosenEst.per === 'person' ? t('cost.person') : t('cost.group')}` })}
         </small>
       )}
       {type === 'estimate' ? (
@@ -190,20 +195,35 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
             : t('cost.personHint', { total: fmtMoney(amount * n, cur), n })}
         </small>
       )}
-      {type === 'actual' && memberIds.length > 1 && (
-        <div className="cf-field">
-          <span>
-            ➗ {t('cost.splitAmong')} {amount > 0 && among.length > 0 && <em className="muted">= {fmtMoney(amount / among.length, cur)} / {t('cost.person')}</em>}
-          </span>
-          <div className="cost-form__split">
-            {memberIds.map((id) => (
-              <button key={id} type="button" className={`chip chip--sm ${among.includes(id) ? 'chip--on' : ''}`} onClick={() => toggle(id)}>
-                {among.includes(id) ? '✓ ' : ''}
-                {trip.members?.[id]?.name || id}
-              </button>
-            ))}
+      {type === 'actual' && (
+        <div className="cf-grid cf-grid--2">
+          <div className="cf-field">
+            <span>💵 {t('cost.amountIs')}</span>
+            <Seg value={per} set={setPer} options={[['group', `👥 ${t('cost.amountTotal')}`], ['person', `🙋 ${t('cost.perPerson')}`]]} />
+          </div>
+          <div className="cf-field">
+            <span>➗ {t('cost.whoJoined')}</span>
+            <Seg value={who} set={setWho} options={[['all', `👥 ${t('cost.wholeGroup', { n })}`], ['some', `👤 ${t('cost.pickPeople')}`]]} />
           </div>
         </div>
+      )}
+      {type === 'actual' && who === 'some' && (
+        <div className="cost-form__split">
+          {memberIds.map((id) => (
+            <button key={id} type="button" className={`chip chip--sm ${among.includes(id) ? 'chip--on' : ''}`} onClick={() => toggle(id)}>
+              {among.includes(id) ? '✓ ' : ''}
+              {trip.members?.[id]?.name || id}
+              {id === user.uid ? ` (${t('trips.you')})` : ''}
+            </button>
+          ))}
+        </div>
+      )}
+      {type === 'actual' && amount > 0 && people.length > 0 && (
+        <small className="cf-calc">
+          {per === 'person'
+            ? t('cost.calcPerson', { each: fmtMoney(amount, cur), n: people.length, total: fmtMoney(amount * people.length, cur) })
+            : t('cost.calcGroup', { total: fmtMoney(amount, cur), n: people.length, each: fmtMoney(amount / people.length, cur) })}
+        </small>
       )}
       <div className="cf-foot">
         <input className="grow" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('cost.notePh')} maxLength={120} />
@@ -264,7 +284,7 @@ export default function TripCosts({ trip }) {
   const openEstimates = estimates.filter((e) => !recorded[e.id]?.length);
   const estPerPerson = estimates.reduce((s, c) => s + perPersonOf(c, n, conv), 0);
   const estGroup = estimates.reduce((s, c) => s + groupTotalOf(c, n, conv), 0);
-  const actualTotal = actuals.reduce((s, c) => s + (conv(c.amount, c.currency) ?? 0), 0);
+  const actualTotal = actuals.reduce((s, c) => s + (conv(actualAmountOf(c, memberIds), c.currency) ?? 0), 0);
   const missingRate = list.some((c) => c.currency && c.currency !== cur && conv(1, c.currency) == null);
   const { balances, transfers } = useMemo(() => settle(list, memberIds, cur, conv), [costs, memberIds.join(), cur, JSON.stringify(rates)]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -351,7 +371,7 @@ export default function TripCosts({ trip }) {
                   <span>
                     {recorded[c.id]?.length ? (
                       <span className="est-done" title={t('cost.recordedHelp')}>
-                        ✓ {fmtMoney(recorded[c.id].reduce((x, a) => x + (conv(a.amount, a.currency) ?? 0), 0), cur)}
+                        ✓ {fmtMoney(recorded[c.id].reduce((x, a) => x + (conv(actualAmountOf(a, memberIds), a.currency) ?? 0), 0), cur)}
                       </span>
                     ) : (
                       <span className="muted small">—</span>
@@ -362,7 +382,7 @@ export default function TripCosts({ trip }) {
                       className="icon-btn icon-btn--sm"
                       title={t('cost.toActual')}
                       onClick={() => {
-                        setPrefill({ title: c.title, amount: c.per === 'person' ? c.amount * n : c.amount, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id });
+                        setPrefill({ title: c.title, amount: c.amount, per: c.per, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id });
                         setAdding('actual');
                       }}
                     >
@@ -382,7 +402,7 @@ export default function TripCosts({ trip }) {
               <span>{t('cost.total')}</span>
               <span>{fmtMoney(estGroup, cur)}</span>
               <span>{fmtMoney(estPerPerson, cur)}</span>
-              <span className="est-done">{actuals.some((a) => a.estimateId) ? `✓ ${fmtMoney(estimates.reduce((x, e) => x + (recorded[e.id] || []).reduce((y, a) => y + (conv(a.amount, a.currency) ?? 0), 0), 0), cur)}` : ''}</span>
+              <span className="est-done">{actuals.some((a) => a.estimateId) ? `✓ ${fmtMoney(estimates.reduce((x, e) => x + (recorded[e.id] || []).reduce((y, a) => y + (conv(actualAmountOf(a, memberIds), a.currency) ?? 0), 0), 0), cur)}` : ''}</span>
               <span />
             </div>
           </div>
@@ -444,14 +464,21 @@ export default function TripCosts({ trip }) {
                         .join(' · ')}
                     </small>
                   </span>
-                  <span>
-                    <Amount c={c} strong />
+                  <span className="amt">
+                    <Amount c={c} value={actualAmountOf(c, memberIds)} strong />
+                    {c.per === 'person' && (
+                      <small className="muted">
+                        {fmtMoney(c.amount, c.currency || cur)} × {participantsOf(c, memberIds).length}
+                      </small>
+                    )}
                   </span>
                   <span className="cost-row__payer">
                     <Avatar name={nameOf(c.paidBy, c.paidByName)} photo={trip.members?.[c.paidBy]?.photo} size={22} />
                     {nameOf(c.paidBy, c.paidByName)}
                   </span>
-                  <span className="small">{c.splitAmong?.length ? t('cost.splitSome', { n: c.splitAmong.length }) : t('cost.splitAll')}</span>
+                  <span className="small" title={participantsOf(c, memberIds).map((id) => nameOf(id)).join(', ')}>
+                    {c.splitAmong?.length ? participantsOf(c, memberIds).map((id) => nameOf(id)).join(', ') : t('cost.splitAll')}
+                  </span>
                   <span className="cost-row__actions">
                     <button className="icon-btn icon-btn--sm" title={t('plan.edit')} onClick={() => setEditId(c.id)}>
                       ✏️

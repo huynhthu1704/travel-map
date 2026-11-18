@@ -57,6 +57,11 @@ export const groupTotalOf = (c, members, conv = (a) => a) => {
   return c.per === 'person' ? a * Math.max(members, 1) : a;
 };
 
+/** Người tham gia 1 khoản chi thực tế (trống = cả nhóm) */
+export const participantsOf = (c, memberIds) => (c.splitAmong?.length ? c.splitAmong : memberIds).filter(Boolean);
+/** Tổng tiền 1 khoản chi thực tế (theo tiền gốc): nhập theo mỗi người thì nhân số người tham gia */
+export const actualAmountOf = (c, memberIds) => (Number(c.amount) || 0) * (c.per === 'person' ? Math.max(participantsOf(c, memberIds).length, 1) : 1);
+
 /**
  * Tính số dư mỗi người từ chi phí thực tế + các lần đã trả lại nhau.
  * actual: { amount, paidBy, splitAmong[] } — chia đều cho những người trong splitAmong (mặc định cả nhóm)
@@ -68,7 +73,7 @@ export function settle(costs, memberIds, cur, conv = (a) => a) {
   const b = Object.fromEntries(memberIds.map((id) => [id, { paid: 0, share: 0, net: 0 }]));
   const ensure = (id) => (b[id] ||= { paid: 0, share: 0, net: 0 });
   for (const c of costs) {
-    const amt = conv(Number(c.amount) || 0, c.currency) ?? 0;
+    const amt = conv(c.type === 'actual' ? actualAmountOf(c, memberIds) : Number(c.amount) || 0, c.currency) ?? 0;
     if (!amt || !c.paidBy) continue;
     if (c.type === 'payment') {
       if (!c.payTo) continue;
@@ -77,7 +82,7 @@ export function settle(costs, memberIds, cur, conv = (a) => a) {
       continue;
     }
     if (c.type !== 'actual') continue;
-    const among = (c.splitAmong?.length ? c.splitAmong : memberIds).filter(Boolean);
+    const among = participantsOf(c, memberIds);
     ensure(c.paidBy).paid += amt;
     const each = amt / among.length;
     among.forEach((id) => (ensure(id).share += each));

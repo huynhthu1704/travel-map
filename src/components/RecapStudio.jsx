@@ -26,7 +26,6 @@ const LAYOUTS = [
   { id: 'timeline', emoji: '🗓️', max: 4 },
   { id: 'slideshow', emoji: '🎞️', max: 12 },
 ];
-const MAX_PICK = 12;
 const THEMES = {
   honey: { bg1: '#FFF4CC', bg2: '#FFD86B', card: '#FFFFFF', text: C.ink, sub: C.ink2, land: '#EFE7D6', landVisited: '#FFC629', stroke: '#D9CDB4', water: '#EAF4F8', dot: C.coral, accent: '#A87400', chip: 'rgba(255,255,255,0.85)' },
   night: { bg1: '#1F1A14', bg2: '#3A2E1C', card: '#2B241C', text: '#FFFFFF', sub: '#E9DFC9', land: '#4A4237', landVisited: '#FFC629', stroke: '#5E5446', water: '#221D17', dot: '#FF7A59', accent: '#FFC629', chip: 'rgba(255,255,255,0.1)' },
@@ -678,6 +677,9 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     return { places: list, pool };
   }, [mode, stops, places, memories, year, trip, moreThumbs]);
 
+  const [layout, setLayout] = useState('map');
+  // Số ảnh bố cục đang chọn hiển thị: chỉ cho chọn đúng bấy nhiêu ảnh
+  const maxFor = LAYOUTS.find((l) => l.id === layout).max;
   // Mặc định: mỗi chuyến đi 1 ảnh (chuyến đi: mỗi địa điểm 1 ảnh), tối thiểu 4 ảnh nếu có
   const defaultPick = useMemo(() => {
     const pick = [];
@@ -698,8 +700,8 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
       }
     });
     data.pool.forEach((ph) => pick.length < Math.min(4, data.pool.length) && !pick.includes(ph.key) && pick.push(ph.key));
-    return pick;
-  }, [data, mode]);
+    return pick.slice(0, maxFor);
+  }, [data, mode, maxFor]);
   const [picked, setPicked] = useState(defaultPick);
   // Đổi năm / chuyến → chọn lại mặc định; ảnh tải thêm sau không ghi đè lựa chọn của người dùng
   const pickKey = `${mode}-${year}-${trip?.id || ''}`;
@@ -711,14 +713,14 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
       touched.current = false;
     }
     if (!touched.current) setPicked(defaultPick);
-  }, [defaultPick, pickKey]);
+    else setPicked((cur) => (cur.length > maxFor ? cur.slice(0, maxFor) : cur));
+  }, [defaultPick, pickKey, maxFor]);
   const togglePick = (key) =>
     (touched.current = true) &&
-    setPicked((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : cur.length >= MAX_PICK ? (notify(t('recap.maxPhotos', { n: MAX_PICK })), cur) : [...cur, key]));
+    setPicked((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : cur.length >= maxFor ? (notify(t('recap.maxPhotos', { n: maxFor })), cur) : [...cur, key]));
 
   const [fmt, setFmt] = useState('story');
   const [theme, setTheme] = useState('honey');
-  const [layout, setLayout] = useState('map');
   const [imgs, setImgs] = useState([]);
   const [busy, setBusy] = useState('');
   const canvasRef = useRef();
@@ -911,8 +913,6 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
     setResult({ url: URL.createObjectURL(blob), blob, name: `travel-map-recap-${Date.now()}.${mime.includes('mp4') ? 'mp4' : 'webm'}` });
   };
 
-  const maxFor = LAYOUTS.find((l) => l.id === layout).max;
-
   return (
     <Modal title={mode === 'trip' ? t('recap.tripModal') : t('recap.yearModal')} onClose={onClose} wide className="modal--studio">
       <div className="studio">
@@ -953,8 +953,8 @@ export default function RecapStudio({ mode = 'year', trip, stops = NO_STOPS, onC
           </div>
           <div className="field">
             <span>
-              {t('recap.pickPhotos', { n: picked.length })}
-              {picked.length > maxFor && <small className="muted"> · {t('recap.layoutUses', { n: maxFor })}</small>}
+              {t('recap.pickPhotos', { n: picked.length, max: maxFor })}
+              <small className="muted"> · {t('recap.layoutNeeds', { n: maxFor })}</small>
             </span>
             {data.pool.length === 0 ? (
               <p className="small muted">{t('recap.noPhotos')}</p>

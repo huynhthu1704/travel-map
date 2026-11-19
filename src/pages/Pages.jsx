@@ -449,6 +449,7 @@ export function ExplorePage() {
 }
 
 export function MemoriesPage() {
+  const { can } = useApp();
   const { user, memories, places, requireLogin, setModal, openPlace, loaded } =
     useApp();
   const [tab, setTab] = useState("memories");
@@ -507,12 +508,14 @@ export function MemoriesPage() {
           <h1 className="h1">{t("mine.title")}</h1>
         </div>
         <div className="row wrap">
+          {can("recap") && (
           <button
             className="btn btn--outline"
             onClick={() => setModal({ type: "recap", mode: "year" })}
           >
             {t("recap.yearButton")}
           </button>
+          )}
           <button
             className="btn btn--primary"
             onClick={() => setModal({ type: "memory" })}
@@ -705,6 +708,7 @@ function PlaceList({ items, onOpen, emptyText, groupByCountry, byRecent }) {
 }
 
 export function TripsPage() {
+  const { can } = useApp();
   const {
     user,
     trips,
@@ -779,7 +783,7 @@ export function TripsPage() {
           </button>
         </div>
       </header>
-      <MyTripInvites />
+      {can("tripInvites") && <MyTripInvites />}
       {panel && (
         <Modal
           title={
@@ -991,6 +995,7 @@ export function TripsPage() {
 }
 
 function TripDetail({ trip, onBack }) {
+  const { can } = useApp();
   const {
     user,
     api,
@@ -1086,6 +1091,7 @@ function TripDetail({ trip, onBack }) {
                   >
                     ✏️ {t("trip.edit")}
                   </button>
+                  {can("tripDuplicate") && (
                   <button
                     onClick={() => {
                       setDuplicating(true);
@@ -1094,6 +1100,7 @@ function TripDetail({ trip, onBack }) {
                   >
                     📋 {t("dup.button")}
                   </button>
+                  )}
                   <hr />
                   <button
                     className="danger"
@@ -1167,6 +1174,7 @@ function TripDetail({ trip, onBack }) {
             <button className="btn btn--primary" onClick={() => setShowMembers(true)}>
               {t("trip.invite")}
             </button>
+            {can("recap") && (
             <button
               className="btn btn--outline"
               disabled={!stopList.length}
@@ -1176,6 +1184,7 @@ function TripDetail({ trip, onBack }) {
             >
               {t("recap.shareTrip")}
             </button>
+            )}
             <button
               className="btn btn--dark"
               onClick={() => showTripOnMap(trip.id)}
@@ -1203,7 +1212,9 @@ function TripDetail({ trip, onBack }) {
           ["costs", `💰 ${t("cost.tab")}`],
           ["checklist", `✅ ${t("check.tab")}`],
           ["journey", `👣 ${t("trip.journey")} (${stopList.length})`],
-        ].map(([id, label]) => (
+        ]
+          .filter(([id]) => (id === "costs" ? can("tripCosts") : id === "checklist" ? can("tripChecklist") : true))
+          .map(([id, label]) => (
           <button
             key={id}
             className={`chip ${tab === id ? "chip--on" : ""}`}
@@ -1214,8 +1225,8 @@ function TripDetail({ trip, onBack }) {
         ))}
       </div>
       {tab === "plan" && <TripPlan trip={trip} />}
-      {tab === "costs" && <TripCosts trip={trip} />}
-      {tab === "checklist" && <TripChecklists trip={trip} />}
+      {tab === "costs" && can("tripCosts") && <TripCosts trip={trip} />}
+      {tab === "checklist" && can("tripChecklist") && <TripChecklists trip={trip} />}
       {tab === "journey" && stopList.length > 0 && (
         <TripSummary trip={trip} stops={stopList} />
       )}
@@ -1294,6 +1305,7 @@ function TripDetail({ trip, onBack }) {
 
 /** Tổng hợp chuyến đi: số liệu + địa điểm nhóm theo quốc gia / thành phố */
 function TripSummary({ trip, stops }) {
+  const { can } = useApp();
   const { t } = useI18n();
   const { openPlace, setModal } = useApp();
   const sum = useMemo(() => {
@@ -1333,12 +1345,14 @@ function TripSummary({ trip, stops }) {
     <section className="card trip-summary">
       <div className="trip-summary__head">
         <h3 className="h3">{t("recap.tripSummary")}</h3>
+        {can("recap") && (
         <button
           className="btn btn--sm btn--primary"
           onClick={() => setModal({ type: "recap", mode: "trip", trip, stops })}
         >
           {t("recap.shareTrip")}
         </button>
+        )}
       </div>
       <div className="stats stats--4">
         <div className="stat">

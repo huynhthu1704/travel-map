@@ -8,7 +8,7 @@ import { useI18n } from '../i18n';
  * Mở chế độ chọn từ nơi khác: window.dispatchEvent(new Event('feedback:pick'))
  */
 export default function FeedbackLauncher() {
-  const { setModal, requireLogin, user } = useApp();
+  const { setModal, requireLogin, user, can } = useApp();
   const { t } = useI18n();
   // Nút "Hướng dẫn nhanh" nằm ngay trên nút Góp ý (cùng mép, đi theo khi kéo)
   const tabRef = useRef(null);
@@ -140,7 +140,7 @@ export default function FeedbackLauncher() {
 
   return (
     <>
-      {!picking && (
+      {!picking && can('quickTour') && (
         <button
           className={`fb-tour fb-ignore fb-tour--${pos.side}`}
           style={{ top: `calc(${pos.top * 100}% - ${Math.round(tabH / 2) + 8}px)` }}

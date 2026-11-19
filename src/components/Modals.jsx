@@ -21,9 +21,13 @@ import { pName, pCity, getLang } from '../lib/lang';
 import { getNetQuality } from '../lib/network';
 import { useThumbs } from '../lib/useThumbs';
 
+// Hộp thoại thuộc tính năng nào (feature flag) — tắt thì không mở
+const MODAL_FLAG = { share: 'share', recap: 'recap', sponsor: 'sponsor', whatsNew: 'whatsNew', feedback: 'feedback' };
+
 export default function Modals() {
-  const { modal, setModal } = useApp();
+  const { modal, setModal, can } = useApp();
   if (!modal) return null;
+  if (MODAL_FLAG[modal.type] && !can(MODAL_FLAG[modal.type])) return null;
   const close = () => setModal(null);
   return (
     <Suspense
@@ -699,7 +703,11 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
 }
 
 /** Thích check-in công khai (báo cho chủ check-in) */
-function LikeButton({ memory: m }) {
+function LikeButton(props) {
+  const { can } = useApp();
+  return can('likes') ? <LikeButtonInner {...props} /> : null;
+}
+function LikeButtonInner({ memory: m }) {
   const { user, requireLogin, socialApi, notify } = useApp();
   const { t } = useI18n();
   const [info, setInfo] = useState(null);
@@ -734,7 +742,7 @@ function LikeButton({ memory: m }) {
 }
 
 function MemoryViewer({ memory: m, onClose }) {
-  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin, openProfile, deleteCheckin } = useApp();
+  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin, openProfile, deleteCheckin, can } = useApp();
   const realAuthor = !!m?.uid && m.uid !== 'sample' && m.uid !== 'trip-stop';
   const st = placeStatus[m.place?.id];
   const { t } = useI18n();
@@ -820,7 +828,7 @@ function MemoryViewer({ memory: m, onClose }) {
                 ✏️ {t('mem.edit')}
               </button>
             )}
-            {mine && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: full ? { ...m, fullPhotos: full } : m })}>{t('mem.share')}</button>}
+            {mine && can('share') && <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: full ? { ...m, fullPhotos: full } : m })}>{t('mem.share')}</button>}
             {mine && (
               <button
                 className="btn btn--sm btn--soft"

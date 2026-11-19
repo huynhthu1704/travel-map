@@ -62,7 +62,7 @@ export default function Notifications() {
 
 function NoteList({ notes, onDone }) {
   const { t, lang } = useI18n();
-  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify, setView, setOpenTripId, myInvites, trips, api, openTips, setTipPost } = useApp();
+  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify, setView, setOpenTripId, myInvites, trips, api, openTips, setTipPost, can } = useApp();
   const [answering, setAnswering] = useState('');
   const pendingFor = (n) => (myInvites || []).find((i) => i.tripId === n.tripId);
   const answer = async (n, inv, accept) => {
@@ -159,7 +159,7 @@ function NoteList({ notes, onDone }) {
                 </span>
               </button>
               <div className="notif__acts">
-                {n.type === 'follow' && n.from && !followingIds.has(n.from) && (
+                {n.type === 'follow' && n.from && !followingIds.has(n.from) && can('follow') && (
                   <button className="btn btn--sm btn--primary" onClick={() => toggleFollow(n.from, n.fromName)}>
                     ＋ {t('social.followBack')}
                   </button>

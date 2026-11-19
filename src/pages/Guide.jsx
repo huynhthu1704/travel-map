@@ -28,6 +28,16 @@ function Rich({ text }) {
   return <>{parts.map((p, i) => (typeof p === 'string' ? <Fragment key={i}>{p}</Fragment> : p))}</>;
 }
 
+/** Tách đoạn dài thành các ý ngắn để dễ đọc: theo câu, theo dấu "·", và theo từng địa điểm "A (…), B (…)" */
+function toPoints(key, text) {
+  if (!text) return [];
+  let parts;
+  if (text.includes(' · ')) parts = text.split(' · ');
+  else if (key === 'places') parts = text.split(/(?<=\)),\s+/);
+  else parts = text.split(/(?<=[.;!?])\s+(?=[\p{Lu}*[(])/u);
+  return parts.map((x) => x.trim().replace(/;$/, '')).filter(Boolean);
+}
+
 /** #/guide và #/guide/<cc> — Cẩm nang du lịch châu Á */
 export default function GuidePage() {
   const { guideCc, setGuideCc } = useApp();
@@ -103,9 +113,22 @@ function CountryGuide({ g, onBack }) {
               <h2 className="h3">
                 <span>{s.icon}</span> {s[lang] || s.vi}
               </h2>
-              <p>
-                <Rich text={L(g[s.key])} />
-              </p>
+              {(() => {
+                const pts = toPoints(s.key, L(g[s.key]));
+                return pts.length > 1 ? (
+                  <ul className="guide-points">
+                    {pts.map((x, k) => (
+                      <li key={k}>
+                        <Rich text={x} />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>
+                    <Rich text={pts[0] || ''} />
+                  </p>
+                );
+              })()}
             </section>
             {i === 3 && <AdSlot placement={`guide-${g.cc}`} size="inline" />}
           </Fragment>

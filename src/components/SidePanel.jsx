@@ -409,7 +409,7 @@ const HOME_TABS = ['overview', 'visited', 'wishlist', 'famous'];
 function WorldPanel() {
   const {
     user, places, memories, visitedCountries, openCountry, requireLogin, setModal, trips, activeTripId, setActiveTripId, startPicking,
-    homeCountry, setHomeCountry, famousFor, homeLoading, countries, setFlyTarget, placeStatus, setPlaceStatus,
+    homeCountry, setHomeCountry, famousFor, homeLoading, countries, setFlyTarget, placeStatus, setPlaceStatus, can,
   } = useApp();
   const { t, lang } = useI18n();
   const [tab, setTabState] = useState(() => {
@@ -533,34 +533,34 @@ function WorldPanel() {
           <button className="btn btn--primary btn--block" data-tour="add-memory" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
             {t('world.addMemory')}
           </button>
-          <PopularPlaces />
+          {can('popularPlaces') && <PopularPlaces />}
           <nav className="quick-links" aria-label={t('home.more')}>
-            <button className="quick-links__tour" onClick={() => window.dispatchEvent(new Event('tour:start'))}>
+            {can('quickTour') && <button className="quick-links__tour" onClick={() => window.dispatchEvent(new Event('tour:start'))}>
               <span className="quick-links__ic">🧭</span>
               <span>
                 <b>{t('tour.open')}</b>
                 <small>{t('tour.openSub')}</small>
               </span>
               <span aria-hidden>→</span>
-            </button>
+            </button>}
             <button onClick={() => setModal({ type: 'faq' })}>
               <span className="quick-links__ic">❓</span>
               <span>{t('home.link.faq')}</span>
             </button>
-            <button onClick={() => requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'))}>
+            {can('feedback') && <button onClick={() => requireLogin(() => setModal({ type: 'feedback' }), t('fb.loginReason'))}>
               <span className="quick-links__ic">💬</span>
               <span>{t('home.link.feedback')}</span>
-            </button>
-            <button onClick={() => setModal({ type: 'sponsor' })}>
+            </button>}
+            {can('sponsor') && <button onClick={() => setModal({ type: 'sponsor' })}>
               <span className="quick-links__ic">☕</span>
               <span>{t('home.link.sponsor')}</span>
-            </button>
-            <button onClick={() => setModal({ type: 'whatsNew' })}>
+            </button>}
+            {can('whatsNew') && <button onClick={() => setModal({ type: 'whatsNew' })}>
               <span className="quick-links__ic">✨</span>
               <span>
                 {t('rn.open')} <em>v{__APP_VERSION__}</em>
               </span>
-            </button>
+            </button>}
           </nav>
           <AdSlot placement="home-bottom" size="card" />
           <p className="legal-links tiny muted">
@@ -1167,7 +1167,7 @@ function PopularPlaces() {
 }
 
 function OnThisDay() {
-  const { places, memories, openPlace, setModal } = useApp();
+  const { places, memories, openPlace, setModal, can } = useApp();
   const { t } = useI18n();
   const items = useMemo(() => {
     const now = new Date();
@@ -1216,7 +1216,7 @@ function OnThisDay() {
                 <button className="btn btn--sm btn--soft" onClick={() => (it.memory ? setModal({ type: 'viewMemory', memory: it.memory }) : openPlace(it.place))}>
                   {t('otd.view')}
                 </button>
-                {it.memory && (
+                {it.memory && can('share') && (
                   <button className="btn btn--sm btn--primary" onClick={() => setModal({ type: 'share', memory: it.memory })}>
                     {t('mem.share')}
                   </button>

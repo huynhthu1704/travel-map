@@ -208,7 +208,7 @@ export function AppProvider({ children }) {
   liveRef.current = liveFamous;
   const ensureFamous = useCallback(
     (cc) => {
-      if (!cc || !countries || liveRef.current[cc] || settingsRef.current.features?.wikidata === false) return;
+      if (!cc || !countries || liveRef.current[cc] || !flagAllows('wikidata', settingsRef.current, userRef.current, isSuperUid(userRef.current?.uid))) return;
       setLiveFamous((m) => ({ ...m, [cc]: 'loading' }));
       loadFamousLive(cc, bboxOf(cc)).then((list) => setLiveFamous((m) => ({ ...m, [cc]: list })));
     },

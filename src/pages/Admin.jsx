@@ -942,15 +942,7 @@ function SettingsAdmin() {
       </div>
       <div className="card stack">
         <h3 className="h3">🧩 {t('admin.features')}</h3>
-        {['explore', 'trips', 'wikidata'].map((k) => (
-          <label key={k} className="switch">
-            <input type="checkbox" checked={s.features[k] !== false} onChange={(e) => setFeat(k, e.target.checked)} />
-            <span>
-              <b>{t('admin.feature.' + k)}</b>
-              <small>{t('admin.feature.' + k + 'Help')}</small>
-            </span>
-          </label>
-        ))}
+        <p className="small muted">{t('flags.movedHint')}</p>
         <label className="field">
           <span>
             <b>📢 {t('admin.feature.ads')}</b>
@@ -1162,7 +1154,7 @@ function FlagsAdmin() {
   const save = async (key, patch, logDetail) => {
     const cur = flags[key] || {};
     const def = FLAGS.find((f) => f.key === key);
-    const next = { on: cur.on ?? def.defaultOn, users: cur.users || [], ...patch };
+    const next = { on: cur.on ?? (settings.features?.[key] === false ? false : def.defaultOn), users: cur.users || [], ...patch };
     setBusy(key);
     try {
       await adminApi.saveSettings({ flags: { ...flags, [key]: next } });
@@ -1179,7 +1171,7 @@ function FlagsAdmin() {
       <p className="small muted">{t('flags.help')}</p>
       {FLAGS.map((f) => {
         const cfg = flags[f.key] || {};
-        const on = cfg.on ?? f.defaultOn;
+        const on = cfg.on ?? (settings.features?.[f.key] === false ? false : f.defaultOn);
         const users = cfg.users || [];
         return (
           <section key={f.key} className="card stack-sm flag-card">
@@ -1188,7 +1180,7 @@ function FlagsAdmin() {
               <div className="grow">
                 <b>{f.name[lang] || f.name.vi}</b>
                 <small className="muted">
-                  {f.desc[lang] || f.desc.vi} · {t('flags.since', { date: f.since })}
+                  {f.desc[lang] || f.desc.vi} · {f.since ? t('flags.since', { date: f.since }) : t('flags.existing')}
                 </small>
               </div>
               <span className={`flag-status ${on ? 'flag-status--on' : users.length ? 'flag-status--beta' : ''}`}>

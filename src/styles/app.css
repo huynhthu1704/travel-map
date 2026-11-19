@@ -8474,3 +8474,14 @@ a.app-link.place-card__title:hover {
   margin-left: auto;
   margin-right: auto;
 }
+.guide-points {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.55;
+}
+.guide-points li::marker {
+  color: var(--honey-500, #f5b400);
+}

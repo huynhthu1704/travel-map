@@ -15,7 +15,7 @@ const BIO_MAX = 160;
 
 /** Hồ sơ người dùng: quốc gia / thành phố đã đi, check-in công khai, giới thiệu ngắn, theo dõi */
 export default function ProfilePage() {
-  const { profileUid: uid, setProfileUid, profileSub, user, api, requireLogin, followingIds, followerIds, toggleFollow, notify, openProfile } = useApp();
+  const { profileUid: uid, setProfileUid, profileSub, user, api, requireLogin, followingIds, followerIds, toggleFollow, notify, openProfile, can } = useApp();
   const { t, lang } = useI18n();
   const [p, setP] = useState(undefined);
   const [checkins, setCheckins] = useState(null);
@@ -288,7 +288,7 @@ export default function ProfilePage() {
                   <button className="btn btn--sm btn--soft" onClick={startEdit}>
                     {t('profile.editBtn')}
                   </button>
-                ) : (
+                ) : !can('follow') ? null : (
                   <button className={`btn btn--sm ${followingIds.has(uid) ? 'btn--soft' : 'btn--primary'}`} onClick={() => toggleFollow(uid, prof.name)}>
                     {followingIds.has(uid) ? `✓ ${t('social.followingBtn')}` : followerIds.has(uid) ? t('social.followBack') : t('social.follow')}
                   </button>

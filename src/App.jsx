@@ -54,7 +54,7 @@ function LangSwitch() {
 }
 
 function UserMenu() {
-  const { user, api, requireLogin, setModal, openProfile, modal, setView } = useApp();
+  const { user, api, requireLogin, setModal, openProfile, modal, setView, can } = useApp();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const hasNew = useHasNewRelease(modal);
@@ -85,25 +85,29 @@ function UserMenu() {
           >
             👤 {t('social.myProfile')}
           </AppLink>
-          <button
-            className="btn btn--sm btn--ghost"
-            onClick={() => {
-              setModal({ type: 'whatsNew' });
-              setOpen(false);
-            }}
-          >
-            🆕 {t('rn.open')}
-            {hasNew && <span className="dot-new" />}
-          </button>
-          <button
-            className="btn btn--sm btn--ghost"
-            onClick={() => {
-              setOpen(false);
-              startQuickTour();
-            }}
-          >
-            🧭 {t('tour.open')}
-          </button>
+          {can('whatsNew') && (
+            <button
+              className="btn btn--sm btn--ghost"
+              onClick={() => {
+                setModal({ type: 'whatsNew' });
+                setOpen(false);
+              }}
+            >
+              🆕 {t('rn.open')}
+              {hasNew && <span className="dot-new" />}
+            </button>
+          )}
+          {can('quickTour') && (
+            <button
+              className="btn btn--sm btn--ghost"
+              onClick={() => {
+                setOpen(false);
+                startQuickTour();
+              }}
+            >
+              🧭 {t('tour.open')}
+            </button>
+          )}
           <button
             className="btn btn--sm btn--ghost"
             onClick={() => {
@@ -113,24 +117,28 @@ function UserMenu() {
           >
             ❓ {t('faq.open')}
           </button>
-          <button
-            className="btn btn--sm btn--ghost"
-            onClick={() => {
-              setModal({ type: 'feedback' });
-              setOpen(false);
-            }}
-          >
-            💬 {t('fb.menu')}
-          </button>
-          <button
-            className="btn btn--sm btn--ghost"
-            onClick={() => {
-              setModal({ type: 'sponsor' });
-              setOpen(false);
-            }}
-          >
-            ☕ {t('sponsor.open')}
-          </button>
+          {can('feedback') && (
+            <button
+              className="btn btn--sm btn--ghost"
+              onClick={() => {
+                setModal({ type: 'feedback' });
+                setOpen(false);
+              }}
+            >
+              💬 {t('fb.menu')}
+            </button>
+          )}
+          {can('sponsor') && (
+            <button
+              className="btn btn--sm btn--ghost"
+              onClick={() => {
+                setModal({ type: 'sponsor' });
+                setOpen(false);
+              }}
+            >
+              ☕ {t('sponsor.open')}
+            </button>
+          )}
           <button
             className="btn btn--sm btn--soft"
             onClick={() => {
@@ -153,7 +161,7 @@ function Shell() {
   const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user, isStaff, settings, banned, goHome, can } = useApp();
   const { t, lang } = useI18n();
   // Mục menu theo cài đặt trang (bật/tắt tính năng) và quyền quản trị
-  const nav = NAV.filter((n) => (n.id === 'explore' ? settings.features.explore !== false : n.id === 'trips' ? settings.features.trips !== false : n.id === 'guide' ? can('guide') : true)).concat(
+  const nav = NAV.filter((n) => (n.id === 'explore' || n.id === 'trips' || n.id === 'guide' ? can(n.id) : true)).concat(
     isStaff ? [{ id: 'admin', icon: '🛠️' }] : [],
   );
   const ann = settings.announcement;
@@ -166,8 +174,8 @@ function Shell() {
   const pageCls = (id) => (view === id ? '' : 'page-hidden');
   return (
     <div className={`app view-${view}`}>
-      <PullToRefresh />
-      <QuickTour />
+      {can('pullToRefresh') && <PullToRefresh />}
+      {can('quickTour') && <QuickTour />}
       <header className="topbar">
         <AppLink href="#/" className="logo" onClick={goHome} title={t('app.home')}>
           <span className="logo__mark" aria-hidden>
@@ -219,9 +227,9 @@ function Shell() {
           {view === 'map' && (pickMode === 'place' ? <PickPanel /> : pickMode === 'memory' ? null : <SidePanel />)}
         </div>
         <Suspense fallback={view !== 'map' ? <div className="page"><Loader /></div> : null}>
-          {mounted.has('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
+          {mounted.has('explore') && can('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
           {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}
-          {mounted.has('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
+          {mounted.has('trips') && can('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
           {mounted.has('admin') && view === 'admin' && <AdminPage />}
           {view === 'profile' && <ProfilePage />}
           {(view === 'privacy' || view === 'terms') && <LegalPage kind={view} />}
@@ -258,7 +266,7 @@ function Shell() {
       {banned && <div className="announce announce--floating announce--warning">{t('admin.bannedNotice')}</div>}
       {toast && <div className={`toast toast--${toast.kind}`} key={toast.id}>{toast.msg}</div>}
       <Modals />
-      {user && <FeedbackLauncher />}
+      {user && can('feedback') && <FeedbackLauncher />}
       {(!countries || user === undefined) && <Loader page size="md" />}
     </div>
   );

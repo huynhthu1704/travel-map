@@ -296,6 +296,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
 }
 
 export function TripPlan({ trip }) {
+  const { can } = useApp();
   const { t } = useI18n();
   const { api, user, notify, places, famousFor, ensureFamous, setActiveTripId, setView, placeById, showTripOnMap } = useApp();
   const [items, setItems] = useState(null);
@@ -424,7 +425,7 @@ export function TripPlan({ trip }) {
       <div className="card stack">
         <div className="trip-summary__head">
           <h3 className="h3">🗓️ {t('plan.title')}</h3>
-          {list.length > 0 && (
+          {list.length > 0 && can('tripPdf') && (
             <div className="row wrap">
               <button className="btn btn--sm btn--primary" onClick={() => doExport(false)} disabled={exporting}>
                 {exporting ? `⏳ ${t('pdf.making')}` : `📄 ${t('pdf.export')}`}

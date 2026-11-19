@@ -14,10 +14,11 @@ const STATUS_ICON = { pending: '⏳', accepted: '✅', declined: '✖️', cance
  * - Chỉ chủ chuyến được xoá thành viên khác.
  */
 export default function TripMembers({ trip, onClose }) {
-  const { user, api, notify } = useApp();
+  const { user, api, notify, can } = useApp();
   const { t, lang } = useI18n();
   const owner = trip.ownerId === user?.uid;
-  const [tab, setTab] = useState(owner ? 'invite' : 'members');
+  const canInvite = owner && can('tripInvites');
+  const [tab, setTab] = useState(canInvite ? 'invite' : 'members');
   const [q, setQ] = useState('');
   const [found, setFound] = useState([]);
   const [invites, setInvites] = useState([]);
@@ -58,7 +59,7 @@ export default function TripMembers({ trip, onClose }) {
     <Modal title={`👥 ${t('tm.title')}`} onClose={onClose}>
       <div className="stack tm">
         <div className="segmented">
-          {owner && (
+          {canInvite && (
             <button className={tab === 'invite' ? 'on' : ''} onClick={() => setTab('invite')}>
               ➕ {t('tm.tabInvite')}
             </button>
@@ -71,7 +72,7 @@ export default function TripMembers({ trip, onClose }) {
           </button>
         </div>
 
-        {tab === 'invite' && owner && (
+        {tab === 'invite' && canInvite && (
           <div className="stack-sm">
             <p className="small muted">{t('tm.inviteHint')}</p>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('tm.searchPh')} autoFocus />

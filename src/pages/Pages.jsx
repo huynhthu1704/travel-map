@@ -1,3 +1,4 @@
+import { consumeNewTripRequest } from '../lib/route';
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../AppContext";
 import { MemoryGrid } from "../components/SidePanel";
@@ -724,7 +725,8 @@ export function TripsPage() {
     homeCountry,
   } = useApp();
   const [name, setName] = useState("");
-  const [panel, setPanel] = useState(null); // 'create' | 'join' — form chỉ hiện khi bấm nút
+  // #/trips?new=1 (vd. mở từ Cẩm nang ở tab mới) → mở sẵn form tạo chuyến
+  const [panel, setPanel] = useState(() => (consumeNewTripRequest() ? 'create' : null)); // 'create' | 'join' — form chỉ hiện khi bấm nút
   const [emoji, setEmoji] = useState("🧳");
   const [newDests, setNewDests] = useState([]);
   const [code, setCode] = useState("");

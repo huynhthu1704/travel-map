@@ -42,12 +42,19 @@ function SpeakButton({ text, lang }) {
         onClick={() => {
           const r = speakText(text, lang);
           setMsg(r === 'ok' ? '' : t(r === 'unsupported' ? 'guide.noSpeech' : 'guide.noVoice'));
-          if (r !== 'ok') setTimeout(() => setMsg(''), 4000);
+          if (r !== 'ok') setTimeout(() => setMsg(''), 12000);
         }}
       >
         🔊
       </button>
-      {msg && <small className="say__msg">{msg}</small>}
+      {msg && (
+        <small className="say__msg">
+          {msg}{' '}
+          <a href={`https://translate.google.com/?sl=${lang.split('-')[0] === 'fil' ? 'tl' : lang === 'zh-TW' ? 'zh-TW' : lang.split('-')[0]}&tl=${t('guide.gtTarget')}&text=${encodeURIComponent(text)}&op=translate`} target="_blank" rel="noopener noreferrer">
+            {t('guide.gtListen')} ↗
+          </a>
+        </small>
+      )}
     </>
   );
 }
@@ -248,7 +255,7 @@ function GuideSpots({ cc }) {
 
 function AddSpotModal({ cc, spot, onClose }) {
   const { t, lang } = useI18n();
-  const { user, trips, api, notify, setView, setOpenTripId } = useApp();
+  const { user, trips, api, notify } = useApp();
   const [busy, setBusy] = useState('');
   const label = (lang === 'vi' && spot.vi) || spot.n;
   const mine = (trips || []).filter((tr) => !tr.memberIds || tr.memberIds.includes(user?.uid));
@@ -279,24 +286,26 @@ function AddSpotModal({ cc, spot, onClose }) {
   };
   return (
     <Modal onClose={onClose} title={t('guide.addTitle', { name: label })}>
-      {mine.length ? (
-        <div className="stack">
-          <p className="small muted">{t('guide.pickTrip')}</p>
-          {mine.map((tr) => (
-            <button key={tr.id} type="button" className="btn btn--soft guide-trip" disabled={!!busy} onClick={() => add(tr)}>
-              <span>{tr.emoji || '🧳'}</span> <b>{tr.name}</b>
-              {busy === tr.id && <span className="muted"> …</span>}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="stack">
+      <div className="stack">
+        {mine.length ? (
+          <>
+            <p className="small muted">{t('guide.pickTrip')}</p>
+            {mine.map((tr) => (
+              <button key={tr.id} type="button" className="btn btn--soft guide-trip" disabled={!!busy} onClick={() => add(tr)}>
+                <span>{tr.emoji || '🧳'}</span> <b>{tr.name}</b>
+                {busy === tr.id && <span className="muted"> …</span>}
+              </button>
+            ))}
+          </>
+        ) : (
           <p>{t('guide.noTrips')}</p>
-          <button type="button" className="btn btn--primary" onClick={() => (onClose(), setOpenTripId(null), setView('trips'))}>
-            🧳 {t('guide.createTrip')}
-          </button>
-        </div>
-      )}
+        )}
+        {/* Mở màn hình tạo chuyến đi ở tab mới — quay lại tab này, chuyến mới sẽ hiện trong danh sách */}
+        <a className={`btn ${mine.length ? 'btn--ghost' : 'btn--primary'} guide-newtrip`} href="#/trips?new=1" target="_blank" rel="noopener">
+          ＋ {t('guide.createTrip')} ↗
+        </a>
+        <small className="muted">{t('guide.newTabHint')}</small>
+      </div>
     </Modal>
   );
 }

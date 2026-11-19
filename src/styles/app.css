@@ -9130,3 +9130,8 @@ a.app-link.place-card__title:hover {
   display: grid;
   place-items: center;
 }
+.guide-newtrip {
+  justify-content: center;
+  text-decoration: none;
+  border: 1px dashed var(--honey-400, #ffc629);
+}

@@ -88,3 +88,11 @@ export const hrefProfile = (uid, sub = null) => (uid ? buildRoute({ view: 'profi
 export const hrefCountry = (cc) => (cc ? `#/country/${cc}` : undefined);
 export const hrefPlace = (place) => (place?.id && place.lat != null ? buildRoute({ view: 'map', place }) : place?.country ? hrefCountry(place.country) : undefined);
 export const hrefTrip = (id) => (id ? `#/trips/${encodeURIComponent(id)}` : '#/trips');
+
+// #/trips?new=1 (mở từ Cẩm nang ở tab mới): ghi nhận ngay khi tải trang, trước khi đường dẫn được viết lại
+let newTripPending = typeof window !== 'undefined' && /^#\/trips\?(?:.*&)?new=1\b/.test(window.location.hash);
+export function consumeNewTripRequest() {
+  const v = newTripPending;
+  newTripPending = false;
+  return v;
+}

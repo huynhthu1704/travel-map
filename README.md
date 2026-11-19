@@ -2,6 +2,8 @@
 
 A web app for **marking the places you've set foot in**, saving **photo memories** at each place, planning **shared trips** with friends, and **sharing** them as cute images or videos on social media.
 
+Live site: https://beetheremap.com/
+
 The app's interface is in Vietnamese.
 
 - Design system (Figma): https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ. The **🍯 Foundations** page covers colors, typography, spacing and radius. The **🧩 Components** page has Button, Chip, Map Pin and Place Card. Tokens in `src/styles/tokens.css` map one-to-one to the Figma variables.
@@ -59,7 +61,8 @@ trips/{id}/stops/{id}          stops and photos shared with the whole group
 - **GitHub Pages**: the `.github/workflows/deploy.yml` workflow builds the app on every push to `main`. To set it up:
   1. Go to *Settings → Pages* and set *Source* to *GitHub Actions*.
   2. The Firebase web config is read from `.env.production` (committed on purpose: Firebase web config is public by design and data access is protected by `firestore.rules`).
-  3. Add `<username>.github.io` to Firebase *Authorized domains*.
+  3. Add the site's domain (`beetheremap.com`, `www.beetheremap.com`) to Firebase *Authorized domains*.
+  4. Custom domain: `public/CNAME` holds `beetheremap.com`; set the same domain in *Settings → Pages → Custom domain*. DNS: `A` records for `beetheremap.com` → `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` (and `AAAA` → `2606:50c0:8000::153` … `8003::153`), plus `CNAME www` → `huynhthu1704.github.io`.
 - **Firebase Hosting**: run `npm run build && npx firebase-tools deploy --only hosting`.
 
 ## Project structure

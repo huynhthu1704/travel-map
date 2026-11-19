@@ -7494,3 +7494,40 @@ a.app-link.place-card__title:hover {
 .tour__card[style*='translateY(-50%)'] {
   animation: fade 0.25s ease;
 }
+
+/* Nút Hướng dẫn nhanh cạnh nút Góp ý */
+.fb-tour {
+  position: fixed;
+  right: 0;
+  z-index: 1200;
+  transform: translateY(-100%);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px 0 0 14px;
+  background: var(--honey-400);
+  color: var(--ink-900);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  opacity: 0.92;
+  transition: padding 0.15s, opacity 0.15s;
+}
+.fb-tour:hover {
+  opacity: 1;
+  padding-right: 4px;
+}
+.fb-tour--left {
+  right: auto;
+  left: 0;
+  border-radius: 0 14px 14px 0;
+}
+@media (max-width: 900px) {
+  .fb-tour {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+}

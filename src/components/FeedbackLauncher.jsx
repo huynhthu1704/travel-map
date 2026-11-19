@@ -10,6 +10,16 @@ import { useI18n } from '../i18n';
 export default function FeedbackLauncher() {
   const { setModal, requireLogin, user } = useApp();
   const { t } = useI18n();
+  // Nút "Hướng dẫn nhanh" nằm ngay trên nút Góp ý (cùng mép, đi theo khi kéo)
+  const tabRef = useRef(null);
+  const [tabH, setTabH] = useState(110);
+  useEffect(() => {
+    const el = tabRef.current;
+    if (!el || !window.ResizeObserver) return undefined;
+    const ro = new ResizeObserver(() => setTabH(el.getBoundingClientRect().height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
   const [picking, setPicking] = useState(false);
   const [box, setBox] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -132,6 +142,18 @@ export default function FeedbackLauncher() {
     <>
       {!picking && (
         <button
+          className={`fb-tour fb-ignore fb-tour--${pos.side}`}
+          style={{ top: `calc(${pos.top * 100}% - ${Math.round(tabH / 2) + 8}px)` }}
+          onClick={() => window.dispatchEvent(new Event('tour:start'))}
+          title={t('tour.open')}
+          aria-label={t('tour.open')}
+        >
+          🧭
+        </button>
+      )}
+      {!picking && (
+        <button
+          ref={tabRef}
           className={`fb-tab fb-ignore fb-tab--${pos.side}`}
           style={{ top: `${pos.top * 100}%` }}
           onPointerDown={onDown}

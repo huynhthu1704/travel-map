@@ -28,6 +28,14 @@ export const RELEASES = [
         image: 'releases/profile.webp',
       },
       {
+        icon: '🧭',
+        title: { vi: 'Hướng dẫn nhanh cho người mới', en: 'Quick tour for newcomers' },
+        desc: {
+          vi: 'Một vòng giới thiệu 9 bước làm nổi bật từng phần của web, có hình minh hoạ và hoạt hình; ở vài bước bạn có thể bấm thử ngay. Tự mở ở lần đầu vào web; xem lại bằng nút "Hướng dẫn nhanh" ở trang chủ hoặc menu tài khoản.',
+          en: 'A 9-step tour that highlights each part of the app with pictures and animations — some steps let you try it right away. It opens on your first visit; replay it from "Quick tour" on the home panel or the account menu.',
+        },
+      },
+      {
         icon: '↻',
         title: { vi: 'Kéo xuống để tải lại', en: 'Pull to refresh' },
         desc: {

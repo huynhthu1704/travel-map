@@ -474,7 +474,7 @@ function WorldPanel() {
         <p className="eyebrow">{t('world.eyebrow', { name: user ? user.name.split(' ').slice(-1)[0] : t('world.you') })}</p>
         <h1 className="h2">{t('world.title')}</h1>
       </div>
-      <div className="home-tabs" role="tablist">
+      <div className="home-tabs" data-tour="home-tabs" role="tablist">
         {tabs.map(([id, icon, label, count]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
             <span>{icon}</span>
@@ -528,11 +528,19 @@ function WorldPanel() {
               </div>
             </section>
           )}
-          <button className="btn btn--primary btn--block" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
+          <button className="btn btn--primary btn--block" data-tour="add-memory" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
             {t('world.addMemory')}
           </button>
           <PopularPlaces />
           <nav className="quick-links" aria-label={t('home.more')}>
+            <button className="quick-links__tour" onClick={() => window.dispatchEvent(new Event('tour:start'))}>
+              <span className="quick-links__ic">🧭</span>
+              <span>
+                <b>{t('tour.open')}</b>
+                <small>{t('tour.openSub')}</small>
+              </span>
+              <span aria-hidden>→</span>
+            </button>
             <button onClick={() => setModal({ type: 'faq' })}>
               <span className="quick-links__ic">❓</span>
               <span>{t('home.link.faq')}</span>

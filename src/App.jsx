@@ -7,6 +7,7 @@ import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
 import FeedbackLauncher from './components/FeedbackLauncher';
 import PullToRefresh from './components/PullToRefresh';
+import QuickTour, { startQuickTour } from './components/QuickTour';
 import Notifications from './components/Notifications';
 import { Avatar, Loader, AppLink } from './components/ui';
 import { hrefView, hrefProfile } from './lib/route';
@@ -92,6 +93,15 @@ function UserMenu() {
           <button
             className="btn btn--sm btn--ghost"
             onClick={() => {
+              setOpen(false);
+              startQuickTour();
+            }}
+          >
+            🧭 {t('tour.open')}
+          </button>
+          <button
+            className="btn btn--sm btn--ghost"
+            onClick={() => {
               setModal({ type: 'faq' });
               setOpen(false);
             }}
@@ -150,6 +160,7 @@ function Shell() {
   return (
     <div className={`app view-${view}`}>
       <PullToRefresh />
+      <QuickTour />
       <header className="topbar">
         <AppLink href="#/" className="logo" onClick={goHome} title={t('app.home')}>
           <span className="logo__mark">📍</span>

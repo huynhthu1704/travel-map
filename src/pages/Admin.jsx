@@ -244,7 +244,7 @@ function Users({ users }) {
                 <span>
                   <b>
                     {u.name || t('admin.unknownUser')}
-                    {u.owner && <span className="role role--admin"> {t('admin.ownerTag')}</span>}
+                    {u.owner && <span className="role role--admin owner-tag">{t('admin.ownerTag')}</span>}
                   </b>
                   <small>{u.email || (u.noDoc ? t('admin.noProfile') : t('admin.oldProfile'))}</small>
                 </span>

@@ -7133,3 +7133,7 @@ a.app-link.place-card__title:hover {
 .grid-2 > * {
   min-width: 0;
 }
+.owner-tag {
+  margin-left: 8px;
+  vertical-align: 2px;
+}

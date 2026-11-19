@@ -189,16 +189,17 @@ export default function LegalPage({ kind }) {
   return (
     <div className="page">
       <article className="legal card">
-        <nav className="legal__tabs segmented">
-          <a href="#/privacy" className={kind === 'privacy' ? 'on' : ''} onClick={() => setView('privacy')}>
-            {t('legal.privacy')}
-          </a>
-          <a href="#/terms" className={kind === 'terms' ? 'on' : ''} onClick={() => setView('terms')}>
-            {t('legal.terms')}
-          </a>
+        <nav className="legal__tabs" aria-label={t('legal.privacy') + ' / ' + t('legal.terms')}>
+          {['privacy', 'terms'].map((k) => (
+            <a key={k} href={`#/${k}`} className={kind === k ? 'on' : ''} aria-current={kind === k ? 'page' : undefined} onClick={() => setView(k)}>
+              {k === 'privacy' ? '🛡️' : '📜'} {t(`legal.${k}`)}
+            </a>
+          ))}
         </nav>
-        <h1 className="h1">{kind === 'terms' ? t('legal.terms') : t('legal.privacy')}</h1>
-        <p className="tiny muted">{t('legal.updated', { date: LEGAL_VERSION })}</p>
+        <header className="legal__head">
+          <h1 className="h1">{kind === 'terms' ? t('legal.terms') : t('legal.privacy')}</h1>
+          <p className="tiny muted">{t('legal.updated', { date: LEGAL_VERSION })}</p>
+        </header>
         {kind === 'terms' ? <Terms vi={vi} /> : <Privacy vi={vi} />}
       </article>
     </div>

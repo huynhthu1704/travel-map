@@ -7628,12 +7628,50 @@ a.app-link.place-card__title:hover {
 .legal li {
   margin: 4px 0;
 }
+.legal {
+  padding: 28px 32px 32px;
+}
 .legal__tabs {
-  margin-bottom: 10px;
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-full);
+  background: var(--ink-100);
+  max-width: 100%;
+  overflow-x: auto;
 }
 .legal__tabs a {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
   text-decoration: none;
+  color: var(--ink-600, #555);
+}
+.legal__tabs a.on {
+  background: var(--color-bg-surface, #fff);
   color: inherit;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.legal__head {
+  margin: 22px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ink-100);
+}
+.legal__head .h1 {
+  margin: 0 0 6px;
+}
+.legal__head p {
+  margin: 0;
+}
+.legal > p:first-of-type {
+  margin-top: 0;
+}
+@media (max-width: 640px) {
+  .legal {
+    padding: 20px 18px 24px;
+  }
 }
 .login__consent,
 .acc-toggle {

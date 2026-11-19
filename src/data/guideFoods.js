@@ -14,7 +14,7 @@ export const GUIDE_FOODS = {
   CN: [f('Peking duck', 'Peking duck', 'Vịt quay Bắc Kinh'), f('Sichuan hot pot', 'Hot pot', 'Lẩu Tứ Xuyên'), f('Xiaolongbao', 'Xiaolongbao', 'Tiểu long bao'), f('Lanzhou beef noodles', 'Lanzhou beef noodle soup', 'Mì kéo Lan Châu'), f('Crossing-the-bridge noodles', 'Crossing-the-bridge noodles', 'Bún qua cầu')],
   TW: [f('Bubble tea', 'Bubble tea', 'Trà sữa trân châu'), f('Beef noodle soup', 'Beef noodle soup', 'Mì bò'), f('Lu rou fan', 'Minced pork rice', 'Cơm thịt kho'), f('Stinky tofu', 'Stinky tofu', 'Đậu phụ thối'), f('Mango shaved ice', 'Shaved ice', 'Xoài đá bào')],
   PH: [f('Adobo', 'Philippine adobo'), f('Lechon', 'Lechon', 'Lechon (heo quay)'), f('Sinigang'), f('Sisig'), f('Halo-halo'), f('Dried mango', 'Dried mango', 'Xoài sấy')],
-  KH: [f('Fish amok', 'Fish amok', 'Amok cá'), f('Lok lak', 'Beef lok lak', 'Lok lak bò'), f('Num banh chok'), f('Kampot pepper crab', 'Kampot pepper', 'Cua xào tiêu Kampot')],
-  LA: [f('Sticky rice', 'Glutinous rice', 'Xôi nếp'), f('Larb', 'Larb', 'Láp'), f('Tam mak hoong', 'Green papaya salad', 'Gỏi đu đủ'), f('Khao piak sen'), f('Khao jee', 'Khao jī', 'Bánh mì Lào'), f('Beerlao')],
+  KH: [f('Fish amok', 'Fish amok', 'Amok cá'), f('Lok lak', 'Beef lok lak', 'Lok lak bò'), f('Num banh chok', 'Num banhchok'), f('Kampot pepper crab', 'Kampot pepper', 'Cua xào tiêu Kampot')],
+  LA: [f('Sticky rice', 'Glutinous rice', 'Xôi nếp'), f('Larb', 'Larb', 'Láp'), f('Tam mak hoong', 'Green papaya salad', 'Gỏi đu đủ'), f('Khao piak sen'), f('Khao jee', 'Khao jee pâté', 'Bánh mì Lào'), f('Beerlao')],
   VN: [f('Phở', 'Pho'), f('Bún chả', 'Bún chả'), f('Bún bò Huế', 'Bún bò Huế'), f('Cao lầu', 'Cao lầu'), f('Bánh mì', 'Bánh mì'), f('Cơm tấm', 'Cơm tấm'), f('Cà phê trứng', 'Egg coffee'), f('Cà phê sữa đá', 'Vietnamese iced coffee')],
 };

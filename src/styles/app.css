@@ -8451,3 +8451,26 @@ a.app-link.place-card__title:hover {
 .guide-sec a {
   color: var(--honey-700, #8a5a00);
 }
+
+/* Ô quảng cáo rộng bằng nội dung của trang (không giới hạn 728px) để cân với các khối phía trên */
+.ad-slot,
+.ad-slot--inline {
+  max-width: none;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+.mgrid > .ad-slot,
+.guide-sections > .ad-slot {
+  margin: 4px 0;
+}
+.guide > .ad-slot {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.tips > .ad-slot {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -1,3 +1,4 @@
+import { BrandAppIcon } from '../components/Brand.jsx';
 import { useState } from 'react';
 import { useApp } from '../AppContext';
 import { Modal } from '../components/ui';
@@ -135,11 +136,7 @@ export default function AboutPage() {
     <div className="page about">
       <header className="about-hero card">
         <div className="about-hero__logo" aria-hidden>
-          <svg viewBox="0 0 64 64" width="88" height="88">
-            <rect width="64" height="64" rx="18" fill="#FFC629" />
-            <path d="M32 12c-8.3 0-15 6.5-15 14.6C17 37.5 32 52 32 52s15-14.5 15-25.4C47 18.5 40.3 12 32 12z" fill="#1F1A14" />
-            <circle cx="32" cy="27" r="6" fill="#FFC629" />
-          </svg>
+          <BrandAppIcon size={88} />
         </div>
         <p className="eyebrow">{t('about.eyebrow')}</p>
         <h1 className="h1">

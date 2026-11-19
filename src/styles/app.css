@@ -361,8 +361,8 @@ code {
   white-space: nowrap;
 }
 .logo__mark {
-  /* Logo chính thức (giống favicon): ghim tối trên nền vàng mật ong */
-  width: 38px;
+  /* Logo bee.there: biểu tượng Ghim mật ong (Figma › Brand & Logo) */
+  width: 33px;
   height: 38px;
   flex: 0 0 auto;
   display: block;
@@ -373,9 +373,16 @@ code {
   height: 100%;
   display: block;
 }
+.logo__text {
+  font-family: 'Lexend', var(--font-heading);
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+}
 .logo em {
   font-style: normal;
-  color: var(--honey-600);
+  color: var(--honey-700);
 }
 .nav--top {
   display: flex;
@@ -8688,7 +8695,8 @@ a.app-link.place-card__title:hover {
   padding: 40px 24px;
   background: radial-gradient(circle at 50% 0%, var(--honey-100, #fff3cc), #fff 65%);
 }
-.about-hero__logo svg {
+.about-hero__logo svg,
+.about-hero__logo img {
   filter: drop-shadow(0 12px 20px rgba(245, 176, 0, 0.4));
 }
 .about-hero .h1 {

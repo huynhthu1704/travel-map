@@ -1231,9 +1231,28 @@ function Broadcast() {
       // batch: gom các bản gửi từng người thành 1 lần gửi (để xem lại / thu hồi cùng lúc)
       const batch = 'b' + Date.now().toString(36);
       const base = { type, from: user.uid, fromName: user.name || '', title: title.trim(), body: body.trim(), batch, audience: aud === 'role' ? 'role:' + roleId : aud };
-      if (aud === 'all') await socialApi.notify({ ...base, to: 'all' });
-      else if (aud === 'role') await socialApi.notify({ ...base, to: 'role:' + roleId });
-      else for (const uid of uids) await socialApi.notify({ ...base, to: uid });
+      const noteIds = [];
+      const push = async (to) => noteIds.push((await socialApi.notify({ ...base, to }))?.id);
+      if (aud === 'all') await push('all');
+      else if (aud === 'role') await push('role:' + roleId);
+      else for (const uid of uids) await push(uid);
+      // Lưu lịch sử lần gửi (không mất khi thu hồi)
+      await socialApi
+        .recordBroadcast({
+          id: batch,
+          type,
+          title: base.title,
+          body: base.body,
+          audience: base.audience,
+          to: aud === 'all' ? 'all' : aud === 'role' ? 'role:' + roleId : 'users',
+          recipients: aud === 'users' ? uids : [],
+          noteIds: noteIds.filter(Boolean),
+          from: user.uid,
+          fromName: user.name || '',
+          createdAt: Date.now(),
+          status: 'active',
+        })
+        .catch(() => {});
       adminApi.log('broadcast.send', aud === 'all' ? 'all' : aud === 'role' ? 'role:' + roleId : `${uids.length} users`, `${type}: ${title.trim()}`);
       setUids([]);
       notify(t('admin.bcSent'));
@@ -1299,91 +1318,180 @@ function Broadcast() {
   );
 }
 
-/** Thông báo đã gửi: xem lại, số người đã đọc (gửi từng người), thu hồi */
+/** Thông báo đã gửi: toàn bộ lịch sử (cả đã thu hồi), báo cáo ai đã nhận / đã đọc, thu hồi */
 function SentBroadcasts() {
   const { t, lang } = useI18n();
-  const { socialApi, notify, adminApi, settings } = useApp();
-  const [list, setList] = useState(null);
+  const { socialApi, notify, adminApi, settings, isAdmin, user: me } = useApp();
+  const [notes, setNotes] = useState(null); // thông báo còn trong chuông
+  const [logs, setLogs] = useState(null); // lịch sử lần gửi
+  const [users, setUsers] = useState(null); // để báo cáo gửi tất cả / theo vai trò (chỉ quản trị viên)
   const [names, setNames] = useState({});
   const [open, setOpen] = useState(null);
-  useEffect(() => socialApi.watchSentBroadcasts(setList), [socialApi]);
-  const groups = useMemo(() => {
-    const m = new Map();
-    (list || []).forEach((n) => {
+  const [view, setView] = useState('read'); // read | unread
+  const [status, setStatus] = useState('all'); // all | active | revoked
+  useEffect(() => socialApi.watchSentBroadcasts(setNotes), [socialApi]);
+  useEffect(() => socialApi.watchBroadcasts(setLogs), [socialApi]);
+  useEffect(() => (isAdmin ? adminApi.watchUsers(setUsers) : setUsers(null)), [isAdmin, adminApi]);
+
+  // Gộp: lịch sử đã lưu + thông báo cũ (gửi trước khi có lịch sử)
+  const rows = useMemo(() => {
+    if (!notes || !logs) return null;
+    const byBatch = new Map();
+    notes.forEach((n) => {
       const k = n.batch || n.id;
-      if (!m.has(k)) m.set(k, { key: k, first: n, docs: [] });
-      m.get(k).docs.push(n);
+      if (!byBatch.has(k)) byBatch.set(k, []);
+      byBatch.get(k).push(n);
     });
-    return [...m.values()].sort((a, b) => (b.first.createdAt || 0) - (a.first.createdAt || 0));
-  }, [list]);
-  useEffect(() => {
-    if (!open) return;
-    const g = groups.find((x) => x.key === open);
-    const need = (g?.docs || []).map((d) => d.to).filter((u) => u && u !== 'all' && !String(u).startsWith('role:') && !names[u]);
-    need.slice(0, 50).forEach((uid) => {
-      let un = () => {};
-      un = social.watchProfile(uid, (p) => (setNames((n) => ({ ...n, [uid]: p?.name || uid.slice(0, 8) })), setTimeout(() => un && un(), 0)));
+    const out = logs.map((b) => ({ ...b, docs: byBatch.get(b.id) || [] }));
+    const known = new Set(logs.map((b) => b.id));
+    byBatch.forEach((docs, k) => {
+      if (known.has(k)) return;
+      const n = docs[0];
+      const personal = !(n.to === 'all' || String(n.to).startsWith('role:'));
+      out.push({
+        id: k, legacy: true, type: n.type, title: n.title, body: n.body, from: n.from, fromName: n.fromName, createdAt: n.createdAt, status: 'active',
+        to: personal ? 'users' : n.to, recipients: personal ? docs.map((d) => d.to) : [], noteIds: docs.map((d) => d.id), docs,
+      });
     });
-  }, [open, groups]); // eslint-disable-line react-hooks/exhaustive-deps
-  const who = (g) => {
-    const to = g.first.to;
-    if (to === 'all') return `🌍 ${t('bc.aud.all')}`;
-    if (String(to).startsWith('role:')) return `🔐 ${roleLabel(to.slice(5), settings, t, lang)}`;
-    return `👤 ${t('bc.nUsers', { n: g.docs.length })}`;
+    return out.sort((x, y) => (y.createdAt || 0) - (x.createdAt || 0));
+  }, [notes, logs]);
+
+  const audienceOf = (b) => {
+    if (b.to === 'all') return `🌍 ${t('bc.aud.all')}`;
+    if (String(b.to).startsWith('role:')) return `🔐 ${roleLabel(b.to.slice(5), settings, t, lang)}`;
+    return `👤 ${t('bc.nUsers', { n: (b.recipients || []).length })}`;
   };
-  const revoke = async (g) => {
-    if (!confirm(t('bc.revokeConfirm', { title: g.first.title || '' }))) return;
+  /** { recipients: [uid] | null, readers: Set<uid> | null } */
+  const report = (b) => {
+    const revoked = b.status === 'revoked';
+    if (b.to === 'users') {
+      const recipients = b.recipients || [];
+      const readers = new Set(revoked ? b.readAtRevoke || [] : b.docs.filter((d) => d.read).map((d) => d.to));
+      return { recipients, readers };
+    }
+    if (!users) return { recipients: null, readers: revoked ? new Set(b.readAtRevoke || []) : null };
+    const role = String(b.to).startsWith('role:') ? b.to.slice(5) : null;
+    const eligible = users.filter((u) => !role || (u.role || 'user') === role || (role === 'admin' && isSuperUid(u.uid)));
+    const ids = b.noteIds || [];
+    const readers = new Set(revoked ? b.readAtRevoke || [] : eligible.filter((u) => (u.annRead || []).some((x) => ids.includes(x))).map((u) => u.uid));
+    return { recipients: eligible.map((u) => u.uid), readers };
+  };
+  const nameOf = (uid) => users?.find((u) => u.uid === uid)?.displayName || users?.find((u) => u.uid === uid)?.name || names[uid] || uid.slice(0, 8);
+
+  useEffect(() => {
+    if (!open || users) return;
+    const b = rows?.find((x) => x.id === open);
+    (b?.recipients || [])
+      .filter((u) => !names[u])
+      .slice(0, 100)
+      .forEach((uid) => {
+        let un = () => {};
+        un = social.watchProfile(uid, (p) => (setNames((n) => ({ ...n, [uid]: p?.name || uid.slice(0, 8) })), setTimeout(() => un && un(), 0)));
+      });
+  }, [open, rows, users]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const revoke = async (b) => {
+    if (!confirm(t('bc.revokeConfirm', { title: b.title || '' }))) return;
     try {
-      await socialApi.removeNotifications(g.docs.map((d) => d.id));
-      adminApi.log('broadcast.revoke', g.first.to === 'all' || String(g.first.to).startsWith('role:') ? g.first.to : `${g.docs.length} users`, g.first.title || '');
+      const r = report(b);
+      await socialApi.removeNotifications(b.docs.map((d) => d.id));
+      const patch = { status: 'revoked', revokedAt: Date.now(), revokedBy: me?.uid || '', revokedByName: me?.name || '', readAtRevoke: r.readers ? [...r.readers] : [] };
+      if (b.legacy) {
+        const { docs, legacy, ...rest } = b; // eslint-disable-line no-unused-vars
+        await socialApi.recordBroadcast({ ...rest, ...patch }).catch(() => {});
+      } else await socialApi.updateBroadcast(b.id, patch).catch(() => {});
+      adminApi.log('broadcast.revoke', b.to === 'users' ? `${(b.recipients || []).length} users` : b.to, b.title || '');
       notify(t('bc.revoked'));
     } catch (e) {
       notify(t('admin.error', { msg: e.message }), 'error');
     }
   };
+
+  const list = (rows || []).filter((b) => status === 'all' || (status === 'revoked' ? b.status === 'revoked' : b.status !== 'revoked'));
   return (
     <div className="card stack">
-      <h3 className="h3">🗂️ {t('bc.sent')}</h3>
-      {!list ? (
+      <div className="row between wrap">
+        <h3 className="h3">🗂️ {t('bc.sent')}</h3>
+        <div className="segmented segmented--sm">
+          {['all', 'active', 'revoked'].map((k) => (
+            <button key={k} className={status === k ? 'on' : ''} onClick={() => setStatus(k)}>
+              {t('bc.st.' + k)}
+            </button>
+          ))}
+        </div>
+      </div>
+      {!rows ? (
         <Loader />
-      ) : !groups.length ? (
+      ) : !list.length ? (
         <p className="muted small">{t('bc.noneSent')}</p>
       ) : (
-        groups.map((g) => {
-          const n = g.first;
-          const personal = !(n.to === 'all' || String(n.to).startsWith('role:'));
-          const read = g.docs.filter((d) => d.read).length;
+        list.map((b) => {
+          const revoked = b.status === 'revoked';
+          const r = report(b);
+          const total = r.recipients?.length;
+          const read = r.readers?.size;
+          const isOpen = open === b.id;
+          const shown = r.recipients ? r.recipients.filter((u) => (view === 'read' ? r.readers?.has(u) : !r.readers?.has(u))) : [];
           return (
-            <div key={g.key} className="sent-row">
+            <div key={b.id} className={`sent-row ${revoked ? 'sent-row--revoked' : ''}`}>
               <div className="sent-row__main">
                 <b>
-                  {n.type === 'feature' ? '🎉' : '📢'} {n.title}
+                  {b.type === 'feature' ? '🎉' : '📢'} {b.title}
+                  {revoked && <span className="sent-badge">{t('bc.revokedTag')}</span>}
                 </b>
-                {n.body && <small className="muted">{n.body}</small>}
+                {b.body && <small className="muted">{b.body}</small>}
                 <small className="muted">
-                  {who(g)} · {n.createdAt ? fmtWhen(n.createdAt, lang) : ''} · {n.fromName || ''}
-                  {personal && ` · ${t('bc.readCount', { r: read, n: g.docs.length })}`}
+                  {audienceOf(b)} · {b.createdAt ? fmtWhen(b.createdAt, lang) : ''} · {b.fromName || ''}
+                  {revoked && b.revokedAt ? ` · ${t('bc.revokedAt', { when: fmtWhen(b.revokedAt, lang), who: b.revokedByName || '' })}` : ''}
                 </small>
-                {personal && open === g.key && (
-                  <div className="chips">
-                    {g.docs.map((d) => (
-                      <span key={d.id} className={`chip ${d.read ? 'chip--on' : ''}`}>
-                        {d.read ? '✓ ' : ''}
-                        {names[d.to] || d.to.slice(0, 8)}
-                      </span>
-                    ))}
+                <div className="sent-stats">
+                  <span>📬 {t('bc.received')}: <b>{total ?? '—'}</b></span>
+                  <span>👀 {t('bc.read')}: <b>{read ?? '—'}</b></span>
+                  <span>💤 {t('bc.unread')}: <b>{total != null && read != null ? total - read : '—'}</b></span>
+                  {total ? <span className="sent-stats__pct">{Math.round(((read || 0) / total) * 100)}%</span> : null}
+                </div>
+                {total != null && total > 0 && (
+                  <div className="bar sent-bar">
+                    <i style={{ width: `${((read || 0) / total) * 100}%` }} />
                   </div>
                 )}
+                {isOpen &&
+                  (r.recipients ? (
+                    <div className="stack-sm">
+                      <div className="segmented segmented--sm">
+                        <button className={view === 'read' ? 'on' : ''} onClick={() => setView('read')}>
+                          👀 {t('bc.read')} ({read || 0})
+                        </button>
+                        <button className={view === 'unread' ? 'on' : ''} onClick={() => setView('unread')}>
+                          💤 {t('bc.unread')} ({total - (read || 0)})
+                        </button>
+                      </div>
+                      <div className="chips">
+                        {shown.length ? (
+                          shown.map((u) => (
+                            <span key={u} className={`chip ${view === 'read' ? 'chip--on' : ''}`}>
+                              {view === 'read' ? '✓ ' : ''}
+                              {nameOf(u)}
+                            </span>
+                          ))
+                        ) : (
+                          <small className="muted">—</small>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <small className="muted">{t('bc.reportAdminOnly')}</small>
+                  ))}
               </div>
-              <div className="row">
-                {personal && (
-                  <button className="btn btn--sm btn--ghost" onClick={() => setOpen(open === g.key ? null : g.key)}>
-                    {open === g.key ? t('bc.hide') : t('bc.recipients')}
+              <div className="row sent-row__actions">
+                <button className="btn btn--sm btn--ghost" onClick={() => setOpen(isOpen ? null : b.id)}>
+                  {isOpen ? t('bc.hide') : `📊 ${t('bc.report')}`}
+                </button>
+                {!revoked && (
+                  <button className="btn btn--sm btn--ghost danger" onClick={() => revoke(b)}>
+                    ↩ {t('bc.revoke')}
                   </button>
                 )}
-                <button className="btn btn--sm btn--ghost danger" onClick={() => revoke(g)}>
-                  ↩ {t('bc.revoke')}
-                </button>
               </div>
             </div>
           );

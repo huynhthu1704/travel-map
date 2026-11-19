@@ -187,6 +187,11 @@ const fb = {
   },
   removeNotification: (id) => deleteDoc(doc(db, 'notifications', id)),
   // Thông báo đội vận hành đã gửi (tin tính năng / tin chung) — để xem lại và thu hồi
+  // Lịch sử thông báo đã gửi: broadcasts/{batch} — giữ lại cả khi đã thu hồi (để xem báo cáo)
+  recordBroadcast: (b) => setDoc(doc(db, 'broadcasts', b.id), b),
+  updateBroadcast: (id, patch) => updateDoc(doc(db, 'broadcasts', id), patch),
+  watchBroadcasts: (cb) =>
+    onSnapshot(query(collection(db, 'broadcasts'), limit(300)), (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() }))), () => cb([])),
   watchSentBroadcasts: (cb) =>
     onSnapshot(
       query(collection(db, 'notifications'), where('type', 'in', ['feature', 'system']), limit(500)),
@@ -300,9 +305,21 @@ const local = {
     persist();
   },
   async notify(n) {
-    st.notes = [{ id: Math.random().toString(36).slice(2), read: false, createdAt: now(), ...n }, ...st.notes];
+    const id = Math.random().toString(36).slice(2);
+    st.notes = [{ id, read: false, createdAt: now(), ...n }, ...st.notes];
+    persist();
+    return { id };
+  },
+  // Lịch sử thông báo đã gửi (giữ lại cả khi đã thu hồi)
+  async recordBroadcast(b) {
+    st.broadcasts = [b, ...(st.broadcasts || []).filter((x) => x.id !== b.id)];
     persist();
   },
+  async updateBroadcast(id, patch) {
+    st.broadcasts = (st.broadcasts || []).map((x) => (x.id === id ? { ...x, ...patch } : x));
+    persist();
+  },
+  watchBroadcasts: (cb) => on(() => cb([...(st.broadcasts || [])])),
   watchNotifications: (uid, cb, role = 'user') =>
     on(() =>
       cb(

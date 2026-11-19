@@ -9181,3 +9181,49 @@ a.app-link.place-card__title:hover {
   align-items: flex-end;
   z-index: 3;
 }
+.sent-row--revoked .sent-row__main > b {
+  color: var(--ink-500, #8a8172);
+}
+.sent-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ink-100, #eee6d6);
+  color: var(--ink-700, #4a4237);
+  font-weight: 700;
+}
+.sent-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.sent-stats__pct {
+  font-weight: 800;
+  color: #1d7a55;
+}
+.sent-bar {
+  height: 6px;
+  max-width: 320px;
+  margin: 2px 0 4px;
+}
+.sent-row__actions {
+  flex: none;
+}
+.segmented--sm button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.sent-bar {
+  border-radius: 99px;
+  background: var(--honey-50, #fff8e1);
+  overflow: hidden;
+}
+.sent-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--mint-500, #3cb98a);
+}

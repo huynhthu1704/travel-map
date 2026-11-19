@@ -12,6 +12,7 @@ import { tipsApi, isFlagged, DEFAULT_COMMUNITY } from '../lib/tips';
 import { FLAGS } from '../data/flags';
 import { GUIDES, GUIDE_BY_CC, SECTIONS as GUIDE_SECTIONS, GUIDE_META_FIELDS } from '../data/guides';
 import { LINK_CATS, LINK_CAT } from '../data/guideLinkCats';
+import { GEAR_TAGS, GEAR_TRIPS, GEAR_STARTER } from '../data/gear';
 import { socialApi as social } from '../lib/social';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
@@ -43,6 +44,7 @@ const TABS = [
   { id: 'announce', icon: '📢', perm: 'announce' },
   { id: 'notify', icon: '📣', perm: 'notify' },
   { id: 'ads', icon: '🪧', perm: 'ads' },
+  { id: 'gear', icon: '🎒', perm: 'gear' },
   { id: 'flags', icon: '🚦', perm: 'flags' },
   { id: 'settings', icon: '⚙️', perm: 'settings' },
   { id: 'logs', icon: '📜', perm: 'logs' },
@@ -120,6 +122,7 @@ export default function AdminPage() {
               {tab === 'announce' && <AnnouncementsAdmin />}
               {tab === 'notify' && <Broadcast />}
               {tab === 'ads' && <AdsAdmin />}
+              {tab === 'gear' && <GearAdmin />}
               {tab === 'settings' && <SettingsAdmin />}
               {tab === 'logs' && <AdminLogs />}
               {tab === 'tips' && <TipsAdmin />}
@@ -2282,6 +2285,188 @@ function GuideLinksAdmin({ cc }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* --------------------------- Đồ dùng du lịch --------------------------- */
+function GearAdmin() {
+  const { t, lang } = useI18n();
+  const { adminApi, notify } = useApp();
+  const [items, setItems] = useState(null);
+  const [form, setForm] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState('');
+  useEffect(() => adminApi.watchGear(setItems), [adminApi]);
+  const list = (items || [])
+    .filter((x) => !q || normalize(`${x.name?.vi} ${x.name?.en}`).includes(normalize(q)))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt || 0) - (b.createdAt || 0));
+  const empty = { icon: '🎒', nameVi: '', nameEn: '', descVi: '', descEn: '', tags: [], trips: [], url: '', image: '', price: '', active: true };
+  const toForm = (x) => ({ id: x.id, icon: x.icon || '🎒', nameVi: x.name?.vi || '', nameEn: x.name?.en || '', descVi: x.desc?.vi || '', descEn: x.desc?.en || '', tags: x.tags || [], trips: x.trips || [], url: x.url || '', image: x.image || '', price: x.price || '', active: x.active !== false, order: x.order });
+  const toggle = (k, v) => setForm((f) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((y) => y !== v) : [...f[k], v] }));
+  const save = async () => {
+    if (!form.nameVi.trim() && !form.nameEn.trim()) return notify(t('ga.needName'), 'error');
+    if (form.url && !/^https:\/\/\S+$/.test(form.url.trim())) return notify(t('gl.badUrl'), 'error');
+    setBusy(true);
+    try {
+      await adminApi.saveGear(form.id || null, {
+        icon: form.icon || '🎒',
+        name: { vi: form.nameVi.trim(), en: form.nameEn.trim() },
+        desc: { vi: form.descVi.trim(), en: form.descEn.trim() },
+        tags: form.tags,
+        trips: form.trips,
+        url: form.url.trim(),
+        image: form.image.trim(),
+        price: form.price.trim(),
+        active: form.active,
+        order: form.order ?? Date.now(),
+      });
+      notify(t('ga.saved'));
+      setForm(null);
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+    setBusy(false);
+  };
+  const seed = async () => {
+    if (!confirm(t('ga.seedConfirm', { n: GEAR_STARTER.length }))) return;
+    setBusy(true);
+    try {
+      let i = 0;
+      for (const x of GEAR_STARTER) await adminApi.saveGear(null, { ...x, active: true, order: Date.now() + i++ });
+      notify(t('ga.seeded'));
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+    setBusy(false);
+  };
+  const noLink = (items || []).filter((x) => !x.url).length;
+  return (
+    <div className="stack">
+      <div className="card stack">
+        <div className="row between wrap">
+          <h3 className="h3">🎒 {t('ga.title')}</h3>
+          <div className="row wrap">
+            <a className="btn btn--sm btn--soft" href="#/gear" target="_blank" rel="noopener">
+              👀 {t('ga.view')} ↗
+            </a>
+            {!form && (
+              <button className="btn btn--sm btn--primary" onClick={() => setForm({ ...empty })}>
+                ＋ {t('ga.add')}
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="small muted">{t('ga.help')}</p>
+        {items && !items.length && (
+          <button className="btn btn--soft" disabled={busy} onClick={seed}>
+            ✨ {t('ga.seed', { n: GEAR_STARTER.length })}
+          </button>
+        )}
+        {noLink > 0 && <p className="small warn">⚠️ {t('ga.noLinkWarn', { n: noLink })}</p>}
+      </div>
+
+      {form && (
+        <div className="card stack gd-field gd-field--edited">
+          <h3 className="h3">{form.id ? `✏️ ${t('ga.edit')}` : `＋ ${t('ga.add')}`}</h3>
+          <div className="grid-2">
+            <label className="field">
+              <span>🇻🇳 {t('ga.name')}</span>
+              <input value={form.nameVi} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, nameVi: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>🇬🇧 {t('ga.name')}</span>
+              <input value={form.nameEn} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, nameEn: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>🇻🇳 {t('ga.desc')}</span>
+              <textarea rows={2} maxLength={300} value={form.descVi} onChange={(e) => setForm((f) => ({ ...f, descVi: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>🇬🇧 {t('ga.desc')}</span>
+              <textarea rows={2} maxLength={300} value={form.descEn} onChange={(e) => setForm((f) => ({ ...f, descEn: e.target.value }))} />
+            </label>
+          </div>
+          <div className="field">
+            <span>🏷️ {t('ga.tags')}</span>
+            <div className="chips chips--wrap">
+              {GEAR_TAGS.map((x) => (
+                <button key={x.key} type="button" className={`chip ${form.tags.includes(x.key) ? 'chip--on' : ''}`} onClick={() => toggle('tags', x.key)}>
+                  {x.icon} {x[lang] || x.vi}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <span>🧭 {t('ga.trips')}</span>
+            <div className="chips chips--wrap">
+              {GEAR_TRIPS.map((x) => (
+                <button key={x.key} type="button" className={`chip ${form.trips.includes(x.key) ? 'chip--on' : ''}`} onClick={() => toggle('trips', x.key)}>
+                  {x.icon} {x[lang] || x.vi}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="field">
+            <span>🛒 {t('ga.url')}</span>
+            <input value={form.url} maxLength={800} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://s.shopee.vn/…" />
+            <small className="muted">{t('ga.urlHelp')}</small>
+          </label>
+          <div className="grid-2">
+            <label className="field">
+              <span>🖼️ {t('ga.image')}</span>
+              <input value={form.image} maxLength={800} onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))} placeholder="https://…" />
+            </label>
+            <label className="field">
+              <span>💰 {t('ga.price')}</span>
+              <input value={form.price} maxLength={40} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} placeholder="~150.000 ₫" />
+            </label>
+            <label className="field">
+              <span>😀 {t('ga.icon')}</span>
+              <input value={form.icon} maxLength={4} onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))} />
+            </label>
+            <label className="switch">
+              <input type="checkbox" checked={form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
+              <span>{t('ga.active')}</span>
+            </label>
+          </div>
+          <div className="row">
+            <button className="btn btn--primary" disabled={busy} onClick={save}>
+              💾 {t('ga.save')}
+            </button>
+            <button className="btn btn--ghost" onClick={() => setForm(null)}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="card stack-sm">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`🔎 ${t('gear.search')}`} />
+        {!items ? (
+          <Loader />
+        ) : (
+          list.map((x) => (
+            <div key={x.id} className={`gl-admin-row ${x.active === false ? 'is-off' : ''}`}>
+              <span className="ga-icon">{x.icon || '🎒'}</span>
+              <div className="grow">
+                <b>{x.name?.[lang] || x.name?.vi || x.name?.en}</b>
+                <small className="muted">
+                  {(x.tags || []).length} {t('ga.tagsShort')} · {(x.trips || []).length} {t('ga.tripsShort')}
+                  {x.url ? ' · 🔗 ' + t('ga.hasLink') : ' · ⚠️ ' + t('ga.noLink')}
+                  {x.active === false ? ' · ' + t('ga.hidden') : ''}
+                </small>
+              </div>
+              <button className="btn btn--sm btn--ghost" onClick={() => (setForm(toForm(x)), window.scrollTo?.({ top: 0, behavior: 'smooth' }))}>
+                ✏️
+              </button>
+              <button className="btn btn--sm btn--ghost danger" onClick={() => confirm(t('ga.confirmDelete')) && adminApi.deleteGear(x.id).then(() => notify(t('ga.deleted')))}>
+                <TrashIcon />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

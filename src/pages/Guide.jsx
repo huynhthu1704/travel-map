@@ -173,13 +173,18 @@ export default function GuidePage() {
 
 function GuideList({ onOpen }) {
   const { t, lang } = useI18n();
-  const { guideOverrides } = useApp();
+  const { guideOverrides, can } = useApp();
   return (
     <div className="page guide">
       <header className="guide__head">
         <p className="eyebrow">📖 {t('guide.eyebrow')}</p>
         <h1 className="h1">{t('guide.title')}</h1>
         <p className="muted">{t('guide.lead')}</p>
+        {can('gear') && (
+          <a className="btn btn--sm btn--soft gear-link" href="#/gear">
+            🎒 {t('gear.title')} →
+          </a>
+        )}
       </header>
       <div className="guide-grid">
         {GUIDES.map((g0) => applyGuideOverride(g0, guideOverrides?.[g0.cc])).map((g) => (

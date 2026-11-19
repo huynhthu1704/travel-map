@@ -24,7 +24,7 @@ service cloud.firestore {
       return {
         'editor': ['content', 'feedback', 'places', 'tips', 'guides'],
         'moderator': ['content', 'feedback', 'tips'],
-        'marketing': ['insights', 'announce', 'notify', 'ads']
+        'marketing': ['insights', 'announce', 'notify', 'ads', 'gear']
       }.get(r, []);
     }
     function hasPerm(perm) {
@@ -86,6 +86,13 @@ service cloud.firestore {
       allow write: if hasPerm('guides')
         && (request.resource == null || (request.resource.data.url is string && request.resource.data.url.size() <= 600
             && request.resource.data.url.matches('https://.*') && request.resource.data.cc is string && request.resource.data.cc.size() == 2));
+    }
+    // Đồ dùng du lịch (link tiếp thị liên kết) — đội vận hành có quyền "Đồ dùng du lịch" quản lý
+    match /gearItems/{id} {
+      allow read: if true;
+      allow write: if hasPerm('gear')
+        && (request.resource == null || (request.resource.data.get('url', '') is string && request.resource.data.get('url', '').size() <= 800
+            && (request.resource.data.get('url', '') == '' || request.resource.data.get('url', '').matches('https://.*'))));
     }
     match /guideOverrides/{cc} {
       allow read: if true;

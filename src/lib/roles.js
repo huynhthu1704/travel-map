@@ -20,6 +20,7 @@ export const PERMS = [
   { key: 'announce', icon: '📢' },
   { key: 'notify', icon: '📣' },
   { key: 'ads', icon: '🪧' },
+  { key: 'gear', icon: '🎒' },
   { key: 'flags', icon: '🚦' },
   { key: 'settings', icon: '⚙️' },
   { key: 'logs', icon: '📜' },
@@ -29,7 +30,7 @@ export const PERM_KEYS = PERMS.map((p) => p.key);
 export const PRESET_ROLES = [
   { id: 'editor', icon: '✏️', perms: ['content', 'feedback', 'places', 'tips', 'guides'] },
   { id: 'moderator', icon: '🛡️', perms: ['content', 'feedback', 'tips'] },
-  { id: 'marketing', icon: '📣', perms: ['insights', 'announce', 'notify', 'ads'] },
+  { id: 'marketing', icon: '📣', perms: ['insights', 'announce', 'notify', 'ads', 'gear'] },
 ];
 const PRESET_BY_ID = Object.fromEntries(PRESET_ROLES.map((r) => [r.id, r]));
 export const isPresetRole = (id) => !!PRESET_BY_ID[id];

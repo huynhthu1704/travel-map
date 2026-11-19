@@ -553,6 +553,12 @@ function WorldPanel() {
               </span>
               <span aria-hidden>→</span>
             </button>}
+            {can('gear') && (
+              <a href="#/gear">
+                <span className="quick-links__ic">🎒</span>
+                <span>{t('gear.title')}</span>
+              </a>
+            )}
             <a href="#/about">
               <span className="quick-links__ic">ℹ️</span>
               <span>{t('about.menu')}</span>

@@ -17,6 +17,7 @@ const GuidePage = lazy(() => import('./pages/Guide'));
 const TipsPage = lazy(() => import('./pages/Tips'));
 const LegalPage = lazy(() => import('./pages/Legal'));
 const AboutPage = lazy(() => import('./pages/About'));
+const GearPage = lazy(() => import('./pages/Gear'));
 const AccountPage = lazy(() => import('./pages/Account'));
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
 const MemoriesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.MemoriesPage })));
@@ -265,6 +266,7 @@ function Shell() {
           {(view === 'privacy' || view === 'terms') && <LegalPage kind={view} />}
           {view === 'account' && <AccountPage />}
           {view === 'about' && <AboutPage />}
+          {view === 'gear' && can('gear') && <GearPage />}
           {view === 'guide' && can('guide') && <GuidePage />}
           {view === 'tips' && <TipsPage />}
         </Suspense>

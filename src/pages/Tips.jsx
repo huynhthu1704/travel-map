@@ -20,7 +20,7 @@ const ago = (ts, lang) => {
 
 /** #/tips/<cc> — Kinh nghiệm du lịch của cộng đồng cho 1 quốc gia */
 export default function TipsPage() {
-  const { selectedCountry: cc, openCountry, settings, requireLogin, tipPost, setTipPost } = useApp();
+  const { selectedCountry: cc, openCountry, settings, requireLogin, tipPost, setTipPost, can } = useApp();
   const { t } = useI18n();
   const [posts, setPosts] = useState(null);
   const [mode, setMode] = useState('top');
@@ -41,6 +41,7 @@ export default function TipsPage() {
     return rankPosts(f, mode, cfg);
   }, [posts, mode, topic, city, settings?.community]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (!can('tips')) return <div className="page"><Empty emoji="🚧" title={t('flags.notYet')} /></div>;
   if (!cc) return <div className="page"><Empty emoji="🌏" title={t('tips.pickCountry')} /></div>;
 
   return (

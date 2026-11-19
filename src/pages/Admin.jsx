@@ -9,6 +9,8 @@ import { pName, pCity } from '../lib/lang';
 import { normalize } from '../lib/geo';
 import { useThumbs } from '../lib/useThumbs';
 import { tipsApi, isFlagged, DEFAULT_COMMUNITY } from '../lib/tips';
+import { FLAGS } from '../data/flags';
+import { socialApi as social } from '../lib/social';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
 import { ROLES, isSuperUid, maskEmail } from '../lib/adminStore';
@@ -30,6 +32,7 @@ const TABS = [
   { id: 'places', icon: '🏞️', staff: true },
   { id: 'tips', icon: '🧭', staff: true },
   { id: 'trips', icon: '🧳', admin: true },
+  { id: 'flags', icon: '🚦', admin: true },
   { id: 'settings', icon: '⚙️', admin: true },
   { id: 'logs', icon: '📜', admin: true },
 ];
@@ -92,6 +95,7 @@ export default function AdminPage() {
           {tab === 'settings' && isAdmin && <SettingsAdmin />}
           {tab === 'logs' && isAdmin && <AdminLogs />}
           {tab === 'tips' && <TipsAdmin />}
+          {tab === 'flags' && isAdmin && <FlagsAdmin />}
         </section>
       </div>
     </div>
@@ -1143,6 +1147,130 @@ function TipsAdmin() {
               </span>
             </li>
           ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Feature flags: bật tính năng mới cho tất cả, hoặc cho một số người dùng thử trước. Chủ trang luôn thấy. */
+function FlagsAdmin() {
+  const { settings, adminApi, notify } = useApp();
+  const { t, lang } = useI18n();
+  const flags = settings.flags || {};
+  const [busy, setBusy] = useState('');
+  const save = async (key, patch, logDetail) => {
+    const cur = flags[key] || {};
+    const def = FLAGS.find((f) => f.key === key);
+    const next = { on: cur.on ?? def.defaultOn, users: cur.users || [], ...patch };
+    setBusy(key);
+    try {
+      await adminApi.saveSettings({ flags: { ...flags, [key]: next } });
+      adminApi.log('flag.update', key, logDetail);
+      notify(t('admin.done'));
+    } catch (e) {
+      notify(e.message, 'error');
+    } finally {
+      setBusy('');
+    }
+  };
+  return (
+    <div className="stack">
+      <p className="small muted">{t('flags.help')}</p>
+      {FLAGS.map((f) => {
+        const cfg = flags[f.key] || {};
+        const on = cfg.on ?? f.defaultOn;
+        const users = cfg.users || [];
+        return (
+          <section key={f.key} className="card stack-sm flag-card">
+            <div className="flag-card__head">
+              <span className="flag-card__icon">{f.icon}</span>
+              <div className="grow">
+                <b>{f.name[lang] || f.name.vi}</b>
+                <small className="muted">
+                  {f.desc[lang] || f.desc.vi} · {t('flags.since', { date: f.since })}
+                </small>
+              </div>
+              <span className={`flag-status ${on ? 'flag-status--on' : users.length ? 'flag-status--beta' : ''}`}>
+                {on ? t('flags.statusAll') : users.length ? t('flags.statusBeta', { n: users.length }) : t('flags.statusOwner')}
+              </span>
+            </div>
+            <label className="switch">
+              <input type="checkbox" checked={on} disabled={busy === f.key} onChange={(e) => save(f.key, { on: e.target.checked }, e.target.checked ? 'on for everyone' : 'off for everyone')} />
+              <span>
+                <b>{t('flags.forAll')}</b>
+                <small>{t('flags.forAllHelp')}</small>
+              </span>
+            </label>
+            {!on && <BetaUsers users={users} busy={busy === f.key} onChange={(list, d) => save(f.key, { users: list }, d)} />}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function BetaUsers({ users, busy, onChange }) {
+  const { t } = useI18n();
+  const [q, setQ] = useState('');
+  const [found, setFound] = useState([]);
+  const [names, setNames] = useState({});
+  useEffect(() => {
+    let alive = true;
+    Promise.all(users.filter((u) => !names[u]).map((uid) => new Promise((res) => { let un = () => {}; un = social.watchProfile(uid, (p) => (res([uid, p]), setTimeout(() => un && un(), 0))); }))).then(
+      (rows) => alive && rows.length && setNames((n) => ({ ...n, ...Object.fromEntries(rows.map(([uid, p]) => [uid, p])) })),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [users.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const s = q.trim();
+    if (s.length < 2) return setFound([]), undefined;
+    let alive = true;
+    const tm = setTimeout(() => social.searchUsers(s).then((l) => alive && setFound(l)).catch(() => alive && setFound([])), 300);
+    return () => {
+      alive = false;
+      clearTimeout(tm);
+    };
+  }, [q]);
+  return (
+    <div className="stack-sm">
+      <b className="small">{t('flags.beta')}</b>
+      <div className="chips">
+        {users.map((uid) => (
+          <span key={uid} className="chip chip--on flag-user">
+            {names[uid]?.name || uid.slice(0, 8)}
+            {names[uid]?.username ? ` @${names[uid].username}` : ''}
+            <button disabled={busy} onClick={() => onChange(users.filter((x) => x !== uid), `remove ${uid}`)} aria-label={t('flags.remove')}>
+              ✕
+            </button>
+          </span>
+        ))}
+        {!users.length && <small className="muted">{t('flags.noBeta')}</small>}
+      </div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('flags.addPh')} />
+      {found.filter((p) => !users.includes(p.uid)).length > 0 && (
+        <ul className="tm__list">
+          {found
+            .filter((p) => !users.includes(p.uid))
+            .slice(0, 6)
+            .map((p) => (
+              <li key={p.uid}>
+                <Avatar name={p.name || '?'} photo={p.photo} size={30} />
+                <span className="tm__who">
+                  <b>{p.name}</b>
+                  {p.username && <small>@{p.username}</small>}
+                </span>
+                <button
+                  className="btn btn--sm btn--primary"
+                  disabled={busy}
+                  onClick={() => (setNames((n) => ({ ...n, [p.uid]: p })), setQ(''), onChange([...users, p.uid], `add ${p.uid}`))}
+                >
+                  ＋ {t('flags.add')}
+                </button>
+              </li>
+            ))}
         </ul>
       )}
     </div>

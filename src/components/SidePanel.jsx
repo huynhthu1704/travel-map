@@ -621,7 +621,7 @@ function WorldPanel() {
 }
 
 function CountryPanel() {
-  const { selectedCountry: cc, setSelectedCountry, setFlyTarget, places, memories, publicMemories, openPlace, visitedCountries, famousFor, famousLoading, famousLimit, setFamousLimit } = useApp();
+  const { selectedCountry: cc, setSelectedCountry, setFlyTarget, places, memories, publicMemories, openPlace, visitedCountries, famousFor, famousLoading, famousLimit, setFamousLimit, can } = useApp();
   const [city, setCity] = useState(null);
   const { t, lang } = useI18n();
   const famous = famousFor(cc);
@@ -657,7 +657,7 @@ function CountryPanel() {
         </div>
       </div>
 
-      <TipsTeaser cc={cc} />
+      {can('tips') && <TipsTeaser cc={cc} />}
 
       {cities.length > 1 && (
         <div className="chips chips--scroll">

@@ -44,6 +44,7 @@ const mergeSettings = (s = {}) => ({
   announcement: { ...DEFAULT_SETTINGS.announcement, ...(s.announcement || {}) },
   features: { ...DEFAULT_SETTINGS.features, ...(s.features || {}) },
   community: { ...DEFAULT_SETTINGS.community, ...(s.community || {}) },
+  flags: s.flags || {},
 });
 
 /* ------------------------------ Nhật ký quản trị ------------------------------

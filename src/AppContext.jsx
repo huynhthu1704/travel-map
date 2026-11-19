@@ -13,6 +13,7 @@ import { pName, getLang } from './lib/lang';
 const pCityOf = (p) => (p?.city || '').trim();
 import { reverseGeocode, googleMapsUrl } from './lib/geo';
 import { LEGAL_VERSION, CONSENT_KEY } from './data/legal';
+import { flagAllows } from './data/flags';
 
 const isDesktop = () =>
   !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) && !(navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) && !window.matchMedia('(pointer: coarse)').matches;
@@ -56,6 +57,7 @@ export function AppProvider({ children }) {
   const [profileUid, setProfileUid] = useState(initRoute.profile); // hồ sơ đang xem (#/u/<uid>)
   const [profileSub, setProfileSub] = useState(initRoute.profileSub);
   const [tipPost, setTipPost] = useState(initRoute.tipPost); // bài kinh nghiệm đang mở
+  const [guideCc, setGuideCc] = useState(initRoute.guideCc); // cẩm nang đang mở (#/guide/<cc>)
   const [flyTarget, setFlyTarget] = useState(null);
   // Trang danh sách đã mở địa điểm (để có nút quay lại danh sách)
   const [returnView, setReturnView] = useState(null);
@@ -140,6 +142,7 @@ export function AppProvider({ children }) {
   const isAdmin = role === 'admin';
   const isStaff = role === 'admin' || role === 'editor';
   const banned = !isSuper && !!profile?.banned;
+  const can = useCallback((key) => flagAllows(key, settings, user, isSuper), [settings, user, isSuper]); // feature flags
   setAdminActor(isStaff ? user : null); // người thực hiện thao tác quản trị — ghi vào nhật ký
   useEffect(() => {
     // Bản đồ quốc gia nhẹ trước để hiện nhanh, rồi thay bằng bản chi tiết khi trình duyệt rảnh
@@ -368,7 +371,7 @@ export function AppProvider({ children }) {
   const routeReplace = useRef(true); // lần đầu & khi bấm Back/Forward: chỉ thay, không thêm lịch sử
   useEffect(() => {
     if (/join=/.test(location.hash)) return;
-    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab, profile: profileUid, profileSub, tipPost });
+    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab, profile: profileUid, profileSub, tipPost, guideCc });
     const replace = routeReplace.current;
     routeReplace.current = false;
     if (h === location.hash) return;
@@ -376,7 +379,7 @@ export function AppProvider({ children }) {
     const url = location.pathname + location.search + h;
     if (replace || samePath) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
-  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab, profileUid, profileSub, tipPost]);
+  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab, profileUid, profileSub, tipPost, guideCc]);
   useEffect(() => {
     const onPop = () => {
       const r = parseRoute(location.hash);
@@ -390,6 +393,7 @@ export function AppProvider({ children }) {
       setProfileUid(r.profile);
       setProfileSub(r.profileSub);
       setTipPost(r.tipPost);
+      setGuideCc(r.guideCc);
       if (r.view === 'map') {
         if (r.place) setFlyTarget({ lat: r.place.lat, lng: r.place.lng, zoom: 13, t: Date.now() });
         else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
@@ -720,7 +724,7 @@ export function AppProvider({ children }) {
     api, user, places, memories, publicMemories, loadPublic: () => setNeedPublic(true), trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     placeOrigin, setPlaceOrigin,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
-    modal, setModal, toast, notify, deleteCheckin, myInvites, openTips, tipPost, setTipPost, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
+    modal, setModal, toast, notify, deleteCheckin, myInvites, can, openTips, tipPost, setTipPost, guideCc, setGuideCc, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -6,7 +6,7 @@
 //   #/explore  #/memories  #/trips  #/trips/<id>  #/admin  #/u/<uid> (hồ sơ người dùng)
 //   ?trip=<id>               đang hiện 1 chuyến đi trên bản đồ (dùng được với mọi trang)
 
-const PAGES = ['explore', 'memories', 'admin', 'privacy', 'terms', 'account', 'guide'];
+const PAGES = ['explore', 'memories', 'admin', 'privacy', 'terms', 'account'];
 
 export function parseRoute(hash = '') {
   const h = hash.replace(/^#\/?/, '');
@@ -19,7 +19,7 @@ export function parseRoute(hash = '') {
       return s;
     }
   });
-  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan', profile: null, profileSub: null, tipPost: null };
+  const r = { view: 'map', country: null, place: null, trip: q.get('trip') || null, tripDetail: null, tripTab: q.get('tab') || 'plan', profile: null, profileSub: null, tipPost: null, guideCc: null };
   if (PAGES.includes(seg[0])) r.view = seg[0];
   else if (seg[0]?.startsWith('@') && seg[0].length > 1) {
     r.view = 'profile';
@@ -28,6 +28,10 @@ export function parseRoute(hash = '') {
     r.view = 'profile';
     r.profile = seg[1];
     r.profileSub = seg[2] === 'activity' ? 'activity' : null;
+  }
+  else if (seg[0] === 'guide') {
+    r.view = 'guide';
+    r.guideCc = seg[1] ? seg[1].toUpperCase() : null;
   }
   else if (seg[0] === 'tips' && seg[1]) {
     r.view = 'tips';
@@ -49,7 +53,7 @@ export function parseRoute(hash = '') {
   return r;
 }
 
-export function buildRoute({ view, country, place, trip, tripDetail, tripTab, profile, profileSub, tipPost }) {
+export function buildRoute({ view, country, place, trip, tripDetail, tripTab, profile, profileSub, tipPost, guideCc }) {
   const q = new URLSearchParams();
   let path = '';
   if (view === 'map') {
@@ -66,6 +70,7 @@ export function buildRoute({ view, country, place, trip, tripDetail, tripTab, pr
     path = tripDetail ? `trips/${encodeURIComponent(tripDetail)}` : 'trips';
     if (tripDetail && tripTab && tripTab !== 'plan') q.set('tab', tripTab);
   }
+  else if (view === 'guide') path = guideCc ? `guide/${guideCc}` : 'guide';
   else if (view === 'tips' && country) {
     path = `tips/${country}`;
     if (tipPost) q.set('post', tipPost);

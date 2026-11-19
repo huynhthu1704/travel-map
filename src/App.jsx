@@ -150,10 +150,10 @@ function UserMenu() {
 }
 
 function Shell() {
-  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user, isStaff, settings, banned, goHome } = useApp();
+  const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user, isStaff, settings, banned, goHome, can } = useApp();
   const { t, lang } = useI18n();
   // Mục menu theo cài đặt trang (bật/tắt tính năng) và quyền quản trị
-  const nav = NAV.filter((n) => (n.id === 'explore' ? settings.features.explore !== false : n.id === 'trips' ? settings.features.trips !== false : true)).concat(
+  const nav = NAV.filter((n) => (n.id === 'explore' ? settings.features.explore !== false : n.id === 'trips' ? settings.features.trips !== false : n.id === 'guide' ? can('guide') : true)).concat(
     isStaff ? [{ id: 'admin', icon: '🛠️' }] : [],
   );
   const ann = settings.announcement;
@@ -226,7 +226,7 @@ function Shell() {
           {view === 'profile' && <ProfilePage />}
           {(view === 'privacy' || view === 'terms') && <LegalPage kind={view} />}
           {view === 'account' && <AccountPage />}
-          {view === 'guide' && <GuidePage />}
+          {view === 'guide' && can('guide') && <GuidePage />}
           {view === 'tips' && <TipsPage />}
         </Suspense>
       </main>

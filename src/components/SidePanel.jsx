@@ -919,11 +919,11 @@ function PlacePanel() {
           <TrashIcon /> {t(st === 'visited' ? 'remove.fromVisited' : 'remove.fromWish')}
         </button>
       )}
+      <AdSlot placement="place-middle" size="banner" />
       <section>
         <h3 className="section-title">{t('place.others')}</h3>
         {pub.length ? <MemoryGrid items={pub} /> : <Empty emoji="🌱" title={t('place.noShares')} text={t('place.beFirst')} />}
       </section>
-      <AdSlot placement="place-bottom" size="banner" />
     </div>
   );
 }

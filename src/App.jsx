@@ -37,9 +37,9 @@ import { useI18n, LANGS } from './i18n';
 const NAV = [
   { id: 'map', icon: '🗺️' },
   { id: 'explore', icon: '🌍' },
+  { id: 'guide', icon: '📖' },
   { id: 'memories', icon: '📸' },
   { id: 'trips', icon: '🧳' },
-  { id: 'guide', icon: '📖' },
 ];
 
 /** Nút lá cờ đổi ngôn ngữ: bấm để chuyển sang ngôn ngữ còn lại */

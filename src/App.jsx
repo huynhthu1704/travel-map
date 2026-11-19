@@ -12,6 +12,7 @@ import Notifications from './components/Notifications';
 import { Avatar, Loader, AppLink } from './components/ui';
 import { hrefView, hrefProfile } from './lib/route';
 // Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
+const GuidePage = lazy(() => import('./pages/Guide'));
 const LegalPage = lazy(() => import('./pages/Legal'));
 const AccountPage = lazy(() => import('./pages/Account'));
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
@@ -35,6 +36,7 @@ const NAV = [
   { id: 'explore', icon: '🌍' },
   { id: 'memories', icon: '📸' },
   { id: 'trips', icon: '🧳' },
+  { id: 'guide', icon: '📖' },
 ];
 
 /** Nút lá cờ đổi ngôn ngữ: bấm để chuyển sang ngôn ngữ còn lại */
@@ -217,6 +219,7 @@ function Shell() {
           {view === 'profile' && <ProfilePage />}
           {(view === 'privacy' || view === 'terms') && <LegalPage kind={view} />}
           {view === 'account' && <AccountPage />}
+          {view === 'guide' && <GuidePage />}
         </Suspense>
       </main>
 

@@ -7895,3 +7895,102 @@ a.app-link.place-card__title:hover {
 .legal-links a {
   color: inherit;
 }
+
+/* ---------- Cẩm nang (sắp ra mắt) ---------- */
+.guide-soon {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  margin: 24px auto;
+  padding: 40px 28px 32px;
+  text-align: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 0%, var(--honey-100), #fff 60%);
+}
+.guide-soon__badge {
+  display: inline-block;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--ink-900, #1f1a14);
+  color: var(--honey-300, #ffd66b);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.guide-soon__art {
+  position: relative;
+  font-size: 72px;
+  margin: 18px auto 6px;
+  width: max-content;
+  animation: guideFloat 3.2s ease-in-out infinite;
+}
+.guide-soon__art span {
+  position: absolute;
+  font-size: 30px;
+  right: -26px;
+  top: -4px;
+}
+@keyframes guideFloat {
+  50% {
+    transform: translateY(-8px) rotate(-3deg);
+  }
+}
+.guide-soon .h1 {
+  margin: 6px 0 8px;
+}
+.guide-soon__lead {
+  max-width: 520px;
+  margin: 0 auto 18px;
+}
+.guide-soon__flags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  font-size: 24px;
+  margin-bottom: 22px;
+}
+.guide-soon__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
+  gap: 10px;
+  max-width: 600px;
+}
+.guide-soon__list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--honey-100);
+  text-align: left;
+  font-size: 14px;
+  opacity: 0.85;
+}
+.guide-soon__list li span {
+  font-size: 22px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .guide-soon__art {
+    animation: none;
+  }
+}
+@media (max-width: 640px) {
+  .guide-soon {
+    margin: 8px auto;
+    padding: 28px 16px 22px;
+  }
+  .guide-soon__list {
+    grid-template-columns: 1fr 1fr;
+  }
+  .guide-soon__list li {
+    padding: 10px;
+    font-size: 13px;
+  }
+}

@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useApp } from '../AppContext';
+import { Modal } from '../components/ui';
 import { useI18n } from '../i18n';
 import { FLAGS, flagReleased } from '../data/flags';
 import { RELEASES } from '../data/releases';
@@ -15,6 +17,7 @@ import { formatDate } from '../components/ui';
 const SECTIONS = [
   {
     id: 'map',
+    shot: 'map',
     icon: '🗺️',
     eyebrow: { vi: 'Bản đồ & khám phá', en: 'Map & discovery' },
     title: { vi: 'Ghim mọi nơi chỉ bằng một chạm', en: 'Pin any place with one tap' },
@@ -27,6 +30,7 @@ const SECTIONS = [
   },
   {
     id: 'checkin',
+    shot: 'checkin',
     icon: '📸',
     eyebrow: { vi: 'Check-in & kỉ niệm', en: 'Check-ins & memories' },
     title: { vi: 'Mỗi lần ghé là một dòng nhật ký', en: 'Every visit becomes a diary entry' },
@@ -39,6 +43,7 @@ const SECTIONS = [
   },
   {
     id: 'trips',
+    shot: 'trips',
     flag: 'trips',
     icon: '🧳',
     eyebrow: { vi: 'Chuyến đi nhóm', en: 'Group trips' },
@@ -52,6 +57,7 @@ const SECTIONS = [
   },
   {
     id: 'plan',
+    shot: 'plan',
     flag: 'trips',
     icon: '🗓️',
     eyebrow: { vi: 'Lịch trình', en: 'Itinerary' },
@@ -65,6 +71,7 @@ const SECTIONS = [
   },
   {
     id: 'costs',
+    shot: 'costs',
     flag: 'tripCosts',
     icon: '💰',
     eyebrow: { vi: 'Chi phí & chia tiền', en: 'Costs & splitting' },
@@ -78,6 +85,7 @@ const SECTIONS = [
   },
   {
     id: 'checklist',
+    shot: 'checklist',
     flag: 'tripChecklist',
     icon: '✅',
     eyebrow: { vi: 'Checklist', en: 'Checklists' },
@@ -91,6 +99,7 @@ const SECTIONS = [
   },
   {
     id: 'recap',
+    shot: 'recap',
     flag: 'recap',
     icon: '🎬',
     eyebrow: { vi: 'Tổng kết & chia sẻ', en: 'Recap & sharing' },
@@ -121,6 +130,7 @@ export default function AboutPage() {
   const more = FLAGS.filter((f) => f.value && !SECTION_FLAGS.has(f.key) && shown(f.key)).sort((a, b) => (b.since || '').localeCompare(a.since || ''));
   const releases = RELEASES.slice(0, 2);
   const start = () => (user ? (goHome(), setView('map')) : setModal({ type: 'login' }));
+  const [zoom, setZoom] = useState(null);
   return (
     <div className="page about">
       <header className="about-hero card">
@@ -186,6 +196,19 @@ export default function AboutPage() {
                 <span>💡</span> {L(s.value)}
               </p>
             </div>
+            {s.shot && (
+              <figure className={`about-shot ${s.shot === 'checkin' ? 'about-shot--narrow' : ''}`}>
+                <button type="button" className="about-shot__frame" onClick={() => setZoom(s)} aria-label={t('about.zoom')}>
+                  <span className="about-shot__dots" aria-hidden>
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <img src={`${import.meta.env.BASE_URL}about/${s.shot}-${lang === 'en' ? 'en' : 'vi'}.webp`} alt={L(s.title)} loading="lazy" decoding="async" />
+                </button>
+                <figcaption className="tiny muted">{t('about.shotCaption')}</figcaption>
+              </figure>
+            )}
           </section>
         ))}
       </div>
@@ -230,6 +253,12 @@ export default function AboutPage() {
             </div>
           ))}
         </section>
+      )}
+
+      {zoom && (
+        <Modal title={`${zoom.icon} ${L(zoom.eyebrow)}`} onClose={() => setZoom(null)} wide className="about-zoom">
+          <img src={`${import.meta.env.BASE_URL}about/${zoom.shot}-${lang === 'en' ? 'en' : 'vi'}.webp`} alt={L(zoom.title)} />
+        </Modal>
       )}
 
       <section className="about-cta card">

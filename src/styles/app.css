@@ -9135,3 +9135,49 @@ a.app-link.place-card__title:hover {
   text-decoration: none;
   border: 1px dashed var(--honey-400, #ffc629);
 }
+/* Bảng quyền: cột vai trò hẹp để xem nhiều vai trò; cột tên quyền dính bên trái khi cuộn ngang */
+.perm-matrix {
+  grid-template-columns: minmax(200px, 260px) repeat(var(--cols), 92px);
+}
+.perm-matrix > * {
+  padding: 10px 8px;
+}
+.perm-matrix__corner,
+.perm-matrix__perm {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #fff;
+  padding-left: 14px;
+  box-shadow: 6px 0 8px -6px rgba(31, 26, 20, 0.12);
+}
+.perm-matrix__role b,
+.perm-matrix__name {
+  font-size: 13px;
+  line-height: 1.25;
+}
+.perm-matrix__name {
+  min-width: 0;
+  padding: 3px 4px;
+}
+.perm-matrix__role small {
+  font-size: 11px;
+}
+.perm-matrix__role .btn--sm {
+  padding: 2px 6px;
+  min-height: 0;
+}
+@media (max-width: 640px) {
+  .perm-matrix {
+    grid-template-columns: 150px repeat(var(--cols), 80px);
+  }
+  .perm-matrix__perm small {
+    display: none;
+  }
+}
+.perm-matrix__corner {
+  align-self: stretch;
+  display: flex;
+  align-items: flex-end;
+  z-index: 3;
+}

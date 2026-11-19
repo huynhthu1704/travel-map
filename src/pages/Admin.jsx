@@ -1178,6 +1178,25 @@ function AnnouncementsAdmin() {
                     ⚡ {t('ann.publishNow')}
                   </button>
                 )}
+                <button
+                  className="btn btn--sm btn--ghost"
+                  title={t('ann.duplicate')}
+                  onClick={() => {
+                    setEdit({
+                      id: 'a' + Date.now().toString(36),
+                      vi: a.vi || '',
+                      en: a.en || '',
+                      tone: a.tone || 'info',
+                      when: 'schedule',
+                      startAt: new Date(new Date().setHours(24, 0, 0, 0)).getTime(),
+                      endAt: null,
+                      isNew: true,
+                    });
+                    setTimeout(() => document.querySelector('.ann-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                  }}
+                >
+                  ⧉ {t('ann.duplicate')}
+                </button>
                 <button className="btn btn--sm btn--ghost danger" title={t('common.delete')} onClick={() => confirm(t('ann.confirmDelete')) && persist(list.filter((x) => x.id !== a.id), t('ann.deleted'))}>
                   <TrashIcon />
                 </button>

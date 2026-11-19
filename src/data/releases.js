@@ -28,6 +28,14 @@ export const RELEASES = [
         image: 'releases/profile.webp',
       },
       {
+        icon: '↻',
+        title: { vi: 'Kéo xuống để tải lại', en: 'Pull to refresh' },
+        desc: {
+          vi: 'Trên điện thoại, ở đầu trang hãy kéo xuống rồi thả ra để tải lại dữ liệu mới nhất. Ở trang Bản đồ, kéo từ thanh trên cùng.',
+          en: 'On a phone, pull down at the top of a page and let go to load the latest data. On the Map page, pull from the top bar.',
+        },
+      },
+      {
         icon: '📱',
         title: { vi: 'Dùng trên điện thoại mượt hơn', en: 'Smoother on phones' },
         desc: {

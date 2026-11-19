@@ -7062,3 +7062,40 @@ a.app-link.place-card__title:hover {
   font-style: normal;
   color: #c2410c;
 }
+
+/* Kéo xuống để tải lại */
+.ptr {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 70px);
+  left: 50%;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  background: var(--base-white);
+  box-shadow: var(--shadow-pop);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-700);
+  pointer-events: none;
+}
+.ptr__icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--honey-400);
+  color: var(--ink-900);
+  font-size: 16px;
+}
+.ptr__icon.is-spin {
+  animation: ptrSpin 0.8s linear infinite;
+}
+@keyframes ptrSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

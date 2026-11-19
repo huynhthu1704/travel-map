@@ -6,6 +6,7 @@ import PickPanel from './components/PickPanel';
 import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
 import FeedbackLauncher from './components/FeedbackLauncher';
+import PullToRefresh from './components/PullToRefresh';
 import Notifications from './components/Notifications';
 import { Avatar, Loader, AppLink } from './components/ui';
 import { hrefView, hrefProfile } from './lib/route';
@@ -148,6 +149,7 @@ function Shell() {
   const pageCls = (id) => (view === id ? '' : 'page-hidden');
   return (
     <div className={`app view-${view}`}>
+      <PullToRefresh />
       <header className="topbar">
         <AppLink href="#/" className="logo" onClick={goHome} title={t('app.home')}>
           <span className="logo__mark">📍</span>

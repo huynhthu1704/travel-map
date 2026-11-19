@@ -8905,3 +8905,211 @@ a.app-link.place-card__title:hover {
     flex-direction: column;
   }
 }
+.guide-allmap {
+  margin-top: 12px;
+  justify-content: center;
+}
+.country-famous {
+  scroll-margin-top: 70px;
+}
+/* Cẩm nang: nghe đọc câu nói & ảnh món ăn */
+.say {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.say__btn {
+  border: 0;
+  background: var(--honey-100, #fff3cc);
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+}
+.say__btn:hover {
+  background: var(--honey-300, #ffd970);
+}
+.say__msg {
+  font-size: 12px;
+  color: #b4472c;
+}
+.food-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin: 12px 0 6px;
+}
+.food-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+.food-card__img {
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--honey-100, #fff3cc);
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+.food-card__img.is-loading {
+  animation: pulse-bg 1.2s ease-in-out infinite alternate;
+}
+@keyframes pulse-bg {
+  to {
+    background: #fbe6a8;
+  }
+}
+.food-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.food-card b {
+  font-size: 13px;
+  line-height: 1.3;
+}
+/* Cẩm nang: số khẩn cấp */
+.em-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.em-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: #fff1ed;
+  border: 1px solid #ffd9cc;
+  color: inherit;
+  text-decoration: none;
+}
+.em-item:hover {
+  background: #ffe4db;
+}
+.em-item__icon {
+  font-size: 22px;
+}
+.em-item__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.em-item__main small {
+  font-size: 12px;
+}
+.em-item__num {
+  font-weight: 800;
+  font-size: 17px;
+  color: #b4472c;
+  white-space: nowrap;
+}
+.em-item--vn {
+  background: var(--honey-100, #fff3cc);
+  border-color: var(--honey-300, #ffd970);
+}
+.em-item--vn .em-item__num {
+  color: var(--ink-900, #1f1a14);
+  font-size: 15px;
+}
+/* Thông báo đầu trang trên điện thoại: dải gọn, rộng hết màn hình, tối đa 2 dòng */
+@media (max-width: 720px) {
+  .announce--floating {
+    top: calc(env(safe-area-inset-top, 0px) + 70px);
+    left: 8px;
+    right: 8px;
+    transform: none;
+    max-width: none;
+    padding: 8px 10px 8px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.35;
+    box-shadow: 0 6px 18px rgba(31, 26, 20, 0.12);
+  }
+  .announce--floating > span {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .announce--floating button {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}
+@media (max-width: 720px) {
+  /* Điện thoại: thông báo nằm ngay dưới thanh trên cùng, đẩy nội dung xuống thay vì che */
+  .app--ann {
+    grid-template-rows: auto auto 1fr;
+  }
+  .app--ann > .announce--floating {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    margin: 6px 8px 0;
+    z-index: 5;
+  }
+}
+/* Link trong cẩm nang giữ màu chữ thường */
+.em-item,
+.em-item:hover,
+.food-card,
+.food-card:hover {
+  color: var(--ink-900, #1f1a14);
+}
+@media (max-width: 520px) {
+  .em-item--vn {
+    flex-wrap: wrap;
+  }
+  .em-item--vn .em-item__main {
+    flex: 1 1 calc(100% - 50px);
+  }
+  .em-item--vn .em-item__num {
+    margin-left: 46px;
+  }
+}
+.guide-sec a.em-item,
+.guide-sec a.food-card,
+.guide-sec a.em-item b,
+.guide-sec a.food-card b {
+  color: var(--ink-900, #1f1a14);
+  text-decoration: none;
+}
+.guide-sec a.em-item .em-item__num {
+  color: #b4472c;
+}
+.guide-sec a.em-item--vn .em-item__num {
+  color: var(--ink-900, #1f1a14);
+}
+.guide-sec a.guide-allmap {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.35;
+  height: auto;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: var(--ink-900, #1f1a14);
+}
+@media (max-width: 520px) {
+  .food-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .food-card b {
+    font-size: 12px;
+  }
+}

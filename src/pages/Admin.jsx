@@ -1680,10 +1680,40 @@ function FlagsAdmin() {
       setBusy('');
     }
   };
+  const stateOf = (f) => {
+    const cfg = flags[f.key] || {};
+    const on = cfg.on ?? (settings.features?.[f.key] === false ? false : f.defaultOn);
+    return on ? 'released' : (cfg.users || []).length ? 'beta' : 'owner';
+  };
+  const [filter, setFilter] = useState('all');
+  const [q, setQ] = useState('');
+  const counts = FLAGS.reduce((c, f) => ((c[stateOf(f)] = (c[stateOf(f)] || 0) + 1), c), {});
+  const nq = normalize(q);
+  const shown = FLAGS.filter(
+    (f) =>
+      (filter === 'all' || (filter === 'unreleased' ? stateOf(f) !== 'released' : stateOf(f) === filter)) &&
+      (!nq || normalize(`${f.name.vi} ${f.name.en} ${f.desc.vi} ${f.desc.en} ${f.key}`).includes(nq)),
+  );
   return (
     <div className="stack">
       <p className="small muted">{t('flags.help')}</p>
-      {FLAGS.map((f) => {
+      <div className="admin-toolbar">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('flags.searchPh')} />
+        <div className="segmented">
+          {[
+            ['all', FLAGS.length],
+            ['released', counts.released || 0],
+            ['unreleased', (counts.beta || 0) + (counts.owner || 0)],
+            ['beta', counts.beta || 0],
+          ].map(([k, n]) => (
+            <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>
+              {t('flags.f.' + k)} ({n})
+            </button>
+          ))}
+        </div>
+      </div>
+      {!shown.length && <p className="muted small">{t('flags.none')}</p>}
+      {shown.map((f) => {
         const cfg = flags[f.key] || {};
         const on = cfg.on ?? (settings.features?.[f.key] === false ? false : f.defaultOn);
         const users = cfg.users || [];

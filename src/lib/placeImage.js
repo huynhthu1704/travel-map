@@ -113,3 +113,32 @@ export function usePlaceImage(p) {
   // Ảnh Wikipedia: chọn kích thước theo tốc độ mạng của người dùng
   return { ...state, src: sizedWikiImage(state.src) };
 }
+
+/** Hook: ảnh đại diện bài Wikipedia tiếng Anh theo tiêu đề (món ăn trong cẩm nang…) — có cache */
+export function useWikiThumb(title) {
+  const key = 'wiki:' + title;
+  const [src, setSrc] = useState(() => cache[key] || '');
+  const [loading, setLoading] = useState(() => cache[key] === undefined);
+  useEffect(() => {
+    if (!title) return undefined;
+    let alive = true;
+    if (cache[key] !== undefined) {
+      setSrc(cache[key]);
+      setLoading(false);
+      return undefined;
+    }
+    setLoading(true);
+    pending[key] ||= pageThumb('en', title)
+      .catch(() => '')
+      .then((img) => {
+        cache[key] = img;
+        save();
+        return img;
+      });
+    pending[key].then((img) => alive && (setSrc(img), setLoading(false)));
+    return () => {
+      alive = false;
+    };
+  }, [title]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { src: sizedWikiImage(src), loading };
+}

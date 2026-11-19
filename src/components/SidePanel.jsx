@@ -621,7 +621,7 @@ function WorldPanel() {
 }
 
 function CountryPanel() {
-  const { selectedCountry: cc, setSelectedCountry, setFlyTarget, places, memories, publicMemories, openPlace, visitedCountries, famousFor, famousLoading, famousLimit, setFamousLimit, can } = useApp();
+  const { selectedCountry: cc, setSelectedCountry, setFlyTarget, places, memories, publicMemories, openPlace, visitedCountries, famousFor, famousLoading, famousLimit, setFamousLimit, can, countryFocus, setCountryFocus } = useApp();
   const [city, setCity] = useState(null);
   const { t, lang } = useI18n();
   const famous = famousFor(cc);
@@ -633,6 +633,16 @@ function CountryPanel() {
   );
   const byCity = (p) => !city || pCity(p) === city;
   const headRef = useRef(null);
+  const famousRef = useRef(null);
+  // Mở từ Cẩm nang → "Xem tất cả địa điểm nổi tiếng": cuộn tới mục nổi tiếng
+  useEffect(() => {
+    if (countryFocus?.focus !== 'famous' || countryFocus.cc !== cc) return;
+    const id = setTimeout(() => {
+      famousRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setCountryFocus(null);
+    }, 600);
+    return () => clearTimeout(id);
+  }, [countryFocus, cc]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="stack">
@@ -691,7 +701,7 @@ function CountryPanel() {
         </section>
       )}
 
-      <section>
+      <section ref={famousRef} className="country-famous">
         <h3 className="section-title">{t('country.famous')}</h3>
         {famous.length === 0 && !famousLoading ? (
           <p className="muted">{t('country.noFamous')}</p>

@@ -181,7 +181,7 @@ function Shell() {
   useEffect(() => setMounted((m) => (m.has(view) ? m : new Set([...m, view]))), [view]);
   const pageCls = (id) => (view === id ? '' : 'page-hidden');
   return (
-    <div className={`app view-${view}`}>
+    <div className={`app view-${view} ${annText && annClosed !== annText ? 'app--ann' : ''}`}>
       {can('pullToRefresh') && <PullToRefresh />}
       {can('quickTour') && <QuickTour />}
       <header className="topbar">
@@ -209,6 +209,20 @@ function Shell() {
         <Notifications />
         <UserMenu />
       </header>
+      {annText && annClosed !== annText && (
+        <div className={`announce announce--floating announce--${ann.tone || 'info'}`} role="status">
+          <span>{annText}</span>
+          <button
+            onClick={() => {
+              sessionStorage.setItem('travel-map-ann', annText);
+              setAnnClosed(annText);
+            }}
+            aria-label={t('common.close')}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <main className="main">
         <div className="map-wrap" aria-hidden={view !== 'map'}>
@@ -258,20 +272,6 @@ function Shell() {
       </nav>
 
       {!firebaseEnabled && <div className="demo-flag">{t('demo.flag')}</div>}
-      {annText && annClosed !== annText && (
-        <div className={`announce announce--floating announce--${ann.tone || 'info'}`} role="status">
-          <span>{annText}</span>
-          <button
-            onClick={() => {
-              sessionStorage.setItem('travel-map-ann', annText);
-              setAnnClosed(annText);
-            }}
-            aria-label={t('common.close')}
-          >
-            ✕
-          </button>
-        </div>
-      )}
       {banned && <div className="announce announce--floating announce--warning">{t('admin.bannedNotice')}</div>}
       {toast && <div className={`toast toast--${toast.kind}`} key={toast.id}>{toast.msg}</div>}
       <Modals />

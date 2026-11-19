@@ -9,7 +9,8 @@ export const SECTIONS = [
   { key: 'visa', icon: '🛂', vi: 'Visa & giấy tờ', en: 'Visas & documents' },
   { key: 'season', icon: '🌤️', vi: 'Mùa đẹp nhất', en: 'Best time to visit' },
   { key: 'money', icon: '💸', vi: 'Tiền & chi phí', en: 'Money & costs' },
-  { key: 'power', icon: '🔌', vi: 'Ổ điện & khẩn cấp', en: 'Power & emergencies' },
+  { key: 'power', icon: '🔌', vi: 'Ổ điện', en: 'Power plugs' },
+  { key: 'emergency', icon: '🆘', vi: 'Số khẩn cấp', en: 'Emergency numbers' },
   { key: 'places', icon: '📍', vi: 'Nơi nên đi', en: 'Where to go' },
   { key: 'food', icon: '🍜', vi: 'Món phải thử', en: 'Must-try food' },
   { key: 'transport', icon: '🚆', vi: 'Di chuyển', en: 'Getting around' },
@@ -39,7 +40,7 @@ export const GUIDES = [
       vi: 'Baht (THB). Khoảng 40–70 USD/ngày. Quét QR và thẻ phổ biến ở Bangkok; chợ đêm dùng tiền mặt.',
       en: 'Baht (THB). About USD 40–70 a day. Cards and QR common in Bangkok; markets are cash.',
     },
-    power: { vi: '220V, ổ A/B/C/O (ổ Việt Nam cắm được). Cảnh sát du lịch 1155, cấp cứu 1669.', en: '220V, plugs A/B/C/O. Tourist police 1155, ambulance 1669.' },
+    power: { vi: '220V, ổ A/B/C/O (ổ Việt Nam cắm được).', en: '220V, plugs A/B/C/O.' },
     places: {
       vi: 'Bangkok (Chùa Phật Ngọc, Wat Arun, chợ Chatuchak cuối tuần), Chiang Mai (phố cổ, Doi Suthep), Phuket – Krabi (đảo Phi Phi, biển Railay), Pattaya đi 1 ngày từ Bangkok.',
       en: 'Bangkok (Grand Palace, Wat Arun, weekend Chatuchak market), Chiang Mai (old city, Doi Suthep), Phuket – Krabi (Phi Phi, Railay), Pattaya as a day trip.',
@@ -77,7 +78,7 @@ export const GUIDES = [
       vi: 'Yên (JPY). Khoảng 100–160 USD/ngày. Thẻ IC (Suica, PASMO, ICOCA) nạp tiền dùng cho tàu, bus, cửa hàng tiện lợi; vẫn nên mang tiền mặt cho quán nhỏ.',
       en: 'Yen (JPY). About USD 100–160 a day. A top-up IC card (Suica, PASMO, ICOCA) works on trains, buses and convenience stores; keep some cash for small shops.',
     },
-    power: { vi: '100V, ổ A/B (chân dẹt) — cần đầu chuyển cho phích tròn Việt Nam. Cảnh sát 110, cứu thương / cứu hoả 119.', en: '100V, plugs A/B. Police 110, ambulance / fire 119.' },
+    power: { vi: '100V, ổ A/B (chân dẹt) — cần đầu chuyển cho phích tròn Việt Nam.', en: '100V, plugs A/B.' },
     places: {
       vi: 'Tokyo (Asakusa, Shibuya, Shinjuku), núi Phú Sĩ – Kawaguchiko, Kyoto (Fushimi Inari, Kiyomizu-dera, Arashiyama), Nara (hươu), Osaka (Dotonbori). Lần đầu: 7–10 ngày cung Tokyo – Kyoto – Osaka.',
       en: 'Tokyo (Asakusa, Shibuya, Shinjuku), Mt Fuji – Kawaguchiko, Kyoto (Fushimi Inari, Kiyomizu-dera, Arashiyama), Nara, Osaka (Dotonbori). First trip: 7–10 days Tokyo – Kyoto – Osaka.',
@@ -115,7 +116,7 @@ export const GUIDES = [
       vi: 'Won (KRW). Khoảng 80–130 USD/ngày. Thẻ giao thông T-money dùng cho tàu, bus, cửa hàng tiện lợi. Thẻ quốc tế được nhận gần như mọi nơi.',
       en: 'Won (KRW). About USD 80–130 a day. T-money card for metro, buses and convenience stores. Cards accepted almost everywhere.',
     },
-    power: { vi: '220V, ổ C/F (phích tròn Việt Nam dùng được). Cảnh sát 112, cứu thương 119, đường dây du lịch 1330 (có hỗ trợ nhiều ngôn ngữ).', en: '220V, plugs C/F. Police 112, ambulance 119, tourist hotline 1330 (multilingual).' },
+    power: { vi: '220V, ổ C/F (phích tròn Việt Nam dùng được).', en: '220V, plugs C/F.' },
     places: {
       vi: 'Seoul (cung Gyeongbokgung mặc hanbok miễn vé, làng Bukchon, Myeongdong, tháp N Seoul), đảo Nami, Busan (Haeundae, làng Gamcheon), đảo Jeju.',
       en: 'Seoul (Gyeongbokgung — free entry in hanbok, Bukchon, Myeongdong, N Seoul Tower), Nami Island, Busan (Haeundae, Gamcheon village), Jeju Island.',
@@ -144,7 +145,7 @@ export const GUIDES = [
       vi: 'Đô la Singapore (SGD). Khoảng 100–170 USD/ngày, phần lớn là khách sạn. Ăn ở khu ẩm thực (hawker centre) rẻ. Chạm thẻ Visa/Master để đi tàu, bus.',
       en: 'Singapore dollar (SGD). About USD 100–170 a day, mostly hotel. Hawker centres keep food cheap. Tap a contactless card on metro and buses.',
     },
-    power: { vi: '230V, ổ G (3 chân vuông kiểu Anh) — cần đầu chuyển. Cảnh sát 999, cứu thương 995.', en: '230V, plug G — bring an adapter. Police 999, ambulance 995.' },
+    power: { vi: '230V, ổ G (3 chân vuông kiểu Anh) — cần đầu chuyển.', en: '230V, plug G — bring an adapter.' },
     places: {
       vi: 'Marina Bay (Merlion, Marina Bay Sands), Gardens by the Bay (show đèn miễn phí buổi tối), Jewel Changi, Sentosa, Chinatown, Little India, Kampong Glam.',
       en: 'Marina Bay (Merlion, Marina Bay Sands), Gardens by the Bay (free evening light show), Jewel Changi, Sentosa, Chinatown, Little India, Kampong Glam.',
@@ -176,7 +177,7 @@ export const GUIDES = [
       en: 'KL is hot year-round. West coast (Penang, Langkawi) is best Dec – Apr; east-coast islands (Perhentian, Redang) Apr – Sep only.',
     },
     money: { vi: 'Ringgit (MYR). Khoảng 40–70 USD/ngày. Thẻ Touch ’n Go cho tàu và đường cao tốc; nhiều nơi nhận quét QR.', en: 'Ringgit (MYR). About USD 40–70 a day. Touch ’n Go card for rail and tolls; QR payments common.' },
-    power: { vi: '240V, ổ G (3 chân vuông) — cần đầu chuyển. Khẩn cấp 999.', en: '240V, plug G. Emergency 999.' },
+    power: { vi: '240V, ổ G (3 chân vuông) — cần đầu chuyển.', en: '240V, plug G.' },
     places: {
       vi: 'Kuala Lumpur (tháp đôi Petronas, động Batu, phố Jalan Alor), Melaka (phố cổ di sản), Penang (George Town, tranh tường), Cameron Highlands (đồi chè), Langkawi, Sabah (núi Kinabalu).',
       en: 'Kuala Lumpur (Petronas Towers, Batu Caves, Jalan Alor), Melaka, Penang (George Town street art), Cameron Highlands, Langkawi, Sabah (Mt Kinabalu).',
@@ -208,7 +209,7 @@ export const GUIDES = [
       en: 'Dry season Apr – Oct (Bali, Lombok, Komodo best May – Sep). Nov – Mar is wet. On Bali’s Nyepi Day of Silence (usually March) the airport closes for 24 hours.',
     },
     money: { vi: 'Rupiah (IDR). Khoảng 40–80 USD/ngày (Bali). Đổi tiền ở quầy có giấy phép, đếm lại tại chỗ.', en: 'Rupiah (IDR). About USD 40–80 a day in Bali. Use licensed money changers and count on the spot.' },
-    power: { vi: '230V, ổ C/F (phích tròn dùng được). Khẩn cấp 112, cảnh sát 110.', en: '230V, plugs C/F. Emergency 112, police 110.' },
+    power: { vi: '230V, ổ C/F (phích tròn dùng được).', en: '230V, plugs C/F.' },
     places: {
       vi: 'Bali (Ubud – ruộng bậc thang Tegallalang, đền Tanah Lot, Uluwatu, Nusa Penida), Lombok và quần đảo Gili, vườn quốc gia Komodo, Yogyakarta (đền Borobudur, Prambanan), núi lửa Bromo.',
       en: 'Bali (Ubud and Tegallalang rice terraces, Tanah Lot, Uluwatu, Nusa Penida), Lombok and the Gilis, Komodo National Park, Yogyakarta (Borobudur, Prambanan), Mt Bromo.',
@@ -243,7 +244,7 @@ export const GUIDES = [
       vi: 'Nhân dân tệ (CNY). Khoảng 60–110 USD/ngày. Thanh toán gần như toàn bộ qua **Alipay / WeChat Pay** — cài và liên kết thẻ quốc tế trước khi đi, vẫn mang chút tiền mặt.',
       en: 'Yuan (CNY). About USD 60–110 a day. Nearly everything is paid by **Alipay / WeChat Pay** — link a foreign card before you go; carry a little cash.',
     },
-    power: { vi: '220V, ổ A/C/I. Cảnh sát 110, cấp cứu 120.', en: '220V, plugs A/C/I. Police 110, ambulance 120.' },
+    power: { vi: '220V, ổ A/C/I.', en: '220V, plugs A/C/I.' },
     places: {
       vi: 'Bắc Kinh (Vạn Lý Trường Thành – đoạn Mộ Điền Dụ, Tử Cấm Thành), Thượng Hải (Bến Thượng Hải), Trùng Khánh, Trương Gia Giới, Quế Lâm – Dương Sóc, Vân Nam (Lệ Giang, Đại Lý), Hải Nam (Tam Á).',
       en: 'Beijing (Great Wall at Mutianyu, Forbidden City), Shanghai (the Bund), Chongqing, Zhangjiajie, Guilin – Yangshuo, Yunnan (Lijiang, Dali), Hainan (Sanya).',
@@ -272,7 +273,7 @@ export const GUIDES = [
       en: 'Oct – Apr is mild and pleasant. Jul – Sep is hot with typhoons. Cherry blossoms Feb – Mar at Alishan and Yangmingshan.',
     },
     money: { vi: 'Đài tệ (TWD). Khoảng 60–100 USD/ngày. Thẻ EasyCard dùng cho tàu, bus, cửa hàng tiện lợi. Chợ đêm dùng tiền mặt.', en: 'New Taiwan dollar (TWD). About USD 60–100 a day. EasyCard for metro, buses and convenience stores. Night markets are cash.' },
-    power: { vi: '110V, ổ A/B (chân dẹt) — cần đầu chuyển; xem thiết bị có hỗ trợ 110V không. Cảnh sát 110, cứu thương 119.', en: '110V, plugs A/B — check your devices support 110V. Police 110, ambulance 119.' },
+    power: { vi: '110V, ổ A/B (chân dẹt) — cần đầu chuyển; xem thiết bị có hỗ trợ 110V không.', en: '110V, plugs A/B — check your devices support 110V.' },
     places: {
       vi: 'Đài Bắc (Taipei 101, chợ đêm Sĩ Lâm, Cửu Phần, Thập Phần thả đèn trời), hẻm Taroko ở Hoa Liên, hồ Nhật Nguyệt, Đài Trung (làng Cầu Vồng), Cao Hùng, Đài Nam (đền miếu, đồ ăn cổ).',
       en: 'Taipei (Taipei 101, Shilin night market, Jiufen, Shifen sky lanterns), Taroko Gorge in Hualien, Sun Moon Lake, Taichung, Kaohsiung, Tainan (temples, old-style food).',
@@ -301,7 +302,7 @@ export const GUIDES = [
     },
     season: { vi: 'Mùa khô tháng 12 – 5 (tháng 1 – 4 đẹp nhất). Tháng 6 – 11 mùa mưa và bão, chuyến bay / tàu ra đảo dễ bị huỷ.', en: 'Dry season Dec – May (Jan – Apr best). Jun – Nov brings rain and typhoons; island flights and ferries may cancel.' },
     money: { vi: 'Peso (PHP). Khoảng 40–70 USD/ngày. Đảo nhỏ ít cây ATM — mang đủ tiền mặt. Khách đi đảo thường phải nộp phí môi trường nhỏ.', en: 'Peso (PHP). About USD 40–70 a day. Few ATMs on small islands — bring cash. Islands often charge a small environmental fee.' },
-    power: { vi: '220V, ổ A/B/C. Khẩn cấp 911.', en: '220V, plugs A/B/C. Emergency 911.' },
+    power: { vi: '220V, ổ A/B/C.', en: '220V, plugs A/B/C.' },
     places: {
       vi: 'Palawan (El Nido, Coron, Puerto Princesa – sông ngầm), Boracay (bãi White Beach), Cebu – Bohol (đồi Sôcôla, khỉ Tarsier, bơi cùng cá mòi ở Moalboal), Siargao, Manila cổ (Intramuros).',
       en: 'Palawan (El Nido, Coron, Puerto Princesa underground river), Boracay’s White Beach, Cebu – Bohol (Chocolate Hills, tarsiers, Moalboal sardine run), Siargao, Manila’s Intramuros.',
@@ -333,7 +334,7 @@ export const GUIDES = [
       vi: 'Riel (KHR) nhưng **đô la Mỹ dùng phổ biến**; tiền thối lẻ thường trả bằng riel. Mang tiền USD mới, không rách. Khoảng 35–60 USD/ngày. Vé Angkor 1 ngày 37 USD, 3 ngày 62 USD (giá tham khảo).',
       en: 'Riel (KHR), but **US dollars are widely used**; small change comes in riel. Bring clean, untorn USD notes. About USD 35–60 a day. Angkor pass about USD 37 (1 day) / 62 (3 days).',
     },
-    power: { vi: '230V, ổ A/C/G. Cảnh sát 117, cấp cứu 119.', en: '230V, plugs A/C/G. Police 117, ambulance 119.' },
+    power: { vi: '230V, ổ A/C/G.', en: '230V, plugs A/C/G.' },
     places: {
       vi: 'Siem Reap (Angkor Wat ngắm bình minh, Bayon, Ta Prohm), Phnom Penh (Cung điện Hoàng gia, bảo tàng Tuol Sleng), Kampot – Kep (cua, tiêu), đảo Koh Rong.',
       en: 'Siem Reap (Angkor Wat at sunrise, Bayon, Ta Prohm), Phnom Penh (Royal Palace, Tuol Sleng), Kampot – Kep (crab, pepper), Koh Rong island.',
@@ -362,7 +363,7 @@ export const GUIDES = [
       en: 'Nov – Feb is cool and dry. Mar – Apr is hot and smoky up north. Lao New Year mid-April. Jun – Oct is rainy, waterfalls at their best.',
     },
     money: { vi: 'Kip (LAK). Khoảng 30–55 USD/ngày. Nhiều nơi nhận USD hoặc baht Thái nhưng tỷ giá kém — nên rút kip.', en: 'Kip (LAK). About USD 30–55 a day. USD and Thai baht are often accepted at poor rates — withdraw kip.' },
-    power: { vi: '230V, ổ A/B/C/E/F. Cảnh sát 1191, cấp cứu 1195.', en: '230V, plugs A/B/C/E/F. Police 1191, ambulance 1195.' },
+    power: { vi: '230V, ổ A/B/C/E/F.', en: '230V, plugs A/B/C/E/F.' },
     places: {
       vi: 'Luang Prabang (chùa Xieng Thong, lễ khất thực sáng sớm, thác Kuang Si, chợ đêm), Vang Vieng (núi đá vôi, khí cầu, chèo thuyền), Viêng Chăn (That Luang, Patuxai), Cánh đồng Chum, 4.000 đảo (Si Phan Don).',
       en: 'Luang Prabang (Wat Xieng Thong, dawn alms giving, Kuang Si Falls, night market), Vang Vieng (karsts, balloons, kayaking), Vientiane (That Luang, Patuxai), Plain of Jars, Si Phan Don (4,000 Islands).',
@@ -397,7 +398,7 @@ export const GUIDES = [
       vi: 'Đồng (VND). Khoảng 30–60 USD/ngày. Quét QR và thẻ phổ biến ở thành phố; quán vỉa hè và chợ dùng tiền mặt. Cẩn thận nhầm tờ 10.000 và 100.000.',
       en: 'Dong (VND). About USD 30–60 a day. QR and cards are common in cities; street food and markets are cash. Don’t mix up 10,000 and 100,000 notes.',
     },
-    power: { vi: '220V, ổ A/C. Công an 113, cứu hoả 114, cấp cứu 115.', en: '220V, plugs A/C. Police 113, fire 114, ambulance 115.' },
+    power: { vi: '220V, ổ A/C.', en: '220V, plugs A/C.' },
     places: {
       vi: 'Hà Nội (phố cổ, hồ Hoàn Kiếm), vịnh Hạ Long, Ninh Bình, Sa Pa – Hà Giang, Huế, Đà Nẵng – Hội An, Phú Quốc, TP.HCM và đồng bằng sông Cửu Long.',
       en: 'Hanoi (Old Quarter, Hoan Kiem Lake), Ha Long Bay, Ninh Binh, Sa Pa – Ha Giang, Hue, Da Nang – Hoi An, Phu Quoc, Ho Chi Minh City and the Mekong Delta.',

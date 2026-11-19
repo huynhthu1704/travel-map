@@ -461,8 +461,11 @@ export function AppProvider({ children }) {
     window.scrollTo?.(0, 0);
     setView('tips');
   }, []);
+  // focus: 'famous' → bảng quốc gia cuộn tới mục Địa điểm nổi tiếng (mở từ Cẩm nang)
+  const [countryFocus, setCountryFocus] = useState(null);
   const openCountry = useCallback(
-    (cc) => {
+    (cc, focus = null) => {
+      setCountryFocus(focus ? { cc, focus, t: Date.now() } : null);
       setView('map');
       setSelectedPlace(null);
       setSelectedCountry(cc);
@@ -728,7 +731,7 @@ export function AppProvider({ children }) {
     api, user, places, memories, publicMemories, loadPublic: () => setNeedPublic(true), trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     placeOrigin, setPlaceOrigin,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
-    modal, setModal, toast, notify, deleteCheckin, myInvites, can, openTips, tipPost, setTipPost, guideCc, setGuideCc, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
+    modal, setModal, toast, notify, deleteCheckin, myInvites, can, openTips, tipPost, setTipPost, guideCc, setGuideCc, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, countryFocus, setCountryFocus, openPlace,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

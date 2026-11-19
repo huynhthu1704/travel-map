@@ -8,9 +8,64 @@ import { GUIDE_SPOTS } from '../data/guideSpots';
 import { searchNominatim } from '../lib/geo';
 import AdSlot from '../components/AdSlot';
 import { GUIDES, GUIDE_BY_CC, SECTIONS, GUIDES_CHECKED } from '../data/guides';
+import { GUIDE_PHRASES } from '../data/guidePhrases';
+import { GUIDE_FOODS } from '../data/guideFoods';
+import { GUIDE_EMERGENCY, VN_CITIZEN_HOTLINE } from '../data/guideEmergency';
+import { useWikiThumb } from '../lib/placeImage';
+import { useI18n as useI18nSpeak } from '../i18n';
+
+/** Đọc to bằng giọng bản địa (Web Speech API của trình duyệt) */
+function speakText(text, lang) {
+  const synth = typeof window !== 'undefined' && window.speechSynthesis;
+  if (!synth) return 'unsupported';
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  const base = lang.split('-')[0];
+  const voices = synth.getVoices();
+  const v = voices.find((x) => x.lang === lang || x.lang.replace('_', '-') === lang) || voices.find((x) => x.lang.toLowerCase().startsWith(base));
+  if (v) u.voice = v;
+  u.rate = 0.85;
+  synth.speak(u);
+  return voices.length && !v ? 'novoice' : 'ok';
+}
+function SpeakButton({ text, lang }) {
+  const { t } = useI18nSpeak();
+  const [msg, setMsg] = useState('');
+  return (
+    <>
+      <button
+        type="button"
+        className="say__btn"
+        title={t('guide.listen')}
+        aria-label={`${t('guide.listen')}: ${text}`}
+        onClick={() => {
+          const r = speakText(text, lang);
+          setMsg(r === 'ok' ? '' : t(r === 'unsupported' ? 'guide.noSpeech' : 'guide.noVoice'));
+          if (r !== 'ok') setTimeout(() => setMsg(''), 4000);
+        }}
+      >
+        🔊
+      </button>
+      {msg && <small className="say__msg">{msg}</small>}
+    </>
+  );
+}
+
+/** Món ăn: ảnh minh hoạ từ Wikipedia */
+function FoodCard({ food }) {
+  const { lang } = useI18nSpeak();
+  const { src, loading } = useWikiThumb(food.wiki);
+  return (
+    <a className="food-card" href={`https://en.wikipedia.org/wiki/${encodeURIComponent(food.wiki.replace(/ /g, '_'))}`} target="_blank" rel="noopener noreferrer">
+      <span className={`food-card__img ${loading ? 'is-loading' : ''}`}>{src ? <img src={src} alt={food.n} loading="lazy" /> : !loading && <span aria-hidden>🍜</span>}</span>
+      <b>{(lang === 'vi' && food.vi) || food.n}</b>
+    </a>
+  );
+}
 
 /** Hiển thị **đậm**, *nghiêng* và [link](url) trong nội dung cẩm nang */
-function Rich({ text }) {
+function Rich({ text, speak }) {
   const parts = [];
   const re = /\*\*(.+?)\*\*|\*(.+?)\*|\[(.+?)\]\((https?:\/\/[^)\s]+)\)/g;
   let last = 0;
@@ -18,7 +73,19 @@ function Rich({ text }) {
   while ((m = re.exec(text))) {
     if (m.index > last) parts.push(text.slice(last, m.index));
     if (m[1]) parts.push(<b key={m.index}>{m[1]}</b>);
-    else if (m[2]) parts.push(<em key={m.index}>{m[2]}</em>);
+    else if (m[2]) {
+      const native = speak?.say?.[m[2].toLowerCase()];
+      parts.push(
+        native ? (
+          <span key={m.index} className="say">
+            <em>{m[2]}</em>
+            <SpeakButton text={native} lang={speak.lang} />
+          </span>
+        ) : (
+          <em key={m.index}>{m[2]}</em>
+        ),
+      );
+    }
     else parts.push(
       <a key={m.index} href={m[4]} target="_blank" rel="noopener noreferrer">
         {m[3]}
@@ -115,23 +182,40 @@ function CountryGuide({ g, onBack }) {
               <h2 className="h3">
                 <span>{s.icon}</span> {s[lang] || s.vi}
               </h2>
+              {s.key === 'emergency' && <EmergencyList cc={g.cc} />}
               {(() => {
                 const pts = toPoints(s.key, L(g[s.key]));
                 return pts.length > 1 ? (
                   <ul className="guide-points">
                     {pts.map((x, k) => (
                       <li key={k}>
-                        <Rich text={x} />
+                        <Rich text={x} speak={s.key === 'phrases' ? GUIDE_PHRASES[g.cc] : null} />
                       </li>
                     ))}
                   </ul>
                 ) : (
                   <p>
-                    <Rich text={pts[0] || ''} />
+                    <Rich text={pts[0] || ''} speak={s.key === 'phrases' ? GUIDE_PHRASES[g.cc] : null} />
                   </p>
                 );
               })()}
+              {s.key === 'food' && GUIDE_FOODS[g.cc] && (
+                <>
+                  <div className="food-grid">
+                    {GUIDE_FOODS[g.cc].map((f) => (
+                      <FoodCard key={f.n} food={f} />
+                    ))}
+                  </div>
+                  <p className="tiny muted">{t('guide.foodCredit')}</p>
+                </>
+              )}
+              {s.key === 'phrases' && GUIDE_PHRASES[g.cc] && <p className="tiny muted">{t('guide.listenHint')}</p>}
               {s.key === 'places' && can('guideToTrip') && GUIDE_SPOTS[g.cc] && <GuideSpots cc={g.cc} />}
+              {s.key === 'places' && (
+                <AppLink className="btn btn--soft btn--block guide-allmap" href={hrefCountry(g.cc)} onClick={() => openCountry(g.cc, 'famous')}>
+                  🗺️ {t('guide.allOnMap', { country: countryName(g.cc) })} →
+                </AppLink>
+              )}
             </section>
           </Fragment>
         ))}
@@ -214,5 +298,37 @@ function AddSpotModal({ cc, spot, onClose }) {
         </div>
       )}
     </Modal>
+  );
+}
+
+const EM_ICON = { police: '👮', ambulance: '🚑', fire: '🚒', all: '🆘', tourist: '🧳', rescue: '⛑️' };
+/** Số khẩn cấp: bấm để mở trình gọi điện của điện thoại */
+function EmergencyList({ cc }) {
+  const { t, lang } = useI18n();
+  const list = GUIDE_EMERGENCY[cc] || [];
+  return (
+    <div className="em-list">
+      {list.map((e) => (
+        <a key={e.k + e.num} className="em-item" href={`tel:${e.num}`}>
+          <span className="em-item__icon">{EM_ICON[e.k]}</span>
+          <span className="em-item__main">
+            <b>{t('em.' + e.k)}</b>
+            {e.note && <small className="muted">{e.note[lang] || e.note.vi}</small>}
+          </span>
+          <span className="em-item__num">📞 {e.show}</span>
+        </a>
+      ))}
+      {cc !== 'VN' && (
+        <a className="em-item em-item--vn" href={`tel:${VN_CITIZEN_HOTLINE}`}>
+          <span className="em-item__icon">🇻🇳</span>
+          <span className="em-item__main">
+            <b>{t('em.vnHotline')}</b>
+            <small className="muted">{t('em.vnHotlineNote')}</small>
+          </span>
+          <span className="em-item__num">📞 +84 981 84 84 84</span>
+        </a>
+      )}
+      <p className="tiny muted">{t('em.tapHint')}</p>
+    </div>
   );
 }

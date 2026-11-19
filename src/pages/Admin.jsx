@@ -1192,19 +1192,31 @@ function AnnouncementsAdmin() {
 
 /** Gửi thông báo trong app cho mọi người (tính năng mới, thông báo chung) */
 function Broadcast() {
-  const { t } = useI18n();
-  const { socialApi, user, notify, adminApi } = useApp();
+  const { t, lang } = useI18n();
+  const { socialApi, user, notify, adminApi, settings } = useApp();
+  const roles = allRoles(settings);
   const [type, setType] = useState('feature');
+  const [aud, setAud] = useState('all'); // all | role | users
+  const [roleId, setRoleId] = useState('user');
+  const [uids, setUids] = useState([]);
+  const audOk = aud === 'all' || (aud === 'role' && roleId) || (aud === 'users' && uids.length > 0);
+  const audLabel = aud === 'all' ? t('bc.aud.all') : aud === 'role' ? roleLabel(roleId, settings, t, lang) : t('bc.nUsers', { n: uids.length });
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const send = async () => {
-    if (!title.trim()) return;
-    if (!confirm(t('admin.bcConfirm'))) return;
+    if (!title.trim() || !audOk) return;
+    if (!confirm(t('bc.confirm', { who: audLabel }))) return;
     setBusy(true);
     try {
-      await socialApi.notify({ to: 'all', type, from: user.uid, fromName: user.name || '', title: title.trim(), body: body.trim() });
-      adminApi.log('broadcast.send', type, title.trim());
+      // batch: gom các bản gửi từng người thành 1 lần gửi (để xem lại / thu hồi cùng lúc)
+      const batch = 'b' + Date.now().toString(36);
+      const base = { type, from: user.uid, fromName: user.name || '', title: title.trim(), body: body.trim(), batch, audience: aud === 'role' ? 'role:' + roleId : aud };
+      if (aud === 'all') await socialApi.notify({ ...base, to: 'all' });
+      else if (aud === 'role') await socialApi.notify({ ...base, to: 'role:' + roleId });
+      else for (const uid of uids) await socialApi.notify({ ...base, to: uid });
+      adminApi.log('broadcast.send', aud === 'all' ? 'all' : aud === 'role' ? 'role:' + roleId : `${uids.length} users`, `${type}: ${title.trim()}`);
+      setUids([]);
       notify(t('admin.bcSent'));
       setTitle('');
       setBody('');
@@ -1226,6 +1238,30 @@ function Broadcast() {
             📢 {t('admin.bcSystem')}
           </button>
         </div>
+        <div className="field">
+          <span>{t('bc.audience')}</span>
+          <div className="segmented">
+            {['all', 'role', 'users'].map((a) => (
+              <button key={a} className={aud === a ? 'on' : ''} onClick={() => setAud(a)}>
+                {t('bc.aud.' + a)}
+              </button>
+            ))}
+          </div>
+        </div>
+        {aud === 'role' && (
+          <label className="field">
+            <span>{t('bc.pickRole')}</span>
+            <select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
+              {roles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.icon} {roleLabel(r.id, settings, t, lang)}
+                </option>
+              ))}
+            </select>
+            <small className="muted">{t('bc.roleHelp')}</small>
+          </label>
+        )}
+        {aud === 'users' && <BetaUsers users={uids} busy={busy} onChange={(l) => setUids(l.slice(0, 200))} label={t('bc.pickUsers')} empty={t('bc.noUsers')} />}
         <label className="field">
           <span>{t('admin.bcHeading')}</span>
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder={t('admin.bcHeadingPh')} />
@@ -1234,11 +1270,107 @@ function Broadcast() {
           <span>{t('admin.bcBody')}</span>
           <textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={300} />
         </label>
-        <button className="btn btn--dark" disabled={busy || !title.trim()} onClick={send}>
-          📨 {t('admin.bcSend')}
+        <button className="btn btn--dark" disabled={busy || !title.trim() || !audOk} onClick={send}>
+          📨 {t('bc.sendTo', { who: audLabel })}
         </button>
       </div>
       <p className="tiny muted">{t('admin.bcVsAnn')}</p>
+      <SentBroadcasts />
+    </div>
+  );
+}
+
+/** Thông báo đã gửi: xem lại, số người đã đọc (gửi từng người), thu hồi */
+function SentBroadcasts() {
+  const { t, lang } = useI18n();
+  const { socialApi, notify, adminApi, settings } = useApp();
+  const [list, setList] = useState(null);
+  const [names, setNames] = useState({});
+  const [open, setOpen] = useState(null);
+  useEffect(() => socialApi.watchSentBroadcasts(setList), [socialApi]);
+  const groups = useMemo(() => {
+    const m = new Map();
+    (list || []).forEach((n) => {
+      const k = n.batch || n.id;
+      if (!m.has(k)) m.set(k, { key: k, first: n, docs: [] });
+      m.get(k).docs.push(n);
+    });
+    return [...m.values()].sort((a, b) => (b.first.createdAt || 0) - (a.first.createdAt || 0));
+  }, [list]);
+  useEffect(() => {
+    if (!open) return;
+    const g = groups.find((x) => x.key === open);
+    const need = (g?.docs || []).map((d) => d.to).filter((u) => u && u !== 'all' && !String(u).startsWith('role:') && !names[u]);
+    need.slice(0, 50).forEach((uid) => {
+      let un = () => {};
+      un = social.watchProfile(uid, (p) => (setNames((n) => ({ ...n, [uid]: p?.name || uid.slice(0, 8) })), setTimeout(() => un && un(), 0)));
+    });
+  }, [open, groups]); // eslint-disable-line react-hooks/exhaustive-deps
+  const who = (g) => {
+    const to = g.first.to;
+    if (to === 'all') return `🌍 ${t('bc.aud.all')}`;
+    if (String(to).startsWith('role:')) return `🔐 ${roleLabel(to.slice(5), settings, t, lang)}`;
+    return `👤 ${t('bc.nUsers', { n: g.docs.length })}`;
+  };
+  const revoke = async (g) => {
+    if (!confirm(t('bc.revokeConfirm', { title: g.first.title || '' }))) return;
+    try {
+      await socialApi.removeNotifications(g.docs.map((d) => d.id));
+      adminApi.log('broadcast.revoke', g.first.to === 'all' || String(g.first.to).startsWith('role:') ? g.first.to : `${g.docs.length} users`, g.first.title || '');
+      notify(t('bc.revoked'));
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+  };
+  return (
+    <div className="card stack">
+      <h3 className="h3">🗂️ {t('bc.sent')}</h3>
+      {!list ? (
+        <Loader />
+      ) : !groups.length ? (
+        <p className="muted small">{t('bc.noneSent')}</p>
+      ) : (
+        groups.map((g) => {
+          const n = g.first;
+          const personal = !(n.to === 'all' || String(n.to).startsWith('role:'));
+          const read = g.docs.filter((d) => d.read).length;
+          return (
+            <div key={g.key} className="sent-row">
+              <div className="sent-row__main">
+                <b>
+                  {n.type === 'feature' ? '🎉' : '📢'} {n.title}
+                </b>
+                {n.body && <small className="muted">{n.body}</small>}
+                <small className="muted">
+                  {who(g)} · {n.createdAt ? fmtWhen(n.createdAt, lang) : ''} · {n.fromName || ''}
+                  {personal && ` · ${t('bc.readCount', { r: read, n: g.docs.length })}`}
+                </small>
+                {personal && open === g.key && (
+                  <div className="chips">
+                    {g.docs.map((d) => (
+                      <span key={d.id} className={`chip ${d.read ? 'chip--on' : ''}`}>
+                        {d.read ? '✓ ' : ''}
+                        {names[d.to] || d.to.slice(0, 8)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="row">
+                {personal && (
+                  <button className="btn btn--sm btn--ghost" onClick={() => setOpen(open === g.key ? null : g.key)}>
+                    {open === g.key ? t('bc.hide') : t('bc.recipients')}
+                  </button>
+                )}
+                <button className="btn btn--sm btn--ghost danger" onClick={() => revoke(g)}>
+                  ↩ {t('bc.revoke')}
+                </button>
+              </div>
+            </div>
+          );
+        })
+      )}
+      <p className="tiny muted">{t('bc.revokeHelp')}</p>
     </div>
   );
 }
@@ -1584,7 +1716,7 @@ function FlagsAdmin() {
   );
 }
 
-function BetaUsers({ users, busy, onChange }) {
+function BetaUsers({ users, busy, onChange, label, empty }) {
   const { t } = useI18n();
   const [q, setQ] = useState('');
   const [found, setFound] = useState([]);
@@ -1610,7 +1742,7 @@ function BetaUsers({ users, busy, onChange }) {
   }, [q]);
   return (
     <div className="stack-sm">
-      <b className="small">{t('flags.beta')}</b>
+      <b className="small">{label || t('flags.beta')}</b>
       <div className="chips">
         {users.map((uid) => (
           <span key={uid} className="chip chip--on flag-user">
@@ -1621,7 +1753,7 @@ function BetaUsers({ users, busy, onChange }) {
             </button>
           </span>
         ))}
-        {!users.length && <small className="muted">{t('flags.noBeta')}</small>}
+        {!users.length && <small className="muted">{empty || t('flags.noBeta')}</small>}
       </div>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('flags.addPh')} />
       {found.filter((p) => !users.includes(p.uid)).length > 0 && (

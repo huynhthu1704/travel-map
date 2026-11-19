@@ -8882,3 +8882,26 @@ a.app-link.place-card__title:hover {
   text-decoration: none;
   color: inherit;
 }
+.sent-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid var(--ink-100, #eee6d6);
+}
+.sent-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.sent-row__main .chips {
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+@media (max-width: 640px) {
+  .sent-row {
+    flex-direction: column;
+  }
+}

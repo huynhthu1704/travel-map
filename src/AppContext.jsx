@@ -714,7 +714,7 @@ export function AppProvider({ children }) {
 
   // Thông báo: của riêng mình + thông báo chung (tính năng mới…)
   const [notifications, setNotifications] = useState([]);
-  useEffect(() => (user ? socialApi.watchNotifications(user.uid, setNotifications) : setNotifications([])), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => (user ? socialApi.watchNotifications(user.uid, setNotifications, role) : setNotifications([])), [user?.uid, role]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => (user && api.watchMyInvites ? api.watchMyInvites(user.uid, setMyInvites) : setMyInvites([])), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
   const annRead = profile?.annRead;
   const notes = useMemo(() => notifications.map((n) => (n.broadcast && annRead ? { ...n, read: annRead.includes(n.id) || n.read } : n)), [notifications, annRead]);

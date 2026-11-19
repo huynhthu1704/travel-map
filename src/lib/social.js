@@ -158,15 +158,19 @@ const fb = {
 
   // Thông báo
   notify: (n) => addDoc(collection(db, 'notifications'), { read: false, createdAt: now(), ...n }),
-  watchNotifications(uid, cb) {
+  // Thông báo theo vai trò (to == 'role:<vai trò>') cũng là thông báo chung: lưu đã đọc ở annRead
+  watchNotifications(uid, cb, role = 'user') {
     let mine = [];
     let all = [];
-    const emit = () => cb([...mine, ...all].sort((a, b) => b.createdAt - a.createdAt));
+    let byRole = [];
+    const emit = () => cb([...mine, ...all, ...byRole].sort((a, b) => b.createdAt - a.createdAt));
+    const u3 = onSnapshot(query(collection(db, 'notifications'), where('to', '==', 'role:' + (role || 'user')), limit(50)), (s) => ((byRole = s.docs.map((d) => ({ id: d.id, ...d.data(), broadcast: true }))), emit()), () => {});
     const u1 = onSnapshot(query(collection(db, 'notifications'), where('to', '==', uid), limit(100)), (s) => ((mine = s.docs.map((d) => ({ id: d.id, ...d.data() }))), emit()), () => {});
     const u2 = onSnapshot(query(collection(db, 'notifications'), where('to', '==', 'all'), limit(50)), (s) => ((all = s.docs.map((d) => ({ id: d.id, ...d.data(), broadcast: true }))), emit()), () => {});
     return () => {
       u1();
       u2();
+      u3();
     };
   },
   async setRead(uid, n, read) {
@@ -182,6 +186,20 @@ const fb = {
     await b.commit();
   },
   removeNotification: (id) => deleteDoc(doc(db, 'notifications', id)),
+  // Thông báo đội vận hành đã gửi (tin tính năng / tin chung) — để xem lại và thu hồi
+  watchSentBroadcasts: (cb) =>
+    onSnapshot(
+      query(collection(db, 'notifications'), where('type', 'in', ['feature', 'system']), limit(500)),
+      (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      () => cb([]),
+    ),
+  async removeNotifications(ids) {
+    for (let i = 0; i < ids.length; i += 400) {
+      const b = writeBatch(db);
+      ids.slice(i, i + 400).forEach((id) => b.delete(doc(db, 'notifications', id)));
+      await b.commit();
+    }
+  },
 };
 
 /* ------------------------------ Demo (localStorage) ------------------------------ */
@@ -285,8 +303,14 @@ const local = {
     st.notes = [{ id: Math.random().toString(36).slice(2), read: false, createdAt: now(), ...n }, ...st.notes];
     persist();
   },
-  watchNotifications: (uid, cb) =>
-    on(() => cb(st.notes.filter((n) => n.to === uid || n.to === 'all').map((n) => (n.to === 'all' ? { ...n, broadcast: true, read: st.annRead.includes(n.id) } : n)))),
+  watchNotifications: (uid, cb, role = 'user') =>
+    on(() =>
+      cb(
+        st.notes
+          .filter((n) => n.to === uid || n.to === 'all' || n.to === 'role:' + (role || 'user'))
+          .map((n) => (n.to === 'all' || String(n.to).startsWith('role:') ? { ...n, broadcast: true, read: st.annRead.includes(n.id) } : n)),
+      ),
+    ),
   async setRead(uid, n, read) {
     if (n.broadcast) st.annRead = read ? [...new Set([...st.annRead, n.id])] : st.annRead.filter((x) => x !== n.id);
     else st.notes = st.notes.map((x) => (x.id === n.id ? { ...x, read } : x));
@@ -295,6 +319,11 @@ const local = {
   async markAllRead(uid, list) {
     st.notes = st.notes.map((x) => (x.to === uid ? { ...x, read: true } : x));
     st.annRead = [...new Set([...st.annRead, ...list.filter((n) => n.broadcast).map((n) => n.id)])];
+    persist();
+  },
+  watchSentBroadcasts: (cb) => on(() => cb(st.notes.filter((n) => n.type === 'feature' || n.type === 'system'))),
+  async removeNotifications(ids) {
+    st.notes = st.notes.filter((n) => !ids.includes(n.id));
     persist();
   },
   async removeNotification(id) {

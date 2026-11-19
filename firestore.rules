@@ -161,12 +161,17 @@ service cloud.firestore {
              == (d.type == 'inviteAccepted' ? 'accepted' : 'declined'));
     }
     match /notifications/{id} {
-      allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.to == 'all' || resource.data.get('from', '') == request.auth.uid || isStaff());
+      allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.to == 'all' || resource.data.to == 'role:' + myRole()
+                    || resource.data.get('from', '') == request.auth.uid || isStaff());
+      // Thông báo gửi cho tất cả / theo vai trò / tin tính năng & tin chung: cần quyền "Gửi thông báo"
       allow create: if signedIn() && ((noteBasics(request.resource.data) && noteBacked(request.resource.data))
-                    || (isStaff() && (request.resource.data.to != 'all' || hasPerm('notify'))));
+                    || (isStaff() && ((request.resource.data.to != 'all' && !request.resource.data.to.matches('role:.*')
+                                        && !(request.resource.data.get('type', '') in ['feature', 'system']))
+                                      || hasPerm('notify'))));
       allow update: if signedIn() && resource.data.to == request.auth.uid
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
-      allow delete: if signedIn() && (resource.data.to == request.auth.uid || resource.data.get('from', '') == request.auth.uid || isStaff());
+      allow delete: if signedIn() && (resource.data.to == request.auth.uid || resource.data.get('from', '') == request.auth.uid
+                    || hasPerm('notify') || (isStaff() && !(resource.data.get('type', '') in ['feature', 'system'])));
     }
 
     // Góp ý / báo lỗi: người gửi xem được của mình; biên tập viên trở lên xem tất cả và đổi trạng thái

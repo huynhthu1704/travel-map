@@ -25,6 +25,7 @@ import { TripPlan, TripChecklists } from "./TripPlan";
 import TripCosts from "./TripCosts";
 import DuplicateTrip from "./DuplicateTrip";
 import TripMembers, { MyTripInvites } from "../components/TripMembers";
+import AdSlot from "../components/AdSlot";
 import CurrencyRates from "../components/CurrencyRates";
 import { currencyOfCountry, fetchMarketRates } from "../lib/rates";
 import DestinationPicker, {
@@ -442,6 +443,7 @@ export function ExplorePage() {
           }
         />
       )}
+      <AdSlot placement="explore-bottom" size="banner" />
     </div>
   );
 }
@@ -556,6 +558,7 @@ export function MemoriesPage() {
           emptyText={tab === "visited" ? t("mine.noVisited") : t("mine.noWish")}
         />
       )}
+      <AdSlot placement="memories-bottom" size="banner" />
     </div>
   );
 }
@@ -1284,6 +1287,7 @@ function TripDetail({ trip, onBack }) {
           )}
         </section>
       )}
+      <AdSlot placement="trip-bottom" size="banner" />
     </div>
   );
 }

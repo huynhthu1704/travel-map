@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { AccountModal } from './Account';
+import AdSlot from '../components/AdSlot';
 import { Avatar, Empty, Loader, AppLink } from '../components/ui';
 import { hrefProfile } from '../lib/route';
 import { MemoryGrid } from '../components/SidePanel';
@@ -423,6 +424,7 @@ export default function ProfilePage() {
       </section>
       </>
       )}
+      <AdSlot placement="profile-bottom" size="banner" />
     </div>
   );
 }

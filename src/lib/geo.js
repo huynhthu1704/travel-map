@@ -20,11 +20,16 @@ export function destinationQuery(p) {
 /** Link chỉ đường */
 export const appleMapsUrl = (p) => {
   const q = destinationQuery(p);
-  // Apple Maps: daddr = điểm đến (tên + địa chỉ), sll = toạ độ gợi ý để tìm đúng khu vực
-  return `https://maps.apple.com/?daddr=${encodeURIComponent(q)}&sll=${p.lat},${p.lng}`;
+  // Toạ độ làm điểm đến, tên chỉ để hiển thị (q)
+  if (hasCoords(p)) return `https://maps.apple.com/?daddr=${coordsOf(p)}&q=${encodeURIComponent(p.name || q)}`;
+  return `https://maps.apple.com/?daddr=${encodeURIComponent(q)}`;
 };
 // Không ép travelmode: ở một số nước (VD Hàn Quốc) Google Maps không hỗ trợ chỉ đường lái xe
-export const googleMapsUrl = (p) => `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinationQuery(p))}`;
+// Gửi toạ độ chính xác (không gửi tên dạng chữ): Google Maps tìm theo tên hay ra sai chỗ / sai nước
+const hasCoords = (p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng)) && !(Number(p.lat) === 0 && Number(p.lng) === 0);
+const coordsOf = (p) => `${Number(p.lat).toFixed(6)},${Number(p.lng).toFixed(6)}`;
+export const googleMapsUrl = (p) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hasCoords(p) ? coordsOf(p) : destinationQuery(p))}`;
 
 /** Chữ Latin (kể cả tiếng Việt có dấu)? Dùng để tránh hiển thị chữ địa phương như 東京, 서울, กรุงเทพ… */
 export const isLatin = (s = '') => !/[^\u0000-ɏḀ-ỿ -⁯₠-⃏\s]/u.test(s.replace(/\p{Emoji_Presentation}/gu, ''));

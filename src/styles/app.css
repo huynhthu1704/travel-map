@@ -4987,16 +4987,18 @@ img.is-loaded {
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  /* Chỉ chữ được xoay dọc; icon nằm ngoài nên luôn đứng thẳng trên mọi trình duyệt (kể cả Safari iPhone) */
+  flex-direction: column-reverse;
   box-shadow: var(--shadow-pop);
   opacity: 0.88;
   transition: opacity 0.15s, padding 0.15s;
 }
 .fb-tab span {
-  /* Thẻ dọc được xoay 180° → xoay ngược icon lại để icon đứng thẳng */
-  display: inline-block;
-  text-orientation: upright;
+  display: block;
+  line-height: 1;
+}
+.fb-tab b {
+  writing-mode: vertical-rl;
   transform: rotate(180deg);
 }
 .fb-tab:hover {
@@ -5903,7 +5905,7 @@ body.fb-picking * {
 .fb-tab {
   touch-action: none;
   user-select: none;
-  transform: translateY(-50%) rotate(180deg);
+  transform: translateY(-50%);
 }
 .fb-tab:active {
   cursor: grabbing;
@@ -5914,7 +5916,10 @@ body.fb-picking * {
   border-radius: 0 14px 14px 0;
   transform: translateY(-50%);
 }
-.fb-tab--left span {
+.fb-tab--left {
+  flex-direction: column;
+}
+.fb-tab--left b {
   transform: none;
 }
 

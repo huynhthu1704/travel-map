@@ -12,6 +12,7 @@ import { GUIDE_PHRASES } from '../data/guidePhrases';
 import { GUIDE_FOODS } from '../data/guideFoods';
 import { GUIDE_EMERGENCY, VN_CITIZEN_HOTLINE } from '../data/guideEmergency';
 import { useWikiThumb } from '../lib/placeImage';
+import GuideCostCalc from '../components/GuideCostCalc';
 import { useI18n as useI18nSpeak } from '../i18n';
 
 /** Đọc to bằng giọng bản địa (Web Speech API của trình duyệt) */
@@ -235,6 +236,7 @@ function CountryGuide({ g, onBack }) {
                 </AppLink>
               )}
             </section>
+            {s.key === 'money' && can('guideCosts') && <GuideCostCalc cc={g.cc} />}
           </Fragment>
         ))}
       </div>

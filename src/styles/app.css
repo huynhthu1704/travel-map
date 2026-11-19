@@ -7137,3 +7137,9 @@ a.app-link.place-card__title:hover {
   margin-left: 8px;
   vertical-align: 2px;
 }
+.user-cell--link:hover .user-cell__name {
+  text-decoration: underline;
+}
+.user-cell--link {
+  border-radius: 10px;
+}

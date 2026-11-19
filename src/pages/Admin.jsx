@@ -197,7 +197,7 @@ function mergePeople(users, trips, memories) {
 
 function Users({ users }) {
   const { t } = useI18n();
-  const { isAdmin, user: me, adminApi, notify } = useApp();
+  const { isAdmin, user: me, adminApi, notify, openProfile } = useApp();
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   if (!users) return <Loader />;
@@ -239,16 +239,16 @@ function Users({ users }) {
           const locked = self || u.owner || u.noDoc; // không đổi quyền chính mình / chủ web / người chưa có hồ sơ
           return (
             <div key={u.uid} className={`admin-table__row ${u.banned ? 'is-banned' : ''}`}>
-              <span className="user-cell">
+              <AppLink className="user-cell user-cell--link" href={hrefProfile(u.uid)} onClick={() => openProfile(u.uid)} title={t('social.viewProfile')}>
                 <Avatar name={u.name || '?'} photo={u.photo} size={34} />
                 <span>
                   <b>
-                    {u.name || t('admin.unknownUser')}
+                    <span className="user-cell__name">{u.name || t('admin.unknownUser')}</span>
                     {u.owner && <span className="role role--admin owner-tag">{t('admin.ownerTag')}</span>}
                   </b>
                   <small>{u.email || (u.noDoc ? t('admin.noProfile') : t('admin.oldProfile'))}</small>
                 </span>
-              </span>
+              </AppLink>
               <span>
                 {isAdmin && !locked ? (
                   <select value={u.role || 'user'} onChange={(e) => update(u, { role: e.target.value }, t('admin.roleChanged', { name: u.name, role: t('role.' + e.target.value) }))}>

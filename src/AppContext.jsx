@@ -445,6 +445,16 @@ export function AppProvider({ children }) {
     setView('map');
     setFlyTarget({ country: homeCountry, t: Date.now() });
   }, [homeCountry]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Đăng xuất (từ bất kỳ đâu) → về trang chủ bản đồ, đóng mọi trang / hộp thoại đang mở
+  const wasSignedIn = useRef(false);
+  useEffect(() => {
+    if (user) wasSignedIn.current = true;
+    else if (user === null && wasSignedIn.current) {
+      wasSignedIn.current = false;
+      goHome();
+      window.scrollTo?.(0, 0);
+    }
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
   /** Mở bản đồ ở chế độ lộ trình chuyến đi: bỏ địa điểm đang mở, thu phóng vừa toàn bộ lộ trình */
   const showTripOnMap = useCallback((id) => {
     fittedTrip.current = null;

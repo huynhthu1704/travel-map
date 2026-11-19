@@ -8021,3 +8021,30 @@ a.app-link.place-card__title:hover {
   color: var(--ink-600, #555);
   line-height: 1.4;
 }
+
+/* Nút Góp ý và nút Hướng dẫn nhanh cùng chiều rộng (máy tính) và cùng kích thước (điện thoại) */
+.fb-tab {
+  width: 40px;
+  box-sizing: border-box;
+  padding-left: 0;
+  padding-right: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.fb-tab:hover {
+  padding-right: 0;
+}
+.fb-tab span {
+  font-size: 18px;
+}
+@media (max-width: 900px) {
+  .fb-tab {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+  .fb-tab span {
+    font-size: 16px;
+  }
+}

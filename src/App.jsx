@@ -169,7 +169,13 @@ function Shell() {
       <QuickTour />
       <header className="topbar">
         <AppLink href="#/" className="logo" onClick={goHome} title={t('app.home')}>
-          <span className="logo__mark">📍</span>
+          <span className="logo__mark" aria-hidden>
+            <svg viewBox="0 0 64 64" width="38" height="38">
+              <rect width="64" height="64" rx="18" fill="#FFC629" />
+              <path d="M32 12c-8.3 0-15 6.5-15 14.6C17 37.5 32 52 32 52s15-14.5 15-25.4C47 18.5 40.3 12 32 12z" fill="#1F1A14" />
+              <circle cx="32" cy="27" r="6" fill="#FFC629" />
+            </svg>
+          </span>
           <span className="logo__text">
             {t('app.logo1')} <em>{t('app.logo2')}</em>
           </span>

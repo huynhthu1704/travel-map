@@ -6,7 +6,7 @@
 //   #/explore  #/memories  #/trips  #/trips/<id>  #/admin  #/u/<uid> (hồ sơ người dùng)
 //   ?trip=<id>               đang hiện 1 chuyến đi trên bản đồ (dùng được với mọi trang)
 
-const PAGES = ['explore', 'memories', 'admin', 'privacy', 'terms', 'account'];
+const PAGES = ['explore', 'memories', 'admin', 'privacy', 'terms', 'account', 'about'];
 
 export function parseRoute(hash = '') {
   const h = hash.replace(/^#\/?/, '');

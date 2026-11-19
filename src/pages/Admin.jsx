@@ -987,6 +987,17 @@ const toLocalInput = (ms) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 const fromLocalInput = (v) => (v ? new Date(v).getTime() : null);
+/** Ô ngày + giờ riêng: chọn ngày thì giờ mặc định là 00:00 (12:00 AM) */
+function DateTimeField({ value, onChange }) {
+  const v = toLocalInput(value);
+  const [d, tm] = v ? v.split('T') : ['', ''];
+  return (
+    <div className="row dt-field">
+      <input type="date" value={d} onChange={(e) => onChange(e.target.value ? fromLocalInput(`${e.target.value}T${tm || '00:00'}`) : null)} />
+      <input type="time" value={tm} disabled={!d} onChange={(e) => d && onChange(fromLocalInput(`${d}T${e.target.value || '00:00'}`))} />
+    </div>
+  );
+}
 const fmtWhen = (ms, lang) => new Date(ms).toLocaleString(lang === 'en' ? 'en-GB' : 'vi-VN', { dateStyle: 'medium', timeStyle: 'short' });
 
 function AnnouncementsAdmin() {
@@ -1014,7 +1025,7 @@ function AnnouncementsAdmin() {
     }
   };
   const startNew = (tpl) => {
-    const start = Math.ceil((Date.now() + 864e5) / 36e5) * 36e5; // ngày mai, tròn giờ
+    const start = new Date(new Date().setHours(24, 0, 0, 0)).getTime(); // 00:00 (12:00 AM) ngày mai
     const fill = (x) =>
       (x || '')
         .replace('{date}', new Date(start).toLocaleDateString(lang === 'en' ? 'en-GB' : 'vi-VN'))
@@ -1091,12 +1102,12 @@ function AnnouncementsAdmin() {
             {edit.when === 'schedule' && (
               <label className="field">
                 <span>{t('ann.startAt')}</span>
-                <input type="datetime-local" value={toLocalInput(edit.startAt)} onChange={(e) => setEdit((d) => ({ ...d, startAt: fromLocalInput(e.target.value) }))} />
+                <DateTimeField value={edit.startAt} onChange={(v) => setEdit((d) => ({ ...d, startAt: v }))} />
               </label>
             )}
             <label className="field">
               <span>{t('ann.endAt')}</span>
-              <input type="datetime-local" value={toLocalInput(edit.endAt)} onChange={(e) => setEdit((d) => ({ ...d, endAt: fromLocalInput(e.target.value) }))} />
+              <DateTimeField value={edit.endAt} onChange={(v) => setEdit((d) => ({ ...d, endAt: v }))} />
               <small className="muted">{t('ann.endHelp')}</small>
             </label>
           </div>

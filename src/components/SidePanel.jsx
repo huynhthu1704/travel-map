@@ -564,7 +564,7 @@ function WorldPanel() {
           </nav>
           <AdSlot placement="home-bottom" size="card" />
           <p className="legal-links tiny muted">
-            <a href="#/privacy">{t('legal.privacy')}</a> · <a href="#/terms">{t('legal.terms')}</a>
+            <a href="#/about">{t('about.link')}</a> · <a href="#/privacy">{t('legal.privacy')}</a> · <a href="#/terms">{t('legal.terms')}</a>
           </p>
         </>
       )}

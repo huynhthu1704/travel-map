@@ -16,6 +16,7 @@ import { hrefView, hrefProfile } from './lib/route';
 const GuidePage = lazy(() => import('./pages/Guide'));
 const TipsPage = lazy(() => import('./pages/Tips'));
 const LegalPage = lazy(() => import('./pages/Legal'));
+const AboutPage = lazy(() => import('./pages/About'));
 const AccountPage = lazy(() => import('./pages/Account'));
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
 const MemoriesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.MemoriesPage })));
@@ -150,7 +151,7 @@ function UserMenu() {
             {t('auth.logout')}
           </button>
           <small className="muted user-menu__ver">
-            <a href="#/privacy" onClick={() => setOpen(false)}>{t('legal.privacy')}</a> · <a href="#/terms" onClick={() => setOpen(false)}>{t('legal.terms')}</a> · v{__APP_VERSION__}
+            <a href="#/about" onClick={() => setOpen(false)}>{t('about.link')}</a> · <a href="#/privacy" onClick={() => setOpen(false)}>{t('legal.privacy')}</a> · <a href="#/terms" onClick={() => setOpen(false)}>{t('legal.terms')}</a> · v{__APP_VERSION__}
           </small>
         </div>
       )}
@@ -241,6 +242,7 @@ function Shell() {
           {view === 'profile' && <ProfilePage />}
           {(view === 'privacy' || view === 'terms') && <LegalPage kind={view} />}
           {view === 'account' && <AccountPage />}
+          {view === 'about' && <AboutPage />}
           {view === 'guide' && can('guide') && <GuidePage />}
           {view === 'tips' && <TipsPage />}
         </Suspense>

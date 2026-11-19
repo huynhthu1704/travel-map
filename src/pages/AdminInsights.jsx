@@ -273,7 +273,6 @@ export default function AdminInsights({ users, trips }) {
           {m.topDest.length ? <Bars rows={m.topDest.map(([cc, n]) => ({ key: cc, label: `${flagOf(cc)} ${countryName(cc)}`, n }))} /> : <p className="muted">—</p>}
         </section>
       </div>
-      <p className="tiny muted">{t('ins.footer')}</p>
     </div>
   );
 }

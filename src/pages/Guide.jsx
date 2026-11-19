@@ -69,14 +69,52 @@ function SpeakButton({ text, lang }) {
   );
 }
 
+/** Món phải thử: lưới ảnh; có thể lọc theo thành phố / vùng */
+function FoodSection({ cc, byCity }) {
+  const { t, lang } = useI18nSpeak();
+  const foods = GUIDE_FOODS[cc] || [];
+  const cities = [...new Map(foods.filter((x) => x.city).map((x) => [x.city.en, x.city])).values()];
+  const hasNational = foods.some((x) => !x.city);
+  const [city, setCity] = useState('');
+  const shown = !byCity || !city ? foods : foods.filter((x) => (city === '*' ? !x.city : x.city?.en === city));
+  return (
+    <>
+      {byCity && cities.length > 1 && (
+        <div className="chips chips--wrap food-cities">
+          <button type="button" className={`chip ${!city ? 'chip--on' : ''}`} onClick={() => setCity('')}>
+            {t('common.all')} ({foods.length})
+          </button>
+          {cities.map((c) => (
+            <button key={c.en} type="button" className={`chip ${city === c.en ? 'chip--on' : ''}`} onClick={() => setCity(c.en)}>
+              📍 {c[lang] || c.vi} ({foods.filter((x) => x.city?.en === c.en).length})
+            </button>
+          ))}
+          {hasNational && (
+            <button type="button" className={`chip ${city === '*' ? 'chip--on' : ''}`} onClick={() => setCity('*')}>
+              🌏 {t('guide.foodNational')}
+            </button>
+          )}
+        </div>
+      )}
+      <div className="food-grid">
+        {shown.map((f) => (
+          <FoodCard key={f.n} food={f} showCity={byCity && !city} />
+        ))}
+      </div>
+      <p className="tiny muted">{t('guide.foodCredit')}</p>
+    </>
+  );
+}
+
 /** Món ăn: ảnh minh hoạ từ Wikipedia */
-function FoodCard({ food }) {
+function FoodCard({ food, showCity }) {
   const { lang } = useI18nSpeak();
   const { src, loading } = useWikiThumb(food.wiki);
   return (
     <a className="food-card" href={`https://en.wikipedia.org/wiki/${encodeURIComponent(food.wiki.replace(/ /g, '_'))}`} target="_blank" rel="noopener noreferrer">
       <span className={`food-card__img ${loading ? 'is-loading' : ''}`}>{src ? <img src={src} alt={food.n} loading="lazy" /> : !loading && <span aria-hidden>🍜</span>}</span>
       <b>{(lang === 'vi' && food.vi) || food.n}</b>
+      {showCity && food.city && <small className="food-card__city">📍 {food.city[lang] || food.city.vi}</small>}
     </a>
   );
 }
@@ -218,16 +256,7 @@ function CountryGuide({ g, onBack }) {
                   </p>
                 );
               })()}
-              {s.key === 'food' && GUIDE_FOODS[g.cc] && (
-                <>
-                  <div className="food-grid">
-                    {GUIDE_FOODS[g.cc].map((f) => (
-                      <FoodCard key={f.n} food={f} />
-                    ))}
-                  </div>
-                  <p className="tiny muted">{t('guide.foodCredit')}</p>
-                </>
-              )}
+              {s.key === 'food' && GUIDE_FOODS[g.cc] && <FoodSection cc={g.cc} byCity={can('guideFoodCities')} />}
               {s.key === 'phrases' && GUIDE_PHRASES[g.cc] && <p className="tiny muted">{t('guide.listenHint')}</p>}
               {s.key === 'places' && can('guideToTrip') && GUIDE_SPOTS[g.cc] && <GuideSpots cc={g.cc} />}
               {s.key === 'places' && (

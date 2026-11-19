@@ -9489,3 +9489,15 @@ a.app-link.place-card__title:hover {
   margin-top: 10px;
   gap: 10px;
 }
+.food-cities {
+  margin: 10px 0 2px;
+  gap: 6px;
+}
+.food-cities .chip {
+  font-size: 12px;
+}
+.food-card__city {
+  font-size: 11px;
+  color: var(--ink-500, #8a8172);
+  margin-top: -4px;
+}

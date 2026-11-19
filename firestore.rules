@@ -7,9 +7,9 @@ service cloud.firestore {
     }
 
     // ---- Quản trị: quản trị viên gốc (theo email) + vai trò lưu trong users/{uid}.role ----
+    // Quản trị viên gốc theo mã người dùng (uid) — không ghi email trong tệp luật
     function isSuper() {
-      return signedIn() && request.auth.token.email_verified == true
-        && request.auth.token.email in ['huynhthingocthu1704@gmail.com'];
+      return signedIn() && request.auth.uid in ['__SUPER_ADMIN_UID__'];
     }
     function myRole() {
       let p = /databases/$(database)/documents/users/$(request.auth.uid);
@@ -23,19 +23,25 @@ service cloud.firestore {
     function validPhoto(d) {
       return !('photo' in d) || d.photo == null || (d.photo is string && d.photo.size() < 120000);
     }
+    function validUserText(d) {
+      return d.get('displayName', '') == null || (d.get('displayName', '') is string && d.get('displayName', '').size() <= 80);
+    }
     match /users/{uid} {
-      allow read: if (signedIn() && request.auth.uid == uid) || isStaff();
+      // Chỉ chính chủ và quản trị viên (không gồm biên tập viên) đọc được email / thông tin đăng nhập
+      allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
       allow create: if signedIn() && request.auth.uid == uid
-                    && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'role', 'banned', 'createdAt', 'lastLoginAt', 'updatedAt', 'stats'])
+                    && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'role', 'banned', 'createdAt', 'lastLoginAt', 'updatedAt', 'stats', 'consentVersion', 'consentAt'])
                     && request.resource.data.get('role', 'user') == 'user'
                     && request.resource.data.get('banned', false) == false
-                    && validPhoto(request.resource.data);
+                    && validPhoto(request.resource.data) && validUserText(request.resource.data);
       allow update: if (signedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt', 'annRead'])
-                        && validPhoto(request.resource.data))
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt', 'annRead', 'consentVersion', 'consentAt', 'privateProfile', 'hideDates'])
+                        && validPhoto(request.resource.data) && validUserText(request.resource.data))
                     || (isAdmin()
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned'])
                         && request.resource.data.get('role', 'user') in ['user', 'editor', 'admin']);
+      // Tự xoá tài khoản của mình
+      allow delete: if signedIn() && request.auth.uid == uid;
     }
 
     // Cài đặt trang: ai cũng đọc; chỉ quản trị viên sửa
@@ -54,18 +60,30 @@ service cloud.firestore {
     }
     // Báo cáo nội dung: người đăng nhập gửi; biên tập viên trở lên xem và xử lý
     match /reports/{id} {
-      allow create: if signedIn() && request.resource.data.byUid == request.auth.uid && request.resource.data.status == 'open';
+      allow create: if signedIn() && request.resource.data.byUid == request.auth.uid && request.resource.data.status == 'open'
+                    && request.resource.data.reason is string && request.resource.data.reason.size() <= 40
+                    && request.resource.data.get('note', '') is string && request.resource.data.get('note', '').size() <= 500;
       allow read, update, delete: if isStaff();
+      // Người báo cáo xem / xoá báo cáo của mình (khi xoá tài khoản)
+      allow read, delete: if signedIn() && resource.data.byUid == request.auth.uid;
     }
     // ---- Mạng xã hội ----
     function follows(a, b) { return exists(/databases/$(database)/documents/follows/$(a + '_' + b)); }
     // Hồ sơ công khai: ai đăng nhập cũng xem; chỉ chủ hồ sơ sửa
     match /profiles/{uid} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == uid
+      allow delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
                    && (!('bio' in request.resource.data) || request.resource.data.bio.size() <= 200)
+                   && request.resource.data.get('name', '') is string && request.resource.data.get('name', '').size() <= 80
+                   && validPhoto(request.resource.data)
                    && (request.resource.data.get('username', '') == ''
                        || getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == uid);
+    }
+    // Thống kê hồ sơ khi bật "Hồ sơ riêng tư": chỉ chính chủ và người theo dõi chéo xem được
+    match /profileStats/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || (follows(request.auth.uid, uid) && follows(uid, request.auth.uid)));
+      allow write: if signedIn() && request.auth.uid == uid;
     }
     // Tên người dùng (nickname, duy nhất như Instagram): mỗi tên là 1 tài liệu, ai giữ trước thì là của người đó
     match /usernames/{name} {
@@ -86,34 +104,80 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.from == request.auth.uid
                     && id == request.auth.uid + '_' + request.resource.data.to
                     && request.resource.data.to != request.auth.uid;
-      allow delete: if signedIn() && resource.data.from == request.auth.uid;
+      allow delete: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
     }
-    // Thông báo: người dùng gửi được "thích" / "theo dõi" cho người khác; quản trị gửi mọi loại (kể cả cho tất cả)
+    // Thông báo. Người dùng thường chỉ gửi được thông báo GẮN VỚI 1 HÀNH ĐỘNG CÓ THẬT:
+    //  - like: phải có lượt thích của chính mình trên check-in của người nhận
+    //  - follow: phải đang theo dõi người nhận
+    //  - invite / inviteAccepted / inviteDeclined: phải có lời mời tương ứng
+    // Chỉ được dùng đúng các trường cho phép, độ dài giới hạn. Quản trị gửi được mọi loại.
+    function noteBasics(d) {
+      return d.keys().hasOnly(['to', 'type', 'from', 'fromName', 'fromPhoto', 'title', 'memoryId', 'tripId', 'read', 'createdAt'])
+        && d.from == request.auth.uid && d.to is string && d.to != 'all' && d.to != request.auth.uid
+        && d.read == false && d.createdAt is int
+        && d.get('fromName', '') is string && d.get('fromName', '').size() <= 80
+        && d.get('title', '') is string && d.get('title', '').size() <= 160
+        && d.get('fromPhoto', '') is string && d.get('fromPhoto', '').size() <= 120000;
+    }
+    function noteBacked(d) {
+      return (d.type == 'like' && d.memoryId is string
+          && exists(/databases/$(database)/documents/memories/$(d.memoryId)/likes/$(request.auth.uid))
+          && get(/databases/$(database)/documents/memories/$(d.memoryId)).data.uid == d.to)
+        || (d.type == 'follow' && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + d.to)))
+        || (d.type == 'invite' && d.tripId is string
+          && get(/databases/$(database)/documents/tripInvites/$(d.tripId + '_' + d.to)).data.from == request.auth.uid
+          && get(/databases/$(database)/documents/tripInvites/$(d.tripId + '_' + d.to)).data.status == 'pending')
+        || (d.type in ['inviteAccepted', 'inviteDeclined'] && d.tripId is string
+          && get(/databases/$(database)/documents/tripInvites/$(d.tripId + '_' + request.auth.uid)).data.from == d.to
+          && get(/databases/$(database)/documents/tripInvites/$(d.tripId + '_' + request.auth.uid)).data.status
+             == (d.type == 'inviteAccepted' ? 'accepted' : 'declined'));
+    }
     match /notifications/{id} {
-      allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.to == 'all' || isStaff());
-      allow create: if signedIn() && (
-        (request.resource.data.from == request.auth.uid && request.resource.data.type in ['like', 'follow']
-          && request.resource.data.to is string && request.resource.data.to != 'all' && request.resource.data.to != request.auth.uid
-          && request.resource.data.read == false)
-        || isStaff());
+      allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.to == 'all' || resource.data.get('from', '') == request.auth.uid || isStaff());
+      allow create: if signedIn() && ((noteBasics(request.resource.data) && noteBacked(request.resource.data)) || isStaff());
       allow update: if signedIn() && resource.data.to == request.auth.uid
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
-      allow delete: if signedIn() && (resource.data.to == request.auth.uid || isStaff());
+      allow delete: if signedIn() && (resource.data.to == request.auth.uid || resource.data.get('from', '') == request.auth.uid || isStaff());
     }
 
     // Góp ý / báo lỗi: người gửi xem được của mình; biên tập viên trở lên xem tất cả và đổi trạng thái
     match /feedback/{id} {
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'open';
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'open'
+                    && request.resource.data.get('title', '') is string && request.resource.data.get('title', '').size() <= 200;
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isStaff());
       allow update: if isStaff()
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt', 'handledBy', 'history']);
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       match /files/{fileId} {
         allow read: if signedIn() && (get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid || isStaff());
         allow create: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid;
-        allow delete: if isAdmin();
+        allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       }
+    }
+    // Nhật ký quản trị: biên tập viên / quản trị viên ghi; chỉ quản trị viên đọc; không ai sửa hay xoá được
+    match /adminLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isStaff() && request.resource.data.by == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['at', 'by', 'byName', 'action', 'target', 'detail'])
+                    && request.resource.data.action is string && request.resource.data.action.size() <= 40
+                    && request.resource.data.get('target', '') is string && request.resource.data.get('target', '').size() <= 200
+                    && request.resource.data.get('detail', '') is string && request.resource.data.get('detail', '').size() <= 500;
+      allow update, delete: if false;
+    }
+    // Lượt thích của chính mình ở mọi check-in (để xoá khi xoá tài khoản)
+    match /{path=**}/likes/{likeUid} {
+      allow read: if signedIn() && likeUid == request.auth.uid;
+    }
+    // Bộ đếm ẩn danh số tài khoản đã xoá: chỉ cộng đúng 1, và chỉ khi chính người đó đang xoá hồ sơ tài khoản
+    match /stats/{id} {
+      allow read: if isAdmin();
+      allow create, update: if id == 'deletions' && signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+        && request.resource.data.keys().hasOnly(['count', 'byMonth'])
+        && request.resource.data.count == (resource == null ? 0 : resource.data.get('count', 0)) + 1
+        && request.resource.data.byMonth is map;
     }
     // Đếm số mục kế hoạch / chi phí / checklist cho trang thống kê (chỉ quản trị viên)
     match /{path=**}/plan/{itemId} {
@@ -139,17 +203,28 @@ service cloud.firestore {
         || (m.tripId != null && isMember(m.tripId))
         || (m.get('moderated', false) == true && isStaff());
     }
+    // Giới hạn độ dài nội dung check-in (chặn ghi dữ liệu quá lớn / rác)
+    function validMemory(d) {
+      return d.visibility in ['public', 'private']
+        && d.get('caption', '') is string && d.get('caption', '').size() <= 1000
+        && d.get('occasion', '') is string && d.get('occasion', '').size() <= 100
+        && d.get('authorName', '') is string && d.get('authorName', '').size() <= 80
+        && (!('photos' in d) || (d.photos is list && d.photos.size() <= 10));
+    }
     match /memories/{id} {
       allow read: if canReadMemory(resource.data);
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.visibility in ['public', 'private'];
-      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+                    && validMemory(request.resource.data);
+      allow update: if signedIn() && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid && validMemory(request.resource.data);
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
       // Lượt thích check-in công khai: mỗi người 1 document (id = uid)
       match /likes/{likeUid} {
         allow read: if signedIn() && canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
         allow create: if signedIn() && likeUid == request.auth.uid && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.visibility == 'public';
-        allow delete: if signedIn() && likeUid == request.auth.uid;
+        allow delete: if signedIn() && (likeUid == request.auth.uid
+                      || get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid);
       }
       // Kiểm duyệt: biên tập viên trở lên ẩn / hiện lại / xoá
       allow update: if isStaff()
@@ -179,20 +254,63 @@ service cloud.firestore {
       }
     }
 
-    // Chuyến đi chung
+    // ---- Chuyến đi chung ----
+    // Chỉ thành viên (và quản trị viên) đọc được chuyến đi. Người ngoài không đọc được gì,
+    // kể cả khi biết mã chuyến. Vào chuyến bằng 2 cách:
+    //  1) Có đúng mã mời → tự thêm CHÍNH MÌNH (tra mã qua bảng inviteCodes, chỉ tra từng mã, không liệt kê được)
+    //  2) Được chủ chuyến mời → chấp nhận lời mời (tripInvites) trong cùng 1 lần ghi
+    // Chỉ chủ chuyến xoá được người khác; thành viên chỉ tự rời. Chủ chuyến không tự thêm người khác được.
+    function addsOnlyMe() {
+      let before = resource.data.memberIds.toSet();
+      let after = request.resource.data.memberIds.toSet();
+      return after.difference(before) == [request.auth.uid].toSet() && before.difference(after).size() == 0
+        && request.resource.data.members.diff(resource.data.get('members', {})).affectedKeys().hasOnly([request.auth.uid]);
+    }
+    function removesOnly(uid) {
+      let before = resource.data.memberIds.toSet();
+      let after = request.resource.data.memberIds.toSet();
+      return before.difference(after) == [uid].toSet() && after.difference(before).size() == 0
+        && request.resource.data.get('members', {}).diff(resource.data.get('members', {})).affectedKeys().hasOnly([uid]);
+    }
+    function inviteAccepted(tripId) {
+      let p = /databases/$(database)/documents/tripInvites/$(tripId + '_' + request.auth.uid);
+      return exists(p) && get(p).data.status == 'pending' && get(p).data.to == request.auth.uid
+        && getAfter(p).data.status == 'accepted';
+    }
+    function validTripText(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 80
+        && d.get('emoji', '') is string && d.get('emoji', '').size() <= 16;
+    }
     match /trips/{tripId} {
-      // Người đã đăng nhập đọc được để tham gia bằng mã mời
-      allow read: if signedIn();
+      allow read: if (signedIn() && request.auth.uid in resource.data.memberIds) || isAdmin();
       allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid
-                    && request.resource.data.memberIds == [request.auth.uid];
-      // Chủ chuyến đi sửa/xoá; thành viên mới chỉ được thêm/bớt chính mình
+                    && request.resource.data.memberIds == [request.auth.uid]
+                    && validTripText(request.resource.data);
       allow update: if signedIn() && (
-        resource.data.ownerId == request.auth.uid ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members']) ||
-        // Thành viên được sửa tên, biểu tượng và ngày đi / ngày về
-        (request.auth.uid in resource.data.memberIds &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'emoji', 'startDate', 'endDate', 'kind', 'destinations', 'currency', 'rates', 'updatedAt']))
-      );
+        // Chủ chuyến chuyển quyền cho 1 thành viên khác (khi xoá tài khoản)
+        (resource.data.ownerId == request.auth.uid && request.resource.data.ownerId in resource.data.memberIds
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerId'])) ||
+        request.resource.data.ownerId == resource.data.ownerId && (
+        // Chủ chuyến: sửa thông tin, đổi mã, xoá thành viên — nhưng không tự thêm người khác
+        (resource.data.ownerId == request.auth.uid
+          && resource.data.memberIds.toSet().hasAll(request.resource.data.memberIds)
+          && request.auth.uid in request.resource.data.memberIds
+          && validTripText(request.resource.data)) ||
+        // Tự tham gia bằng đúng mã mời hiện tại
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members', 'joinCode'])
+          && addsOnlyMe() && request.resource.data.joinCode == resource.data.inviteCode) ||
+        // Chấp nhận lời mời của chủ chuyến
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members', 'joinCode'])
+          && addsOnlyMe() && inviteAccepted(tripId)) ||
+        // Thành viên tự rời chuyến
+        (request.auth.uid in resource.data.memberIds
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members'])
+          && removesOnly(request.auth.uid)) ||
+        // Thành viên sửa tên, biểu tượng, ngày đi / về, điểm đến, tiền tệ
+        (request.auth.uid in resource.data.memberIds
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'emoji', 'startDate', 'endDate', 'kind', 'destinations', 'currency', 'rates', 'updatedAt'])
+          && validTripText(request.resource.data))
+      ));
       allow delete: if (signedIn() && resource.data.ownerId == request.auth.uid) || isAdmin();
 
       // Kế hoạch: mọi thành viên cùng thêm / sắp xếp / đánh dấu
@@ -216,6 +334,48 @@ service cloud.firestore {
         allow create: if isMember(tripId) && request.resource.data.byUid == request.auth.uid;
         allow delete: if isMember(tripId) && resource.data.byUid == request.auth.uid;
       }
+    }
+
+    // Bảng tra mã mời: chỉ tra đúng 1 mã (get), không liệt kê được (list)
+    match /inviteCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && code.matches('^[A-Z0-9]{6,8}$')
+                    && request.resource.data.keys().hasOnly(['tripId', 'ownerId', 'createdAt'])
+                    && request.resource.data.ownerId == request.auth.uid
+                    && get(/databases/$(database)/documents/trips/$(request.resource.data.tripId)).data.ownerId == request.auth.uid;
+      allow delete: if signedIn() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Lời mời vào chuyến đi: tripInvites/{tripId}_{uid người được mời}
+    // pending → accepted / declined (người được mời) hoặc cancelled (chủ chuyến). Chủ chuyến mời lại được.
+    function validInvite(d, id) {
+      let trip = get(/databases/$(database)/documents/trips/$(d.tripId)).data;
+      return d.keys().hasOnly(['tripId', 'tripName', 'tripEmoji', 'startDate', 'endDate', 'from', 'fromName', 'fromPhoto', 'to', 'toName', 'toPhoto', 'status', 'createdAt', 'respondedAt'])
+        && id == d.tripId + '_' + d.to && d.from == request.auth.uid && d.to != request.auth.uid
+        && trip.ownerId == request.auth.uid && !(d.to in trip.memberIds)
+        && d.status == 'pending' && d.respondedAt == null
+        && d.tripName is string && d.tripName.size() <= 80
+        && d.fromName is string && d.fromName.size() <= 80 && d.toName is string && d.toName.size() <= 80
+        && d.fromPhoto is string && d.fromPhoto.size() <= 120000 && d.toPhoto is string && d.toPhoto.size() <= 120000
+        && exists(/databases/$(database)/documents/profiles/$(d.to));
+    }
+    match /tripInvites/{id} {
+      allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.from == request.auth.uid || isAdmin());
+      allow create: if signedIn() && validInvite(request.resource.data, id);
+      allow update: if signedIn() && (
+        // Chủ chuyến mời lại (ghi đè lời mời cũ đã trả lời / đã huỷ)
+        (resource.data.from == request.auth.uid && resource.data.status != 'pending' && validInvite(request.resource.data, id)) ||
+        // Chủ chuyến huỷ lời mời đang chờ
+        (resource.data.from == request.auth.uid && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+          && request.resource.data.status == 'cancelled') ||
+        // Người được mời chấp nhận / từ chối
+        (resource.data.to == request.auth.uid && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+          && request.resource.data.status in ['accepted', 'declined'])
+      );
+      allow delete: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid || isAdmin());
     }
   }
 }

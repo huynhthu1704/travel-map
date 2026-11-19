@@ -75,6 +75,14 @@ export default function ProfilePage() {
     return () => u.forEach((f) => f && f());
   }, [uid, user]);
   useEffect(() => setBio(p?.bio || ''), [p?.bio]);
+  // Hồ sơ riêng tư: thống kê nằm ở profileStats, chỉ chính chủ và bạn theo dõi chéo đọc được
+  const locked = !!p?.privateProfile && !isMe && !mutual;
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    setStats(null);
+    if (!uid || !p?.privateProfile || locked) return undefined;
+    return socialApi.watchStats(uid, setStats);
+  }, [uid, p?.privateProfile, locked]);
   // Hoạt động gần đây: chỉ chính mình và bạn bè theo dõi chéo mới xem được
   useEffect(() => {
     let alive = true;
@@ -88,9 +96,9 @@ export default function ProfilePage() {
 
   const citiesBy = useMemo(() => {
     const g = {};
-    (p?.cities || []).forEach((c) => (g[c.cc] ||= []).push(c.name));
+    (stats?.cities || p?.cities || []).forEach((c) => (g[c.cc] ||= []).push(c.name));
     return Object.entries(g).sort((a, b) => b[1].length - a[1].length);
-  }, [p]);
+  }, [p, stats]);
 
   if (!user)
     return (
@@ -108,7 +116,7 @@ export default function ProfilePage() {
     );
   if (p === undefined) return <div className="page"><Loader /></div>;
   if (!p && !isMe) return <div className="page"><Empty emoji="🔍" title={t('social.notFound')} /></div>;
-  const base = p || { name: user.name, photo: user.photo, countries: [], cities: [] };
+  const base = p ? { ...p, ...(stats || {}) } : { name: user.name, photo: user.photo, countries: [], cities: [] };
   // Của chính mình: lấy tên / ảnh mới nhất từ tài khoản (hồ sơ công khai cập nhật sau vài giây)
   const prof = isMe ? { ...base, name: user.name, photo: user.photo } : base;
 
@@ -309,6 +317,15 @@ export default function ProfilePage() {
         )}
       </header>
 
+      {locked ? (
+        <section className="card profile__locked">
+          <div className="profile__lock">🔒</div>
+          <h3 className="h3">{t('priv.lockedTitle')}</h3>
+          <p className="muted small">{t('priv.lockedBody')}</p>
+        </section>
+      ) : (
+      <>
+      {isMe && p?.privateProfile && <p className="small muted">🔒 {t('priv.meNote')}</p>}
       <div className="profile__stats">
         <div className="stat">
           <div className="stat__value">🌏 {prof.countries?.length || 0}</div>
@@ -371,6 +388,8 @@ export default function ProfilePage() {
         <h3 className="h3">📸 {t('social.publicCheckinsTitle')}</h3>
         {!checkins ? <Loader /> : checkins.length ? <MemoryGrid items={checkins} /> : <Empty emoji="🖼️" title={t('social.noPublic')} />}
       </section>
+      </>
+      )}
     </div>
   );
 }

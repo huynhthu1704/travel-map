@@ -62,7 +62,7 @@ export default function Notifications() {
 
 function NoteList({ notes, onDone }) {
   const { t, lang } = useI18n();
-  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify } = useApp();
+  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify, setView, setOpenTripId } = useApp();
   const [filter, setFilter] = useState('all');
   const list = filter === 'unread' ? notes.filter((n) => !n.read) : notes;
   const setRead = (n, read) => socialApi.setRead(user.uid, n, read).catch((e) => notify(e.message, 'error'));
@@ -73,15 +73,20 @@ function NoteList({ notes, onDone }) {
       const m = memories.find((x) => x.id === n.memoryId);
       if (m) return (setModal({ type: 'viewMemory', memory: m }), onDone());
     }
+    if (n.type === 'invite') return (setOpenTripId(null), setView('trips'), onDone());
+    if ((n.type === 'inviteAccepted' || n.type === 'inviteDeclined') && n.tripId) return (setView('trips'), setOpenTripId(n.tripId), onDone());
     if (n.link) return (location.hash = n.link, onDone());
   };
   const text = (n) => {
     if (n.type === 'like') return t('notif.like', { name: n.fromName || '?', place: n.title || '' });
     if (n.type === 'follow') return t('notif.follow', { name: n.fromName || '?' });
     if (n.type === 'hidden') return t('notif.hidden', { place: n.title || '' });
+    if (n.type === 'invite') return t('notif.invite', { name: n.fromName || '?', trip: n.title || '' });
+    if (n.type === 'inviteAccepted') return t('notif.inviteAccepted', { name: n.fromName || '?', trip: n.title || '' });
+    if (n.type === 'inviteDeclined') return t('notif.inviteDeclined', { name: n.fromName || '?', trip: n.title || '' });
     return n.title || '';
   };
-  const icon = (n) => ({ like: '❤️', follow: '👋', hidden: '🙈', feature: '🎉', system: '📢' })[n.type] || '🔔';
+  const icon = (n) => ({ like: '❤️', follow: '👋', hidden: '🙈', feature: '🎉', system: '📢', invite: '🧳', inviteAccepted: '✅', inviteDeclined: '✖️' })[n.type] || '🔔';
   return (
     <div className="notif__body">
       <div className="notif__tools">

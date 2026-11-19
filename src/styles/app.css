@@ -7531,3 +7531,303 @@ a.app-link.place-card__title:hover {
     font-size: 16px;
   }
 }
+
+/* ---------- Thành viên & lời mời chuyến đi ---------- */
+.tm__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tm__list li,
+.tm-inbox__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+  flex-wrap: wrap;
+}
+.tm__who {
+  flex: 1;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+}
+.tm__who small {
+  color: var(--ink-500);
+  font-size: 12px;
+}
+.tm__who em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink-500);
+}
+.tm__h {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+.tm__status {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--ink-100);
+}
+.tm__status--pending {
+  background: var(--honey-100);
+  color: var(--honey-800);
+}
+.tm__status--accepted {
+  background: var(--mint-100);
+  color: #1d7a55;
+}
+.tm__status--declined,
+.tm__status--cancelled {
+  background: #fde8e8;
+  color: #b42318;
+}
+.tm__code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tm__code .code {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--honey-50);
+  border: 1px dashed var(--honey-300);
+}
+.tm-inbox {
+  border: 2px solid var(--honey-300);
+}
+.tm-inbox__emoji {
+  font-size: 26px;
+}
+
+/* ---------- Điều khoản / quyền riêng tư / tài khoản ---------- */
+.legal {
+  max-width: 760px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+.legal h3 {
+  margin: 18px 0 6px;
+  font-size: 16px;
+}
+.legal ul {
+  padding-left: 20px;
+  margin: 6px 0;
+}
+.legal li {
+  margin: 4px 0;
+}
+.legal__tabs {
+  margin-bottom: 10px;
+}
+.legal__tabs a {
+  text-decoration: none;
+  color: inherit;
+}
+.login__consent,
+.acc-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.login__consent input,
+.acc-toggle input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  accent-color: var(--honey-500);
+}
+.login__consent a {
+  font-weight: 700;
+}
+.acc-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.acc-toggle small {
+  color: var(--ink-500);
+}
+.legal-points,
+.acc-list {
+  padding-left: 18px;
+  margin: 0;
+}
+.legal-points li,
+.acc-list li {
+  margin: 4px 0;
+}
+.account > * {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.account .card {
+  margin-bottom: 14px;
+}
+.acc-danger {
+  border: 1px solid #f3c2c2;
+}
+.profile__locked {
+  text-align: center;
+  padding: 28px 16px;
+}
+.profile__lock {
+  font-size: 40px;
+}
+.user-menu__ver a {
+  color: inherit;
+}
+
+/* ---------- Nhật ký quản trị / che email ---------- */
+.email-reveal {
+  margin-left: 6px;
+  border: 0;
+  background: var(--ink-100);
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.admin-logs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.admin-logs li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1px solid var(--ink-100);
+  border-radius: 12px;
+  background: #fff;
+}
+.admin-logs__icon {
+  font-size: 18px;
+}
+.admin-logs__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-logs__target {
+  font-size: 11px;
+  color: var(--ink-500);
+  word-break: break-all;
+}
+.admin-logs__detail {
+  color: var(--ink-600, #555);
+  word-break: break-word;
+}
+.admin-logs__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* ---------- Ô quảng cáo mẫu ---------- */
+.ad-slot {
+  position: relative;
+  width: 100%;
+  max-width: 728px;
+  height: var(--ad-h);
+  margin: 12px auto;
+  border-radius: 14px;
+  border: 1.5px dashed var(--honey-300);
+  background: repeating-linear-gradient(135deg, var(--honey-50), var(--honey-50) 12px, #fff 12px, #fff 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.ad-slot--card {
+  max-width: 300px;
+  height: auto;
+  min-height: 250px;
+  aspect-ratio: 300 / 250;
+}
+.ad-slot--inline {
+  max-width: 468px;
+}
+.ad-slot__tag {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+  background: #fff;
+  border: 1px solid var(--ink-100);
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+.ad-slot__body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  text-align: left;
+}
+.ad-slot--card .ad-slot__body {
+  flex-direction: column;
+  text-align: center;
+}
+.ad-slot__emoji {
+  font-size: 28px;
+}
+.ad-slot--card .ad-slot__emoji {
+  font-size: 44px;
+}
+.ad-slot__text {
+  display: flex;
+  flex-direction: column;
+}
+.ad-slot__text small {
+  color: var(--ink-500);
+  font-size: 11px;
+}
+@media (max-width: 640px) {
+  .ad-slot:not(.ad-slot--card) {
+    height: var(--ad-mh);
+  }
+}
+.explore-grid > .ad-slot,
+.mgrid > .ad-slot {
+  grid-column: 1 / -1;
+  margin: 4px auto;
+}
+.legal-links {
+  text-align: center;
+  margin: 6px 0 0;
+}
+.legal-links a {
+  color: inherit;
+}

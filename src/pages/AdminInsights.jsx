@@ -3,6 +3,7 @@ import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Loader } from '../components/ui';
 import { countryName, flagOf } from '../lib/countries';
+import { getDeletionStats } from '../lib/account';
 
 /* ------------------------------------------------------------------ */
 /* Thống kê sản phẩm cho quản trị viên.                                */
@@ -143,6 +144,10 @@ export default function AdminInsights({ users, trips }) {
   const { adminApi } = useApp();
   const [counts, setCounts] = useState(null);
   const [stamp, setStamp] = useState(Date.now());
+  const [del, setDel] = useState(null);
+  useEffect(() => {
+    getDeletionStats().then(setDel).catch(() => setDel(null));
+  }, [stamp]);
   useEffect(() => {
     let alive = true;
     setCounts(null);
@@ -176,6 +181,12 @@ export default function AdminInsights({ users, trips }) {
           <Kpi icon="🗓️" value={m.wau} label="WAU" hint={t('ins.wauHint')} />
           <Kpi icon="📆" value={m.mau} label="MAU" hint={t('ins.mauHint')} />
           <Kpi icon="🧲" value={`${m.stickiness}%`} label={t('ins.stickiness')} hint={t('ins.stickinessHint')} />
+          <Kpi
+            icon="👋"
+            value={del ? del.count || 0 : '…'}
+            label={t('ins.deleted')}
+            hint={t('ins.deletedHint', { n: del?.byMonth?.[new Date().toISOString().slice(0, 7)] || 0 })}
+          />
         </div>
       </section>
 

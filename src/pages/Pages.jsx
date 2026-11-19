@@ -24,6 +24,7 @@ import DateInput from "../components/DateInput";
 import { TripPlan, TripChecklists } from "./TripPlan";
 import TripCosts from "./TripCosts";
 import DuplicateTrip from "./DuplicateTrip";
+import TripMembers, { MyTripInvites } from "../components/TripMembers";
 import CurrencyRates from "../components/CurrencyRates";
 import { currencyOfCountry, fetchMarketRates } from "../lib/rates";
 import DestinationPicker, {
@@ -422,7 +423,7 @@ export function ExplorePage() {
       {!loaded.public ? (
         <Loader />
       ) : filtered.length ? (
-        <MemoryGrid items={filtered} />
+        <MemoryGrid items={filtered} adsEvery={8} />
       ) : (
         <Empty
           emoji="🔭"
@@ -775,6 +776,7 @@ export function TripsPage() {
           </button>
         </div>
       </header>
+      <MyTripInvites />
       {panel && (
         <Modal
           title={
@@ -1016,7 +1018,9 @@ function TripDetail({ trip, onBack }) {
   }, [menuOpen]);
   const isMember = !!user && (trip.memberIds || []).includes(user.uid);
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
+  const [showMembers, setShowMembers] = useState(false);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
+  // eslint-disable-next-line no-unused-vars
   const share = async () => {
     const text = t("trip.inviteText", { name: trip.name, emoji: trip.emoji });
     if (navigator.share) {
@@ -1147,17 +1151,17 @@ function TripDetail({ trip, onBack }) {
             </span>
             <button
               className="invite-code"
-              title={t("trip.copyCode")}
-              onClick={async () => {
-                await navigator.clipboard?.writeText(trip.inviteCode);
-                notify(t("trip.codeCopied", { code: trip.inviteCode }));
-              }}
+              title={t("tm.title")}
+              onClick={() => setShowMembers(true)}
             >
-              {t("trip.code")} <b className="code">{trip.inviteCode}</b> 📋
+              👥 {t("tm.manage")}
             </button>
+            {showMembers && (
+              <TripMembers trip={trip} onClose={() => setShowMembers(false)} />
+            )}
           </div>
           <div className="trip-hero__actions">
-            <button className="btn btn--primary" onClick={share}>
+            <button className="btn btn--primary" onClick={() => setShowMembers(true)}>
               {t("trip.invite")}
             </button>
             <button

@@ -5,13 +5,14 @@ import { loadCountries, bboxOf, countryAt } from './lib/countries';
 import { parseRoute, buildRoute } from './lib/route';
 import { loadFamousLive } from './lib/famousLive';
 import { famousIn } from './data/places';
-import { adminApi, SUPER_ADMINS, DEFAULT_SETTINGS } from './lib/adminStore';
+import { adminApi, isSuperUid, setAdminActor, DEFAULT_SETTINGS } from './lib/adminStore';
 import { normalize } from './lib/geo';
 import { COORD_FIXES, fixPlace, fixMemory } from './lib/fixes';
 import { translate as t } from './i18n';
 import { pName, getLang } from './lib/lang';
 const pCityOf = (p) => (p?.city || '').trim();
 import { reverseGeocode, googleMapsUrl } from './lib/geo';
+import { LEGAL_VERSION, CONSENT_KEY } from './data/legal';
 
 const isDesktop = () =>
   !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) && !(navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) && !window.matchMedia('(pointer: coarse)').matches;
@@ -34,6 +35,8 @@ export function AppProvider({ children }) {
   const [memories, setMemories] = useState([]);
   const [publicMemories, setPublicMemories] = useState([]);
   const [trips, setTrips] = useState([]);
+  const codeChecked = useRef(new Set());
+  const [myInvites, setMyInvites] = useState([]); // lời mời vào chuyến đi đang chờ mình trả lời
   // Trang đang mở lấy từ đường dẫn, để tải lại trang vẫn ở đúng chỗ
   const [initRoute] = useState(() => parseRoute(location.hash));
   const [activeTripId, setActiveTripId] = useState(initRoute.trip);
@@ -122,11 +125,21 @@ export function AppProvider({ children }) {
       setProfilePhoto(p?.photo || null);
     });
   }, [authUser?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
-  const isSuper = !!user && SUPER_ADMINS.includes((user.email || '').toLowerCase());
+  // Đồng ý Điều khoản & Chính sách: lưu khi đăng nhập lần đầu; phiên bản mới → hỏi lại
+  useEffect(() => {
+    if (!authUser || !profile) return;
+    if (profile.consentVersion === LEGAL_VERSION) return;
+    if (sessionStorage.getItem(CONSENT_KEY) === LEGAL_VERSION) {
+      sessionStorage.removeItem(CONSENT_KEY);
+      adminApi.setConsent?.(authUser.uid, LEGAL_VERSION).catch(() => {});
+    } else setModalState((m) => (m?.type === 'login' || !m ? { type: 'consent' } : m));
+  }, [authUser?.uid, profile?.consentVersion, !!profile]); // eslint-disable-line react-hooks/exhaustive-deps
+  const isSuper = !!user && isSuperUid(user.uid);
   const role = isSuper ? 'admin' : profile?.role || 'user';
   const isAdmin = role === 'admin';
   const isStaff = role === 'admin' || role === 'editor';
   const banned = !isSuper && !!profile?.banned;
+  setAdminActor(isStaff ? user : null); // người thực hiện thao tác quản trị — ghi vào nhật ký
   useEffect(() => {
     // Bản đồ quốc gia nhẹ trước để hiện nhanh, rồi thay bằng bản chi tiết khi trình duyệt rảnh
     let alive = true;
@@ -154,6 +167,11 @@ export function AppProvider({ children }) {
     const u3 = api.watchTrips(user.uid, (list) => {
       setTrips(list);
       markLoaded('trips');
+      // chuyến mình làm chủ: đảm bảo mã mời có trong bảng tra mã
+      list.filter((tr) => tr.ownerId === user.uid && !codeChecked.current.has(tr.inviteCode)).forEach((tr) => {
+        codeChecked.current.add(tr.inviteCode);
+        api.ensureInviteCode?.(user, tr);
+      });
     });
     if (pendingAction.current) {
       const fn = pendingAction.current;
@@ -597,11 +615,14 @@ export function AppProvider({ children }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hồ sơ công khai của chính mình: tổng quốc gia / thành phố, số check-in công khai (tự cập nhật khi dữ liệu đổi)
-  const [myPublic, setMyPublic] = useState(null);
-  useEffect(() => (user ? socialApi.watchProfile(user.uid, setMyPublic) : setMyPublic(null)), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [myPublic, setMyPublic] = useState(undefined); // undefined = đang tải
+  useEffect(() => {
+    setMyPublic(undefined);
+    return user ? socialApi.watchProfile(user.uid, setMyPublic) : setMyPublic(null);
+  }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
   const pubRef = useRef('');
   useEffect(() => {
-    if (!user || !loaded.mine) return undefined;
+    if (!user || !loaded.mine || myPublic === undefined) return undefined;
     const visited = places.filter((p) => p.status === 'visited');
     const all = [...visited, ...memories.map((m) => m.place).filter(Boolean)];
     const countries = [...new Set(all.map((p) => p.country).filter(Boolean))].sort();
@@ -610,10 +631,9 @@ export function AppProvider({ children }) {
       const name = pCityOf(p);
       if (name && p.country) cityMap.set(`${p.country}|${name}`, { name, cc: p.country });
     });
+    const basic = { name: user.name || '', ...nameSearchFields(user.name), photo: user.photo || '' };
+    const priv = !!myPublic?.privateProfile;
     const data = {
-      name: user.name || '',
-      ...nameSearchFields(user.name),
-      photo: user.photo || '',
       countries,
       cities: [...cityMap.values()].sort((a, b) => a.cc.localeCompare(b.cc) || a.name.localeCompare(b.name)),
       visited: new Set(all.map((p) => p.id)).size,
@@ -638,15 +658,16 @@ export function AppProvider({ children }) {
       .filter((x) => x.at)
       .sort((a, b) => b.at - a.at)
       .slice(0, 40);
-    const key = JSON.stringify([data, items]);
+    const key = JSON.stringify([basic, data, items, priv]);
     if (key === pubRef.current) return undefined;
     const tm = setTimeout(() => {
       pubRef.current = key;
-      socialApi.saveProfile(user.uid, data).catch(() => {});
+      socialApi.saveProfile(user.uid, basic).catch(() => {});
+      socialApi.saveStats(user.uid, data, priv).catch(() => {});
       socialApi.saveFeed(user.uid, items).catch(() => {});
     }, 3000);
     return () => clearTimeout(tm);
-  }, [user?.uid, user?.name, user?.photo, places, memories, loaded.mine]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.uid, user?.name, user?.photo, places, memories, loaded.mine, !!myPublic?.privateProfile, myPublic === undefined]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Theo dõi: người mình theo dõi / người theo dõi mình → bạn bè = theo dõi chéo
   const [following, setFollowing] = useState([]);
@@ -676,6 +697,7 @@ export function AppProvider({ children }) {
   // Thông báo: của riêng mình + thông báo chung (tính năng mới…)
   const [notifications, setNotifications] = useState([]);
   useEffect(() => (user ? socialApi.watchNotifications(user.uid, setNotifications) : setNotifications([])), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => (user && api.watchMyInvites ? api.watchMyInvites(user.uid, setMyInvites) : setMyInvites([])), [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
   const annRead = profile?.annRead;
   const notes = useMemo(() => notifications.map((n) => (n.broadcast && annRead ? { ...n, read: annRead.includes(n.id) || n.read } : n)), [notifications, annRead]);
   const unread = notes.filter((n) => !n.read).length;
@@ -688,7 +710,7 @@ export function AppProvider({ children }) {
     api, user, places, memories, publicMemories, loadPublic: () => setNeedPublic(true), trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     placeOrigin, setPlaceOrigin,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
-    modal, setModal, toast, notify, deleteCheckin, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
+    modal, setModal, toast, notify, deleteCheckin, myInvites, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

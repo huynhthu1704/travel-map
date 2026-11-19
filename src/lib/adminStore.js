@@ -11,12 +11,22 @@
  */
 import {
   collection, collectionGroup, doc, setDoc, getDoc, updateDoc, deleteDoc, addDoc, onSnapshot, query, where, getDocs, writeBatch, limit,
-  getCountFromServer,
+  getCountFromServer, orderBy,
 } from 'firebase/firestore';
 import { firebaseEnabled, db } from './firebase';
 
-/** Quản trị viên gốc (luôn có quyền admin, kể cả khi chưa có hồ sơ) — khớp với firestore.rules */
-export const SUPER_ADMINS = ['huynhthingocthu1704@gmail.com'];
+/** Quản trị viên gốc (luôn có quyền admin, kể cả khi chưa có hồ sơ) — khớp với firestore.rules.
+ *  Dùng mã người dùng (uid) thay vì email để email chủ trang không nằm trong mã nguồn công khai. */
+export const SUPER_ADMIN_UIDS = (import.meta.env.VITE_SUPER_ADMIN_UIDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+export const isSuperUid = (uid) => !!uid && SUPER_ADMIN_UIDS.includes(uid);
+
+/** Che bớt email: huynh…04@gmail.com → hu•••04@gmail.com */
+export function maskEmail(email = '') {
+  const [name, domain] = String(email).split('@');
+  if (!domain) return email ? '•••' : '';
+  const keep = name.length <= 4 ? 1 : 2;
+  return `${name.slice(0, keep)}•••${name.length > 6 ? name.slice(-2) : ''}@${domain}`;
+}
 export const ROLES = ['user', 'editor', 'admin'];
 
 export const DEFAULT_SETTINGS = {
@@ -33,8 +43,56 @@ const mergeSettings = (s = {}) => ({
   features: { ...DEFAULT_SETTINGS.features, ...(s.features || {}) },
 });
 
+/* ------------------------------ Nhật ký quản trị ------------------------------
+ * adminLogs/{id} { at, by, byName, action, target, detail } — chỉ thêm, không sửa / xoá được (luật Firestore).
+ * Mọi thao tác quản trị đi qua adminApi đều tự ghi nhật ký. */
+let actor = null;
+export const setAdminActor = (u) => (actor = u ? { uid: u.uid, name: u.name || '' } : null);
+const LOGGED = {
+  saveSettings: 'settings.save', saveOverride: 'place.edit', clearOverride: 'place.reset', saveCustomPlace: 'place.add', deleteCustomPlace: 'place.delete',
+  updateReport: 'report.update', deleteReport: 'report.delete', updateUser: 'user.update', hideMemory: 'memory.hide', unhideMemory: 'memory.unhide',
+  deleteMemoryAdmin: 'memory.delete', deleteTrip: 'trip.delete',
+};
+const short = (v) => {
+  if (v == null) return '';
+  const s = typeof v === 'string' ? v : JSON.stringify(v);
+  return s.length > 300 ? `${s.slice(0, 297)}…` : s;
+};
+function describe(name, args) {
+  const [a, b, c] = args;
+  switch (name) {
+    case 'saveSettings': return { target: 'site', detail: short(Object.keys(a || {}).join(', ')) };
+    case 'saveOverride': return { target: a, detail: short(b) };
+    case 'saveCustomPlace': return { target: a?.id || a?.name || '', detail: short(a?.name) };
+    case 'updateReport': return { target: a, detail: short({ status: b?.status, action: b?.action }) };
+    case 'updateUser': return { target: a, detail: short(b) };
+    case 'hideMemory': return { target: a, detail: short(c) };
+    case 'deleteMemoryAdmin': return { target: a?.id, detail: short(a?.place?.name) };
+    default: return { target: typeof a === 'string' ? a : a?.id || '', detail: '' };
+  }
+}
+function withLog(api) {
+  const out = { ...api };
+  Object.entries(LOGGED).forEach(([name, action]) => {
+    const f = api[name];
+    if (typeof f !== 'function') return;
+    out[name] = async (...args) => {
+      const r = await f.apply(api, args);
+      api.writeLog?.(action, describe(name, args)).catch(() => {});
+      return r;
+    };
+  });
+  /** Ghi nhật ký cho thao tác không đi qua adminApi (gửi thông báo, góp ý, xem email…) */
+  out.log = (action, target = '', detail = '') => api.writeLog?.(action, { target, detail: short(detail) }).catch(() => {});
+  return out;
+}
+
 /* ------------------------------ Firebase ------------------------------ */
 const fb = {
+  writeLog: (action, { target = '', detail = '' } = {}) =>
+    actor ? addDoc(collection(db, 'adminLogs'), { at: now(), by: actor.uid, byName: actor.name, action, target: String(target || '').slice(0, 200), detail }) : Promise.resolve(),
+  watchLogs: (cb) =>
+    onSnapshot(query(collection(db, 'adminLogs'), orderBy('at', 'desc'), limit(300)), (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() }))), () => cb([])),
   async upsertProfile(user) {
     const r = doc(db, 'users', user.uid);
     const snap = await getDoc(r);
@@ -68,6 +126,7 @@ const fb = {
     return { publicMemories, trips, planItems, costItems, checklists, openReports };
   },
   watchProfile: (uid, cb) => onSnapshot(doc(db, 'users', uid), (s) => cb(s.exists() ? s.data() : null), () => cb(null)),
+  setConsent: (uid, version) => updateDoc(doc(db, 'users', uid), { consentVersion: version, consentAt: now() }),
   watchSettings: (cb) => onSnapshot(doc(db, 'settings', 'site'), (s) => cb(mergeSettings(s.exists() ? s.data() : {})), () => cb(mergeSettings())),
   saveSettings: (s) => setDoc(doc(db, 'settings', 'site'), s, { merge: true }),
   watchOverrides: (cb) =>
@@ -165,6 +224,10 @@ const local = {
     persist();
   },
   // Demo: hồ sơ (tên / ảnh tự đặt) nằm ở lớp dữ liệu chính, quyền nằm ở đây → gộp lại
+  async setConsent(uid, version) {
+    if (st.users[uid]) st.users[uid] = { ...st.users[uid], consentVersion: version, consentAt: now() };
+    persist();
+  },
   watchProfile(uid, cb) {
     let main = null;
     let unsubMain = () => {};
@@ -251,7 +314,14 @@ const local = {
     import('./store').then(({ api }) => (unsub = api.watchTrips('demo-user', cb)));
     return () => unsub();
   },
-  deleteTrip: (id) => import('./store').then(({ api }) => api.leaveTrip({ uid: '' }, { id })),
+  deleteTrip: (id) => import('./store').then(({ api }) => api.leaveTrip({ uid: '__admin' }, { id, ownerId: '__admin' })),
+  async writeLog(action, { target = '', detail = '' } = {}) {
+    if (!actor) return;
+    (st.logs ||= []).unshift({ id: Math.random().toString(36).slice(2), at: now(), by: actor.uid, byName: actor.name, action, target: String(target || ''), detail });
+    st.logs = st.logs.slice(0, 300);
+    persist();
+  },
+  watchLogs: (cb) => on(() => cb(st.logs || [])),
 };
 
-export const adminApi = firebaseEnabled ? fb : local;
+export const adminApi = withLog(firebaseEnabled ? fb : local);

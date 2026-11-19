@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import AdSlot from './AdSlot';
 import { useApp } from '../AppContext';
 import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
@@ -560,6 +561,10 @@ function WorldPanel() {
               </span>
             </button>
           </nav>
+          <AdSlot placement="home-bottom" size="card" />
+          <p className="legal-links tiny muted">
+            <a href="#/privacy">{t('legal.privacy')}</a> · <a href="#/terms">{t('legal.terms')}</a>
+          </p>
         </>
       )}
 
@@ -918,17 +923,19 @@ function PlacePanel() {
         <h3 className="section-title">{t('place.others')}</h3>
         {pub.length ? <MemoryGrid items={pub} /> : <Empty emoji="🌱" title={t('place.noShares')} text={t('place.beFirst')} />}
       </section>
+      <AdSlot placement="place-bottom" size="banner" />
     </div>
   );
 }
 
-export function MemoryGrid({ items }) {
+export function MemoryGrid({ items, adsEvery = 0 }) {
   const { setModal, placeStatus, user, openProfile } = useApp();
   return (
     <div className="mgrid">
-      {items.map((m) => (
+      {items.map((m, i) => (
+        <Fragment key={m.id}>
+        {adsEvery > 0 && i > 0 && i % adsEvery === 0 && <AdSlot placement={`explore-${i}`} size="inline" />}
         <div
-          key={m.id}
           className="mgrid__item"
           role="button"
           tabIndex={0}
@@ -954,9 +961,10 @@ export function MemoryGrid({ items }) {
               </AppLink>
             )}
           </span>
-          {m.date && <span className="mgrid__date">{formatDate(m.date)}</span>}
+          {m.date && !(m.hideDate && m.uid !== user?.uid) && <span className="mgrid__date">{formatDate(m.date)}</span>}
           {placeStatus[m.place?.id] === 'wishlist' && <span className="mgrid__wish" title="💛">💛</span>}
         </div>
+        </Fragment>
       ))}
     </div>
   );

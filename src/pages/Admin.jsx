@@ -10,7 +10,7 @@ import { normalize } from '../lib/geo';
 import { useThumbs } from '../lib/useThumbs';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
-import { ROLES, SUPER_ADMINS } from '../lib/adminStore';
+import { ROLES, isSuperUid, maskEmail } from '../lib/adminStore';
 import AdminInsights from './AdminInsights';
 import { AdminFeedback } from '../components/Feedback';
 
@@ -22,13 +22,14 @@ import { AdminFeedback } from '../components/Feedback';
 const TABS = [
   { id: 'dashboard', icon: '🏠', staff: true },
   { id: 'insights', icon: '📊', admin: true },
-  { id: 'users', icon: '👥', staff: true },
+  { id: 'users', icon: '👥', admin: true },
   { id: 'content', icon: '🖼️', staff: true },
   { id: 'feedback', icon: '💬', staff: true },
   { id: 'reports', icon: '🚩', staff: true },
   { id: 'places', icon: '🏞️', staff: true },
-  { id: 'trips', icon: '🧳', staff: true },
+  { id: 'trips', icon: '🧳', admin: true },
   { id: 'settings', icon: '⚙️', admin: true },
+  { id: 'logs', icon: '📜', admin: true },
 ];
 
 export default function AdminPage() {
@@ -42,9 +43,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isStaff) return;
-    const u = [adminApi.watchUsers(setUsers), adminApi.watchModerationMemories(setMemories), adminApi.watchReports(setReports), adminApi.watchAllTrips(setTrips)];
-    return () => u.forEach((f) => f && f());
-  }, [isStaff, adminApi]);
+    const u = [isAdmin ? adminApi.watchUsers(setUsers) : setUsers([]), adminApi.watchModerationMemories(setMemories), adminApi.watchReports(setReports), isAdmin ? adminApi.watchAllTrips(setTrips) : setTrips([])];
+    return () => u.forEach((f) => typeof f === 'function' && f());
+  }, [isStaff, isAdmin, adminApi]);
 
   if (!user || !isStaff)
     return (
@@ -87,6 +88,7 @@ export default function AdminPage() {
           {tab === 'places' && <PlacesAdmin />}
           {tab === 'trips' && <TripsAdmin trips={trips} />}
           {tab === 'settings' && isAdmin && <SettingsAdmin />}
+          {tab === 'logs' && isAdmin && <AdminLogs />}
         </section>
       </div>
     </div>
@@ -178,7 +180,7 @@ function mergePeople(users, trips, memories) {
   const list = users.map((u) => {
     seen.add(u.uid);
     const e = extra[u.uid] || {};
-    const owner = SUPER_ADMINS.includes((u.email || '').toLowerCase());
+    const owner = isSuperUid(u.uid);
     return {
       ...u,
       name: u.displayName || u.name || e.name || '',
@@ -200,6 +202,7 @@ function Users({ users }) {
   const { isAdmin, user: me, adminApi, notify, openProfile } = useApp();
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [shown, setShown] = useState({}); // email đã bấm xem đầy đủ (có ghi nhật ký)
   if (!users) return <Loader />;
   const n = normalize(q);
   const list = users.filter(
@@ -246,7 +249,23 @@ function Users({ users }) {
                     <span className="user-cell__name">{u.name || t('admin.unknownUser')}</span>
                     {u.owner && <span className="role role--admin owner-tag">{t('admin.ownerTag')}</span>}
                   </b>
-                  <small>{u.email || (u.noDoc ? t('admin.noProfile') : t('admin.oldProfile'))}</small>
+                  <small>
+                    {u.email ? (shown[u.uid] ? u.email : maskEmail(u.email)) : u.noDoc ? t('admin.noProfile') : t('admin.oldProfile')}
+                    {isAdmin && u.email && !shown[u.uid] && (
+                      <button
+                        className="email-reveal"
+                        title={t('admin.revealEmail')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShown((x) => ({ ...x, [u.uid]: true }));
+                          adminApi.log('user.revealEmail', u.uid, u.name || '');
+                        }}
+                      >
+                        👁
+                      </button>
+                    )}
+                  </small>
                 </span>
               </AppLink>
               <span>
@@ -925,6 +944,19 @@ function SettingsAdmin() {
             </span>
           </label>
         ))}
+        <label className="field">
+          <span>
+            <b>📢 {t('admin.feature.ads')}</b>
+            <small className="muted"> — {t('admin.feature.adsHelp')}</small>
+          </span>
+          <select value={s.features.ads || 'staff'} onChange={(e) => setFeat('ads', e.target.value)}>
+            {['off', 'staff', 'all'].map((v) => (
+              <option key={v} value={v}>
+                {t('admin.ads.' + v)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <button className="btn btn--primary" onClick={save}>
         💾 {t('admin.saveSettings')}
@@ -948,6 +980,7 @@ function Broadcast() {
     setBusy(true);
     try {
       await socialApi.notify({ to: 'all', type, from: user.uid, fromName: user.name || '', title: title.trim(), body: body.trim() });
+      adminApi.log('broadcast.send', type, title.trim());
       notify(t('admin.bcSent'));
       setTitle('');
       setBody('');
@@ -979,6 +1012,50 @@ function Broadcast() {
       <button className="btn btn--dark" disabled={busy || !title.trim()} onClick={send}>
         📨 {t('admin.bcSend')}
       </button>
+    </div>
+  );
+}
+
+/** Nhật ký quản trị: ai làm gì, lúc nào (chỉ thêm, không sửa / xoá được) */
+const LOG_ICON = { settings: '⚙️', place: '🏞️', report: '🚩', user: '👥', memory: '🖼️', trip: '🧳', broadcast: '📢', feedback: '💬' };
+function AdminLogs() {
+  const { adminApi, openProfile } = useApp();
+  const { t, lang } = useI18n();
+  const [logs, setLogs] = useState(null);
+  const [q, setQ] = useState('');
+  useEffect(() => adminApi.watchLogs(setLogs), [adminApi]);
+  if (!logs) return <Loader />;
+  const n = normalize(q);
+  const list = logs.filter((l) => !n || normalize(`${l.byName} ${l.action} ${l.target} ${l.detail}`).includes(n));
+  const when = (at) => new Date(at).toLocaleString(lang === 'vi' ? 'vi-VN' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' });
+  return (
+    <div className="stack">
+      <p className="small muted">{t('admin.logsHint')}</p>
+      <div className="admin-toolbar">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.logsSearch')} />
+      </div>
+      {!list.length ? (
+        <Empty emoji="📜" title={t('admin.logsEmpty')} />
+      ) : (
+        <ul className="admin-logs">
+          {list.map((l) => (
+            <li key={l.id}>
+              <span className="admin-logs__icon">{LOG_ICON[l.action.split('.')[0]] || '•'}</span>
+              <span className="admin-logs__main">
+                <b>{t(`log.${l.action}`) !== `log.${l.action}` ? t(`log.${l.action}`) : l.action}</b>
+                {l.target && <code className="admin-logs__target">{l.target}</code>}
+                {l.detail && <small className="admin-logs__detail">{l.detail}</small>}
+              </span>
+              <span className="admin-logs__meta">
+                <button className="link" onClick={() => openProfile(l.by)}>
+                  {l.byName || l.by}
+                </button>
+                <small>{when(l.at)}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

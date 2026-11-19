@@ -12,6 +12,8 @@ import Notifications from './components/Notifications';
 import { Avatar, Loader, AppLink } from './components/ui';
 import { hrefView, hrefProfile } from './lib/route';
 // Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
+const LegalPage = lazy(() => import('./pages/Legal'));
+const AccountPage = lazy(() => import('./pages/Account'));
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
 const MemoriesPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.MemoriesPage })));
 const TripsPage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.TripsPage })));
@@ -49,7 +51,7 @@ function LangSwitch() {
 }
 
 function UserMenu() {
-  const { user, api, requireLogin, setModal, openProfile, modal } = useApp();
+  const { user, api, requireLogin, setModal, openProfile, modal, setView } = useApp();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const hasNew = useHasNewRelease(modal);
@@ -79,6 +81,9 @@ function UserMenu() {
             }}
           >
             👤 {t('social.myProfile')}
+          </AppLink>
+          <AppLink href="#/account" className="btn btn--sm btn--ghost" onClick={() => (setView('account'), setOpen(false))}>
+            🔐 {t('acc.menu')}
           </AppLink>
           <button
             className="btn btn--sm btn--ghost"
@@ -135,7 +140,9 @@ function UserMenu() {
           >
             {t('auth.logout')}
           </button>
-          <small className="muted user-menu__ver">Travel Map v{__APP_VERSION__}</small>
+          <small className="muted user-menu__ver">
+            <a href="#/privacy" onClick={() => setOpen(false)}>{t('legal.privacy')}</a> · <a href="#/terms" onClick={() => setOpen(false)}>{t('legal.terms')}</a> · v{__APP_VERSION__}
+          </small>
         </div>
       )}
     </div>
@@ -211,6 +218,8 @@ function Shell() {
           {mounted.has('trips') && <div className={pageCls('trips')}><TripsPage /></div>}
           {mounted.has('admin') && view === 'admin' && <AdminPage />}
           {view === 'profile' && <ProfilePage />}
+          {(view === 'privacy' || view === 'terms') && <LegalPage kind={view} />}
+          {view === 'account' && <AccountPage />}
         </Suspense>
       </main>
 

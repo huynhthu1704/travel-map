@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Modal, Avatar, Loader, Empty, TrashIcon } from './ui';
+import { maskEmail } from '../lib/adminStore';
 import { feedbackApi, feedbackDraft, envInfo, prepareFile, FEEDBACK_STATUSES, MAX_VIDEO_MB } from '../lib/feedback';
 
 /* ------------------------------------------------------------------ */
@@ -280,6 +281,7 @@ function MyFeedback({ openId, setOpenId }) {
 
 /** Chi tiết 1 góp ý — dùng cho cả người dùng và quản trị viên */
 export function FeedbackDetail({ item: x, admin = false }) {
+  const { isAdmin: fullAdmin } = useApp();
   const { t, lang } = useI18n();
   const [files, setFiles] = useState(null);
   const [zoom, setZoom] = useState(null);
@@ -306,7 +308,7 @@ export function FeedbackDetail({ item: x, admin = false }) {
           <Avatar name={x.userName || '?'} photo={x.userPhoto} size={30} />
           <span>
             <b>{x.userName || '—'}</b>
-            {admin && x.userEmail && <small>{x.userEmail}</small>}
+            {admin && x.userEmail && <small>{fullAdmin ? x.userEmail : maskEmail(x.userEmail)}</small>}
           </span>
           <small className="muted">🕒 {fmtTime(x.createdAt, lang)}</small>
         </div>
@@ -435,7 +437,7 @@ export function FeedbackDetail({ item: x, admin = false }) {
 /** Trang quản trị: xử lý góp ý */
 export function AdminFeedback() {
   const { t, lang } = useI18n();
-  const { user, notify, isAdmin } = useApp();
+  const { user, notify, isAdmin, adminApi } = useApp();
   const [list, setList] = useState(null);
   const [status, setStatus] = useState('active');
   const [type, setType] = useState('all');
@@ -517,7 +519,12 @@ export function AdminFeedback() {
                       key={s}
                       className={`btn btn--sm ${open.status === s ? 'btn--dark' : 'btn--soft'}`}
                       disabled={open.status === s}
-                      onClick={() => act(() => feedbackApi.setStatus(open.id, s, user.name, note !== open.adminNote ? note : null), t('fb.statusChanged', { s: t('fb.status.' + s) }))}
+                      onClick={() =>
+                        act(
+                          () => feedbackApi.setStatus(open.id, s, user.name, note !== open.adminNote ? note : null).then(() => adminApi.log('feedback.status', open.id, `${s} · ${open.title || ''}`)),
+                          t('fb.statusChanged', { s: t('fb.status.' + s) }),
+                        )
+                      }
                     >
                       {t('fb.status.' + s)}
                     </button>
@@ -525,7 +532,7 @@ export function AdminFeedback() {
                 </div>
                 <label className="field">
                   <span>💬 {t('fb.replyLabel')}</span>
-                  <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('fb.replyPh')} maxLength={1000} />
+                  <textarea rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('fb.replyPh')} maxLength={1000} />
                 </label>
                 <div className="row wrap">
                   <button className="btn btn--sm btn--primary" disabled={note === (open.adminNote || '')} onClick={() => act(() => feedbackApi.setNote(open.id, note, user.name), t('admin.saved'))}>
@@ -534,7 +541,7 @@ export function AdminFeedback() {
                   {isAdmin && (
                     <button
                       className="btn btn--sm btn--ghost danger"
-                      onClick={() => confirm(t('fb.confirmDelete')) && act(() => feedbackApi.remove(open.id).then(() => setOpenId(null)), t('mem.deleted'))}
+                      onClick={() => confirm(t('fb.confirmDelete')) && act(() => feedbackApi.remove(open.id).then(() => (adminApi.log('feedback.delete', open.id, open.title || ''), setOpenId(null))), t('mem.deleted'))}
                     >
                       <TrashIcon /> {t('fb.delete')}
                     </button>

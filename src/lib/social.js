@@ -10,7 +10,7 @@
  * Thông báo chung (to == 'all') lưu trạng thái đã đọc ở users/{uid}.annRead.
  */
 import {
-  collection, doc, setDoc, getDoc, getDocs, runTransaction, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, limit, getCountFromServer, arrayUnion, arrayRemove, writeBatch,
+  collection, doc, setDoc, getDoc, getDocs, runTransaction, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, limit, getCountFromServer, arrayUnion, arrayRemove, writeBatch, deleteField,
 } from 'firebase/firestore';
 import { firebaseEnabled, db } from './firebase';
 import { normalize } from './geo';
@@ -56,6 +56,28 @@ const fb = {
   watchProfile: (uid, cb) => onSnapshot(doc(db, 'profiles', uid), (s) => cb(s.exists() ? s.data() : null), () => cb(null)),
   saveProfile: (uid, data) => setDoc(doc(db, 'profiles', uid), { ...data, uid, updatedAt: now() }, { merge: true }),
   saveFeed: (uid, items) => setDoc(doc(db, 'feeds', uid), { items, updatedAt: now() }),
+  // Hồ sơ riêng tư: thống kê chi tiết (quốc gia, thành phố…) chuyển sang profileStats/{uid},
+  // chỉ chính chủ và người theo dõi chéo đọc được (luật Firestore). Hồ sơ công khai chỉ còn tên / ảnh / giới thiệu.
+  async saveStats(uid, stats, isPrivate) {
+    if (isPrivate) {
+      await setDoc(doc(db, 'profileStats', uid), { ...stats, uid, updatedAt: now() });
+      await setDoc(doc(db, 'profiles', uid), { countries: deleteField(), cities: deleteField(), visited: deleteField(), publicCheckins: deleteField(), updatedAt: now() }, { merge: true });
+    } else {
+      await setDoc(doc(db, 'profiles', uid), { ...stats, uid, updatedAt: now() }, { merge: true });
+      await deleteDoc(doc(db, 'profileStats', uid)).catch(() => {});
+    }
+  },
+  watchStats: (uid, cb) => onSnapshot(doc(db, 'profileStats', uid), (s) => cb(s.exists() ? s.data() : null), () => cb(null)),
+  /** Ẩn / hiện ngày ở check-in công khai: đánh dấu trên từng check-in để người xem khác không thấy ngày */
+  async setHideDates(uid, on) {
+    await setDoc(doc(db, 'profiles', uid), { hideDates: !!on, updatedAt: now() }, { merge: true });
+    const s = await getDocs(query(collection(db, 'memories'), where('uid', '==', uid)));
+    for (let i = 0; i < s.docs.length; i += 400) {
+      const b = writeBatch(db);
+      s.docs.slice(i, i + 400).forEach((d) => b.update(d.ref, { hideDate: !!on }));
+      await b.commit();
+    }
+  },
   // Tên người dùng
   async usernameOwner(name) {
     const s = await getDoc(doc(db, 'usernames', name));
@@ -194,6 +216,24 @@ const local = {
   async saveFeed(uid, items) {
     st.feeds[uid] = items;
     persist();
+  },
+  async saveStats(uid, stats, isPrivate) {
+    st.profiles[uid] = { ...(st.profiles[uid] || {}), uid, updatedAt: now() };
+    if (isPrivate) {
+      ['countries', 'cities', 'visited', 'publicCheckins'].forEach((k) => delete st.profiles[uid][k]);
+      (st.stats ||= {})[uid] = { ...stats, uid };
+    } else {
+      Object.assign(st.profiles[uid], stats);
+      if (st.stats) delete st.stats[uid];
+    }
+    persist();
+  },
+  watchStats: (uid, cb) => on(() => cb(st.stats?.[uid] || null)),
+  async setHideDates(uid, on) {
+    st.profiles[uid] = { ...(st.profiles[uid] || {}), uid, hideDates: !!on };
+    persist();
+    const { api } = await import('./store');
+    if (api.markHideDates) await api.markHideDates(uid, on);
   },
   async getFeed(uid) {
     return st.feeds[uid] || [];

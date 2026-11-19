@@ -139,7 +139,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
       <div className="cf-main">
         <label className="cf-field cf-field--grow">
           <span>{t('cost.item')}</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={linked ? pName(linked.place) : t(`cost.titlePh.${type}`)} maxLength={80} autoFocus={!initial.id} />
+          <input maxLength={80} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={linked ? pName(linked.place) : t(`cost.titlePh.${type}`)} maxLength={80} autoFocus={!initial.id} />
         </label>
         <label className="cf-field">
           <span>{t('cost.amount')}</span>

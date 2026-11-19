@@ -242,7 +242,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
             </div>
             <label className="field">
               <span>📝 {t('plan.note')}</span>
-              <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('plan.notePlaceholder')} maxLength={500} autoFocus={!item.note && !item.date} />
+              <textarea rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('plan.notePlaceholder')} maxLength={500} autoFocus={!item.note && !item.date} />
               <small className="muted">{t('plan.noteHelp')}</small>
             </label>
             <div className="row wrap">
@@ -764,7 +764,7 @@ function Checklist({ list, trip }) {
                 </button>
               </div>
             )}
-            <input className="grow" value={text} onChange={(e) => setText(e.target.value)} placeholder={t('check.addPlaceholder')} maxLength={120} />
+            <input className="grow" maxLength={120} value={text} onChange={(e) => setText(e.target.value)} placeholder={t('check.addPlaceholder')} maxLength={120} />
             <button className="btn btn--sm btn--soft">＋ {t('check.add')}</button>
           </form>
           <div className="row wrap">

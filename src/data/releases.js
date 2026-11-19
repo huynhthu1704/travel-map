@@ -6,6 +6,44 @@
  */
 export const RELEASES = [
   {
+    version: '1.7.0',
+    date: '2026-11-19',
+    items: [
+      {
+        icon: '🧳',
+        title: { vi: 'Mời bạn bè vào chuyến đi', en: 'Invite friends to a trip' },
+        desc: {
+          vi: 'Trưởng nhóm tìm người đã có tài khoản theo tên hoặc @tên và gửi lời mời. Người được mời nhận thông báo, bấm “Tham gia” mới vào chuyến; người chưa chấp nhận chưa được tính vào chia chi phí. Xem trạng thái Đang chờ / Đã chấp nhận / Đã từ chối, huỷ hoặc mời lại, và đổi mã mời mới khi cần.',
+          en: 'Trip owners can find people by name or @username and send an invite. Invitees get a notification and join only after tapping “Join”; people who haven’t accepted are not included in cost splitting. See Pending / Accepted / Declined, cancel or re-invite, and make a new invite code when needed.',
+        },
+      },
+      {
+        icon: '🔒',
+        title: { vi: 'Chuyến đi riêng tư hơn', en: 'More private trips' },
+        desc: {
+          vi: 'Chỉ thành viên mới xem được chuyến đi. Mã mời được tra riêng từng mã nên không ai dò được danh sách chuyến đi. Chỉ trưởng nhóm mới xoá được người khác khỏi chuyến.',
+          en: 'Only members can see a trip. Invite codes are checked one at a time, so nobody can browse other people’s trips. Only the owner can remove other members.',
+        },
+      },
+      {
+        icon: '🛡️',
+        title: { vi: 'Tài khoản & dữ liệu', en: 'Account & data' },
+        desc: {
+          vi: 'Trang mới trong menu tài khoản: bật Hồ sơ riêng tư, ẩn ngày ở check-in công khai, tải toàn bộ dữ liệu của bạn, hoặc xoá tài khoản. Web cũng nhắc bạn khi check-in công khai có vẻ chứa địa chỉ nhà.',
+          en: 'A new page in the account menu: turn on Private profile, hide dates on public check-ins, download all your data, or delete your account. The app also warns you if a public check-in looks like it contains a home address.',
+        },
+      },
+      {
+        icon: '📜',
+        title: { vi: 'Điều khoản & Chính sách quyền riêng tư', en: 'Terms & Privacy Policy' },
+        desc: {
+          vi: 'Có trang Điều khoản sử dụng và Chính sách quyền riêng tư (liệt kê rõ các dịch vụ bên ngoài web dùng). Khi đăng nhập, bạn xác nhận đồng ý một lần.',
+          en: 'New Terms of Use and Privacy Policy pages (including the outside services the app uses). You confirm your agreement once when signing in.',
+        },
+      },
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-11-18',
     items: [

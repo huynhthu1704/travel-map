@@ -6,6 +6,8 @@ import { appleMapsUrl, googleMapsUrl, searchNominatim, normalize, parseGoogleMap
 import { countryName, flagOf } from '../lib/countries';
 import { ALL_FAMOUS } from '../data/places';
 import { firebaseEnabled } from '../lib/firebase';
+import { LEGAL_VERSION, CONSENT_KEY } from '../data/legal';
+import { looksLikeHomeAddress } from '../lib/privacy';
 // Studio ảnh / video và trang trợ giúp: chỉ tải khi mở
 const ShareStudio = lazy(() => import('./ShareStudio'));
 const RecapStudio = lazy(() => import('./RecapStudio'));
@@ -40,6 +42,8 @@ function renderModal(modal, close) {
   switch (modal.type) {
     case 'login':
       return <LoginModal reason={modal.reason} onClose={close} />;
+    case 'consent':
+      return <ConsentModal onClose={close} />;
     case 'checkin':
       return <CheckinModal place={modal.place} tripId={modal.tripId} memory={modal.memory} legacy={modal.legacy} preserve={modal.preserve} onClose={close} />;
     case 'directions':
@@ -88,18 +92,29 @@ function LoginModal({ reason, onClose }) {
   const { api, notify } = useApp();
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
+  const [agree, setAgree] = useState(false);
   return (
     <Modal title={t('auth.login')} onClose={onClose} className="modal--sm">
       <div className="login">
         <div className="login__art">🗺️👣💛</div>
         <h3 className="h2">{reason || t('auth.defaultReason')}</h3>
         <p className="muted">{t('auth.pitch')}</p>
+        <label className="check login__consent">
+          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+          <span>
+            {t('legal.agree1')}{' '}
+            <a href="#/terms" target="_blank" rel="noopener">{t('legal.terms')}</a> {t('legal.and')}{' '}
+            <a href="#/privacy" target="_blank" rel="noopener">{t('legal.privacy')}</a>
+            {t('legal.agree2')}
+          </span>
+        </label>
         <button
           className="btn btn--google btn--block"
-          disabled={busy}
+          disabled={busy || !agree}
           onClick={async () => {
             setBusy(true);
             try {
+              sessionStorage.setItem(CONSENT_KEY, LEGAL_VERSION);
               await api.signIn();
               onClose();
             } catch (e) {
@@ -112,6 +127,54 @@ function LoginModal({ reason, onClose }) {
           <GoogleIcon /> {busy ? t('auth.opening') : t('auth.continueGoogle')}
         </button>
         {!firebaseEnabled && <p className="small muted">{t('auth.demoNote')}</p>}
+      </div>
+    </Modal>
+  );
+}
+
+/** Người dùng đã có tài khoản (hoặc khi điều khoản đổi phiên bản): đồng ý để tiếp tục dùng */
+function ConsentModal({ onClose }) {
+  const { api, user, adminApi, notify } = useApp();
+  const { t } = useI18n();
+  const [agree, setAgree] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const accept = async () => {
+    setBusy(true);
+    try {
+      await adminApi.setConsent(user.uid, LEGAL_VERSION);
+      onClose();
+    } catch (e) {
+      notify(e.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title={`📜 ${t('legal.consentTitle')}`} onClose={() => api.signOut()} className="modal--sm">
+      <div className="stack">
+        <p>{t('legal.consentBody')}</p>
+        <ul className="small legal-points">
+          <li>{t('legal.point1')}</li>
+          <li>{t('legal.point2')}</li>
+          <li>{t('legal.point3')}</li>
+        </ul>
+        <label className="check login__consent">
+          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+          <span>
+            {t('legal.agree1')}{' '}
+            <a href="#/terms" target="_blank" rel="noopener">{t('legal.terms')}</a> {t('legal.and')}{' '}
+            <a href="#/privacy" target="_blank" rel="noopener">{t('legal.privacy')}</a>
+            {t('legal.agree2')}
+          </span>
+        </label>
+        <div className="row wrap" style={{ justifyContent: "flex-end" }}>
+          <button className="btn btn--ghost" onClick={() => api.signOut()}>
+            {t('auth.logout')}
+          </button>
+          <button className="btn btn--primary" disabled={!agree || busy} onClick={accept}>
+            {t('legal.continue')}
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -526,7 +589,7 @@ function PlacePicker({ value, onChange, onPickOnMap }) {
 }
 
 function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
-  const { api, user, trips, notify, setModal, startPicking } = useApp();
+  const { api, user, trips, notify, setModal, startPicking, myPublic } = useApp();
   const { t } = useI18n();
   const [place, setPlace] = useState(initialPlace || null);
   const [files, setFiles] = useState([]);
@@ -544,9 +607,10 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
     if (!place.country) return notify(t('pick.noCountry'), 'error');
     if (!place.name?.trim()) return notify(t('pick.nameNeeded'), 'error');
     if (!files.length) return notify(t('mem.needPhoto'), 'error');
+    if (visibility === 'public' && looksLikeHomeAddress(caption, place.name) && !confirm(t('priv.homeWarn'))) return;
     setBusy(true);
     try {
-      const mem = await api.addMemory(user, { place, caption, date, visibility, tripId }, files);
+      const mem = await api.addMemory(user, { place, caption, date, visibility, tripId, hideDate: !!myPublic?.hideDates }, files);
       notify(t('mem.saved'));
       setModal({ type: 'share', memory: mem });
     } catch (err) {
@@ -594,7 +658,7 @@ function MemoryForm({ place: initialPlace, tripId: initialTrip, onClose }) {
         </div>
         <label className="field">
           <span>{t('mem.note')}</span>
-          <textarea rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={t('mem.notePlaceholder')} maxLength={500} />
+          <textarea rows={3} maxLength={1000} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={t('mem.notePlaceholder')} maxLength={500} />
         </label>
         <div className="grid-2">
           <label className="field">
@@ -730,7 +794,7 @@ function MemoryViewer({ memory: m, onClose }) {
               </AppLink>
               <div className="small muted">
                 {flagOf(m.place?.country)} {[pCity(m.place), countryName(m.place?.country)].filter(Boolean).join(', ')}
-                {m.date ? ` · ${formatDate(m.date)}` : ''}
+                {m.date && !(m.hideDate && m.uid !== user?.uid) ? ` · ${formatDate(m.date)}` : ''}
               </div>
             </div>
           </div>
@@ -762,6 +826,7 @@ function MemoryViewer({ memory: m, onClose }) {
                 className="btn btn--sm btn--soft"
                 onClick={async () => {
                   const v = m.visibility === 'public' ? 'private' : 'public';
+                  if (v === 'public' && looksLikeHomeAddress(m.caption, m.place?.name) && !confirm(t('priv.homeWarn'))) return;
                   await api.updateMemory(m.id, { visibility: v });
                   notify(v === 'public' ? t('mem.nowPublic') : t('mem.nowPrivate'));
                   onClose();
@@ -800,7 +865,7 @@ function MemoryViewer({ memory: m, onClose }) {
  * memory: sửa 1 lần check-in đã có; legacy: lần đến cũ chỉ có ngày / dịp → lưu thành lần check-in đầy đủ.
  */
 function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, onClose }) {
-  const { api, user, trips, notify, placeById, memories } = useApp();
+  const { api, user, trips, notify, placeById, memories, myPublic } = useApp();
   const { t } = useI18n();
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(memory?.date || legacy?.visitedAt || today);
@@ -826,6 +891,7 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
 
   const submit = async (e) => {
     e.preventDefault();
+    if (visibility === 'public' && hasPhotos && looksLikeHomeAddress(caption, place?.name) && !confirm(t('priv.homeWarn'))) return;
     setBusy(true);
     try {
       // Ngày đến gần nhất của địa điểm = lần check-in muộn nhất
@@ -843,7 +909,7 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
       } else {
         if (preserve && !legacy && preserve.visitedAt !== date)
           await api.addMemory(user, { place, caption: '', date: preserve.visitedAt || '', occasion: preserve.occasion || '', visibility: 'private', tripId: '', visitedAt: latest }, []);
-        await api.addMemory(user, { place, caption: caption.trim(), date, occasion, visibility, tripId, visitedAt: latest }, files);
+        await api.addMemory(user, { place, caption: caption.trim(), date, occasion, visibility, tripId, hideDate: !!myPublic?.hideDates, visitedAt: latest }, files);
       }
       notify(t('checkin.saved'));
       onClose();
@@ -875,7 +941,7 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
         <OccasionField value={occasion} onChange={setOccasion} />
         <label className="field">
           <span>📝 {t('checkin.note')}</span>
-          <textarea rows={3} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={t('checkin.notePh')} maxLength={500} />
+          <textarea rows={3} maxLength={1000} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder={t('checkin.notePh')} maxLength={500} />
         </label>
         <div className="field">
           <span>📸 {t('checkin.photos')}</span>

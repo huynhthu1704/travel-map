@@ -14,8 +14,8 @@
  *  trips/{id}/checklists/{id}    { title,phase:'before'|'return',scope:'shared'|'personal',ownerUid?,items[{id,text,done,doneBy}],createdBy,createdAt }
  */
 import {
-  collection, doc, setDoc, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, getDocs, limit,
-  serverTimestamp, arrayUnion, arrayRemove, deleteField, writeBatch,
+  collection, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, getDocs, limit,
+  serverTimestamp, arrayUnion, arrayRemove, deleteField, writeBatch, terminate, clearIndexedDbPersistence,
 } from 'firebase/firestore';
 import { signInWithPopup, signInWithRedirect, signOut as fbSignOut, onAuthStateChanged } from 'firebase/auth';
 import { firebaseEnabled, auth, db, googleProvider } from './firebase';
@@ -37,7 +37,19 @@ const byTripStart = (a, b) => tripKey(b).localeCompare(tripKey(a)) || toMillis(b
 const byPlanOrder = (a, b) =>
   (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99:99').localeCompare(b.time || '99:99') || (a.order ?? 0) - (b.order ?? 0);
 const safeId = (s) => String(s).replace(/[^\w-]/g, '_').slice(0, 120);
-export const makeInviteCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+/** Mã mời 8 kí tự, sinh ngẫu nhiên an toàn (bỏ các kí tự dễ nhầm 0/O, 1/I) */
+export const makeInviteCode = () => {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const r = new Uint32Array(8);
+  crypto.getRandomValues(r);
+  return [...r].map((x) => abc[x % abc.length]).join('');
+};
+/** Xoá dữ liệu cá nhân lưu trong trình duyệt (giữ lại cài đặt giao diện như ngôn ngữ, vị trí nút) */
+export function clearLocalPersonalData() {
+  ['travel-map-home', 'travel-map-home-tab'].forEach((k) => localStorage.removeItem(k));
+  ['travel-map-ann'].forEach((k) => sessionStorage.removeItem(k));
+}
+const inviteId = (tripId, uid) => `${tripId}_${uid}`;
 const pickPlace = (p) => ({
   id: p.id, name: p.name, city: p.city || '', country: p.country || '', lat: p.lat, lng: p.lng,
   emoji: p.emoji || FAMOUS_BY_ID[p.id]?.emoji || '📍',
@@ -103,7 +115,19 @@ const firebaseBackend = {
       } else if (e?.code !== 'auth/popup-closed-by-user') throw e;
     }
   },
-  signOut: () => fbSignOut(auth),
+  /** Đăng xuất + xoá dữ liệu đã lưu trên máy (bộ nhớ đệm Firestore, quốc gia nhà…) rồi tải lại trang.
+   *  Tránh người dùng sau trên cùng máy (máy dùng chung) xem được dữ liệu cũ khi offline. */
+  async signOut() {
+    await fbSignOut(auth);
+    clearLocalPersonalData();
+    try {
+      await terminate(db);
+      await clearIndexedDbPersistence(db);
+    } catch {
+      /* tab khác đang mở — bộ nhớ đệm vẫn bị Firestore xoá ở lần sau */
+    }
+    location.reload();
+  },
 
   watchPlaces(uid, cb) {
     return onSnapshot(collection(db, 'users', uid, 'places'), (s) => cb(s.docs.map((d) => d.data())));
@@ -132,7 +156,7 @@ const firebaseBackend = {
       cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byNewest)),
     );
   },
-  async addMemory(user, { place, caption, date, visibility, tripId, occasion = '', visitedAt }, files = []) {
+  async addMemory(user, { place, caption, date, visibility, tripId, occasion = '', visitedAt, hideDate = false }, files = []) {
     const memRef = doc(collection(db, 'memories'));
     // Lưu 3 độ phân giải: thu nhỏ (lưới ảnh, ~40KB), vừa (~1000px, mạng chậm), gốc (~1600px, mạng nhanh / chia sẻ)
     const thumbs = [];
@@ -146,7 +170,7 @@ const firebaseBackend = {
     const data = {
       uid: user.uid, authorName: user.name, authorPhoto: user.photo || '', place: pickPlace(place), caption: caption || '',
       // Chỉ giữ ảnh bìa trong document để danh sách tải nhẹ; các ảnh thu nhỏ khác nằm ở memories/{id}/thumbs
-      date: date || '', occasion: occasion || '', visibility: thumbs.length ? visibility : 'private', tripId: tripId || null, photos: thumbs.slice(0, 1), photoCount: full.length, tiers: 3, thumbsMoved: true, createdAt: now(),
+      date: date || '', occasion: occasion || '', visibility: thumbs.length ? visibility : 'private', tripId: tripId || null, photos: thumbs.slice(0, 1), photoCount: full.length, tiers: 3, thumbsMoved: true, ...(hideDate ? { hideDate: true } : {}), createdAt: now(),
     };
     await setDoc(memRef, data);
     // Mỗi ảnh là 1 document riêng (giới hạn 1MB/document của Firestore)
@@ -304,17 +328,102 @@ const firebaseBackend = {
       members: { [user.uid]: { name: user.name, photo: user.photo || '' } }, inviteCode: makeInviteCode(), createdAt: now(),
     };
     const r = await addDoc(collection(db, 'trips'), data);
+    await setDoc(doc(db, 'inviteCodes', data.inviteCode), { tripId: r.id, ownerId: user.uid, createdAt: now() }).catch(() => {});
     return { id: r.id, ...data };
+  },
+  /** Chủ chuyến: đảm bảo mã mời có trong bảng tra mã (chuyến tạo trước khi có bảng này) */
+  async ensureInviteCode(user, trip) {
+    if (!trip?.inviteCode || trip.ownerId !== user.uid) return;
+    try {
+      const s = await getDoc(doc(db, 'inviteCodes', trip.inviteCode));
+      if (!s.exists()) await setDoc(doc(db, 'inviteCodes', trip.inviteCode), { tripId: trip.id, ownerId: user.uid, createdAt: now() });
+    } catch {
+      /* bỏ qua */
+    }
+  },
+  /** Chủ chuyến: đổi mã mời mới (mã cũ hết hiệu lực) */
+  async regenerateInviteCode(user, trip) {
+    const code = makeInviteCode();
+    await setDoc(doc(db, 'inviteCodes', code), { tripId: trip.id, ownerId: user.uid, createdAt: now() });
+    await updateDoc(doc(db, 'trips', trip.id), { inviteCode: code, updatedAt: now() });
+    if (trip.inviteCode) await deleteDoc(doc(db, 'inviteCodes', trip.inviteCode)).catch(() => {});
+    return code;
+  },
+
+  // ---- Lời mời tham gia chuyến đi: tripInvites/{tripId}_{uid} ----
+  async inviteToTrip(owner, trip, person) {
+    const ref = doc(db, 'tripInvites', inviteId(trip.id, person.uid));
+    const data = {
+      tripId: trip.id, tripName: trip.name || '', tripEmoji: trip.emoji || '🧳', startDate: trip.startDate || null, endDate: trip.endDate || null,
+      from: owner.uid, fromName: owner.name || '', fromPhoto: owner.photo || '',
+      to: person.uid, toName: person.name || '', toPhoto: person.photo || '',
+      status: 'pending', createdAt: now(), respondedAt: null,
+    };
+    await setDoc(ref, data);
+    await addDoc(collection(db, 'notifications'), {
+      to: person.uid, type: 'invite', from: owner.uid, fromName: owner.name || '', fromPhoto: owner.photo || '',
+      title: trip.name || '', tripId: trip.id, read: false, createdAt: now(),
+    }).catch(() => {});
+    return data;
+  },
+  watchTripInvites(trip, ownerUid, cb) {
+    return onSnapshot(
+      query(collection(db, 'tripInvites'), where('from', '==', ownerUid), where('tripId', '==', trip.id)),
+      (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt)),
+      () => cb([]),
+    );
+  },
+  watchMyInvites(uid, cb) {
+    return onSnapshot(
+      query(collection(db, 'tripInvites'), where('to', '==', uid), where('status', '==', 'pending')),
+      (s) => cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.createdAt - a.createdAt)),
+      () => cb([]),
+    );
+  },
+  cancelInvite: (inv) => updateDoc(doc(db, 'tripInvites', inv.id), { status: 'cancelled', respondedAt: now() }),
+  /** Người được mời trả lời: chấp nhận = vào chuyến (cùng 1 lần ghi), từ chối = chỉ đổi trạng thái */
+  async respondInvite(user, inv, accept) {
+    const b = writeBatch(db);
+    b.update(doc(db, 'tripInvites', inv.id), { status: accept ? 'accepted' : 'declined', respondedAt: now() });
+    if (accept) {
+      b.update(doc(db, 'trips', inv.tripId), {
+        memberIds: arrayUnion(user.uid), [`members.${user.uid}`]: { name: user.name || '', photo: user.photo || '' }, joinCode: '',
+      });
+    }
+    try {
+      await b.commit();
+    } catch (e) {
+      // Đã vào chuyến trước đó (vd. bằng mã mời) → chỉ cập nhật trạng thái lời mời
+      const t = accept ? await getDoc(doc(db, 'trips', inv.tripId)).catch(() => null) : null;
+      if (!t?.exists()) throw e;
+      await updateDoc(doc(db, 'tripInvites', inv.id), { status: 'accepted', respondedAt: now() });
+    }
+    await addDoc(collection(db, 'notifications'), {
+      to: inv.from, type: accept ? 'inviteAccepted' : 'inviteDeclined', from: user.uid, fromName: user.name || '', fromPhoto: user.photo || '',
+      title: inv.tripName || '', tripId: inv.tripId, read: false, createdAt: now(),
+    }).catch(() => {});
+  },
+  async removeMember(trip, uid) {
+    await updateDoc(doc(db, 'trips', trip.id), { memberIds: arrayRemove(uid), [`members.${uid}`]: deleteField() });
   },
   updateTrip(id, patch) {
     return updateDoc(doc(db, 'trips', id), { ...patch, updatedAt: now() });
   },
   async joinTrip(user, code) {
-    const s = await getDocs(query(collection(db, 'trips'), where('inviteCode', '==', code.trim().toUpperCase()), limit(1)));
-    if (s.empty) throw new Error(translate('err.tripNotFound'));
-    const d = s.docs[0];
-    await updateDoc(d.ref, { memberIds: arrayUnion(user.uid), [`members.${user.uid}`]: { name: user.name, photo: user.photo || '' } });
-    return { id: d.id, ...d.data() };
+    const c = code.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6,8}$/.test(c)) throw new Error(translate('err.tripNotFound'));
+    // Tra mã trong bảng mã mời (không đọc được danh sách chuyến đi của người khác)
+    const cs = await getDoc(doc(db, 'inviteCodes', c));
+    if (!cs.exists()) throw new Error(translate('err.tripNotFound'));
+    const tripId = cs.data().tripId;
+    try {
+      await updateDoc(doc(db, 'trips', tripId), { memberIds: arrayUnion(user.uid), [`members.${user.uid}`]: { name: user.name || '', photo: user.photo || '' }, joinCode: c });
+    } catch {
+      /* đã là thành viên (hoặc mã vừa bị đổi) — kiểm tra bên dưới */
+    }
+    const t = await getDoc(doc(db, 'trips', tripId)).catch(() => null);
+    if (!t?.exists()) throw new Error(translate('err.tripNotFound'));
+    return { id: tripId, ...t.data() };
   },
   async leaveTrip(user, trip) {
     if (trip.ownerId === user.uid) return deleteDoc(doc(db, 'trips', trip.id));
@@ -502,12 +611,12 @@ const localBackend = {
   watchPublicMemories(cb) {
     return sub(() => cb([...SAMPLE_PUBLIC, ...state.memories.filter((m) => m.visibility === 'public')].sort(byNewest)));
   },
-  async addMemory(user, { place, caption, date, visibility, tripId, occasion = '', visitedAt }, files = []) {
+  async addMemory(user, { place, caption, date, visibility, tripId, occasion = '', visitedAt, hideDate = false }, files = []) {
     const photos = [];
     for (const f of files) photos.push(await blobToDataURL(await compressImage(f, 1000, 0.75)));
     const mem = {
       id: uid(), uid: user.uid, authorName: user.name, authorPhoto: user.photo || '', place: pickPlace(place), caption, date, occasion: occasion || '',
-      visibility: photos.length ? visibility : 'private', tripId: tripId || null, photos, createdAt: now(),
+      visibility: photos.length ? visibility : 'private', tripId: tripId || null, photos, ...(hideDate ? { hideDate: true } : {}), createdAt: now(),
     };
     state.memories.push(mem);
     const prev = (state.places[user.uid] ||= {})[place.id] || {};
@@ -515,6 +624,10 @@ const localBackend = {
     if (tripId) this.addStop(user, tripId, { place, kind: 'memory', photos, caption, date });
     save();
     return mem;
+  },
+  async markHideDates(uid, on) {
+    state.memories.forEach((m) => m.uid === uid && (m.hideDate = !!on));
+    save();
   },
   async getFullPhotos(mem) {
     return mem.photos || [];
@@ -562,6 +675,52 @@ const localBackend = {
   async updateTrip(id, patch) {
     const t = state.trips.find((x) => x.id === id);
     if (t) Object.assign(t, patch, { updatedAt: now() });
+    save();
+  },
+  async ensureInviteCode() {},
+  async regenerateInviteCode(user, trip) {
+    const t = state.trips.find((x) => x.id === trip.id);
+    const code = makeInviteCode();
+    if (t) t.inviteCode = code;
+    save();
+    return code;
+  },
+  async inviteToTrip(owner, trip, person) {
+    state.invites ||= {};
+    const id = inviteId(trip.id, person.uid);
+    state.invites[id] = {
+      id, tripId: trip.id, tripName: trip.name || '', tripEmoji: trip.emoji || '🧳', startDate: trip.startDate || null, endDate: trip.endDate || null,
+      from: owner.uid, fromName: owner.name || '', fromPhoto: owner.photo || '', to: person.uid, toName: person.name || '', toPhoto: person.photo || '',
+      status: 'pending', createdAt: now(), respondedAt: null,
+    };
+    save();
+    return state.invites[id];
+  },
+  watchTripInvites(trip, ownerUid, cb) {
+    return sub(() => cb(Object.values(state.invites || {}).filter((i) => i.tripId === trip.id && i.from === ownerUid).sort((a, b) => b.createdAt - a.createdAt)));
+  },
+  watchMyInvites(uid, cb) {
+    return sub(() => cb(Object.values(state.invites || {}).filter((i) => i.to === uid && i.status === 'pending')));
+  },
+  async cancelInvite(inv) {
+    if (state.invites?.[inv.id]) Object.assign(state.invites[inv.id], { status: 'cancelled', respondedAt: now() });
+    save();
+  },
+  async respondInvite(user, inv, accept) {
+    if (state.invites?.[inv.id]) Object.assign(state.invites[inv.id], { status: accept ? 'accepted' : 'declined', respondedAt: now() });
+    const t = state.trips.find((x) => x.id === inv.tripId);
+    if (accept && t && !t.memberIds.includes(user.uid)) {
+      t.memberIds.push(user.uid);
+      t.members[user.uid] = { name: user.name, photo: user.photo };
+    }
+    save();
+  },
+  async removeMember(trip, uid) {
+    const t = state.trips.find((x) => x.id === trip.id);
+    if (t) {
+      t.memberIds = t.memberIds.filter((x) => x !== uid);
+      delete t.members[uid];
+    }
     save();
   },
   async joinTrip(user, code) {

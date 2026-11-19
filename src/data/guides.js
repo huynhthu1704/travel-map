@@ -417,3 +417,18 @@ export const GUIDES = [
 ];
 
 export const GUIDE_BY_CC = Object.fromEntries(GUIDES.map((g) => [g.cc, g]));
+
+/** Các mục sửa được trong Quản trị → Cẩm nang (ngoài các mục nội dung) */
+export const GUIDE_META_FIELDS = [
+  { key: 'visaTag', icon: '🏷️', vi: 'Nhãn visa', en: 'Visa tag' },
+  { key: 'lead', icon: '✨', vi: 'Giới thiệu ngắn', en: 'Short intro' },
+];
+/** Áp phần đã sửa (guideOverrides/{cc}.fields) lên nội dung gốc */
+export function applyGuideOverride(g, ov) {
+  if (!g || !ov?.fields) return g;
+  const out = { ...g };
+  Object.entries(ov.fields).forEach(([k, v]) => {
+    if (v && (v.vi || v.en)) out[k] = { ...(g[k] || {}), ...v };
+  });
+  return out;
+}

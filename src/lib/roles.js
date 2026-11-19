@@ -14,6 +14,7 @@ export const PERMS = [
   { key: 'content', icon: '🖼️' },
   { key: 'feedback', icon: '💬' },
   { key: 'places', icon: '🏞️' },
+  { key: 'guides', icon: '📖' },
   { key: 'tips', icon: '🧭' },
   { key: 'trips', icon: '🧳' },
   { key: 'announce', icon: '📢' },
@@ -26,7 +27,7 @@ export const PERMS = [
 export const PERM_KEYS = PERMS.map((p) => p.key);
 
 export const PRESET_ROLES = [
-  { id: 'editor', icon: '✏️', perms: ['content', 'feedback', 'places', 'tips'] },
+  { id: 'editor', icon: '✏️', perms: ['content', 'feedback', 'places', 'tips', 'guides'] },
   { id: 'moderator', icon: '🛡️', perms: ['content', 'feedback', 'tips'] },
   { id: 'marketing', icon: '📣', perms: ['insights', 'announce', 'notify', 'ads'] },
 ];

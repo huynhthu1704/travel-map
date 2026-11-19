@@ -7,7 +7,7 @@ import { AppLink, Modal } from '../components/ui';
 import { GUIDE_SPOTS } from '../data/guideSpots';
 import { searchNominatim } from '../lib/geo';
 import AdSlot from '../components/AdSlot';
-import { GUIDES, GUIDE_BY_CC, SECTIONS, GUIDES_CHECKED } from '../data/guides';
+import { GUIDES, GUIDE_BY_CC, SECTIONS, GUIDES_CHECKED, applyGuideOverride } from '../data/guides';
 import { GUIDE_PHRASES } from '../data/guidePhrases';
 import { GUIDE_FOODS } from '../data/guideFoods';
 import { GUIDE_EMERGENCY, VN_CITIZEN_HOTLINE } from '../data/guideEmergency';
@@ -125,13 +125,15 @@ function toPoints(key, text) {
 
 /** #/guide và #/guide/<cc> — Cẩm nang du lịch châu Á */
 export default function GuidePage() {
-  const { guideCc, setGuideCc } = useApp();
-  const g = guideCc && GUIDE_BY_CC[guideCc];
+  const { guideCc, setGuideCc, guideOverrides } = useApp();
+  // Nội dung gốc + phần đội vận hành đã sửa (Quản trị → Cẩm nang)
+  const g = guideCc && GUIDE_BY_CC[guideCc] && applyGuideOverride(GUIDE_BY_CC[guideCc], guideOverrides?.[guideCc]);
   return g ? <CountryGuide g={g} onBack={() => setGuideCc(null)} /> : <GuideList onOpen={(cc) => (window.scrollTo?.(0, 0), setGuideCc(cc))} />;
 }
 
 function GuideList({ onOpen }) {
   const { t, lang } = useI18n();
+  const { guideOverrides } = useApp();
   return (
     <div className="page guide">
       <header className="guide__head">
@@ -140,7 +142,7 @@ function GuideList({ onOpen }) {
         <p className="muted">{t('guide.lead')}</p>
       </header>
       <div className="guide-grid">
-        {GUIDES.map((g) => (
+        {GUIDES.map((g0) => applyGuideOverride(g0, guideOverrides?.[g0.cc])).map((g) => (
           <a key={g.cc} href={`#/guide/${g.cc}`} className="guide-card card" onClick={(e) => (e.preventDefault(), onOpen(g.cc))}>
             <span className="guide-card__flag">{flagOf(g.cc)}</span>
             <span className="guide-card__main">

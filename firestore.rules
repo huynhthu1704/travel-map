@@ -22,7 +22,7 @@ service cloud.firestore {
     function siteSettings() { return get(/databases/$(database)/documents/settings/site).data; }
     function defaultPerms(r) {
       return {
-        'editor': ['content', 'feedback', 'places', 'tips'],
+        'editor': ['content', 'feedback', 'places', 'tips', 'guides'],
         'moderator': ['content', 'feedback', 'tips'],
         'marketing': ['insights', 'announce', 'notify', 'ads']
       }.get(r, []);
@@ -78,6 +78,11 @@ service cloud.firestore {
     match /placeOverrides/{id} {
       allow read: if true;
       allow write: if hasPerm('places');
+    }
+    // Cẩm nang: phần sửa nội dung của đội vận hành (ghi đè nội dung gốc)
+    match /guideOverrides/{cc} {
+      allow read: if true;
+      allow write: if hasPerm('guides') && cc.size() == 2;
     }
     match /customPlaces/{id} {
       allow read: if true;

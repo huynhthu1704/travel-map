@@ -61,7 +61,7 @@ export const setAdminActor = (u) => (actor = u ? { uid: u.uid, name: u.name || '
 const LOGGED = {
   saveSettings: 'settings.save', saveRoles: 'roles.save', saveOverride: 'place.edit', clearOverride: 'place.reset', saveCustomPlace: 'place.add', deleteCustomPlace: 'place.delete',
   updateReport: 'report.update', deleteReport: 'report.delete', updateUser: 'user.update', hideMemory: 'memory.hide', unhideMemory: 'memory.unhide',
-  deleteMemoryAdmin: 'memory.delete', deleteTrip: 'trip.delete',
+  deleteMemoryAdmin: 'memory.delete', deleteTrip: 'trip.delete', saveGuideOverride: 'guide.edit',
 };
 const short = (v) => {
   if (v == null) return '';
@@ -74,6 +74,7 @@ function describe(name, args) {
     case 'saveSettings': return { target: 'site', detail: short(Object.keys(a || {}).join(', ')) };
     case 'saveRoles': return { target: 'roles', detail: short(a) };
     case 'saveOverride': return { target: a, detail: short(b) };
+    case 'saveGuideOverride': return { target: a, detail: short(Object.keys(b?.fields || {}).join(', ') || 'reset') };
     case 'saveCustomPlace': return { target: a?.id || a?.name || '', detail: short(a?.name) };
     case 'updateReport': return { target: a, detail: short({ status: b?.status, action: b?.action }) };
     case 'updateUser': return { target: a, detail: short(b) };
@@ -145,6 +146,9 @@ const fb = {
     updateDoc(doc(db, 'settings', 'site'), { rolePerms, roleDefs }).catch(() => setDoc(doc(db, 'settings', 'site'), { rolePerms, roleDefs }, { merge: true })),
   watchOverrides: (cb) =>
     onSnapshot(collection(db, 'placeOverrides'), (s) => cb(Object.fromEntries(s.docs.map((d) => [d.id, d.data()]))), () => cb({})),
+  // Cẩm nang: phần sửa của đội vận hành, ghi đè nội dung gốc theo từng mục — guideOverrides/{cc} { fields: { [mục]: { vi, en } } }
+  watchGuideOverrides: (cb) => onSnapshot(collection(db, 'guideOverrides'), (s) => cb(Object.fromEntries(s.docs.map((d) => [d.id, d.data()]))), () => cb({})),
+  saveGuideOverride: (cc, data) => setDoc(doc(db, 'guideOverrides', cc), { ...data, updatedAt: now() }),
   saveOverride: (id, patch, by) => setDoc(doc(db, 'placeOverrides', id), { ...patch, updatedAt: now(), updatedBy: by || '' }, { merge: true }),
   clearOverride: (id) => deleteDoc(doc(db, 'placeOverrides', id)),
   watchCustomPlaces: (cb) => onSnapshot(collection(db, 'customPlaces'), (s) => cb(s.docs.map((d) => ({ ...d.data(), id: d.id }))), () => cb([])),
@@ -274,6 +278,11 @@ const local = {
     persist();
   },
   watchOverrides: (cb) => on(() => cb({ ...st.overrides })),
+  watchGuideOverrides: (cb) => on(() => cb({ ...(st.guideOverrides || {}) })),
+  async saveGuideOverride(cc, data) {
+    st.guideOverrides = { ...(st.guideOverrides || {}), [cc]: { ...data, updatedAt: now() } };
+    persist();
+  },
   async saveOverride(id, patch) {
     st.overrides[id] = { ...(st.overrides[id] || {}), ...patch, updatedAt: now() };
     persist();

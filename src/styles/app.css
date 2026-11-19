@@ -9227,3 +9227,34 @@ a.app-link.place-card__title:hover {
   border-radius: 99px;
   background: var(--mint-500, #3cb98a);
 }
+/* Quản trị → Cẩm nang */
+.chips--wrap {
+  flex-wrap: wrap;
+}
+.gd-count {
+  margin-left: 6px;
+  font-size: 11px;
+  color: #b4472c;
+}
+.gd-field--edited {
+  border: 2px solid var(--honey-300, #ffd970);
+}
+.gd-badge {
+  margin-left: 8px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--honey-100, #fff3cc);
+  color: #8a5a00;
+}
+.gd-savebar {
+  position: sticky;
+  bottom: 12px;
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(255, 252, 245, 0.92);
+  box-shadow: 0 8px 24px rgba(31, 26, 20, 0.12);
+  z-index: 5;
+}

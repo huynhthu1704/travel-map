@@ -10,6 +10,7 @@ import { normalize } from '../lib/geo';
 import { useThumbs } from '../lib/useThumbs';
 import { tipsApi, isFlagged, DEFAULT_COMMUNITY } from '../lib/tips';
 import { FLAGS } from '../data/flags';
+import { GUIDES, GUIDE_BY_CC, SECTIONS as GUIDE_SECTIONS, GUIDE_META_FIELDS } from '../data/guides';
 import { socialApi as social } from '../lib/social';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
@@ -35,6 +36,7 @@ const TABS = [
   { id: 'reports', icon: '🚩', perm: 'content' },
   { id: 'feedback', icon: '💬', perm: 'feedback' },
   { id: 'places', icon: '🏞️', perm: 'places' },
+  { id: 'guides', icon: '📖', perm: 'guides' },
   { id: 'tips', icon: '🧭', perm: 'tips' },
   { id: 'trips', icon: '🧳', perm: 'trips' },
   { id: 'announce', icon: '📢', perm: 'announce' },
@@ -112,6 +114,7 @@ export default function AdminPage() {
               {tab === 'reports' && <Reports reports={reports} />}
               {tab === 'feedback' && <AdminFeedback />}
               {tab === 'places' && <PlacesAdmin />}
+              {tab === 'guides' && <GuidesAdmin />}
               {tab === 'trips' && <TripsAdmin trips={trips} />}
               {tab === 'announce' && <AnnouncementsAdmin />}
               {tab === 'notify' && <Broadcast />}
@@ -1948,6 +1951,103 @@ function BetaUsers({ users, busy, onChange, label, empty }) {
               </li>
             ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------ Cẩm nang ------------------------------ */
+/** Sửa nội dung cẩm nang theo từng mục (ghi đè nội dung gốc, có thể khôi phục) */
+function GuidesAdmin() {
+  const { t, lang } = useI18n();
+  const { guideOverrides, adminApi, notify, user } = useApp();
+  const [cc, setCc] = useState(GUIDES[0].cc);
+  const base = GUIDE_BY_CC[cc];
+  const ov = guideOverrides?.[cc];
+  const fields = [...GUIDE_META_FIELDS, ...GUIDE_SECTIONS.filter((x) => base[x.key])];
+  const initial = () => Object.fromEntries(fields.map((f) => [f.key, { vi: ov?.fields?.[f.key]?.vi ?? base[f.key]?.vi ?? '', en: ov?.fields?.[f.key]?.en ?? base[f.key]?.en ?? '' }]));
+  const [draft, setDraft] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setDraft(initial()), [cc, ov?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const isEdited = (k, d = draft) => (d[k]?.vi ?? '') !== (base[k]?.vi ?? '') || (d[k]?.en ?? '') !== (base[k]?.en ?? '');
+  const dirty = fields.some((f) => (draft[f.key]?.vi ?? '') !== (initial()[f.key]?.vi ?? '') || (draft[f.key]?.en ?? '') !== (initial()[f.key]?.en ?? ''));
+  const editedCount = (code) => Object.keys(guideOverrides?.[code]?.fields || {}).length;
+  const save = async (d = draft) => {
+    setBusy(true);
+    try {
+      const out = {};
+      fields.forEach((f) => isEdited(f.key, d) && (out[f.key] = { vi: d[f.key].vi.trim(), en: d[f.key].en.trim() }));
+      await adminApi.saveGuideOverride(cc, { fields: out, updatedBy: user?.uid || '', updatedByName: user?.name || '' });
+      notify(t('gd.saved'));
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+    setBusy(false);
+  };
+  const reset = (k) => setDraft((d) => ({ ...d, [k]: { vi: base[k]?.vi || '', en: base[k]?.en || '' } }));
+  return (
+    <div className="stack">
+      <div className="card stack">
+        <h3 className="h3">📖 {t('gd.title')}</h3>
+        <p className="small muted">{t('gd.help')}</p>
+        <div className="chips chips--wrap">
+          {GUIDES.map((g) => (
+            <button key={g.cc} className={`chip ${cc === g.cc ? 'chip--on' : ''}`} onClick={() => (dirty && !confirm(t('gd.discard')) ? null : setCc(g.cc))}>
+              {flagOf(g.cc)} {countryName(g.cc)}
+              {editedCount(g.cc) > 0 && <b className="gd-count">✎ {editedCount(g.cc)}</b>}
+            </button>
+          ))}
+        </div>
+        <div className="row wrap">
+          <a className="btn btn--sm btn--soft" href={`#/guide/${cc}`} target="_blank" rel="noopener">
+            👀 {t('gd.view')} ↗
+          </a>
+          {ov?.updatedAt && (
+            <small className="muted">
+              {t('gd.lastEdit', { when: fmtWhen(ov.updatedAt, lang), who: ov.updatedByName || '' })}
+            </small>
+          )}
+        </div>
+      </div>
+      {fields.map((f) => {
+        const edited = isEdited(f.key);
+        return (
+          <div key={f.key} className={`card stack-sm gd-field ${edited ? 'gd-field--edited' : ''}`}>
+            <div className="row between">
+              <b>
+                {f.icon} {f[lang] || f.vi}
+                {edited && <span className="gd-badge">{t('gd.edited')}</span>}
+              </b>
+              {edited && (
+                <button className="btn btn--sm btn--ghost" onClick={() => reset(f.key)} title={t('gd.resetHelp')}>
+                  ↺ {t('gd.reset')}
+                </button>
+              )}
+            </div>
+            {['vi', 'en'].map((l) => (
+              <label key={l} className="field">
+                <span>{l === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}</span>
+                <textarea
+                  rows={f.key === 'visaTag' ? 1 : 3}
+                  maxLength={2000}
+                  value={draft[f.key]?.[l] || ''}
+                  onChange={(e) => setDraft((d) => ({ ...d, [f.key]: { ...d[f.key], [l]: e.target.value } }))}
+                />
+              </label>
+            ))}
+          </div>
+        );
+      })}
+      <p className="tiny muted">{t('gd.formatHelp')}</p>
+      {dirty && (
+        <div className="gd-savebar">
+          <button className="btn btn--primary" disabled={busy} onClick={() => save()}>
+            💾 {t('gd.save', { country: countryName(cc) })}
+          </button>
+          <button className="btn btn--ghost" onClick={() => setDraft(initial())}>
+            {t('common.cancel')}
+          </button>
+        </div>
       )}
     </div>
   );

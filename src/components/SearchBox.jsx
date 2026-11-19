@@ -17,6 +17,13 @@ export default function SearchBox() {
   const [open, setOpen] = useState(false);
   const [osm, setOsm] = useState([]);
   const [loading, setLoading] = useState(false);
+  // Gợi ý luân phiên trong ô tìm kiếm: địa điểm ↔ người dùng (dừng khi đang gõ)
+  const [hint, setHint] = useState(0);
+  useEffect(() => {
+    if (q) return undefined;
+    const tm = setInterval(() => setHint((h) => (h + 1) % 2), 3500);
+    return () => clearInterval(tm);
+  }, [q]);
   const boxRef = useRef();
   const { t, lang } = useI18n();
 
@@ -101,7 +108,7 @@ export default function SearchBox() {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        placeholder={t('search.placeholder')}
+        placeholder={t(hint ? 'search.placeholderPeople' : 'search.placeholder')}
         aria-label={t('search.label')}
       />
       {open && q.trim() && (

@@ -7099,3 +7099,37 @@ a.app-link.place-card__title:hover {
     transform: rotate(360deg);
   }
 }
+
+/* Biểu đồ đăng ký mới mỗi tuần: không tràn trên điện thoại */
+.spark {
+  height: 170px;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+.spark__col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.spark__col small {
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 14px;
+  height: 14px;
+}
+.spark__val {
+  font-size: 11px;
+  color: var(--ink-700);
+}
+@media (max-width: 640px) {
+  /* chỉ ghi nhãn tuần xen kẽ để chữ không chồng nhau */
+  .spark__col--alt small {
+    visibility: hidden;
+  }
+  .spark__col small {
+    font-size: 9px;
+  }
+}
+.grid-2 > * {
+  min-width: 0;
+}

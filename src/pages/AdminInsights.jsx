@@ -194,12 +194,18 @@ export default function AdminInsights({ users, trips }) {
         <section className="card stack-sm">
           <h3 className="h3">📈 {t('ins.signups')}</h3>
           <div className="spark">
-            {m.signups.map((s) => (
-              <div key={s.w} className="spark__col" title={`${fmtWeek(s.w, lang)}: ${s.n}`}>
-                <i style={{ height: `calc((100% - 18px) * ${s.n / Math.max(1, ...m.signups.map((x) => x.n))})` }} />
-                <small>{fmtWeek(s.w, lang)}</small>
-              </div>
-            ))}
+            {m.signups.map((s, i, all) => {
+              const max = Math.max(1, ...all.map((x) => x.n));
+              // chiều cao tính bằng px (Safari trên iPhone tính % trong flex không ổn định)
+              const h = s.n ? Math.max(6, Math.round((s.n / max) * 110)) : 2;
+              return (
+                <div key={s.w} className={`spark__col ${(all.length - 1 - i) % 2 ? 'spark__col--alt' : ''}`} title={`${fmtWeek(s.w, lang)}: ${s.n}`}>
+                  {s.n > 0 && <b className="spark__val">{s.n}</b>}
+                  <i style={{ height: `${h}px` }} />
+                  <small>{fmtWeek(s.w, lang)}</small>
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

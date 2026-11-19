@@ -4994,7 +4994,10 @@ img.is-loaded {
   transition: opacity 0.15s, padding 0.15s;
 }
 .fb-tab span {
-  transform: rotate(90deg);
+  /* Thẻ dọc được xoay 180° → xoay ngược icon lại để icon đứng thẳng */
+  display: inline-block;
+  text-orientation: upright;
+  transform: rotate(180deg);
 }
 .fb-tab:hover {
   opacity: 1;
@@ -7831,10 +7834,13 @@ a.app-link.place-card__title:hover {
   box-sizing: border-box;
 }
 .ad-slot--card {
-  max-width: 300px;
+  /* Bằng chiều rộng các khối khác trong bảng bên (giữ tỉ lệ 300×250) */
+  max-width: none;
+  width: 100%;
   height: auto;
-  min-height: 250px;
+  min-height: 0;
   aspect-ratio: 300 / 250;
+  margin: 12px 0;
 }
 .ad-slot--inline {
   max-width: 468px;

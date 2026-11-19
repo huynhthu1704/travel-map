@@ -7994,3 +7994,19 @@ a.app-link.place-card__title:hover {
     font-size: 13px;
   }
 }
+
+/* Thông báo lời mời chuyến đi: thêm ngày đi + nút trả lời ngay */
+.notif__item:has(.notif__invite) {
+  flex-wrap: wrap;
+}
+.notif__invite {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 6px 4px 52px;
+}
+.notif__meta {
+  color: var(--ink-600, #555);
+  line-height: 1.4;
+}

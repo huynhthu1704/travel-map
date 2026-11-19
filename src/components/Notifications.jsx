@@ -62,7 +62,23 @@ export default function Notifications() {
 
 function NoteList({ notes, onDone }) {
   const { t, lang } = useI18n();
-  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify, setView, setOpenTripId } = useApp();
+  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify, setView, setOpenTripId, myInvites, trips, api } = useApp();
+  const [answering, setAnswering] = useState('');
+  const pendingFor = (n) => (myInvites || []).find((i) => i.tripId === n.tripId);
+  const answer = async (n, inv, accept) => {
+    setAnswering(n.id);
+    try {
+      await api.respondInvite(user, inv, accept);
+      if (!n.read) setRead(n, true);
+      notify(accept ? t('tm.joined', { trip: inv.tripName }) : t('tm.declinedDone'));
+      if (accept) (setView('trips'), setOpenTripId(inv.tripId), onDone());
+    } catch (e) {
+      notify(e.message, 'error');
+    } finally {
+      setAnswering('');
+    }
+  };
+  const fmtDay = (d) => (d ? new Date(d).toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   const [filter, setFilter] = useState('all');
   const list = filter === 'unread' ? notes.filter((n) => !n.read) : notes;
   const setRead = (n, read) => socialApi.setRead(user.uid, n, read).catch((e) => notify(e.message, 'error'));
@@ -111,7 +127,7 @@ function NoteList({ notes, onDone }) {
           {list.map((n) => (
             <li key={n.id} className={`notif__item ${n.read ? '' : 'is-unread'}`}>
               <button className="notif__main" onClick={() => openNote(n)}>
-                {n.fromPhoto || (n.fromName && (n.type === 'like' || n.type === 'follow')) ? (
+                {n.fromPhoto || (n.fromName && ['like', 'follow', 'invite', 'inviteAccepted', 'inviteDeclined'].includes(n.type)) ? (
                   <span className="notif__av">
                     <Avatar name={n.fromName || '?'} photo={n.fromPhoto} size={36} />
                     <i>{icon(n)}</i>
@@ -123,6 +139,20 @@ function NoteList({ notes, onDone }) {
                   <span>{text(n)}</span>
                   {n.type === 'hidden' && n.body && <small className="notif__reason">{t('notif.reason')}: {t('admin.reason.' + n.body) !== 'admin.reason.' + n.body ? t('admin.reason.' + n.body) : n.body}</small>}
                   {(n.type === 'feature' || n.type === 'system') && n.body && <small>{n.body}</small>}
+                  {n.type === 'invite' &&
+                    (() => {
+                      const inv = pendingFor(n);
+                      const joined = trips?.some((tr) => tr.id === n.tripId);
+                      const dates = inv?.startDate ? `📅 ${fmtDay(inv.startDate)}${inv.endDate ? ` → ${fmtDay(inv.endDate)}` : ''}` : '';
+                      return (
+                        <>
+                          {dates && <small className="notif__meta">{dates}</small>}
+                          <small className="notif__meta">
+                            {inv ? t('notif.inviteHint') : joined ? `✅ ${t('notif.inviteJoined')}` : t('notif.inviteClosed')}
+                          </small>
+                        </>
+                      );
+                    })()}
                   <small className="muted">{ago(n.createdAt, lang)}</small>
                 </span>
               </button>
@@ -136,6 +166,16 @@ function NoteList({ notes, onDone }) {
                   <i />
                 </button>
               </div>
+                {n.type === 'invite' && pendingFor(n) && (
+                  <div className="notif__invite">
+                    <button className="btn btn--sm btn--ghost" disabled={answering === n.id} onClick={() => answer(n, pendingFor(n), false)}>
+                      {t('tm.decline')}
+                    </button>
+                    <button className="btn btn--sm btn--primary" disabled={answering === n.id} onClick={() => answer(n, pendingFor(n), true)}>
+                      {t('tm.accept')}
+                    </button>
+                  </div>
+                )}
             </li>
           ))}
         </ul>

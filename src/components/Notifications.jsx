@@ -62,7 +62,7 @@ export default function Notifications() {
 
 function NoteList({ notes, onDone }) {
   const { t, lang } = useI18n();
-  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify, setView, setOpenTripId, myInvites, trips, api } = useApp();
+  const { user, memories, setModal, openProfile, followingIds, toggleFollow, notify, setView, setOpenTripId, myInvites, trips, api, openTips, setTipPost } = useApp();
   const [answering, setAnswering] = useState('');
   const pendingFor = (n) => (myInvites || []).find((i) => i.tripId === n.tripId);
   const answer = async (n, inv, accept) => {
@@ -89,6 +89,7 @@ function NoteList({ notes, onDone }) {
       const m = memories.find((x) => x.id === n.memoryId);
       if (m) return (setModal({ type: 'viewMemory', memory: m }), onDone());
     }
+    if (n.type === 'postComment' && n.cc && n.postId) return (openTips(n.cc), setTipPost(n.postId), onDone());
     if (n.type === 'invite') return (setOpenTripId(null), setView('trips'), onDone());
     if ((n.type === 'inviteAccepted' || n.type === 'inviteDeclined') && n.tripId) return (setView('trips'), setOpenTripId(n.tripId), onDone());
     if (n.link) return (location.hash = n.link, onDone());
@@ -98,11 +99,12 @@ function NoteList({ notes, onDone }) {
     if (n.type === 'follow') return t('notif.follow', { name: n.fromName || '?' });
     if (n.type === 'hidden') return t('notif.hidden', { place: n.title || '' });
     if (n.type === 'invite') return t('notif.invite', { name: n.fromName || '?', trip: n.title || '' });
+    if (n.type === 'postComment') return t('notif.postComment', { name: n.fromName || '?', title: n.title || '' });
     if (n.type === 'inviteAccepted') return t('notif.inviteAccepted', { name: n.fromName || '?', trip: n.title || '' });
     if (n.type === 'inviteDeclined') return t('notif.inviteDeclined', { name: n.fromName || '?', trip: n.title || '' });
     return n.title || '';
   };
-  const icon = (n) => ({ like: '❤️', follow: '👋', hidden: '🙈', feature: '🎉', system: '📢', invite: '🧳', inviteAccepted: '✅', inviteDeclined: '✖️' })[n.type] || '🔔';
+  const icon = (n) => ({ like: '❤️', follow: '👋', hidden: '🙈', feature: '🎉', system: '📢', invite: '🧳', inviteAccepted: '✅', inviteDeclined: '✖️', postComment: '💬' })[n.type] || '🔔';
   return (
     <div className="notif__body">
       <div className="notif__tools">
@@ -127,7 +129,7 @@ function NoteList({ notes, onDone }) {
           {list.map((n) => (
             <li key={n.id} className={`notif__item ${n.read ? '' : 'is-unread'}`}>
               <button className="notif__main" onClick={() => openNote(n)}>
-                {n.fromPhoto || (n.fromName && ['like', 'follow', 'invite', 'inviteAccepted', 'inviteDeclined'].includes(n.type)) ? (
+                {n.fromPhoto || (n.fromName && ['like', 'follow', 'invite', 'inviteAccepted', 'inviteDeclined', 'postComment'].includes(n.type)) ? (
                   <span className="notif__av">
                     <Avatar name={n.fromName || '?'} photo={n.fromPhoto} size={36} />
                     <i>{icon(n)}</i>

@@ -8,6 +8,7 @@ import { countryName, flagOf } from '../lib/countries';
 import { pName, pCity } from '../lib/lang';
 import { normalize } from '../lib/geo';
 import { useThumbs } from '../lib/useThumbs';
+import { tipsApi, isFlagged, DEFAULT_COMMUNITY } from '../lib/tips';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
 import { ROLES, isSuperUid, maskEmail } from '../lib/adminStore';
@@ -27,6 +28,7 @@ const TABS = [
   { id: 'feedback', icon: '💬', staff: true },
   { id: 'reports', icon: '🚩', staff: true },
   { id: 'places', icon: '🏞️', staff: true },
+  { id: 'tips', icon: '🧭', staff: true },
   { id: 'trips', icon: '🧳', admin: true },
   { id: 'settings', icon: '⚙️', admin: true },
   { id: 'logs', icon: '📜', admin: true },
@@ -89,6 +91,7 @@ export default function AdminPage() {
           {tab === 'trips' && <TripsAdmin trips={trips} />}
           {tab === 'settings' && isAdmin && <SettingsAdmin />}
           {tab === 'logs' && isAdmin && <AdminLogs />}
+          {tab === 'tips' && <TipsAdmin />}
         </section>
       </div>
     </div>
@@ -958,6 +961,32 @@ function SettingsAdmin() {
           </select>
         </label>
       </div>
+      <div className="card stack">
+        <h3 className="h3">🧭 {t('admin.community')}</h3>
+        <p className="small muted">{t('admin.communityHelp')}</p>
+        <div className="community-grid">
+          {[
+            ['helpfulSlots', 0, 10],
+            ['newSlots', 0, 10],
+            ['newDays', 1, 365],
+            ['flagMin', 1, 100],
+            ['flagPct', 1, 100],
+            ['staleMonths', 1, 60],
+          ].map(([k, min, max]) => (
+            <label key={k} className="field">
+              <span>{t('admin.cm.' + k)}</span>
+              <input
+                type="number"
+                min={min}
+                max={max}
+                value={s.community?.[k] ?? ''}
+                onChange={(e) => setS((x) => ({ ...x, community: { ...x.community, [k]: Math.max(min, Math.min(max, Number(e.target.value) || 0)) } }))}
+              />
+            </label>
+          ))}
+        </div>
+        <p className="tiny muted">{t('admin.cm.preview', { h: s.community?.helpfulSlots, n: s.community?.newSlots })}</p>
+      </div>
       <button className="btn btn--primary" onClick={save}>
         💾 {t('admin.saveSettings')}
       </button>
@@ -1051,6 +1080,66 @@ function AdminLogs() {
                   {l.byName || l.by}
                 </button>
                 <small>{when(l.at)}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Kiểm duyệt bài kinh nghiệm: bài bị báo sai nhiều lên đầu; ẩn / hiện lại / xoá */
+function TipsAdmin() {
+  const { settings, adminApi, notify, openTips, setTipPost } = useApp();
+  const { t } = useI18n();
+  const [list, setList] = useState(null);
+  const [filter, setFilter] = useState('flagged');
+  useEffect(() => tipsApi.watchAll(setList), []);
+  if (!list) return <Loader />;
+  const cfg = { ...DEFAULT_COMMUNITY, ...(settings?.community || {}) };
+  const shown = list.filter((p) => (filter === 'flagged' ? isFlagged(p, cfg) : filter === 'hidden' ? p.status === 'hidden' : true));
+  const act = (p, status) =>
+    tipsApi
+      .setStatus(p.id, status)
+      .then(() => (adminApi.log(status === 'hidden' ? 'tip.hide' : 'tip.unhide', p.id, p.title), notify(t('admin.done'))))
+      .catch((e) => notify(e.message, 'error'));
+  return (
+    <div className="stack">
+      <div className="segmented segmented--sm">
+        {['flagged', 'hidden', 'all'].map((k) => (
+          <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>
+            {t('admin.tips.' + k)}
+          </button>
+        ))}
+      </div>
+      {!shown.length ? (
+        <Empty emoji="🧭" title={t('admin.tips.empty')} />
+      ) : (
+        <ul className="admin-logs">
+          {shown.map((p) => (
+            <li key={p.id}>
+              <span className="admin-logs__icon">{flagOf(p.cc)}</span>
+              <span className="admin-logs__main">
+                <b>{p.title}</b>
+                <small className="admin-logs__detail">
+                  {p.authorName} · 👍 {p.helpful || 0} · ⚠️ {p.wrong || 0} · 💬 {p.comments || 0}
+                  {p.status === 'hidden' ? ` · 🙈 ${t('admin.tips.hiddenTag')}` : ''}
+                </small>
+              </span>
+              <span className="row wrap">
+                <button className="btn btn--sm btn--soft" onClick={() => (openTips(p.cc), setTipPost(p.id))}>
+                  {t('admin.tips.view')}
+                </button>
+                {p.status === 'hidden' ? (
+                  <button className="btn btn--sm btn--ghost" onClick={() => act(p, 'ok')}>
+                    {t('admin.tips.unhide')}
+                  </button>
+                ) : (
+                  <button className="btn btn--sm btn--ghost" onClick={() => act(p, 'hidden')}>
+                    🙈 {t('tips.hide')}
+                  </button>
+                )}
               </span>
             </li>
           ))}

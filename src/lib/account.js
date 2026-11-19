@@ -64,6 +64,7 @@ export async function exportMyData(user, { withPhotos = false, onStep = () => {}
     trips.push(t);
   }
   onStep('social');
+  const myPosts = await safe(q('countryPosts', where('uid', '==', uid)));
   const [following, followers, notes, feedback, invitesIn, invitesOut, feed] = await Promise.all([
     safe(q('follows', where('from', '==', uid))),
     safe(q('follows', where('to', '==', uid))),
@@ -85,6 +86,7 @@ export async function exportMyData(user, { withPhotos = false, onStep = () => {}
     notifications: notes ? rows(notes) : [],
     tripInvites: [...(invitesIn ? rows(invitesIn) : []), ...(invitesOut ? rows(invitesOut) : [])],
     feedback: feedback ? rows(feedback) : [],
+    countryPosts: myPosts ? rows(myPosts) : [],
     activityFeed: feed?.exists() ? feed.data() : null,
   };
 }
@@ -158,6 +160,21 @@ export async function deleteMyAccount(user, { onStep = () => {} } = {}) {
   for (const m of mems.docs) {
     const subs = await Promise.all(['full', 'mid', 'thumbs', 'likes'].map((c) => safe(getDocs(collection(db, 'memories', m.id, c)))));
     await deleteRefs([...subs.flatMap((s) => s?.docs || []).map((x) => x.ref), m.ref]);
+  }
+  // Bài kinh nghiệm của mình (xoá kèm phiếu + bình luận bên trong), bình luận và phiếu của mình ở bài người khác
+  onStep('social');
+  const { tipsApi } = await import('./tips');
+  const myPosts = await safe(q('countryPosts', where('uid', '==', uid)));
+  for (const d of myPosts?.docs || []) await safe(tipsApi.remove(d.id));
+  const myComments = await safe(getDocs(query(collectionGroup(db, 'comments'), where('uid', '==', uid))));
+  for (const c of myComments?.docs || []) {
+    const postId = c.ref.parent.parent?.id;
+    if (postId && c.ref.parent.parent.parent.id === 'countryPosts') await safe(tipsApi.deleteComment({ id: postId }, { id: c.id }));
+  }
+  const myVotes = await safe(getDocs(query(collectionGroup(db, 'votes'), where('uid', '==', uid))));
+  for (const v of myVotes?.docs || []) {
+    const postId = v.ref.parent.parent?.id;
+    if (postId) await safe(tipsApi.vote({ uid }, { id: postId }, v.data().v, v.data().v));
   }
   // lượt thích mình đã bấm cho check-in của người khác
   const myLikes = await safe(getDocs(query(collectionGroup(db, 'likes'), where('uid', '==', uid))));

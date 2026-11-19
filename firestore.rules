@@ -112,7 +112,7 @@ service cloud.firestore {
     //  - invite / inviteAccepted / inviteDeclined: phải có lời mời tương ứng
     // Chỉ được dùng đúng các trường cho phép, độ dài giới hạn. Quản trị gửi được mọi loại.
     function noteBasics(d) {
-      return d.keys().hasOnly(['to', 'type', 'from', 'fromName', 'fromPhoto', 'title', 'memoryId', 'tripId', 'read', 'createdAt'])
+      return d.keys().hasOnly(['to', 'type', 'from', 'fromName', 'fromPhoto', 'title', 'memoryId', 'tripId', 'postId', 'commentId', 'cc', 'read', 'createdAt'])
         && d.from == request.auth.uid && d.to is string && d.to != 'all' && d.to != request.auth.uid
         && d.read == false && d.createdAt is int
         && d.get('fromName', '') is string && d.get('fromName', '').size() <= 80
@@ -123,6 +123,9 @@ service cloud.firestore {
       return (d.type == 'like' && d.memoryId is string
           && exists(/databases/$(database)/documents/memories/$(d.memoryId)/likes/$(request.auth.uid))
           && get(/databases/$(database)/documents/memories/$(d.memoryId)).data.uid == d.to)
+        || (d.type == 'postComment' && d.postId is string && d.commentId is string
+          && get(/databases/$(database)/documents/countryPosts/$(d.postId)/comments/$(d.commentId)).data.uid == request.auth.uid
+          && get(/databases/$(database)/documents/countryPosts/$(d.postId)).data.uid == d.to)
         || (d.type == 'follow' && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + d.to)))
         || (d.type == 'invite' && d.tripId is string
           && get(/databases/$(database)/documents/tripInvites/$(d.tripId + '_' + d.to)).data.from == request.auth.uid
@@ -168,6 +171,13 @@ service cloud.firestore {
     // Lượt thích của chính mình ở mọi check-in (để xoá khi xoá tài khoản)
     match /{path=**}/likes/{likeUid} {
       allow read: if signedIn() && likeUid == request.auth.uid;
+    }
+    // Phiếu / bình luận của chính mình ở mọi bài kinh nghiệm (để xoá khi xoá tài khoản)
+    match /{path=**}/votes/{vid} {
+      allow read: if signedIn() && resource.data.get('uid', '') == request.auth.uid;
+    }
+    match /{path=**}/comments/{cid} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
     }
     // Bộ đếm ẩn danh số tài khoản đã xoá: chỉ cộng đúng 1, và chỉ khi chính người đó đang xoá hồ sơ tài khoản
     match /stats/{id} {
@@ -376,6 +386,76 @@ service cloud.firestore {
           && request.resource.data.status in ['accepted', 'declined'])
       );
       allow delete: if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid || isAdmin());
+    }
+
+    // ---- Kinh nghiệm du lịch theo quốc gia (cộng đồng) ----
+    function validPost(d) {
+      return d.cc is string && d.cc.matches('^[A-Z]{2}$')
+        && d.topic in ['visa', 'cost', 'transport', 'food', 'stay', 'scam', 'other']
+        && d.title is string && d.title.size() >= 5 && d.title.size() <= 120
+        && d.body is string && d.body.size() >= 20 && d.body.size() <= 5000
+        && d.get('city', '') is string && d.get('city', '').size() <= 60
+        && d.get('authorName', '') is string && d.get('authorName', '').size() <= 80
+        && d.get('authorPhoto', '') is string && d.get('authorPhoto', '').size() <= 120000;
+    }
+    function voteOf(path, after) {
+      return after ? (existsAfter(path) ? getAfter(path).data.v : '') : (exists(path) ? get(path).data.v : '');
+    }
+    function voteDelta(postId, kind) {
+      let p = /databases/$(database)/documents/countryPosts/$(postId)/votes/$(request.auth.uid);
+      return (voteOf(p, true) == kind ? 1 : 0) - (voteOf(p, false) == kind ? 1 : 0);
+    }
+    match /countryPosts/{postId} {
+      allow read: if resource.data.status == 'ok' || (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && validPost(request.resource.data)
+                    && request.resource.data.status == 'ok'
+                    && request.resource.data.helpful == 0 && request.resource.data.wrong == 0 && request.resource.data.comments == 0
+                    && request.resource.data.keys().hasOnly(['cc', 'city', 'topic', 'title', 'body', 'uid', 'authorName', 'authorPhoto', 'helpful', 'wrong', 'comments', 'status', 'createdAt', 'updatedAt']);
+      allow update: if signedIn() && (
+        // Tác giả sửa nội dung
+        (resource.data.uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'body', 'topic', 'city', 'updatedAt'])
+          && validPost(request.resource.data)) ||
+        // Bỏ phiếu Hữu ích / Sai lệch (không tự chấm bài mình): bộ đếm thay đổi đúng bằng phiếu
+        (resource.data.uid != request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['helpful', 'wrong'])
+          && request.resource.data.helpful == resource.data.helpful + voteDelta(postId, 'helpful')
+          && request.resource.data.wrong == resource.data.wrong + voteDelta(postId, 'wrong')) ||
+        // Bình luận: +1 khi thêm, -1 khi xoá (cùng 1 lần ghi với bình luận đó)
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comments', 'lastCommentId'])
+          && ((request.resource.data.comments == resource.data.comments + 1
+                && existsAfter(/databases/$(database)/documents/countryPosts/$(postId)/comments/$(request.resource.data.lastCommentId))
+                && !exists(/databases/$(database)/documents/countryPosts/$(postId)/comments/$(request.resource.data.lastCommentId)))
+            || (request.resource.data.comments == resource.data.comments - 1
+                && exists(/databases/$(database)/documents/countryPosts/$(postId)/comments/$(request.resource.data.lastCommentId))
+                && !existsAfter(/databases/$(database)/documents/countryPosts/$(postId)/comments/$(request.resource.data.lastCommentId))))) ||
+        // Kiểm duyệt
+        (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status in ['ok', 'hidden'])
+      );
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isStaff());
+
+      match /votes/{uid} {
+        allow read: if signedIn() && uid == request.auth.uid;
+        allow create, update: if signedIn() && uid == request.auth.uid
+                              && request.resource.data.keys().hasOnly(['v', 'uid', 'at']) && request.resource.data.uid == request.auth.uid
+                              && request.resource.data.v in ['helpful', 'wrong']
+                              && get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid != request.auth.uid;
+        allow delete: if signedIn() && (uid == request.auth.uid || isStaff()
+                      || get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid == request.auth.uid);
+      }
+      match /comments/{cid} {
+        allow read: if true;
+        allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['uid', 'authorName', 'authorPhoto', 'body', 'createdAt'])
+                      && request.resource.data.body is string && request.resource.data.body.size() > 0 && request.resource.data.body.size() <= 2000
+                      && request.resource.data.get('authorPhoto', '') is string && request.resource.data.get('authorPhoto', '').size() <= 120000;
+        // Tác giả bài đánh dấu "câu trả lời hay nhất"
+        allow update: if signedIn() && get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid == request.auth.uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['best']);
+        allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isStaff()
+                      || get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid == request.auth.uid);
+      }
     }
   }
 }

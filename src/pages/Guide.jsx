@@ -1,11 +1,14 @@
 import { useI18n } from '../i18n';
+import { useApp } from '../AppContext';
 
 /** #/guide — Cẩm nang du lịch (đang chuẩn bị) */
 const SOON = ['🛂', '🌤️', '💸', '🍜', '🚆', '🗣️'];
-const TEASER = ['🇻🇳', '🇹🇭', '🇯🇵', '🇰🇷', '🇸🇬', '🇲🇾', '🇮🇩', '🇨🇳', '🇹🇼', '🇵🇭', '🇰🇭', '🇱🇦'];
+const TEASER = ['VN', 'TH', 'JP', 'KR', 'SG', 'MY', 'ID', 'CN', 'TW', 'PH', 'KH', 'LA'];
+const flag = (cc) => String.fromCodePoint(...[...cc].map((c) => 0x1f1a5 + c.charCodeAt(0)));
 
 export default function GuidePage() {
   const { t } = useI18n();
+  const { openTips } = useApp();
   return (
     <div className="page guide">
       <section className="guide-soon card">
@@ -15,9 +18,12 @@ export default function GuidePage() {
         </div>
         <h1 className="h1">{t('guide.title')}</h1>
         <p className="muted guide-soon__lead">{t('guide.lead')}</p>
-        <div className="guide-soon__flags" aria-hidden>
-          {TEASER.map((f) => (
-            <span key={f}>{f}</span>
+        <p className="small"><b>{t('guide.tipsNow')}</b></p>
+        <div className="guide-soon__flags">
+          {TEASER.map((cc) => (
+            <a key={cc} href={`#/tips/${cc}`} title={t('guide.tipsFor')} onClick={(e) => (e.preventDefault(), openTips(cc))}>
+              {flag(cc)}
+            </a>
           ))}
         </div>
         <ul className="guide-soon__list">

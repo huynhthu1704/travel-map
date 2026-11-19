@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import AdSlot from './AdSlot';
+import { TipsTeaser } from '../pages/Tips';
 import { useApp } from '../AppContext';
 import { FAMOUS_PLACES } from '../data/places';
 import { countryName, flagOf, WORLD_COUNTRY_COUNT } from '../lib/countries';
@@ -655,6 +656,8 @@ function CountryPanel() {
           </p>
         </div>
       </div>
+
+      <TipsTeaser cc={cc} />
 
       {cities.length > 1 && (
         <div className="chips chips--scroll">

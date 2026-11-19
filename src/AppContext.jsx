@@ -54,7 +54,8 @@ export function AppProvider({ children }) {
   const [selectedCountry, setSelectedCountry] = useState(initRoute.country);
   const [selectedPlace, setSelectedPlace] = useState(initRoute.place);
   const [profileUid, setProfileUid] = useState(initRoute.profile); // hồ sơ đang xem (#/u/<uid>)
-  const [profileSub, setProfileSub] = useState(initRoute.profileSub); // trang con của hồ sơ: 'activity'
+  const [profileSub, setProfileSub] = useState(initRoute.profileSub);
+  const [tipPost, setTipPost] = useState(initRoute.tipPost); // bài kinh nghiệm đang mở
   const [flyTarget, setFlyTarget] = useState(null);
   // Trang danh sách đã mở địa điểm (để có nút quay lại danh sách)
   const [returnView, setReturnView] = useState(null);
@@ -367,7 +368,7 @@ export function AppProvider({ children }) {
   const routeReplace = useRef(true); // lần đầu & khi bấm Back/Forward: chỉ thay, không thêm lịch sử
   useEffect(() => {
     if (/join=/.test(location.hash)) return;
-    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab, profile: profileUid, profileSub });
+    const h = buildRoute({ view, country: selectedCountry, place: selectedPlace, trip: activeTripId, tripDetail: openTripId, tripTab, profile: profileUid, profileSub, tipPost });
     const replace = routeReplace.current;
     routeReplace.current = false;
     if (h === location.hash) return;
@@ -375,7 +376,7 @@ export function AppProvider({ children }) {
     const url = location.pathname + location.search + h;
     if (replace || samePath) history.replaceState(null, '', url);
     else history.pushState(null, '', url);
-  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab, profileUid, profileSub]);
+  }, [view, selectedCountry, selectedPlace, activeTripId, openTripId, tripTab, profileUid, profileSub, tipPost]);
   useEffect(() => {
     const onPop = () => {
       const r = parseRoute(location.hash);
@@ -388,6 +389,7 @@ export function AppProvider({ children }) {
       setTripTab(r.tripTab);
       setProfileUid(r.profile);
       setProfileSub(r.profileSub);
+      setTipPost(r.tipPost);
       if (r.view === 'map') {
         if (r.place) setFlyTarget({ lat: r.place.lat, lng: r.place.lng, zoom: 13, t: Date.now() });
         else if (r.country) setFlyTarget({ country: r.country, t: Date.now() });
@@ -443,6 +445,14 @@ export function AppProvider({ children }) {
     setView('map');
   }, []);
 
+  // Kinh nghiệm du lịch theo quốc gia (#/tips/<cc>?post=<id>)
+  const openTips = useCallback((cc) => {
+    setSelectedPlace(null);
+    setSelectedCountry(cc);
+    setTipPost(null);
+    window.scrollTo?.(0, 0);
+    setView('tips');
+  }, []);
   const openCountry = useCallback(
     (cc) => {
       setView('map');
@@ -710,7 +720,7 @@ export function AppProvider({ children }) {
     api, user, places, memories, publicMemories, loadPublic: () => setNeedPublic(true), trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     placeOrigin, setPlaceOrigin,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
-    modal, setModal, toast, notify, deleteCheckin, myInvites, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
+    modal, setModal, toast, notify, deleteCheckin, myInvites, openTips, tipPost, setTipPost, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

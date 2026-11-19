@@ -33,6 +33,8 @@ export const DEFAULT_SETTINGS = {
   announcement: { active: false, vi: '', en: '', tone: 'info' },
   homeCountry: 'VN',
   features: { explore: true, trips: true, wikidata: true },
+  // Sắp xếp bài kinh nghiệm: xen kẽ bài hữu ích / bài mới, ngưỡng "thông tin sai lệch", bài cũ
+  community: { helpfulSlots: 2, newSlots: 1, newDays: 30, flagMin: 3, flagPct: 40, staleMonths: 12 },
 };
 
 const now = () => Date.now();
@@ -41,6 +43,7 @@ const mergeSettings = (s = {}) => ({
   ...s,
   announcement: { ...DEFAULT_SETTINGS.announcement, ...(s.announcement || {}) },
   features: { ...DEFAULT_SETTINGS.features, ...(s.features || {}) },
+  community: { ...DEFAULT_SETTINGS.community, ...(s.community || {}) },
 });
 
 /* ------------------------------ Nhật ký quản trị ------------------------------

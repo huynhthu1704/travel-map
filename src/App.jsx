@@ -13,6 +13,7 @@ import { Avatar, Loader, AppLink } from './components/ui';
 import { hrefView, hrefProfile } from './lib/route';
 // Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
 const GuidePage = lazy(() => import('./pages/Guide'));
+const TipsPage = lazy(() => import('./pages/Tips'));
 const LegalPage = lazy(() => import('./pages/Legal'));
 const AccountPage = lazy(() => import('./pages/Account'));
 const ExplorePage = lazy(() => import('./pages/Pages').then((m) => ({ default: m.ExplorePage })));
@@ -226,6 +227,7 @@ function Shell() {
           {(view === 'privacy' || view === 'terms') && <LegalPage kind={view} />}
           {view === 'account' && <AccountPage />}
           {view === 'guide' && <GuidePage />}
+          {view === 'tips' && <TipsPage />}
         </Suspense>
       </main>
 

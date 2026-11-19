@@ -16,7 +16,23 @@ service cloud.firestore {
       return exists(p) ? get(p).data.get('role', 'user') : 'user';
     }
     function isAdmin() { return isSuper() || (signedIn() && myRole() == 'admin'); }
-    function isStaff() { return isSuper() || (signedIn() && myRole() in ['admin', 'editor']); }
+    // Đội vận hành: mọi vai trò khác 'user' (biên tập viên, kiểm duyệt, marketing, vai trò tự tạo…)
+    function isStaff() { return isSuper() || (signedIn() && myRole() != 'user'); }
+    // Quyền của từng vai trò: settings/site.rolePerms { [vai trò]: [quyền] }; chưa cấu hình thì dùng mặc định
+    function siteSettings() { return get(/databases/$(database)/documents/settings/site).data; }
+    function defaultPerms(r) {
+      return {
+        'editor': ['content', 'feedback', 'places', 'tips'],
+        'moderator': ['content', 'feedback', 'tips'],
+        'marketing': ['insights', 'announce', 'notify', 'ads']
+      }.get(r, []);
+    }
+    function hasPerm(perm) {
+      return isAdmin() || (isStaff() && perm in siteSettings().get('rolePerms', {}).get(myRole(), defaultPerms(myRole())));
+    }
+    function validRole(r) {
+      return r in ['user', 'admin', 'editor', 'moderator', 'marketing'] || r in siteSettings().get('rolePerms', {}).keys();
+    }
 
     // Hồ sơ: tên / ảnh tự đặt, thông tin đăng nhập, thống kê dùng cho trang quản trị.
     // Người dùng không tự đổi được vai trò hay trạng thái khoá.
@@ -39,31 +55,40 @@ service cloud.firestore {
                         && validPhoto(request.resource.data) && validUserText(request.resource.data))
                     || (isAdmin()
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned'])
-                        && request.resource.data.get('role', 'user') in ['user', 'editor', 'admin']);
+                        && validRole(request.resource.data.get('role', 'user')));
       // Tự xoá tài khoản của mình
       allow delete: if signedIn() && request.auth.uid == uid;
     }
 
-    // Cài đặt trang: ai cũng đọc; chỉ quản trị viên sửa
+    // Cài đặt trang: ai cũng đọc; quản trị viên sửa tất cả; vai trò khác chỉ sửa phần thuộc quyền mình
+    // (vai trò & quyền — rolePerms / roleDefs — chỉ quản trị viên sửa)
+    function settingsKeys() {
+      return resource == null ? request.resource.data.keys() : request.resource.data.diff(resource.data).affectedKeys();
+    }
     match /settings/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin()
+        || (id == 'site' && (
+          (hasPerm('announce') && settingsKeys().hasOnly(['announcements', 'announcement']))
+          || (hasPerm('ads') && settingsKeys().hasOnly(['ads']))
+          || (hasPerm('flags') && settingsKeys().hasOnly(['flags']))
+          || (hasPerm('settings') && settingsKeys().hasOnly(['homeCountry', 'features', 'community']))));
     }
     // Chỉnh sửa / thêm địa điểm nổi tiếng: ai cũng đọc; biên tập viên trở lên sửa
     match /placeOverrides/{id} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write: if hasPerm('places');
     }
     match /customPlaces/{id} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write: if hasPerm('places');
     }
     // Báo cáo nội dung: người đăng nhập gửi; biên tập viên trở lên xem và xử lý
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.byUid == request.auth.uid && request.resource.data.status == 'open'
                     && request.resource.data.reason is string && request.resource.data.reason.size() <= 40
                     && request.resource.data.get('note', '') is string && request.resource.data.get('note', '').size() <= 500;
-      allow read, update, delete: if isStaff();
+      allow read, update, delete: if hasPerm('content');
       // Người báo cáo xem / xoá báo cáo của mình (khi xoá tài khoản)
       allow read, delete: if signedIn() && resource.data.byUid == request.auth.uid;
     }
@@ -137,7 +162,8 @@ service cloud.firestore {
     }
     match /notifications/{id} {
       allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.to == 'all' || resource.data.get('from', '') == request.auth.uid || isStaff());
-      allow create: if signedIn() && ((noteBasics(request.resource.data) && noteBacked(request.resource.data)) || isStaff());
+      allow create: if signedIn() && ((noteBasics(request.resource.data) && noteBacked(request.resource.data))
+                    || (isStaff() && (request.resource.data.to != 'all' || hasPerm('notify'))));
       allow update: if signedIn() && resource.data.to == request.auth.uid
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
       allow delete: if signedIn() && (resource.data.to == request.auth.uid || resource.data.get('from', '') == request.auth.uid || isStaff());
@@ -147,12 +173,12 @@ service cloud.firestore {
     match /feedback/{id} {
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'open'
                     && request.resource.data.get('title', '') is string && request.resource.data.get('title', '').size() <= 200;
-      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isStaff());
-      allow update: if isStaff()
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || hasPerm('feedback'));
+      allow update: if hasPerm('feedback')
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt', 'handledBy', 'history']);
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
       match /files/{fileId} {
-        allow read: if signedIn() && (get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid || isStaff());
+        allow read: if signedIn() && (get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid || hasPerm('feedback'));
         allow create: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid;
         allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
@@ -160,7 +186,7 @@ service cloud.firestore {
     }
     // Nhật ký quản trị: biên tập viên / quản trị viên ghi; chỉ quản trị viên đọc; không ai sửa hay xoá được
     match /adminLogs/{id} {
-      allow read: if isAdmin();
+      allow read: if hasPerm('logs');
       allow create: if isStaff() && request.resource.data.by == request.auth.uid
                     && request.resource.data.keys().hasOnly(['at', 'by', 'byName', 'action', 'target', 'detail'])
                     && request.resource.data.action is string && request.resource.data.action.size() <= 40
@@ -181,7 +207,7 @@ service cloud.firestore {
     }
     // Bộ đếm ẩn danh số tài khoản đã xoá: chỉ cộng đúng 1, và chỉ khi chính người đó đang xoá hồ sơ tài khoản
     match /stats/{id} {
-      allow read: if isAdmin();
+      allow read: if hasPerm('insights');
       allow create, update: if id == 'deletions' && signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -191,13 +217,13 @@ service cloud.firestore {
     }
     // Đếm số mục kế hoạch / chi phí / checklist cho trang thống kê (chỉ quản trị viên)
     match /{path=**}/plan/{itemId} {
-      allow read: if isAdmin();
+      allow read: if hasPerm('insights');
     }
     match /{path=**}/costs/{costId} {
-      allow read: if isAdmin();
+      allow read: if hasPerm('insights');
     }
     match /{path=**}/checklists/{listId} {
-      allow read: if isAdmin();
+      allow read: if hasPerm('insights');
     }
 
     // Địa điểm đã đến / muốn đi của từng người
@@ -211,7 +237,7 @@ service cloud.firestore {
       return m.visibility == 'public'
         || (signedIn() && m.uid == request.auth.uid)
         || (m.tripId != null && isMember(m.tripId))
-        || (m.get('moderated', false) == true && isStaff());
+        || (m.get('moderated', false) == true && hasPerm('content'));
     }
     // Giới hạn độ dài nội dung check-in (chặn ghi dữ liệu quá lớn / rác)
     function validMemory(d) {
@@ -237,9 +263,9 @@ service cloud.firestore {
                       || get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid);
       }
       // Kiểm duyệt: biên tập viên trở lên ẩn / hiện lại / xoá
-      allow update: if isStaff()
+      allow update: if hasPerm('content')
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visibility', 'moderated', 'moderatedBy', 'moderatedAt', 'moderationNote']);
-      allow delete: if isStaff();
+      allow delete: if hasPerm('content');
 
       // Ảnh độ phân giải đầy đủ (mỗi ảnh 1 document)
       // Ảnh độ phân giải vừa (cho mạng chậm) — cùng quyền với ảnh gốc
@@ -248,19 +274,19 @@ service cloud.firestore {
         allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
         allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
-        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
+        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || hasPerm('content');
       }
       match /mid/{photoId} {
         allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
         allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
-        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
+        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || hasPerm('content');
       }
       match /full/{photoId} {
         allow read: if canReadMemory(get(/databases/$(database)/documents/memories/$(id)).data);
         allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
                       && get(/databases/$(database)/documents/memories/$(id)).data.uid == request.auth.uid;
-        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
+        allow delete: if (signedIn() && resource.data.uid == request.auth.uid) || hasPerm('content');
       }
     }
 
@@ -292,7 +318,7 @@ service cloud.firestore {
         && d.get('emoji', '') is string && d.get('emoji', '').size() <= 16;
     }
     match /trips/{tripId} {
-      allow read: if (signedIn() && request.auth.uid in resource.data.memberIds) || isAdmin();
+      allow read: if (signedIn() && request.auth.uid in resource.data.memberIds) || hasPerm('trips') || hasPerm('insights');
       allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid
                     && request.resource.data.memberIds == [request.auth.uid]
                     && validTripText(request.resource.data);
@@ -406,7 +432,7 @@ service cloud.firestore {
       return (voteOf(p, true) == kind ? 1 : 0) - (voteOf(p, false) == kind ? 1 : 0);
     }
     match /countryPosts/{postId} {
-      allow read: if resource.data.status == 'ok' || (signedIn() && resource.data.uid == request.auth.uid) || isStaff();
+      allow read: if resource.data.status == 'ok' || (signedIn() && resource.data.uid == request.auth.uid) || hasPerm('tips');
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid && validPost(request.resource.data)
                     && request.resource.data.status == 'ok'
                     && request.resource.data.helpful == 0 && request.resource.data.wrong == 0 && request.resource.data.comments == 0
@@ -430,10 +456,10 @@ service cloud.firestore {
                 && exists(/databases/$(database)/documents/countryPosts/$(postId)/comments/$(request.resource.data.lastCommentId))
                 && !existsAfter(/databases/$(database)/documents/countryPosts/$(postId)/comments/$(request.resource.data.lastCommentId))))) ||
         // Kiểm duyệt
-        (isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+        (hasPerm('tips') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
           && request.resource.data.status in ['ok', 'hidden'])
       );
-      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isStaff());
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || hasPerm('tips'));
 
       match /votes/{uid} {
         allow read: if signedIn() && uid == request.auth.uid;
@@ -441,7 +467,7 @@ service cloud.firestore {
                               && request.resource.data.keys().hasOnly(['v', 'uid', 'at']) && request.resource.data.uid == request.auth.uid
                               && request.resource.data.v in ['helpful', 'wrong']
                               && get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid != request.auth.uid;
-        allow delete: if signedIn() && (uid == request.auth.uid || isStaff()
+        allow delete: if signedIn() && (uid == request.auth.uid || hasPerm('tips')
                       || get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid == request.auth.uid);
       }
       match /comments/{cid} {
@@ -453,7 +479,7 @@ service cloud.firestore {
         // Tác giả bài đánh dấu "câu trả lời hay nhất"
         allow update: if signedIn() && get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid == request.auth.uid
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['best']);
-        allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isStaff()
+        allow delete: if signedIn() && (resource.data.uid == request.auth.uid || hasPerm('tips')
                       || get(/databases/$(database)/documents/countryPosts/$(postId)).data.uid == request.auth.uid);
       }
     }

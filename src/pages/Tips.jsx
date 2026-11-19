@@ -205,7 +205,8 @@ function PostForm({ cc, post, onClose, onSaved }) {
 }
 
 function PostModal({ id, cfg, onClose, onEdit }) {
-  const { user, isStaff, requireLogin, notify, openProfile, adminApi } = useApp();
+  const { user, hasPerm, requireLogin, notify, openProfile, adminApi } = useApp();
+  const isStaff = hasPerm('tips');
   const { t, lang } = useI18n();
   const [p, setP] = useState(undefined);
   const [vote, setVote] = useState('');

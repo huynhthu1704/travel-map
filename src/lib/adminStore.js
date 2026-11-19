@@ -45,6 +45,12 @@ const mergeSettings = (s = {}) => ({
   features: { ...DEFAULT_SETTINGS.features, ...(s.features || {}) },
   community: { ...DEFAULT_SETTINGS.community, ...(s.community || {}) },
   flags: s.flags || {},
+  // Thông báo đầu trang có lịch: [{ id, vi, en, tone, startAt, endAt, createdAt }]
+  announcements: Array.isArray(s.announcements) ? s.announcements : [],
+  // Quảng cáo: chế độ hiển thị + các vị trí đang tắt (trước đây lưu ở features.ads)
+  ads: { mode: s.ads?.mode || s.features?.ads || 'staff', off: s.ads?.off || [] },
+  rolePerms: s.rolePerms || {},
+  roleDefs: Array.isArray(s.roleDefs) ? s.roleDefs : [],
 });
 
 /* ------------------------------ Nhật ký quản trị ------------------------------
@@ -53,7 +59,7 @@ const mergeSettings = (s = {}) => ({
 let actor = null;
 export const setAdminActor = (u) => (actor = u ? { uid: u.uid, name: u.name || '' } : null);
 const LOGGED = {
-  saveSettings: 'settings.save', saveOverride: 'place.edit', clearOverride: 'place.reset', saveCustomPlace: 'place.add', deleteCustomPlace: 'place.delete',
+  saveSettings: 'settings.save', saveRoles: 'roles.save', saveOverride: 'place.edit', clearOverride: 'place.reset', saveCustomPlace: 'place.add', deleteCustomPlace: 'place.delete',
   updateReport: 'report.update', deleteReport: 'report.delete', updateUser: 'user.update', hideMemory: 'memory.hide', unhideMemory: 'memory.unhide',
   deleteMemoryAdmin: 'memory.delete', deleteTrip: 'trip.delete',
 };
@@ -66,6 +72,7 @@ function describe(name, args) {
   const [a, b, c] = args;
   switch (name) {
     case 'saveSettings': return { target: 'site', detail: short(Object.keys(a || {}).join(', ')) };
+    case 'saveRoles': return { target: 'roles', detail: short(a) };
     case 'saveOverride': return { target: a, detail: short(b) };
     case 'saveCustomPlace': return { target: a?.id || a?.name || '', detail: short(a?.name) };
     case 'updateReport': return { target: a, detail: short({ status: b?.status, action: b?.action }) };
@@ -133,6 +140,9 @@ const fb = {
   setConsent: (uid, version) => updateDoc(doc(db, 'users', uid), { consentVersion: version, consentAt: now() }),
   watchSettings: (cb) => onSnapshot(doc(db, 'settings', 'site'), (s) => cb(mergeSettings(s.exists() ? s.data() : {})), () => cb(mergeSettings())),
   saveSettings: (s) => setDoc(doc(db, 'settings', 'site'), s, { merge: true }),
+  // Ghi đè toàn bộ vai trò & quyền (để vai trò đã xoá không còn sót lại)
+  saveRoles: (rolePerms, roleDefs) =>
+    updateDoc(doc(db, 'settings', 'site'), { rolePerms, roleDefs }).catch(() => setDoc(doc(db, 'settings', 'site'), { rolePerms, roleDefs }, { merge: true })),
   watchOverrides: (cb) =>
     onSnapshot(collection(db, 'placeOverrides'), (s) => cb(Object.fromEntries(s.docs.map((d) => [d.id, d.data()]))), () => cb({})),
   saveOverride: (id, patch, by) => setDoc(doc(db, 'placeOverrides', id), { ...patch, updatedAt: now(), updatedBy: by || '' }, { merge: true }),
@@ -257,6 +267,10 @@ const local = {
   watchSettings: (cb) => on(() => cb(mergeSettings(st.settings))),
   async saveSettings(s) {
     st.settings = mergeSettings({ ...st.settings, ...s, announcement: { ...st.settings.announcement, ...(s.announcement || {}) }, features: { ...st.settings.features, ...(s.features || {}) } });
+    persist();
+  },
+  async saveRoles(rolePerms, roleDefs) {
+    st.settings = mergeSettings({ ...st.settings, rolePerms, roleDefs });
     persist();
   },
   watchOverrides: (cb) => on(() => cb({ ...st.overrides })),

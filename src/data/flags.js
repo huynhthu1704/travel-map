@@ -11,6 +11,7 @@
  * Chưa có cấu hình thì dùng `defaultOn`.
  */
 export const FLAGS = [
+  { key: 'guideToTrip', icon: '➕', name: { vi: "Thêm địa điểm cẩm nang vào chuyến", en: "Add guide places to a trip" }, desc: { vi: "Bấm địa điểm trong mục Nơi nên đi để thêm vào kế hoạch chuyến đi.", en: "Tap a place in Where to go to add it to a trip plan." }, since: '2026-11-19', defaultOn: false },
   { key: 'explore', icon: '🌍', name: { vi: "Trang Khám phá", en: "Explore page" }, desc: { vi: "Xem check-in công khai của mọi người.", en: "See everyone’s public check-ins." }, since: '', defaultOn: true },
   { key: 'trips', icon: '🧳', name: { vi: "Chuyến đi", en: "Trips" }, desc: { vi: "Tạo chuyến đi, kế hoạch, chi phí, checklist.", en: "Trips with plans, costs and checklists." }, since: '', defaultOn: true },
   { key: 'tripInvites', icon: '📨', name: { vi: "Mời bạn bè vào chuyến", en: "Trip invites" }, desc: { vi: "Tìm người dùng và gửi lời mời vào chuyến.", en: "Invite users to a trip." }, since: '', defaultOn: true },

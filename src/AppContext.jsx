@@ -6,6 +6,7 @@ import { parseRoute, buildRoute } from './lib/route';
 import { loadFamousLive } from './lib/famousLive';
 import { famousIn } from './data/places';
 import { adminApi, isSuperUid, setAdminActor, DEFAULT_SETTINGS } from './lib/adminStore';
+import { permsOf } from './lib/roles';
 import { normalize } from './lib/geo';
 import { COORD_FIXES, fixPlace, fixMemory } from './lib/fixes';
 import { translate as t } from './i18n';
@@ -140,7 +141,10 @@ export function AppProvider({ children }) {
   const isSuper = !!user && isSuperUid(user.uid);
   const role = isSuper ? 'admin' : profile?.role || 'user';
   const isAdmin = role === 'admin';
-  const isStaff = role === 'admin' || role === 'editor';
+  const isStaff = role !== 'user';
+  // Quyền quản trị theo vai trò (Quản trị → Vai trò & quyền)
+  const perms = useMemo(() => new Set(permsOf(role, settings)), [role, settings]);
+  const hasPerm = useCallback((p) => isAdmin || perms.has(p), [isAdmin, perms]);
   const banned = !isSuper && !!profile?.banned;
   const can = useCallback((key) => flagAllows(key, settings, user, isSuper), [settings, user, isSuper]); // feature flags
   setAdminActor(isStaff ? user : null); // người thực hiện thao tác quản trị — ghi vào nhật ký
@@ -717,7 +721,7 @@ export function AppProvider({ children }) {
   const unread = notes.filter((n) => !n.read).length;
 
   const value = {
-    profile, role, isAdmin, isStaff, isSuper, banned,
+    profile, role, isAdmin, isStaff, isSuper, banned, hasPerm,
     profileUid, setProfileUid, profileSub, setProfileSub, openProfile, myPublic, following, followers, followingIds, followerIds, friendIds, toggleFollow, notes, unread, socialApi, settings, overrides, customPlaces, applyOverride, adminApi,
     reportMemory: (m, reason, note) => adminApi.reportMemory(userRef.current, m, reason, note),
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,

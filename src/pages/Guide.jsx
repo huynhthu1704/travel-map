@@ -1,9 +1,11 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { useI18n } from '../i18n';
 import { useApp } from '../AppContext';
 import { countryName, flagOf } from '../lib/countries';
 import { hrefCountry } from '../lib/route';
-import { AppLink } from '../components/ui';
+import { AppLink, Modal } from '../components/ui';
+import { GUIDE_SPOTS } from '../data/guideSpots';
+import { searchNominatim } from '../lib/geo';
 import AdSlot from '../components/AdSlot';
 import { GUIDES, GUIDE_BY_CC, SECTIONS, GUIDES_CHECKED } from '../data/guides';
 
@@ -129,6 +131,7 @@ function CountryGuide({ g, onBack }) {
                   </p>
                 );
               })()}
+              {s.key === 'places' && can('guideToTrip') && GUIDE_SPOTS[g.cc] && <GuideSpots cc={g.cc} />}
             </section>
           </Fragment>
         ))}
@@ -136,5 +139,80 @@ function CountryGuide({ g, onBack }) {
       <p className="tiny muted guide__note">{t('guide.checked', { date: GUIDES_CHECKED })}</p>
       <AdSlot placement={`guide-${g.cc}`} size="banner" />
     </div>
+  );
+}
+
+/** Các địa điểm trong "Nơi nên đi" — bấm để thêm vào kế hoạch một chuyến đi của mình */
+function GuideSpots({ cc }) {
+  const { t, lang } = useI18n();
+  const { requireLogin } = useApp();
+  const [spot, setSpot] = useState(null);
+  return (
+    <div className="guide-spots">
+      <p className="small muted">➕ {t('guide.addHint')}</p>
+      <div className="chips">
+        {GUIDE_SPOTS[cc].map((x) => (
+          <button key={x.n} type="button" className="chip guide-spot" onClick={() => requireLogin(() => setSpot(x), t('guide.addLogin'))}>
+            {(lang === 'vi' && x.vi) || x.n} <b>+</b>
+          </button>
+        ))}
+      </div>
+      {spot && <AddSpotModal cc={cc} spot={spot} onClose={() => setSpot(null)} />}
+    </div>
+  );
+}
+
+function AddSpotModal({ cc, spot, onClose }) {
+  const { t, lang } = useI18n();
+  const { user, trips, api, notify, setView, setOpenTripId } = useApp();
+  const [busy, setBusy] = useState('');
+  const label = (lang === 'vi' && spot.vi) || spot.n;
+  const mine = (trips || []).filter((tr) => !tr.memberIds || tr.memberIds.includes(user?.uid));
+  const add = async (tr) => {
+    setBusy(tr.id);
+    try {
+      const [hit] = await searchNominatim(spot.q, undefined, lang, { countrycodes: cc, limit: 1 });
+      if (!hit) throw new Error('nf');
+      const place = { ...hit, id: `guide-${cc}-${spot.n.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, name: label, country: cc };
+      const plan = await new Promise((res) => {
+        let off = null;
+        off = api.watchPlan(tr.id, (items) => {
+          res(items || []);
+          setTimeout(() => off && off(), 0);
+        });
+      });
+      if (plan.some((it) => it.place?.id === place.id || (it.place?.name === label && it.place?.country === cc))) {
+        notify(t('guide.already', { name: label, trip: tr.name }));
+      } else {
+        await api.addPlanItem(user, tr.id, { place, order: Date.now() });
+        notify(t('guide.added', { name: label, trip: tr.name }));
+      }
+      onClose();
+    } catch (e) {
+      notify(e?.message === 'nf' ? t('guide.notFound') : t('admin.error', { msg: e?.message || '' }), 'error');
+      setBusy('');
+    }
+  };
+  return (
+    <Modal onClose={onClose} title={t('guide.addTitle', { name: label })}>
+      {mine.length ? (
+        <div className="stack">
+          <p className="small muted">{t('guide.pickTrip')}</p>
+          {mine.map((tr) => (
+            <button key={tr.id} type="button" className="btn btn--soft guide-trip" disabled={!!busy} onClick={() => add(tr)}>
+              <span>{tr.emoji || '🧳'}</span> <b>{tr.name}</b>
+              {busy === tr.id && <span className="muted"> …</span>}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="stack">
+          <p>{t('guide.noTrips')}</p>
+          <button type="button" className="btn btn--primary" onClick={() => (onClose(), setOpenTripId(null), setView('trips'))}>
+            🧳 {t('guide.createTrip')}
+          </button>
+        </div>
+      )}
+    </Modal>
   );
 }

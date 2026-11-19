@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { currentAnnouncement } from './lib/announcements';
 import { AppProvider, useApp } from './AppContext';
 import MapView from './components/MapView';
 import SidePanel from './components/SidePanel';
@@ -164,8 +165,14 @@ function Shell() {
   const nav = NAV.filter((n) => (n.id === 'explore' || n.id === 'trips' || n.id === 'guide' ? can(n.id) : true)).concat(
     isStaff ? [{ id: 'admin', icon: '🛠️' }] : [],
   );
-  const ann = settings.announcement;
-  const annText = ann?.active ? (lang === 'en' ? ann.en || ann.vi : ann.vi || ann.en) : '';
+  // Thông báo đầu trang: theo lịch (Quản trị → Thông báo đầu trang), cập nhật mỗi phút
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  const ann = currentAnnouncement(settings, nowTick);
+  const annText = ann ? (lang === 'en' ? ann.en || ann.vi : ann.vi || ann.en) : '';
   const [annClosed, setAnnClosed] = useState(() => sessionStorage.getItem('travel-map-ann') || '');
   const activeTrip = trips.find((t) => t.id === activeTripId);
   // Giữ các trang đã mở trong DOM để khi quay lại vẫn còn tab, bộ lọc và vị trí cuộn
@@ -250,7 +257,7 @@ function Shell() {
 
       {!firebaseEnabled && <div className="demo-flag">{t('demo.flag')}</div>}
       {annText && annClosed !== annText && (
-        <div className={`announce announce--floating announce--${ann.tone}`} role="status">
+        <div className={`announce announce--floating announce--${ann.tone || 'info'}`} role="status">
           <span>{annText}</span>
           <button
             onClick={() => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Avatar, Empty, Loader, LoadingImage, formatDate, AppLink, TrashIcon } from '../components/ui';
@@ -13,7 +13,10 @@ import { FLAGS } from '../data/flags';
 import { socialApi as social } from '../lib/social';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
-import { ROLES, isSuperUid, maskEmail } from '../lib/adminStore';
+import { isSuperUid, maskEmail } from '../lib/adminStore';
+import { allRoles, roleLabel, PERMS, PRESET_ROLES } from '../lib/roles';
+import { ANNOUNCEMENT_TEMPLATES, announcementStatus } from '../lib/announcements';
+import { AD_PLACEMENTS } from '../components/AdSlot';
 import AdminInsights from './AdminInsights';
 import { AdminFeedback } from '../components/Feedback';
 
@@ -22,24 +25,32 @@ import { AdminFeedback } from '../components/Feedback';
 /* báo cáo, địa điểm nổi tiếng, chuyến đi, cài đặt trang               */
 /* ------------------------------------------------------------------ */
 
+// perm: quyền cần có (Quản trị → Vai trò & quyền); admin: chỉ quản trị viên
 const TABS = [
-  { id: 'dashboard', icon: '🏠', staff: true },
-  { id: 'insights', icon: '📊', admin: true },
+  { id: 'dashboard', icon: '🏠' },
+  { id: 'insights', icon: '📊', perm: 'insights' },
   { id: 'users', icon: '👥', admin: true },
-  { id: 'content', icon: '🖼️', staff: true },
-  { id: 'feedback', icon: '💬', staff: true },
-  { id: 'reports', icon: '🚩', staff: true },
-  { id: 'places', icon: '🏞️', staff: true },
-  { id: 'tips', icon: '🧭', staff: true },
-  { id: 'trips', icon: '🧳', admin: true },
-  { id: 'flags', icon: '🚦', admin: true },
-  { id: 'settings', icon: '⚙️', admin: true },
-  { id: 'logs', icon: '📜', admin: true },
+  { id: 'roles', icon: '🔐', admin: true },
+  { id: 'content', icon: '🖼️', perm: 'content' },
+  { id: 'reports', icon: '🚩', perm: 'content' },
+  { id: 'feedback', icon: '💬', perm: 'feedback' },
+  { id: 'places', icon: '🏞️', perm: 'places' },
+  { id: 'tips', icon: '🧭', perm: 'tips' },
+  { id: 'trips', icon: '🧳', perm: 'trips' },
+  { id: 'announce', icon: '📢', perm: 'announce' },
+  { id: 'notify', icon: '📣', perm: 'notify' },
+  { id: 'ads', icon: '🪧', perm: 'ads' },
+  { id: 'flags', icon: '🚦', perm: 'flags' },
+  { id: 'settings', icon: '⚙️', perm: 'settings' },
+  { id: 'logs', icon: '📜', perm: 'logs' },
 ];
 
 export default function AdminPage() {
-  const { isStaff, isAdmin, user, role, adminApi } = useApp();
-  const { t } = useI18n();
+  const { isStaff, isAdmin, user, role, adminApi, hasPerm, settings } = useApp();
+  const { t, lang } = useI18n();
+  const allowed = (x) => (x.admin ? isAdmin : x.perm ? hasPerm(x.perm) : true);
+  const canContent = hasPerm('content');
+  const canTrips = hasPerm('trips') || hasPerm('insights');
   const [tab, setTab] = useState('dashboard');
   const [users, setUsers] = useState(null);
   const [memories, setMemories] = useState(null);
@@ -48,9 +59,14 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isStaff) return;
-    const u = [isAdmin ? adminApi.watchUsers(setUsers) : setUsers([]), adminApi.watchModerationMemories(setMemories), adminApi.watchReports(setReports), isAdmin ? adminApi.watchAllTrips(setTrips) : setTrips([])];
+    const u = [
+      isAdmin ? adminApi.watchUsers(setUsers) : setUsers([]),
+      canContent ? adminApi.watchModerationMemories(setMemories) : setMemories([]),
+      canContent ? adminApi.watchReports(setReports) : setReports([]),
+      canTrips ? adminApi.watchAllTrips(setTrips) : setTrips([]),
+    ];
     return () => u.forEach((f) => typeof f === 'function' && f());
-  }, [isStaff, isAdmin, adminApi]);
+  }, [isStaff, isAdmin, canContent, canTrips, adminApi]);
 
   if (!user || !isStaff)
     return (
@@ -70,13 +86,13 @@ export default function AdminPage() {
           <p className="eyebrow">{t('admin.eyebrow')}</p>
           <h1 className="h1">🛠️ {t('admin.title')}</h1>
           <p className="muted">
-            {t('admin.youAre')} <span className={`role role--${role}`}>{t('role.' + role)}</span>
+            {t('admin.youAre')} <span className={`role role--${role}`}>{roleLabel(role, settings, t, lang)}</span>
           </p>
         </div>
       </header>
       <div className="admin__layout">
         <nav className="admin__tabs">
-          {TABS.filter((x) => (x.admin ? isAdmin : true)).map((x) => (
+          {TABS.filter(allowed).map((x) => (
             <button key={x.id} className={tab === x.id ? 'on' : ''} onClick={() => setTab(x.id)}>
               <span>{x.icon}</span> {t('admin.tab.' + x.id)}
               {x.id === 'reports' && openReports > 0 && <b className="admin__badge">{openReports}</b>}
@@ -84,18 +100,28 @@ export default function AdminPage() {
           ))}
         </nav>
         <section className="admin__body">
-          {tab === 'dashboard' && <Dashboard data={data} go={setTab} />}
-          {tab === 'insights' && isAdmin && <AdminInsights users={people} trips={trips} />}
-          {tab === 'users' && <Users users={people} />}
-          {tab === 'content' && <Content memories={memories} reports={reports} />}
-          {tab === 'reports' && <Reports reports={reports} />}
-          {tab === 'feedback' && <AdminFeedback />}
-          {tab === 'places' && <PlacesAdmin />}
-          {tab === 'trips' && <TripsAdmin trips={trips} />}
-          {tab === 'settings' && isAdmin && <SettingsAdmin />}
-          {tab === 'logs' && isAdmin && <AdminLogs />}
-          {tab === 'tips' && <TipsAdmin />}
-          {tab === 'flags' && isAdmin && <FlagsAdmin />}
+          {!allowed(TABS.find((x) => x.id === tab) || {}) ? (
+            <Empty emoji="🔒" title={t('admin.noAccess')} text={t('perm.noTab')} />
+          ) : (
+            <>
+              {tab === 'dashboard' && <Dashboard data={data} go={(id) => allowed(TABS.find((x) => x.id === id) || {}) && setTab(id)} />}
+              {tab === 'insights' && <AdminInsights users={people} trips={trips} />}
+              {tab === 'users' && <Users users={people} />}
+              {tab === 'roles' && <RolesAdmin users={people} />}
+              {tab === 'content' && <Content memories={memories} reports={reports} />}
+              {tab === 'reports' && <Reports reports={reports} />}
+              {tab === 'feedback' && <AdminFeedback />}
+              {tab === 'places' && <PlacesAdmin />}
+              {tab === 'trips' && <TripsAdmin trips={trips} />}
+              {tab === 'announce' && <AnnouncementsAdmin />}
+              {tab === 'notify' && <Broadcast />}
+              {tab === 'ads' && <AdsAdmin />}
+              {tab === 'settings' && <SettingsAdmin />}
+              {tab === 'logs' && <AdminLogs />}
+              {tab === 'tips' && <TipsAdmin />}
+              {tab === 'flags' && <FlagsAdmin />}
+            </>
+          )}
         </section>
       </div>
     </div>
@@ -205,15 +231,18 @@ function mergePeople(users, trips, memories) {
 
 
 function Users({ users }) {
-  const { t } = useI18n();
-  const { isAdmin, user: me, adminApi, notify, openProfile } = useApp();
+  const { t, lang } = useI18n();
+  const _t = t;
+  const { isAdmin, user: me, adminApi, notify, openProfile, settings } = useApp();
+  const roles = allRoles(settings);
+  const rl = (id) => roleLabel(id, settings, _t, lang);
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [shown, setShown] = useState({}); // email đã bấm xem đầy đủ (có ghi nhật ký)
   if (!users) return <Loader />;
   const n = normalize(q);
   const list = users.filter(
-    (u) => (roleFilter === 'all' || (roleFilter === 'banned' ? u.banned : (u.role || 'user') === roleFilter)) && (!n || normalize(`${u.name} ${u.email}`).includes(n)),
+    (u) => (roleFilter === 'all' || (roleFilter === 'banned' ? u.banned : roleFilter === 'staff' ? (u.role || 'user') !== 'user' : (u.role || 'user') === roleFilter)) && (!n || normalize(`${u.name} ${u.email}`).includes(n)),
   );
   const update = async (u, patch, msg) => {
     try {
@@ -228,9 +257,9 @@ function Users({ users }) {
       <div className="admin-toolbar">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.searchUsers')} />
         <div className="segmented">
-          {['all', 'admin', 'editor', 'user', 'banned'].map((r) => (
+          {['all', 'staff', 'user', 'banned'].map((r) => (
             <button key={r} className={roleFilter === r ? 'on' : ''} onClick={() => setRoleFilter(r)}>
-              {r === 'all' ? t('common.all') : r === 'banned' ? t('admin.banned') : t('role.' + r)}
+              {r === 'all' ? t('common.all') : r === 'banned' ? t('admin.banned') : r === 'staff' ? t('perm.staff') : rl(r)}
             </button>
           ))}
         </div>
@@ -277,15 +306,16 @@ function Users({ users }) {
               </AppLink>
               <span>
                 {isAdmin && !locked ? (
-                  <select value={u.role || 'user'} onChange={(e) => update(u, { role: e.target.value }, t('admin.roleChanged', { name: u.name, role: t('role.' + e.target.value) }))}>
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {t('role.' + r)}
+                  <select value={u.role || 'user'} onChange={(e) => update(u, { role: e.target.value }, t('admin.roleChanged', { name: u.name, role: rl(e.target.value) }))}>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.icon} {rl(r.id)}
                       </option>
                     ))}
+                    {!roles.some((r) => r.id === (u.role || 'user')) && <option value={u.role}>{u.role}</option>}
                   </select>
                 ) : (
-                  <span className={`role role--${u.role || 'user'}`}>{t('role.' + (u.role || 'user'))}</span>
+                  <span className={`role role--${u.role || 'user'}`}>{rl(u.role || 'user')}</span>
                 )}
               </span>
               <span className="small">{u.createdAt ? formatDate(u.createdAt) : '—'}</span>
@@ -899,12 +929,10 @@ function SettingsAdmin() {
         .sort((a, b) => a.label.localeCompare(b.label, lang)),
     [countries, lang],
   );
-  const ann = s.announcement;
-  const setAnn = (patch) => setS((x) => ({ ...x, announcement: { ...x.announcement, ...patch } }));
-  const setFeat = (k, v) => setS((x) => ({ ...x, features: { ...x.features, [k]: v } }));
   const save = async () => {
     try {
-      await adminApi.saveSettings(s);
+      // Chỉ lưu phần của trang Cài đặt (các mục khác có tab & quyền riêng)
+      await adminApi.saveSettings({ homeCountry: s.homeCountry, community: s.community });
       notify(t('admin.saved'));
     } catch (e) {
       notify(t('admin.error', { msg: e.message }), 'error');
@@ -913,49 +941,9 @@ function SettingsAdmin() {
   return (
     <div className="stack">
       <div className="card stack">
-        <h3 className="h3">📢 {t('admin.announcement')}</h3>
-        <label className="switch">
-          <input type="checkbox" checked={ann.active} onChange={(e) => setAnn({ active: e.target.checked })} />
-          <span>{t('admin.announcementOn')}</span>
-        </label>
-        <label className="field">
-          <span>🇻🇳 {t('admin.f.textVi')}</span>
-          <input value={ann.vi} onChange={(e) => setAnn({ vi: e.target.value })} placeholder="VD: 🎉 Tính năng Tổng kết năm đã ra mắt!" />
-        </label>
-        <label className="field">
-          <span>🇬🇧 {t('admin.f.textEn')}</span>
-          <input value={ann.en} onChange={(e) => setAnn({ en: e.target.value })} placeholder="e.g. 🎉 Year in travel is here!" />
-        </label>
-        <div className="segmented">
-          {['info', 'success', 'warning'].map((tone) => (
-            <button key={tone} className={ann.tone === tone ? 'on' : ''} onClick={() => setAnn({ tone })}>
-              {t('admin.tone.' + tone)}
-            </button>
-          ))}
-        </div>
-        {ann.active && (ann.vi || ann.en) && <div className={`announce announce--${ann.tone}`}>{lang === 'en' ? ann.en || ann.vi : ann.vi || ann.en}</div>}
-      </div>
-      <div className="card stack">
         <h3 className="h3">🌏 {t('admin.defaultCountry')}</h3>
         <p className="small muted">{t('admin.defaultCountryHelp')}</p>
         <Combobox value={s.homeCountry} options={options} onChange={(v) => v && setS((x) => ({ ...x, homeCountry: v }))} icon="🌏" />
-      </div>
-      <div className="card stack">
-        <h3 className="h3">🧩 {t('admin.features')}</h3>
-        <p className="small muted">{t('flags.movedHint')}</p>
-        <label className="field">
-          <span>
-            <b>📢 {t('admin.feature.ads')}</b>
-            <small className="muted"> — {t('admin.feature.adsHelp')}</small>
-          </span>
-          <select value={s.features.ads || 'staff'} onChange={(e) => setFeat('ads', e.target.value)}>
-            {['off', 'staff', 'all'].map((v) => (
-              <option key={v} value={v}>
-                {t('admin.ads.' + v)}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       <div className="card stack">
         <h3 className="h3">🧭 {t('admin.community')}</h3>
@@ -983,10 +971,210 @@ function SettingsAdmin() {
         </div>
         <p className="tiny muted">{t('admin.cm.preview', { h: s.community?.helpfulSlots, n: s.community?.newSlots })}</p>
       </div>
+      <p className="small muted">{t('admin.settingsMoved')}</p>
       <button className="btn btn--primary" onClick={save}>
         💾 {t('admin.saveSettings')}
       </button>
-      <Broadcast />
+    </div>
+  );
+}
+
+/* ------------------------ Thông báo đầu trang (có lịch) ------------------------ */
+const pad = (n) => String(n).padStart(2, '0');
+const toLocalInput = (ms) => {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+const fromLocalInput = (v) => (v ? new Date(v).getTime() : null);
+const fmtWhen = (ms, lang) => new Date(ms).toLocaleString(lang === 'en' ? 'en-GB' : 'vi-VN', { dateStyle: 'medium', timeStyle: 'short' });
+
+function AnnouncementsAdmin() {
+  const { t, lang } = useI18n();
+  const { settings, adminApi, notify } = useApp();
+  const list = settings.announcements || [];
+  const legacy = settings.announcement;
+  const [edit, setEdit] = useState(null); // bản nháp đang soạn (mới hoặc sửa)
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((x) => x + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+  const persist = async (next, msg) => {
+    try {
+      const patch = { announcements: next };
+      // Thông báo kiểu cũ (một ô duy nhất) — tắt đi khi đã chuyển sang danh sách có lịch
+      if (legacy?.active) patch.announcement = { ...legacy, active: false };
+      await adminApi.saveSettings(patch);
+      notify(msg);
+      return true;
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+      return false;
+    }
+  };
+  const startNew = (tpl) => {
+    const start = Math.ceil((Date.now() + 864e5) / 36e5) * 36e5; // ngày mai, tròn giờ
+    const fill = (x) =>
+      (x || '')
+        .replace('{date}', new Date(start).toLocaleDateString(lang === 'en' ? 'en-GB' : 'vi-VN'))
+        .replace('{time}', new Date(start).toLocaleTimeString(lang === 'en' ? 'en-GB' : 'vi-VN', { hour: '2-digit', minute: '2-digit' }));
+    setEdit({
+      id: 'a' + Date.now().toString(36),
+      vi: tpl ? fill(tpl.vi) : '',
+      en: tpl ? fill(tpl.en) : '',
+      tone: tpl?.tone || 'info',
+      when: 'now',
+      startAt: start,
+      endAt: null,
+      isNew: true,
+    });
+  };
+  const saveDraft = async () => {
+    const d = edit;
+    if (!d.vi.trim() && !d.en.trim()) return notify(t('ann.needText'), 'error');
+    const startAt = d.when === 'now' ? Date.now() : d.startAt;
+    if (d.when === 'schedule' && (!startAt || startAt <= Date.now())) return notify(t('ann.pastStart'), 'error');
+    if (d.endAt && d.endAt <= startAt) return notify(t('ann.badEnd'), 'error');
+    const item = { id: d.id, vi: d.vi.trim(), en: d.en.trim(), tone: d.tone, startAt, endAt: d.endAt || null, createdAt: d.createdAt || Date.now() };
+    const next = d.isNew ? [item, ...list] : list.map((x) => (x.id === d.id ? item : x));
+    if (await persist(next.slice(0, 20), d.when === 'now' ? t('ann.published') : t('ann.scheduled', { when: fmtWhen(startAt, lang) }))) setEdit(null);
+  };
+  const statusOf = (a) => announcementStatus(a);
+  const sorted = [...list].sort((a, b) => {
+    const order = { live: 0, scheduled: 1, paused: 2, ended: 3 };
+    return order[statusOf(a)] - order[statusOf(b)] || (b.startAt || 0) - (a.startAt || 0);
+  });
+  return (
+    <div className="stack">
+      <div className="card stack">
+        <h3 className="h3">📢 {t('ann.title')}</h3>
+        <p className="small muted">{t('ann.help')}</p>
+        <div className="ann-templates">
+          {ANNOUNCEMENT_TEMPLATES.map((tp) => (
+            <button key={tp.id} type="button" className="ann-tpl" onClick={() => startNew(tp)}>
+              <span className="ann-tpl__icon">{tp.icon}</span>
+              <b>{t('ann.tpl.' + tp.id)}</b>
+              <small className="muted">{t('ann.tplHelp.' + tp.id)}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {edit && (
+        <div className="card stack ann-editor">
+          <h3 className="h3">{edit.isNew ? `✍️ ${t('ann.new')}` : `✏️ ${t('ann.edit')}`}</h3>
+          <label className="field">
+            <span>🇻🇳 {t('admin.f.textVi')}</span>
+            <textarea rows={2} maxLength={300} value={edit.vi} onChange={(e) => setEdit((d) => ({ ...d, vi: e.target.value }))} />
+          </label>
+          <label className="field">
+            <span>🇬🇧 {t('admin.f.textEn')}</span>
+            <textarea rows={2} maxLength={300} value={edit.en} onChange={(e) => setEdit((d) => ({ ...d, en: e.target.value }))} />
+          </label>
+          <div className="segmented">
+            {['info', 'success', 'warning'].map((tone) => (
+              <button key={tone} className={edit.tone === tone ? 'on' : ''} onClick={() => setEdit((d) => ({ ...d, tone }))}>
+                {t('admin.tone.' + tone)}
+              </button>
+            ))}
+          </div>
+          <div className="segmented">
+            <button className={edit.when === 'now' ? 'on' : ''} onClick={() => setEdit((d) => ({ ...d, when: 'now' }))}>
+              ⚡ {t('ann.now')}
+            </button>
+            <button className={edit.when === 'schedule' ? 'on' : ''} onClick={() => setEdit((d) => ({ ...d, when: 'schedule' }))}>
+              🗓️ {t('ann.schedule')}
+            </button>
+          </div>
+          <div className="grid-2">
+            {edit.when === 'schedule' && (
+              <label className="field">
+                <span>{t('ann.startAt')}</span>
+                <input type="datetime-local" value={toLocalInput(edit.startAt)} onChange={(e) => setEdit((d) => ({ ...d, startAt: fromLocalInput(e.target.value) }))} />
+              </label>
+            )}
+            <label className="field">
+              <span>{t('ann.endAt')}</span>
+              <input type="datetime-local" value={toLocalInput(edit.endAt)} onChange={(e) => setEdit((d) => ({ ...d, endAt: fromLocalInput(e.target.value) }))} />
+              <small className="muted">{t('ann.endHelp')}</small>
+            </label>
+          </div>
+          {(edit.vi || edit.en) && (
+            <div>
+              <p className="tiny muted">{t('ann.preview')}</p>
+              <div className={`announce announce--${edit.tone}`}>{lang === 'en' ? edit.en || edit.vi : edit.vi || edit.en}</div>
+            </div>
+          )}
+          <div className="row wrap">
+            <button className="btn btn--primary" onClick={saveDraft}>
+              {edit.when === 'now' ? `📢 ${t('ann.publishNow')}` : `🗓️ ${t('ann.saveSchedule')}`}
+            </button>
+            <button className="btn btn--ghost" onClick={() => setEdit(null)}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="card stack">
+        <div className="row between">
+          <h3 className="h3">🗂️ {t('ann.list')}</h3>
+          {!edit && (
+            <button className="btn btn--sm btn--soft" onClick={() => startNew(null)}>
+              ＋ {t('ann.new')}
+            </button>
+          )}
+        </div>
+        {legacy?.active && (legacy.vi || legacy.en) && (
+          <div className="ann-row">
+            <span className="ann-status ann-status--live">{t('ann.st.live')}</span>
+            <div className="ann-row__main">
+              <div className={`announce announce--${legacy.tone || 'info'}`}>{lang === 'en' ? legacy.en || legacy.vi : legacy.vi || legacy.en}</div>
+              <small className="muted">{t('ann.legacy')}</small>
+            </div>
+            <button className="btn btn--sm btn--ghost" onClick={() => persist(list, t('ann.stopped'))}>
+              ⏹ {t('ann.stop')}
+            </button>
+          </div>
+        )}
+        {sorted.length === 0 && !legacy?.active && <p className="muted small">{t('ann.empty')}</p>}
+        {sorted.map((a) => {
+          const st = statusOf(a);
+          return (
+            <div key={a.id} className="ann-row">
+              <span className={`ann-status ann-status--${st}`}>{t('ann.st.' + st)}</span>
+              <div className="ann-row__main">
+                <div className={`announce announce--${a.tone || 'info'}`}>{lang === 'en' ? a.en || a.vi : a.vi || a.en}</div>
+                <small className="muted">
+                  {a.startAt ? `${t('ann.from')} ${fmtWhen(a.startAt, lang)}` : ''}
+                  {a.endAt ? ` → ${fmtWhen(a.endAt, lang)}` : ` → ${t('ann.untilStopped')}`}
+                </small>
+              </div>
+              <div className="row wrap ann-row__actions">
+                {st !== 'ended' && (
+                  <button className="btn btn--sm btn--ghost" onClick={() => setEdit({ ...a, when: st === 'scheduled' ? 'schedule' : 'now', isNew: false })}>
+                    ✏️
+                  </button>
+                )}
+                {st === 'live' && (
+                  <button className="btn btn--sm btn--ghost" onClick={() => persist(list.map((x) => (x.id === a.id ? { ...x, endAt: Date.now() } : x)), t('ann.stopped'))}>
+                    ⏹ {t('ann.stop')}
+                  </button>
+                )}
+                {st === 'scheduled' && (
+                  <button className="btn btn--sm btn--ghost" onClick={() => persist(list.map((x) => (x.id === a.id ? { ...x, startAt: Date.now() } : x)), t('ann.published'))}>
+                    ⚡ {t('ann.publishNow')}
+                  </button>
+                )}
+                <button className="btn btn--sm btn--ghost danger" title={t('common.delete')} onClick={() => confirm(t('ann.confirmDelete')) && persist(list.filter((x) => x.id !== a.id), t('ann.deleted'))}>
+                  <TrashIcon />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -994,7 +1182,7 @@ function SettingsAdmin() {
 /** Gửi thông báo trong app cho mọi người (tính năng mới, thông báo chung) */
 function Broadcast() {
   const { t } = useI18n();
-  const { socialApi, user, notify } = useApp();
+  const { socialApi, user, notify, adminApi } = useApp();
   const [type, setType] = useState('feature');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -1015,28 +1203,211 @@ function Broadcast() {
     setBusy(false);
   };
   return (
-    <div className="card stack">
-      <h3 className="h3">📣 {t('admin.bcTitle')}</h3>
-      <p className="small muted">{t('admin.bcHelp')}</p>
-      <div className="segmented">
-        <button className={type === 'feature' ? 'on' : ''} onClick={() => setType('feature')}>
-          🎉 {t('admin.bcFeature')}
-        </button>
-        <button className={type === 'system' ? 'on' : ''} onClick={() => setType('system')}>
-          📢 {t('admin.bcSystem')}
+    <div className="stack">
+      <div className="card stack">
+        <h3 className="h3">📣 {t('admin.bcTitle')}</h3>
+        <p className="small muted">{t('admin.bcHelp')}</p>
+        <div className="segmented">
+          <button className={type === 'feature' ? 'on' : ''} onClick={() => setType('feature')}>
+            🎉 {t('admin.bcFeature')}
+          </button>
+          <button className={type === 'system' ? 'on' : ''} onClick={() => setType('system')}>
+            📢 {t('admin.bcSystem')}
+          </button>
+        </div>
+        <label className="field">
+          <span>{t('admin.bcHeading')}</span>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder={t('admin.bcHeadingPh')} />
+        </label>
+        <label className="field">
+          <span>{t('admin.bcBody')}</span>
+          <textarea rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={300} />
+        </label>
+        <button className="btn btn--dark" disabled={busy || !title.trim()} onClick={send}>
+          📨 {t('admin.bcSend')}
         </button>
       </div>
-      <label className="field">
-        <span>{t('admin.bcHeading')}</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} placeholder={t('admin.bcHeadingPh')} />
-      </label>
-      <label className="field">
-        <span>{t('admin.bcBody')}</span>
-        <textarea rows={2} value={body} onChange={(e) => setBody(e.target.value)} maxLength={300} />
-      </label>
-      <button className="btn btn--dark" disabled={busy || !title.trim()} onClick={send}>
-        📨 {t('admin.bcSend')}
-      </button>
+      <p className="tiny muted">{t('admin.bcVsAnn')}</p>
+    </div>
+  );
+}
+
+/* ------------------------------ Quảng cáo ------------------------------ */
+function AdsAdmin() {
+  const { t } = useI18n();
+  const { settings, adminApi, notify } = useApp();
+  const ads = settings.ads || { mode: 'staff', off: [] };
+  const save = async (patch, msg) => {
+    try {
+      await adminApi.saveSettings({ ads: { mode: ads.mode, off: ads.off || [], ...patch } });
+      notify(msg || t('admin.saved'));
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+  };
+  const off = new Set(ads.off || []);
+  return (
+    <div className="stack">
+      <div className="card stack">
+        <h3 className="h3">🪧 {t('ads.adminTitle')}</h3>
+        <p className="small muted">{t('admin.feature.adsHelp')}</p>
+        <div className="segmented">
+          {['off', 'staff', 'all'].map((v) => (
+            <button key={v} className={ads.mode === v ? 'on' : ''} onClick={() => ads.mode !== v && save({ mode: v })}>
+              {t('admin.ads.' + v)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card stack">
+        <h3 className="h3">📍 {t('ads.placements')}</h3>
+        <p className="small muted">{t('ads.placementsHelp')}</p>
+        {AD_PLACEMENTS.map((p) => (
+          <label key={p.id} className="switch ads-place">
+            <input
+              type="checkbox"
+              checked={!off.has(p.id)}
+              onChange={(e) => {
+                const next = new Set(off);
+                e.target.checked ? next.delete(p.id) : next.add(p.id);
+                save({ off: [...next] });
+              }}
+            />
+            <span>
+              {p.icon} <b>{t('ads.place.' + p.id)}</b>
+            </span>
+          </label>
+        ))}
+      </div>
+      <p className="tiny muted">{t('ads.realNote')}</p>
+    </div>
+  );
+}
+
+/* --------------------------- Vai trò & quyền --------------------------- */
+function RolesAdmin({ users }) {
+  const { t, lang } = useI18n();
+  const { settings, adminApi, notify } = useApp();
+  const roles = allRoles(settings);
+  const [draft, setDraft] = useState(null); // { rolePerms, roleDefs }
+  useEffect(() => setDraft(null), [settings]);
+  const cur = draft || { rolePerms: Object.fromEntries(roles.filter((r) => !r.fixed).map((r) => [r.id, r.perms])), roleDefs: settings.roleDefs || [] };
+  const editable = [...PRESET_ROLES.map((r) => ({ ...r, preset: true })), ...cur.roleDefs.map((r) => ({ ...r, custom: true }))];
+  const count = (id) => (users || []).filter((u) => (u.role || 'user') === id).length;
+  const rl = (r) => (r.custom ? r.name?.[lang] || r.name?.vi || r.name?.en || r.id : t('role.' + r.id));
+  const toggle = (rid, perm) =>
+    setDraft(() => {
+      const ps = new Set(cur.rolePerms[rid] || []);
+      ps.has(perm) ? ps.delete(perm) : ps.add(perm);
+      return { ...cur, rolePerms: { ...cur.rolePerms, [rid]: [...ps] } };
+    });
+  const [newName, setNewName] = useState('');
+  const addRole = () => {
+    const name = newName.trim();
+    if (!name) return;
+    const id = 'r_' + Date.now().toString(36);
+    setDraft({ rolePerms: { ...cur.rolePerms, [id]: [] }, roleDefs: [...cur.roleDefs, { id, icon: '🧩', name: { vi: name, en: name } }] });
+    setNewName('');
+  };
+  const removeRole = (r) => {
+    if (count(r.id) > 0) return notify(t('perm.inUse', { n: count(r.id) }), 'error');
+    if (!confirm(t('perm.confirmDelete', { name: rl(r) }))) return;
+    const rp = { ...cur.rolePerms };
+    delete rp[r.id];
+    setDraft({ rolePerms: rp, roleDefs: cur.roleDefs.filter((x) => x.id !== r.id) });
+  };
+  const resetPreset = (r) => setDraft({ ...cur, rolePerms: { ...cur.rolePerms, [r.id]: PRESET_ROLES.find((x) => x.id === r.id).perms } });
+  const save = async () => {
+    try {
+      await adminApi.saveRoles(cur.rolePerms, cur.roleDefs);
+      notify(t('perm.saved'));
+      setDraft(null);
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+  };
+  return (
+    <div className="stack">
+      <div className="card stack">
+        <h3 className="h3">🔐 {t('perm.title')}</h3>
+        <p className="small muted">{t('perm.help')}</p>
+        <div className="roles-fixed">
+          <span>
+            👑 <b>{t('role.admin')}</b> — {t('perm.adminDesc')} <small className="muted">({t('perm.people', { n: count('admin') })})</small>
+          </span>
+          <span>
+            🙂 <b>{t('role.user')}</b> — {t('perm.userDesc')}
+          </span>
+        </div>
+      </div>
+      <div className="card perm-matrix-card">
+        <div className="perm-matrix" style={{ '--cols': editable.length }}>
+          <div className="perm-matrix__corner">{t('perm.permission')}</div>
+          {editable.map((r) => (
+            <div key={r.id} className="perm-matrix__role">
+              <span className="perm-matrix__icon">{r.icon || '🧩'}</span>
+              {r.custom ? (
+                <input
+                  className="perm-matrix__name"
+                  value={r.name?.[lang] || r.name?.vi || ''}
+                  maxLength={40}
+                  onChange={(e) =>
+                    setDraft({ ...cur, roleDefs: cur.roleDefs.map((x) => (x.id === r.id ? { ...x, name: { vi: e.target.value, en: e.target.value } } : x)) })
+                  }
+                />
+              ) : (
+                <b>{rl(r)}</b>
+              )}
+              <small className="muted">{t('perm.people', { n: count(r.id) })}</small>
+              {r.custom ? (
+                <button className="btn btn--sm btn--ghost danger" onClick={() => removeRole(r)} title={t('common.delete')}>
+                  <TrashIcon />
+                </button>
+              ) : (
+                <button className="btn btn--sm btn--ghost" onClick={() => resetPreset(r)} title={t('perm.reset')}>
+                  ↺
+                </button>
+              )}
+            </div>
+          ))}
+          {PERMS.map((p) => (
+            <Fragment key={p.key}>
+              <div className="perm-matrix__perm">
+                <span>{p.icon}</span>
+                <span>
+                  <b>{t('perm.p.' + p.key)}</b>
+                  <small className="muted">{t('perm.d.' + p.key)}</small>
+                </span>
+              </div>
+              {editable.map((r) => (
+                <label key={r.id} className="perm-matrix__cell">
+                  <input type="checkbox" checked={(cur.rolePerms[r.id] || []).includes(p.key)} onChange={() => toggle(r.id, p.key)} />
+                </label>
+              ))}
+            </Fragment>
+          ))}
+        </div>
+      </div>
+      <div className="card stack">
+        <h3 className="h3">＋ {t('perm.newRole')}</h3>
+        <div className="row">
+          <input value={newName} maxLength={40} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addRole()} placeholder={t('perm.newRolePh')} />
+          <button className="btn btn--soft" onClick={addRole} disabled={!newName.trim()}>
+            {t('perm.add')}
+          </button>
+        </div>
+        <p className="tiny muted">{t('perm.assignHint')}</p>
+      </div>
+      <div className="row">
+        <button className="btn btn--primary" disabled={!draft} onClick={save}>
+          💾 {t('perm.save')}
+        </button>
+        {draft && (
+          <button className="btn btn--ghost" onClick={() => setDraft(null)}>
+            {t('common.cancel')}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

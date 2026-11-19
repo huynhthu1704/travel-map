@@ -313,6 +313,30 @@ export function AppProvider({ children }) {
 
   /** Xoá địa điểm khỏi danh sách Đã đến / Muốn đi (có hỏi xác nhận) */
   const removePlace = useCallback((place) => setModal({ type: 'confirmRemove', place }), []);
+  /**
+   * Xoá 1 lần check-in (kỉ niệm) và đồng bộ những chỗ khác:
+   * - không còn lần check-in nào ở địa điểm đó → bỏ đánh dấu "đã đến" (check-in đã tự đánh dấu khi lưu)
+   * - còn lần khác → ngày đến = lần check-in gần nhất còn lại
+   * - điểm dừng trong chuyến đi tạo từ lần check-in này cũng bị xoá
+   */
+  const memoriesRef = useRef([]);
+  const placesRef = useRef([]);
+  memoriesRef.current = memories;
+  placesRef.current = places;
+  const deleteCheckin = useCallback(async (mem) => {
+    const u = userRef.current;
+    await api.deleteMemory(mem);
+    if (!u || !mem.place?.id) return;
+    await api.deleteStopsOfMemory?.(u, mem).catch(() => {});
+    const rest = memoriesRef.current.filter((m) => m.id !== mem.id && m.place?.id === mem.place.id);
+    const saved = placesRef.current.find((p) => p.id === mem.place.id);
+    if (!saved || saved.status !== 'visited') return;
+    if (!rest.length) await api.setPlace(u, saved, null);
+    else {
+      const latest = rest.map((m) => m.date).filter(Boolean).sort().pop() || null;
+      if (latest !== saved.visitedAt) await api.setVisitedAt(u, saved.id, latest);
+    }
+  }, []);
   const confirmRemovePlace = useCallback(
     async (place) => {
       await api.setPlace(userRef.current, place, null);
@@ -664,7 +688,7 @@ export function AppProvider({ children }) {
     api, user, places, memories, publicMemories, loadPublic: () => setNeedPublic(true), trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,
     placeOrigin, setPlaceOrigin,
     view, setView, returnView, setReturnView, selectedCountry, setSelectedCountry, selectedPlace, setSelectedPlace, flyTarget, setFlyTarget,
-    modal, setModal, toast, notify, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
+    modal, setModal, toast, notify, deleteCheckin, requireLogin, placeStatus, visitedCountries, setPlaceStatus, openCountry, openPlace,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

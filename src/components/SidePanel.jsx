@@ -982,7 +982,7 @@ function StickyBar({ watch, compact, children }) {
 /** Lịch sử check-in tại 1 địa điểm: mỗi lần đến có ngày, dịp, ghi chú và ảnh riêng */
 function CheckinHistory({ place, saved, mine, tripId, children }) {
   const { t } = useI18n();
-  const { setModal, api, notify, requireLogin, trips } = useApp();
+  const { setModal, api, notify, requireLogin, trips, deleteCheckin } = useApp();
   // Lần đến cũ chỉ có ngày / dịp (chưa có lần check-in nào) → hiện như 1 lần check-in.
   // Khi đã có check-in thì danh sách check-in là nguồn chính, ngày đến = lần check-in gần nhất.
   const legacy = saved?.status === 'visited' && (saved.visitedAt || saved.occasion) && mine.length === 0 ? saved : null;
@@ -1054,7 +1054,7 @@ function CheckinHistory({ place, saved, mine, tripId, children }) {
                   title={t('plan.remove')}
                   onClick={async () => {
                     if (!confirm(t('checkin.confirmDelete'))) return;
-                    await api.deleteMemory(e.memory);
+                    await deleteCheckin(e.memory);
                     notify(t('mem.deleted'));
                   }}
                 >

@@ -670,7 +670,7 @@ function LikeButton({ memory: m }) {
 }
 
 function MemoryViewer({ memory: m, onClose }) {
-  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin, openProfile } = useApp();
+  const { user, api, setModal, openPlace, setPlaceStatus, notify, placeStatus, requireLogin, openProfile, deleteCheckin } = useApp();
   const realAuthor = !!m?.uid && m.uid !== 'sample' && m.uid !== 'trip-stop';
   const st = placeStatus[m.place?.id];
   const { t } = useI18n();
@@ -780,7 +780,7 @@ function MemoryViewer({ memory: m, onClose }) {
                 className="btn btn--sm btn--ghost danger"
                 onClick={async () => {
                   if (!confirm(t('mem.confirmDelete'))) return;
-                  await api.deleteMemory(m);
+                  await deleteCheckin(m);
                   notify(t('mem.deleted'));
                   onClose();
                 }}

@@ -108,6 +108,8 @@ const firebaseBackend = {
   watchPlaces(uid, cb) {
     return onSnapshot(collection(db, 'users', uid, 'places'), (s) => cb(s.docs.map((d) => d.data())));
   },
+  /** Chỉ đổi ngày đến của 1 địa điểm đã lưu */
+  setVisitedAt: (user, placeId, visitedAt) => setDoc(doc(db, 'users', user.uid, 'places', safeId(placeId)), { visitedAt: visitedAt || null, updatedAt: now() }, { merge: true }),
   /** visitedAt: ngày đã đến ('YYYY-MM-DD'); occasion: đến vì dịp gì — cả hai tuỳ chọn */
   async setPlace(user, place, status, tripId, visitedAt = null, occasion = '') {
     const r = doc(db, 'users', user.uid, 'places', safeId(place.id));
@@ -279,6 +281,16 @@ const firebaseBackend = {
     thumbSnap.docs.forEach((d) => b.delete(d.ref));
     b.delete(doc(db, 'memories', mem.id));
     await b.commit();
+  },
+  /** Xoá điểm dừng trong chuyến đi được tạo từ lần check-in này */
+  async deleteStopsOfMemory(user, mem) {
+    if (!mem.tripId) return;
+    try {
+      const s = await getDocs(query(collection(db, 'trips', mem.tripId, 'stops'), where('memoryId', '==', mem.id), where('byUid', '==', user.uid)));
+      await Promise.all(s.docs.map((d) => deleteDoc(d.ref)));
+    } catch {
+      /* không còn là thành viên chuyến: bỏ qua */
+    }
   },
 
   watchTrips(uid, cb) {
@@ -470,6 +482,11 @@ const localBackend = {
   watchPlaces(u, cb) {
     return sub(() => cb(Object.values(state.places[u] || {})));
   },
+  async setVisitedAt(user, placeId, visitedAt) {
+    const p = state.places[user.uid]?.[placeId];
+    if (p) p.visitedAt = visitedAt || null;
+    save();
+  },
   async setPlace(user, place, status, tripId, visitedAt = null, occasion = '') {
     const m = (state.places[user.uid] ||= {});
     const visited = status === 'visited';
@@ -523,6 +540,11 @@ const localBackend = {
   },
   async deleteMemory(mem) {
     state.memories = state.memories.filter((m) => m.id !== mem.id);
+    save();
+  },
+  async deleteStopsOfMemory(user, mem) {
+    if (!mem.tripId || !state.stops[mem.tripId]) return;
+    state.stops[mem.tripId] = state.stops[mem.tripId].filter((x) => !(x.memoryId === mem.id && x.byUid === user.uid));
     save();
   },
   watchTrips(u, cb) {

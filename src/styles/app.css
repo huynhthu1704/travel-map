@@ -7712,9 +7712,35 @@ a.app-link.place-card__title:hover {
   margin: 4px 0;
 }
 .account > * {
+  width: 100%;
   max-width: 760px;
   margin-left: auto;
   margin-right: auto;
+  box-sizing: border-box;
+}
+.account__head {
+  display: block;
+  margin-bottom: 18px;
+}
+.account__head .h1 {
+  margin: 0 0 4px;
+}
+.account__legal {
+  text-align: center;
+}
+.acc-actions {
+  justify-content: flex-end;
+}
+.profile__more {
+  position: relative;
+}
+.profile__more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+}
+.profile__menu {
+  min-width: 220px;
 }
 .account .card {
   margin-bottom: 14px;

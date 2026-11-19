@@ -66,8 +66,8 @@ function Privacy({ vi }) {
       <h3>6. Quyền của bạn</h3>
       <ul>
         <li>Xem, sửa, xoá nội dung của bạn bất cứ lúc nào.</li>
-        <li>Tải về toàn bộ dữ liệu (Hồ sơ → Tài khoản & dữ liệu → Tải dữ liệu của tôi).</li>
-        <li>Xoá tài khoản (Hồ sơ → Tài khoản & dữ liệu → Xoá tài khoản).</li>
+        <li>Tải về toàn bộ dữ liệu (Trang hồ sơ của bạn → nút ⋯ → Tải dữ liệu của tôi).</li>
+        <li>Xoá tài khoản (Trang hồ sơ của bạn → nút ⋯ → Xoá tài khoản).</li>
         <li>Rút lại đồng ý bằng cách xoá tài khoản; khiếu nại hoặc hỏi đáp qua kênh liên hệ bên dưới.</li>
       </ul>
       <h3>7. Trẻ em</h3>
@@ -110,8 +110,8 @@ function Privacy({ vi }) {
       <h3>6. Your rights</h3>
       <ul>
         <li>View, edit and delete your content at any time.</li>
-        <li>Download all your data (Profile → Account & data → Download my data).</li>
-        <li>Delete your account (Profile → Account & data → Delete account).</li>
+        <li>Download all your data (Your profile → ⋯ button → Download my data).</li>
+        <li>Delete your account (Your profile → ⋯ button → Delete account).</li>
         <li>Withdraw consent by deleting your account; send questions or complaints via the contact below.</li>
       </ul>
       <h3>7. Children</h3>

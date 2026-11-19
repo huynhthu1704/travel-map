@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
+import { AccountModal } from './Account';
 import { Avatar, Empty, Loader, AppLink } from '../components/ui';
 import { hrefProfile } from '../lib/route';
 import { MemoryGrid } from '../components/SidePanel';
@@ -75,6 +76,8 @@ export default function ProfilePage() {
     return () => u.forEach((f) => f && f());
   }, [uid, user]);
   useEffect(() => setBio(p?.bio || ''), [p?.bio]);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [accSection, setAccSection] = useState(null); // 'privacy' | 'export' | 'delete'
   // Hồ sơ riêng tư: thống kê nằm ở profileStats, chỉ chính chủ và bạn theo dõi chéo đọc được
   const locked = !!p?.privateProfile && !isMe && !mutual;
   const [stats, setStats] = useState(null);
@@ -289,9 +292,39 @@ export default function ProfilePage() {
                     {followingIds.has(uid) ? `✓ ${t('social.followingBtn')}` : followerIds.has(uid) ? t('social.followBack') : t('social.follow')}
                   </button>
                 )}
-                <button className="btn btn--sm btn--ghost btn--icon" onClick={shareLink} title={t('social.shareProfile')} aria-label={t('social.shareProfile')}>
-                  🔗
-                </button>
+                {isMe ? (
+                  <div className="profile__more">
+                    <button className="btn btn--sm btn--ghost btn--icon" onClick={() => setMoreOpen((v) => !v)} title={t('profile.more')} aria-label={t('profile.more')} aria-expanded={moreOpen}>
+                      ⋯
+                    </button>
+                    {moreOpen && (
+                      <>
+                        <div className="profile__more-backdrop" onClick={() => setMoreOpen(false)} />
+                        <div className="trip-menu profile__menu" role="menu">
+                          <button role="menuitem" onClick={() => (setMoreOpen(false), shareLink())}>
+                            🔗 {t('social.shareProfile')}
+                          </button>
+                          <hr />
+                          <button role="menuitem" onClick={() => (setMoreOpen(false), setAccSection('privacy'))}>
+                            🛡️ {t('acc.privacy')}
+                          </button>
+                          <button role="menuitem" onClick={() => (setMoreOpen(false), setAccSection('export'))}>
+                            📦 {t('acc.export')}
+                          </button>
+                          <hr />
+                          <button role="menuitem" className="danger" onClick={() => (setMoreOpen(false), setAccSection('delete'))}>
+                            🗑️ {t('acc.delete')}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {accSection && <AccountModal section={accSection} onClose={() => setAccSection(null)} />}
+                  </div>
+                ) : (
+                  <button className="btn btn--sm btn--ghost btn--icon" onClick={shareLink} title={t('social.shareProfile')} aria-label={t('social.shareProfile')}>
+                    🔗
+                  </button>
+                )}
               </div>
             </div>
             <div className="profile__counts">

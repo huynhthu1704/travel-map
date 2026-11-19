@@ -82,9 +82,6 @@ function UserMenu() {
           >
             👤 {t('social.myProfile')}
           </AppLink>
-          <AppLink href="#/account" className="btn btn--sm btn--ghost" onClick={() => (setView('account'), setOpen(false))}>
-            🔐 {t('acc.menu')}
-          </AppLink>
           <button
             className="btn btn--sm btn--ghost"
             onClick={() => {

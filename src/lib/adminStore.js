@@ -61,7 +61,7 @@ export const setAdminActor = (u) => (actor = u ? { uid: u.uid, name: u.name || '
 const LOGGED = {
   saveSettings: 'settings.save', saveRoles: 'roles.save', saveOverride: 'place.edit', clearOverride: 'place.reset', saveCustomPlace: 'place.add', deleteCustomPlace: 'place.delete',
   updateReport: 'report.update', deleteReport: 'report.delete', updateUser: 'user.update', hideMemory: 'memory.hide', unhideMemory: 'memory.unhide',
-  deleteMemoryAdmin: 'memory.delete', deleteTrip: 'trip.delete', saveGuideOverride: 'guide.edit',
+  deleteMemoryAdmin: 'memory.delete', deleteTrip: 'trip.delete', saveGuideOverride: 'guide.edit', saveGuideLink: 'guideLink.save', deleteGuideLink: 'guideLink.delete',
 };
 const short = (v) => {
   if (v == null) return '';
@@ -74,6 +74,8 @@ function describe(name, args) {
     case 'saveSettings': return { target: 'site', detail: short(Object.keys(a || {}).join(', ')) };
     case 'saveRoles': return { target: 'roles', detail: short(a) };
     case 'saveOverride': return { target: a, detail: short(b) };
+    case 'saveGuideLink': return { target: a || b?.cc || '', detail: short(`${b?.cc} · ${b?.title?.vi || b?.title?.en || ''}`) };
+    case 'deleteGuideLink': return { target: a, detail: '' };
     case 'saveGuideOverride': return { target: a, detail: short(Object.keys(b?.fields || {}).join(', ') || 'reset') };
     case 'saveCustomPlace': return { target: a?.id || a?.name || '', detail: short(a?.name) };
     case 'updateReport': return { target: a, detail: short({ status: b?.status, action: b?.action }) };
@@ -149,6 +151,10 @@ const fb = {
   // Cẩm nang: phần sửa của đội vận hành, ghi đè nội dung gốc theo từng mục — guideOverrides/{cc} { fields: { [mục]: { vi, en } } }
   watchGuideOverrides: (cb) => onSnapshot(collection(db, 'guideOverrides'), (s) => cb(Object.fromEntries(s.docs.map((d) => [d.id, d.data()]))), () => cb({})),
   saveGuideOverride: (cc, data) => setDoc(doc(db, 'guideOverrides', cc), { ...data, updatedAt: now() }),
+  // Cẩm nang: link Google Maps hữu ích do đội vận hành quản lý — guideLinks/{id}
+  watchGuideLinks: (cb) => onSnapshot(collection(db, 'guideLinks'), (s) => cb(s.docs.map((d) => ({ ...d.data(), id: d.id }))), () => cb([])),
+  saveGuideLink: (id, data) => (id ? setDoc(doc(db, 'guideLinks', id), { ...data, updatedAt: now() }) : addDoc(collection(db, 'guideLinks'), { ...data, createdAt: now(), updatedAt: now() })),
+  deleteGuideLink: (id) => deleteDoc(doc(db, 'guideLinks', id)),
   saveOverride: (id, patch, by) => setDoc(doc(db, 'placeOverrides', id), { ...patch, updatedAt: now(), updatedBy: by || '' }, { merge: true }),
   clearOverride: (id) => deleteDoc(doc(db, 'placeOverrides', id)),
   watchCustomPlaces: (cb) => onSnapshot(collection(db, 'customPlaces'), (s) => cb(s.docs.map((d) => ({ ...d.data(), id: d.id }))), () => cb([])),
@@ -279,6 +285,17 @@ const local = {
   },
   watchOverrides: (cb) => on(() => cb({ ...st.overrides })),
   watchGuideOverrides: (cb) => on(() => cb({ ...(st.guideOverrides || {}) })),
+  watchGuideLinks: (cb) => on(() => cb([...(st.guideLinks || [])])),
+  async saveGuideLink(id, data) {
+    st.guideLinks ||= [];
+    if (id) st.guideLinks = st.guideLinks.map((x) => (x.id === id ? { ...data, id, updatedAt: now() } : x));
+    else st.guideLinks.push({ ...data, id: Math.random().toString(36).slice(2, 10), createdAt: now(), updatedAt: now() });
+    persist();
+  },
+  async deleteGuideLink(id) {
+    st.guideLinks = (st.guideLinks || []).filter((x) => x.id !== id);
+    persist();
+  },
   async saveGuideOverride(cc, data) {
     st.guideOverrides = { ...(st.guideOverrides || {}), [cc]: { ...data, updatedAt: now() } };
     persist();

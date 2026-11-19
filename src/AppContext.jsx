@@ -85,6 +85,8 @@ export function AppProvider({ children }) {
   useEffect(() => adminApi.watchOverrides(setOverrides), []);
   const [guideOverrides, setGuideOverrides] = useState({});
   useEffect(() => adminApi.watchGuideOverrides(setGuideOverrides), []);
+  const [guideLinks, setGuideLinks] = useState([]);
+  useEffect(() => adminApi.watchGuideLinks(setGuideLinks), []);
   useEffect(() => adminApi.watchCustomPlaces(setCustomPlaces), []);
 
   const [homeChoice, setHomeCountryState] = useState(() => {
@@ -737,7 +739,7 @@ export function AppProvider({ children }) {
 
   const value = {
     profile, role, isAdmin, isStaff, isSuper, banned, hasPerm,
-    profileUid, setProfileUid, profileSub, setProfileSub, openProfile, myPublic, following, followers, followingIds, followerIds, friendIds, toggleFollow, notes, unread, socialApi, settings, overrides, guideOverrides, customPlaces, applyOverride, adminApi,
+    profileUid, setProfileUid, profileSub, setProfileSub, openProfile, myPublic, following, followers, followingIds, followerIds, friendIds, toggleFollow, notes, unread, socialApi, settings, overrides, guideOverrides, guideLinks, customPlaces, applyOverride, adminApi,
     reportMemory: (m, reason, note) => adminApi.reportMemory(userRef.current, m, reason, note),
     loaded, placeById, saveVisited, removePlace, confirmRemovePlace, pickMode, setPickMode, pinPlace, startPicking, pickStatus, setPickStatus, pickDate, setPickDate, pickOccasion, setPickOccasion, picked, addPickedAt, removePicked, renamePicked, finishPicking, famousFor, ensureFamous, famousLoading, homeCountry, setHomeCountry, homeLoading, allLiveFamous, famousLimit, setFamousLimit,
     api, user, places, memories, publicMemories, loadPublic: () => setNeedPublic(true), trips, countries, activeTripId, setActiveTripId, tripStops, openTripId, setOpenTripId, showTripOnMap, goHome, tripTab, setTripTab, tripPlan,

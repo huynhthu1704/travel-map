@@ -80,6 +80,13 @@ service cloud.firestore {
       allow write: if hasPerm('places');
     }
     // Cẩm nang: phần sửa nội dung của đội vận hành (ghi đè nội dung gốc)
+    // Cẩm nang: link Google Maps hữu ích (điểm đổi tiền, đại sứ quán…) do đội vận hành quản lý
+    match /guideLinks/{id} {
+      allow read: if true;
+      allow write: if hasPerm('guides')
+        && (request.resource == null || (request.resource.data.url is string && request.resource.data.url.size() <= 600
+            && request.resource.data.url.matches('https://.*') && request.resource.data.cc is string && request.resource.data.cc.size() == 2));
+    }
     match /guideOverrides/{cc} {
       allow read: if true;
       allow write: if hasPerm('guides') && cc.size() == 2;

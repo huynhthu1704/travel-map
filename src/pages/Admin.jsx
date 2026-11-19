@@ -11,6 +11,7 @@ import { useThumbs } from '../lib/useThumbs';
 import { tipsApi, isFlagged, DEFAULT_COMMUNITY } from '../lib/tips';
 import { FLAGS } from '../data/flags';
 import { GUIDES, GUIDE_BY_CC, SECTIONS as GUIDE_SECTIONS, GUIDE_META_FIELDS } from '../data/guides';
+import { LINK_CATS, LINK_CAT } from '../data/guideLinkCats';
 import { socialApi as social } from '../lib/social';
 import { usePlaceImage } from '../lib/placeImage';
 import { resolveGoogleMaps } from '../components/Modals';
@@ -2102,6 +2103,7 @@ function GuidesAdmin() {
           )}
         </div>
       </div>
+      <GuideLinksAdmin cc={cc} />
       {fields.map((f) => {
         const edited = isEdited(f.key);
         return (
@@ -2140,6 +2142,144 @@ function GuidesAdmin() {
           <button className="btn btn--ghost" onClick={() => setDraft(initial())}>
             {t('common.cancel')}
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Quản trị → Cẩm nang: link Google Maps hữu ích của 1 quốc gia */
+function GuideLinksAdmin({ cc }) {
+  const { t, lang } = useI18n();
+  const { guideLinks, adminApi, notify } = useApp();
+  const list = (guideLinks || []).filter((x) => x.cc === cc).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt || 0) - (b.createdAt || 0));
+  const empty = { cat: 'exchange', vi: '', en: '', url: '', city: '', noteVi: '', noteEn: '' };
+  const [form, setForm] = useState(null); // { id?, ...fields }
+  const [busy, setBusy] = useState(false);
+  const okUrl = (u) => /^https:\/\/\S+$/.test(u.trim());
+  const save = async () => {
+    if (!form.vi.trim() && !form.en.trim()) return notify(t('gl.needTitle'), 'error');
+    if (!okUrl(form.url)) return notify(t('gl.badUrl'), 'error');
+    setBusy(true);
+    try {
+      await adminApi.saveGuideLink(form.id || null, {
+        cc,
+        cat: form.cat,
+        title: { vi: form.vi.trim(), en: form.en.trim() },
+        url: form.url.trim(),
+        city: form.city.trim(),
+        note: { vi: form.noteVi.trim(), en: form.noteEn.trim() },
+        order: form.order ?? Date.now(),
+      });
+      notify(t('gl.saved'));
+      setForm(null);
+    } catch (e) {
+      notify(t('admin.error', { msg: e.message }), 'error');
+    }
+    setBusy(false);
+  };
+  const move = async (x, dir) => {
+    const i = list.findIndex((y) => y.id === x.id);
+    const other = list[i + dir];
+    if (!other) return;
+    const a = x.order ?? x.createdAt ?? 0;
+    const b = other.order ?? other.createdAt ?? 0;
+    const strip = ({ id, ...rest }) => rest; // eslint-disable-line no-unused-vars
+    await adminApi.saveGuideLink(x.id, { ...strip(x), order: b === a ? b + dir : b });
+    await adminApi.saveGuideLink(other.id, { ...strip(other), order: a });
+  };
+  return (
+    <div className="card stack">
+      <div className="row between wrap">
+        <h3 className="h3">📌 {t('gl.adminTitle', { country: countryName(cc) })}</h3>
+        {!form && (
+          <button className="btn btn--sm btn--soft" onClick={() => setForm({ ...empty })}>
+            ＋ {t('gl.add')}
+          </button>
+        )}
+      </div>
+      <p className="small muted">{t('gl.adminHelp')}</p>
+      {list.map((x, i) => (
+        <div key={x.id} className="gl-admin-row">
+          <span>{LINK_CAT[x.cat]?.icon || '📌'}</span>
+          <div className="grow">
+            <b>{x.title?.[lang] || x.title?.vi || x.title?.en}</b>
+            <small className="muted">
+              {LINK_CAT[x.cat]?.[lang] || ''}
+              {x.city ? ` · 📍 ${x.city}` : ''} ·{' '}
+              <a href={x.url} target="_blank" rel="noopener noreferrer">
+                {t('gl.open')} ↗
+              </a>
+            </small>
+          </div>
+          <div className="row">
+            <button className="btn btn--sm btn--ghost" disabled={i === 0} onClick={() => move(x, -1)}>
+              ↑
+            </button>
+            <button className="btn btn--sm btn--ghost" disabled={i === list.length - 1} onClick={() => move(x, 1)}>
+              ↓
+            </button>
+            <button
+              className="btn btn--sm btn--ghost"
+              onClick={() => setForm({ id: x.id, cat: x.cat, vi: x.title?.vi || '', en: x.title?.en || '', url: x.url, city: x.city || '', noteVi: x.note?.vi || '', noteEn: x.note?.en || '', order: x.order })}
+            >
+              ✏️
+            </button>
+            <button className="btn btn--sm btn--ghost danger" onClick={() => confirm(t('gl.confirmDelete')) && adminApi.deleteGuideLink(x.id).then(() => notify(t('gl.deleted')))}>
+              <TrashIcon />
+            </button>
+          </div>
+        </div>
+      ))}
+      {!list.length && !form && <p className="muted small">{t('gl.none')}</p>}
+      {form && (
+        <div className="stack-sm gl-form">
+          <div className="segmented segmented--sm gl-cats">
+            {LINK_CATS.map((c) => (
+              <button key={c.key} className={form.cat === c.key ? 'on' : ''} onClick={() => setForm((f) => ({ ...f, cat: c.key }))}>
+                {c.icon} {c[lang] || c.vi}
+              </button>
+            ))}
+          </div>
+          <div className="grid-2">
+            <label className="field">
+              <span>🇻🇳 {t('gl.f.title')}</span>
+              <input value={form.vi} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, vi: e.target.value }))} placeholder="VD: Tiệm vàng Hà Tâm (đổi tiền)" />
+            </label>
+            <label className="field">
+              <span>🇬🇧 {t('gl.f.title')}</span>
+              <input value={form.en} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, en: e.target.value }))} placeholder="e.g. Ha Tam jewellery (money exchange)" />
+            </label>
+          </div>
+          <label className="field">
+            <span>🔗 {t('gl.f.url')}</span>
+            <input value={form.url} maxLength={600} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://maps.app.goo.gl/… hoặc https://www.google.com/maps/…" />
+          </label>
+          <div className="grid-2">
+            <label className="field">
+              <span>📍 {t('gl.f.city')}</span>
+              <input value={form.city} maxLength={60} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} placeholder="TP. Hồ Chí Minh" />
+            </label>
+            <span />
+          </div>
+          <div className="grid-2">
+            <label className="field">
+              <span>🇻🇳 {t('gl.f.note')}</span>
+              <input value={form.noteVi} maxLength={200} onChange={(e) => setForm((f) => ({ ...f, noteVi: e.target.value }))} />
+            </label>
+            <label className="field">
+              <span>🇬🇧 {t('gl.f.note')}</span>
+              <input value={form.noteEn} maxLength={200} onChange={(e) => setForm((f) => ({ ...f, noteEn: e.target.value }))} />
+            </label>
+          </div>
+          <div className="row">
+            <button className="btn btn--primary" disabled={busy} onClick={save}>
+              💾 {t('gl.save')}
+            </button>
+            <button className="btn btn--ghost" onClick={() => setForm(null)}>
+              {t('common.cancel')}
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ import { GUIDE_FOODS } from '../data/guideFoods';
 import { GUIDE_EMERGENCY, VN_CITIZEN_HOTLINE } from '../data/guideEmergency';
 import { useWikiThumb } from '../lib/placeImage';
 import GuideCostCalc from '../components/GuideCostCalc';
+import { LINK_CATS } from '../data/guideLinkCats';
 import { useI18n as useI18nSpeak } from '../i18n';
 
 /** Đọc to bằng giọng bản địa (Web Speech API của trình duyệt) */
@@ -266,6 +267,7 @@ function CountryGuide({ g, onBack }) {
               )}
             </section>
             {s.key === 'money' && can('guideCosts') && <GuideCostCalc cc={g.cc} />}
+            {s.key === 'emergency' && can('guideLinks') && <GuideLinks cc={g.cc} />}
           </Fragment>
         ))}
       </div>
@@ -381,5 +383,46 @@ function EmergencyList({ cc }) {
       )}
       <p className="tiny muted">{t('em.tapHint')}</p>
     </div>
+  );
+}
+
+/** Link Google Maps hữu ích do đội vận hành quản lý (đổi tiền, đại sứ quán…) */
+function GuideLinks({ cc }) {
+  const { t, lang } = useI18n();
+  const { guideLinks } = useApp();
+  const list = (guideLinks || []).filter((x) => x.cc === cc).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.createdAt || 0) - (b.createdAt || 0));
+  if (!list.length) return null;
+  const L = (x) => (x ? x[lang] || x.vi || x.en || '' : '');
+  return (
+    <section id="g-links" className="guide-sec guide-sec--wide card">
+      <h2 className="h3">
+        <span>📌</span> {t('gl.title')}
+      </h2>
+      <div className="gl-groups">
+        {LINK_CATS.filter((c) => list.some((x) => x.cat === c.key)).map((c) => (
+          <div key={c.key} className="gl-group">
+            <b className="small">
+              {c.icon} {c[lang] || c.vi}
+            </b>
+            {list
+              .filter((x) => x.cat === c.key)
+              .map((x) => (
+                <a key={x.id} className="gl-item" href={x.url} target="_blank" rel="noopener noreferrer">
+                  <span className="gl-item__main">
+                    <b>{L(x.title)}</b>
+                    <small className="muted">
+                      {x.city ? `📍 ${x.city}` : ''}
+                      {x.city && L(x.note) ? ' · ' : ''}
+                      {L(x.note)}
+                    </small>
+                  </span>
+                  <span className="gl-item__go">🗺️ ↗</span>
+                </a>
+              ))}
+          </div>
+        ))}
+      </div>
+      <p className="tiny muted">{t('gl.hint')}</p>
+    </section>
   );
 }

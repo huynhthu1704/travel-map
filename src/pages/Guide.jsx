@@ -130,11 +130,11 @@ function CountryGuide({ g, onBack }) {
                 );
               })()}
             </section>
-            {i === 3 && <AdSlot placement={`guide-${g.cc}`} size="inline" />}
           </Fragment>
         ))}
       </div>
       <p className="tiny muted guide__note">{t('guide.checked', { date: GUIDES_CHECKED })}</p>
+      <AdSlot placement={`guide-${g.cc}`} size="banner" />
     </div>
   );
 }

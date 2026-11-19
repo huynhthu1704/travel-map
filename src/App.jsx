@@ -63,9 +63,14 @@ function UserMenu() {
   if (user === undefined) return <span className="avatar avatar--letter skeleton" />;
   if (!user)
     return (
-      <button className="btn btn--dark btn--sm" onClick={() => requireLogin(() => {})}>
-        {t('auth.login')}
-      </button>
+      <div className="row topbar__guest">
+        <a className="btn btn--ghost btn--sm topbar__about" href="#/about">
+          ℹ️ {t('about.link')}
+        </a>
+        <button className="btn btn--dark btn--sm" onClick={() => requireLogin(() => {})}>
+          {t('auth.login')}
+        </button>
+      </div>
     );
   return (
     <div className="user-menu">
@@ -87,6 +92,9 @@ function UserMenu() {
           >
             👤 {t('social.myProfile')}
           </AppLink>
+          <a className="btn btn--sm btn--ghost" href="#/about" onClick={() => setOpen(false)}>
+            ℹ️ {t('about.menu')}
+          </a>
           {can('whatsNew') && (
             <button
               className="btn btn--sm btn--ghost"

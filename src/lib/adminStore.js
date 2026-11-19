@@ -318,7 +318,22 @@ const local = {
     st.reports = st.reports.filter((r) => r.id !== id);
     persist();
   },
-  watchUsers: (cb) => on(() => cb(Object.values(st.users).sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0)))),
+  watchUsers: (cb) =>
+    on(() => {
+      // Chế độ demo: trạng thái đã đọc thông báo chung của người đang đăng nhập nằm ở dữ liệu mạng xã hội demo
+      let soc = {};
+      try {
+        soc = JSON.parse(localStorage.getItem('travel-map-social-demo-v1') || '{}');
+      } catch {
+        soc = {};
+      }
+      const me = JSON.parse(localStorage.getItem('travel-map-demo-v1') || '{}')?.user?.uid;
+      cb(
+        Object.values(st.users)
+          .map((u) => (u.uid === me ? { ...u, annRead: soc.annRead || [], annReadAt: soc.annReadAt || {} } : u))
+          .sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0)),
+      );
+    }),
   async updateUser(uid, patch) {
     st.users[uid] = { ...st.users[uid], ...patch };
     persist();

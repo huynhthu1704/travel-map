@@ -530,6 +530,16 @@ function WorldPanel() {
               </div>
             </section>
           )}
+          {!user && (
+            <a className="about-teaser" href="#/about">
+              <span className="about-teaser__ic">🗺️</span>
+              <span>
+                <b>{t('about.teaserTitle')}</b>
+                <small>{t('about.teaserSub')}</small>
+              </span>
+              <span aria-hidden>→</span>
+            </a>
+          )}
           <button className="btn btn--primary btn--block" data-tour="add-memory" onClick={() => requireLogin(() => setModal({ type: 'memory' }), t('reason.saveMemory'))}>
             {t('world.addMemory')}
           </button>
@@ -543,6 +553,10 @@ function WorldPanel() {
               </span>
               <span aria-hidden>→</span>
             </button>}
+            <a href="#/about">
+              <span className="quick-links__ic">ℹ️</span>
+              <span>{t('about.menu')}</span>
+            </a>
             <button onClick={() => setModal({ type: 'faq' })}>
               <span className="quick-links__ic">❓</span>
               <span>{t('home.link.faq')}</span>

@@ -1330,7 +1330,7 @@ function SentBroadcasts() {
   const [users, setUsers] = useState(null); // để báo cáo gửi tất cả / theo vai trò (chỉ quản trị viên)
   const [names, setNames] = useState({});
   const [open, setOpen] = useState(null);
-  const [view, setView] = useState('read'); // read | unread
+  const [view, setView] = useState('all'); // all | read | unread
   const [status, setStatus] = useState('all'); // all | active | revoked
   useEffect(() => socialApi.watchSentBroadcasts(setNotes), [socialApi]);
   useEffect(() => socialApi.watchBroadcasts(setLogs), [socialApi]);
@@ -1364,20 +1364,36 @@ function SentBroadcasts() {
     if (String(b.to).startsWith('role:')) return `🔐 ${roleLabel(b.to.slice(5), settings, t, lang)}`;
     return `👤 ${t('bc.nUsers', { n: (b.recipients || []).length })}`;
   };
-  /** { recipients: [uid] | null, readers: Set<uid> | null } */
+  /**
+   * Báo cáo 1 lần gửi: { recipients, readers, rows: [{ uid, receivedAt, readAt, read }] }
+   * recipients = null khi không xem được danh sách từng người (gửi tất cả / theo vai trò, không phải quản trị viên)
+   */
   const report = (b) => {
     const revoked = b.status === 'revoked';
+    const snap = b.readTimes || {}; // thời điểm đọc chụp lại lúc thu hồi
+    let rows;
     if (b.to === 'users') {
-      const recipients = b.recipients || [];
-      const readers = new Set(revoked ? b.readAtRevoke || [] : b.docs.filter((d) => d.read).map((d) => d.to));
-      return { recipients, readers };
+      rows = (b.recipients || []).map((uid) => {
+        const d = b.docs.find((x) => x.to === uid);
+        const read = revoked ? (b.readAtRevoke || []).includes(uid) : !!d?.read;
+        return { uid, receivedAt: d?.createdAt || b.createdAt, read, readAt: revoked ? snap[uid] || null : d?.readAt || null };
+      });
+    } else if (users) {
+      const role = String(b.to).startsWith('role:') ? b.to.slice(5) : null;
+      const eligible = users.filter((u) => !role || (u.role || 'user') === role || (role === 'admin' && isSuperUid(u.uid)));
+      const ids = b.noteIds || [];
+      rows = eligible.map((u) => {
+        const readId = ids.find((x) => (u.annRead || []).includes(x));
+        const read = revoked ? (b.readAtRevoke || []).includes(u.uid) : !!readId;
+        // Người tham gia sau khi gửi: nhận lúc tạo tài khoản
+        const receivedAt = Math.max(b.createdAt || 0, u.createdAt || 0) || b.createdAt;
+        return { uid: u.uid, receivedAt, read, readAt: revoked ? snap[u.uid] || null : (readId && u.annReadAt?.[readId]) || null };
+      });
+    } else {
+      return { recipients: null, readers: revoked ? new Set(b.readAtRevoke || []) : null, rows: null };
     }
-    if (!users) return { recipients: null, readers: revoked ? new Set(b.readAtRevoke || []) : null };
-    const role = String(b.to).startsWith('role:') ? b.to.slice(5) : null;
-    const eligible = users.filter((u) => !role || (u.role || 'user') === role || (role === 'admin' && isSuperUid(u.uid)));
-    const ids = b.noteIds || [];
-    const readers = new Set(revoked ? b.readAtRevoke || [] : eligible.filter((u) => (u.annRead || []).some((x) => ids.includes(x))).map((u) => u.uid));
-    return { recipients: eligible.map((u) => u.uid), readers };
+    rows.sort((x, y) => (y.read - x.read) || (y.readAt || 0) - (x.readAt || 0));
+    return { recipients: rows.map((r) => r.uid), readers: new Set(rows.filter((r) => r.read).map((r) => r.uid)), rows };
   };
   const nameOf = (uid) => users?.find((u) => u.uid === uid)?.displayName || users?.find((u) => u.uid === uid)?.name || names[uid] || uid.slice(0, 8);
 
@@ -1398,7 +1414,8 @@ function SentBroadcasts() {
     try {
       const r = report(b);
       await socialApi.removeNotifications(b.docs.map((d) => d.id));
-      const patch = { status: 'revoked', revokedAt: Date.now(), revokedBy: me?.uid || '', revokedByName: me?.name || '', readAtRevoke: r.readers ? [...r.readers] : [] };
+      const readTimes = Object.fromEntries((r.rows || []).filter((x) => x.read && x.readAt).map((x) => [x.uid, x.readAt]));
+      const patch = { status: 'revoked', revokedAt: Date.now(), revokedBy: me?.uid || '', revokedByName: me?.name || '', readAtRevoke: r.readers ? [...r.readers] : [], readTimes };
       if (b.legacy) {
         const { docs, legacy, ...rest } = b; // eslint-disable-line no-unused-vars
         await socialApi.recordBroadcast({ ...rest, ...patch }).catch(() => {});
@@ -1459,29 +1476,8 @@ function SentBroadcasts() {
                   </div>
                 )}
                 {isOpen &&
-                  (r.recipients ? (
-                    <div className="stack-sm">
-                      <div className="segmented segmented--sm">
-                        <button className={view === 'read' ? 'on' : ''} onClick={() => setView('read')}>
-                          👀 {t('bc.read')} ({read || 0})
-                        </button>
-                        <button className={view === 'unread' ? 'on' : ''} onClick={() => setView('unread')}>
-                          💤 {t('bc.unread')} ({total - (read || 0)})
-                        </button>
-                      </div>
-                      <div className="chips">
-                        {shown.length ? (
-                          shown.map((u) => (
-                            <span key={u} className={`chip ${view === 'read' ? 'chip--on' : ''}`}>
-                              {view === 'read' ? '✓ ' : ''}
-                              {nameOf(u)}
-                            </span>
-                          ))
-                        ) : (
-                          <small className="muted">—</small>
-                        )}
-                      </div>
-                    </div>
+                  (r.rows ? (
+                    <ReportTable b={b} rows={r.rows} view={view} setView={setView} nameOf={nameOf} />
                   ) : (
                     <small className="muted">{t('bc.reportAdminOnly')}</small>
                   ))}
@@ -1501,6 +1497,103 @@ function SentBroadcasts() {
         })
       )}
       <p className="tiny muted">{t('bc.revokeHelp')}</p>
+    </div>
+  );
+}
+
+/** Bảng báo cáo 1 thông báo: người nhận (link hồ sơ), lúc nhận, lúc đọc; xuất Excel */
+function ReportTable({ b, rows, view, setView, nameOf }) {
+  const { t, lang } = useI18n();
+  const { openProfile, adminApi } = useApp();
+  const [busy, setBusy] = useState(false);
+  const shown = rows.filter((r) => view === 'all' || (view === 'read' ? r.read : !r.read));
+  const fmt = (ms) => (ms ? fmtWhen(ms, lang) : '');
+  const exportXlsx = async () => {
+    setBusy(true);
+    try {
+      const { default: writeXlsxFile } = await import('write-excel-file/browser');
+      const head = [t('bc.col.no'), t('bc.col.user'), t('bc.col.uid'), t('bc.col.received'), t('bc.col.readAt'), t('bc.col.status')].map((v) => ({ value: v, fontWeight: 'bold', backgroundColor: '#FFE38A' }));
+      const info = [
+        [{ value: b.title || '', fontWeight: 'bold' }],
+        [`${t('bc.col.sentAt')}: ${fmt(b.createdAt)} · ${b.fromName || ''}`],
+        [`${t('bc.received')}: ${rows.length} · ${t('bc.read')}: ${rows.filter((r) => r.read).length} · ${t('bc.unread')}: ${rows.filter((r) => !r.read).length}${b.status === 'revoked' ? ` · ${t('bc.revokedTag')}` : ''}`],
+        [],
+      ];
+      const data = rows.map((r, i) => [
+        i + 1,
+        nameOf(r.uid),
+        r.uid,
+        r.receivedAt ? { value: new Date(r.receivedAt), type: Date, format: 'dd/mm/yyyy hh:mm' } : null,
+        r.readAt ? { value: new Date(r.readAt), type: Date, format: 'dd/mm/yyyy hh:mm' } : r.read ? t('bc.readNoTime') : null,
+        r.read ? t('bc.read') : t('bc.unread'),
+      ]);
+      const safe = (b.title || 'notification').replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40);
+      const blob = await writeXlsxFile([...info, head, ...data], { columns: [{ width: 5 }, { width: 26 }, { width: 30 }, { width: 18 }, { width: 18 }, { width: 12 }] }).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `thong-bao-${safe}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      adminApi.log('broadcast.export', b.id, b.title || '');
+    } catch (e) {
+      alert(e.message);
+    }
+    setBusy(false);
+  };
+  return (
+    <div className="stack-sm">
+      <div className="row between wrap">
+        <div className="segmented segmented--sm">
+          {[
+            ['all', rows.length],
+            ['read', rows.filter((r) => r.read).length],
+            ['unread', rows.filter((r) => !r.read).length],
+          ].map(([k, n]) => (
+            <button key={k} className={view === k ? 'on' : ''} onClick={() => setView(k)}>
+              {k === 'all' ? t('common.all') : k === 'read' ? `👀 ${t('bc.read')}` : `💤 ${t('bc.unread')}`} ({n})
+            </button>
+          ))}
+        </div>
+        <button className="btn btn--sm btn--soft" disabled={busy || !rows.length} onClick={exportXlsx}>
+          📥 {t('bc.export')}
+        </button>
+      </div>
+      <div className="report-table-wrap">
+        <table className="report-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>{t('bc.col.user')}</th>
+              <th>{t('bc.col.received')}</th>
+              <th>{t('bc.col.readAt')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((r, i) => (
+              <tr key={r.uid}>
+                <td className="muted">{i + 1}</td>
+                <td>
+                  <AppLink className="link" href={hrefProfile(r.uid)} onClick={() => openProfile(r.uid)}>
+                    {nameOf(r.uid)}
+                  </AppLink>
+                </td>
+                <td>{fmt(r.receivedAt) || '—'}</td>
+                <td>{r.read ? <span className="report-read">✓ {fmt(r.readAt) || t('bc.readNoTime')}</span> : <span className="muted">{t('bc.unread')}</span>}</td>
+              </tr>
+            ))}
+            {!shown.length && (
+              <tr>
+                <td colSpan={4} className="muted">
+                  —
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

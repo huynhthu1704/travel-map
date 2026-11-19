@@ -51,7 +51,7 @@ service cloud.firestore {
                     && request.resource.data.get('banned', false) == false
                     && validPhoto(request.resource.data) && validUserText(request.resource.data);
       allow update: if (signedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt', 'annRead', 'consentVersion', 'consentAt', 'privateProfile', 'hideDates'])
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt', 'annRead', 'annReadAt', 'consentVersion', 'consentAt', 'privateProfile', 'hideDates'])
                         && validPhoto(request.resource.data) && validUserText(request.resource.data))
                     || (isAdmin()
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned'])
@@ -174,7 +174,7 @@ service cloud.firestore {
                                         && !(request.resource.data.get('type', '') in ['feature', 'system']))
                                       || hasPerm('notify'))));
       allow update: if signedIn() && resource.data.to == request.auth.uid
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
       allow delete: if signedIn() && (resource.data.to == request.auth.uid || resource.data.get('from', '') == request.auth.uid
                     || hasPerm('notify') || (isStaff() && !(resource.data.get('type', '') in ['feature', 'system'])));
     }

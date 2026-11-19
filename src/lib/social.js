@@ -173,16 +173,19 @@ const fb = {
       u3();
     };
   },
+  // Đã đọc: ghi kèm thời điểm đọc (readAt / annReadAt) để báo cáo cho đội vận hành
   async setRead(uid, n, read) {
-    if (n.broadcast) return updateDoc(doc(db, 'users', uid), { annRead: read ? arrayUnion(n.id) : arrayRemove(n.id) });
-    return updateDoc(doc(db, 'notifications', n.id), { read });
+    if (n.broadcast)
+      return updateDoc(doc(db, 'users', uid), { annRead: read ? arrayUnion(n.id) : arrayRemove(n.id), [`annReadAt.${n.id}`]: read ? now() : deleteField() });
+    return updateDoc(doc(db, 'notifications', n.id), { read, readAt: read ? now() : null });
   },
   async markAllRead(uid, list) {
     const b = writeBatch(db);
+    const t = now();
     const personal = list.filter((n) => !n.broadcast && !n.read);
-    personal.slice(0, 450).forEach((n) => b.update(doc(db, 'notifications', n.id), { read: true }));
-    const ann = list.filter((n) => n.broadcast).map((n) => n.id);
-    if (ann.length) b.update(doc(db, 'users', uid), { annRead: arrayUnion(...ann) });
+    personal.slice(0, 450).forEach((n) => b.update(doc(db, 'notifications', n.id), { read: true, readAt: t }));
+    const ann = list.filter((n) => n.broadcast && !n.read).map((n) => n.id);
+    if (ann.length) b.update(doc(db, 'users', uid), { annRead: arrayUnion(...ann), ...Object.fromEntries(ann.map((id) => [`annReadAt.${id}`, t])) });
     await b.commit();
   },
   removeNotification: (id) => deleteDoc(doc(db, 'notifications', id)),
@@ -329,12 +332,19 @@ const local = {
       ),
     ),
   async setRead(uid, n, read) {
-    if (n.broadcast) st.annRead = read ? [...new Set([...st.annRead, n.id])] : st.annRead.filter((x) => x !== n.id);
-    else st.notes = st.notes.map((x) => (x.id === n.id ? { ...x, read } : x));
+    st.annReadAt ||= {};
+    if (n.broadcast) {
+      st.annRead = read ? [...new Set([...st.annRead, n.id])] : st.annRead.filter((x) => x !== n.id);
+      if (read) st.annReadAt[n.id] = now();
+      else delete st.annReadAt[n.id];
+    } else st.notes = st.notes.map((x) => (x.id === n.id ? { ...x, read, readAt: read ? now() : null } : x));
     persist();
   },
   async markAllRead(uid, list) {
-    st.notes = st.notes.map((x) => (x.to === uid ? { ...x, read: true } : x));
+    const t = now();
+    st.annReadAt ||= {};
+    st.notes = st.notes.map((x) => (x.to === uid && !x.read ? { ...x, read: true, readAt: t } : x));
+    list.filter((n) => n.broadcast && !n.read).forEach((n) => (st.annReadAt[n.id] = t));
     st.annRead = [...new Set([...st.annRead, ...list.filter((n) => n.broadcast).map((n) => n.id)])];
     persist();
   },

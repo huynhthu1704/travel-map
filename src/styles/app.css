@@ -9258,3 +9258,104 @@ a.app-link.place-card__title:hover {
   box-shadow: 0 8px 24px rgba(31, 26, 20, 0.12);
   z-index: 5;
 }
+/* Báo cáo thông báo: bảng */
+.report-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--ink-100, #eee6d6);
+  border-radius: 14px;
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.report-table th,
+.report-table td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ink-100, #eee6d6);
+  white-space: nowrap;
+}
+.report-table th {
+  background: var(--paper-2, #fffaf0);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ink-700, #4a4237);
+}
+.report-table tr:last-child td {
+  border-bottom: 0;
+}
+.report-read {
+  color: #1d7a55;
+  font-weight: 600;
+}
+/* Liên kết tới trang Giới thiệu */
+.quick-links > a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+  background: var(--base-white);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-700);
+  text-decoration: none;
+}
+.quick-links > a:hover {
+  background: var(--honey-50);
+  border-color: var(--honey-200);
+}
+.quick-links > a > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.about-teaser {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--honey-100, #fff3cc), #fff);
+  border: 1px solid var(--honey-300, #ffd970);
+  color: var(--ink-900, #1f1a14);
+  text-decoration: none;
+}
+.about-teaser:hover {
+  border-color: var(--honey-400, #ffc629);
+}
+.about-teaser > span:nth-child(2) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.about-teaser small {
+  color: var(--ink-500, #8a8172);
+  font-size: 12px;
+}
+.about-teaser__ic {
+  font-size: 26px;
+}
+.topbar__guest {
+  gap: 6px;
+  flex: none;
+}
+.topbar__about {
+  text-decoration: none;
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .topbar__about {
+    display: none;
+  }
+}
+.login__about {
+  display: block;
+  text-align: center;
+  margin-top: 4px;
+  color: var(--ink-700, #4a4237);
+}

@@ -131,6 +131,9 @@ function LoginModal({ reason, onClose }) {
           <GoogleIcon /> {busy ? t('auth.opening') : t('auth.continueGoogle')}
         </button>
         {!firebaseEnabled && <p className="small muted">{t('auth.demoNote')}</p>}
+        <a className="small login__about" href="#/about" onClick={onClose}>
+          ℹ️ {t('about.loginLink')} →
+        </a>
       </div>
     </Modal>
   );

@@ -9,7 +9,7 @@ service cloud.firestore {
     // ---- Quản trị: quản trị viên gốc (theo email) + vai trò lưu trong users/{uid}.role ----
     // Quản trị viên gốc theo mã người dùng (uid) — không ghi email trong tệp luật
     function isSuper() {
-      return signedIn() && request.auth.uid in ['__SUPER_ADMIN_UID__'];
+      return signedIn() && request.auth.uid in ['qWcx5AAKiEf41a8sw0CdbiTtCmo2'];
     }
     function myRole() {
       let p = /databases/$(database)/documents/users/$(request.auth.uid);

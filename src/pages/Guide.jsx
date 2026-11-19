@@ -24,11 +24,17 @@ function speakText(text, lang) {
   const base = lang.split('-')[0];
   const voices = synth.getVoices();
   const v = voices.find((x) => x.lang === lang || x.lang.replace('_', '-') === lang) || voices.find((x) => x.lang.toLowerCase().startsWith(base));
+  if (voices.length && !v) return 'novoice'; // không có giọng → mở Google Dịch thay vì đọc sai giọng
   if (v) u.voice = v;
   u.rate = 0.85;
   synth.speak(u);
-  return voices.length && !v ? 'novoice' : 'ok';
+  return 'ok';
 }
+const gtUrl = (text, lang, target) => {
+  const base = lang.split('-')[0];
+  const sl = base === 'fil' ? 'tl' : lang === 'zh-TW' ? 'zh-TW' : base;
+  return `https://translate.google.com/?sl=${sl}&tl=${target}&text=${encodeURIComponent(text)}&op=translate`;
+};
 function SpeakButton({ text, lang }) {
   const { t } = useI18nSpeak();
   const [msg, setMsg] = useState('');
@@ -41,8 +47,11 @@ function SpeakButton({ text, lang }) {
         aria-label={`${t('guide.listen')}: ${text}`}
         onClick={() => {
           const r = speakText(text, lang);
-          setMsg(r === 'ok' ? '' : t(r === 'unsupported' ? 'guide.noSpeech' : 'guide.noVoice'));
-          if (r !== 'ok') setTimeout(() => setMsg(''), 12000);
+          if (r === 'ok') return setMsg('');
+          // Máy không có giọng đọc ngôn ngữ này → mở Google Dịch ở tab mới (bấm loa ở đó để nghe)
+          window.open(gtUrl(text, lang, t('guide.gtTarget')), '_blank', 'noopener');
+          setMsg(t('guide.gtOpened'));
+          setTimeout(() => setMsg(''), 8000);
         }}
       >
         🔊
@@ -50,7 +59,7 @@ function SpeakButton({ text, lang }) {
       {msg && (
         <small className="say__msg">
           {msg}{' '}
-          <a href={`https://translate.google.com/?sl=${lang.split('-')[0] === 'fil' ? 'tl' : lang === 'zh-TW' ? 'zh-TW' : lang.split('-')[0]}&tl=${t('guide.gtTarget')}&text=${encodeURIComponent(text)}&op=translate`} target="_blank" rel="noopener noreferrer">
+          <a href={gtUrl(text, lang, t('guide.gtTarget'))} target="_blank" rel="noopener noreferrer">
             {t('guide.gtListen')} ↗
           </a>
         </small>

@@ -1436,6 +1436,8 @@ function RolesAdmin({ users }) {
   useEffect(() => setDraft(null), [settings]);
   const cur = draft || { rolePerms: Object.fromEntries(roles.filter((r) => !r.fixed).map((r) => [r.id, r.perms])), roleDefs: settings.roleDefs || [] };
   const editable = [...PRESET_ROLES.map((r) => ({ ...r, preset: true })), ...cur.roleDefs.map((r) => ({ ...r, custom: true }))];
+  // Cột Quản trị viên: luôn có mọi quyền, không sửa được
+  const columns = [{ id: 'admin', icon: '👑', locked: true }, ...editable];
   const count = (id) => (users || []).filter((u) => (u.role || 'user') === id).length;
   const rl = (r) => (r.custom ? r.name?.[lang] || r.name?.vi || r.name?.en || r.id : t('role.' + r.id));
   const toggle = (rid, perm) =>
@@ -1484,10 +1486,10 @@ function RolesAdmin({ users }) {
         </div>
       </div>
       <div className="card perm-matrix-card">
-        <div className="perm-matrix" style={{ '--cols': editable.length }}>
+        <div className="perm-matrix" style={{ '--cols': columns.length }}>
           <div className="perm-matrix__corner">{t('perm.permission')}</div>
-          {editable.map((r) => (
-            <div key={r.id} className="perm-matrix__role">
+          {columns.map((r) => (
+            <div key={r.id} className={`perm-matrix__role ${r.locked ? 'perm-matrix__role--locked' : ''}`}>
               <span className="perm-matrix__icon">{r.icon || '🧩'}</span>
               {r.custom ? (
                 <input
@@ -1502,7 +1504,11 @@ function RolesAdmin({ users }) {
                 <b>{rl(r)}</b>
               )}
               <small className="muted">{t('perm.people', { n: count(r.id) })}</small>
-              {r.custom ? (
+              {r.locked ? (
+                <span className="perm-matrix__lock" title={t('perm.adminLocked')}>
+                  🔒
+                </span>
+              ) : r.custom ? (
                 <button className="btn btn--sm btn--ghost danger" onClick={() => removeRole(r)} title={t('common.delete')}>
                   <TrashIcon />
                 </button>
@@ -1522,9 +1528,16 @@ function RolesAdmin({ users }) {
                   <small className="muted">{t('perm.d.' + p.key)}</small>
                 </span>
               </div>
-              {editable.map((r) => (
-                <label key={r.id} className="perm-matrix__cell">
-                  <input type="checkbox" checked={(cur.rolePerms[r.id] || []).includes(p.key)} onChange={() => toggle(r.id, p.key)} />
+              {columns.map((r) => (
+                <label key={r.id} className={`perm-matrix__cell ${r.locked ? 'perm-matrix__cell--locked' : ''}`} title={r.locked ? t('perm.adminLocked') : undefined}>
+                  <input
+                    type="checkbox"
+                    checked={r.locked || (cur.rolePerms[r.id] || []).includes(p.key)}
+                    aria-disabled={r.locked || undefined}
+                    readOnly={r.locked}
+                    onClick={(e) => r.locked && e.preventDefault()}
+                    onChange={() => !r.locked && toggle(r.id, p.key)}
+                  />
                 </label>
               ))}
             </Fragment>

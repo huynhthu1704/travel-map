@@ -1,7 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { I18nProvider } from './i18n';
+import { I18nProvider, loadLangDict } from './i18n';
+import { getLang } from './lib/lang';
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
 import { setupFreshness } from './lib/freshness';
 
@@ -32,10 +33,11 @@ document.addEventListener(
 import './styles/tokens.css';
 import './styles/app.css';
 
-createRoot(document.getElementById('root')).render(
+// REQ-011: người dùng tiếng Anh → tải từ điển English trước khi vẽ (tiếng Việt có sẵn)
+loadLangDict(getLang()).finally(() => createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <I18nProvider>
       <App />
     </I18nProvider>
   </React.StrictMode>,
-);
+));

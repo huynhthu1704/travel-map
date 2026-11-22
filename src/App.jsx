@@ -2,9 +2,6 @@ import { BrandMark } from './components/Brand.jsx';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { currentAnnouncement } from './lib/announcements';
 import { AppProvider, useApp } from './AppContext';
-import MapView from './components/MapView';
-import SidePanel from './components/SidePanel';
-import PickPanel from './components/PickPanel';
 import SearchBox from './components/SearchBox';
 import Modals from './components/Modals';
 import FeedbackLauncher from './components/FeedbackLauncher';
@@ -13,6 +10,14 @@ import QuickTour, { startQuickTour } from './components/QuickTour';
 import Notifications from './components/Notifications';
 import { Avatar, Loader, AppLink } from './components/ui';
 import { hrefView, hrefProfile } from './lib/route';
+// REQ-011: bản đồ (Leaflet + MapLibre + ranh giới quốc gia) chỉ tải khi mở trang Bản đồ —
+// các trang khác (Chuyến đi, Cẩm nang, Giới thiệu…) không phải tải ~2 MB này nữa
+const loadMap = () => import('./components/MapView');
+const MapView = lazy(loadMap);
+// Mở web ở trang Bản đồ → tải code bản đồ ngay song song (không đợi vẽ xong khung trang)
+if (/^#?\/?(place|country|$)/.test(location.hash.replace(/^#/, '')) || !location.hash || location.hash === '#/') loadMap();
+const SidePanel = lazy(() => import('./components/SidePanel'));
+const PickPanel = lazy(() => import('./components/PickPanel'));
 // Các trang ngoài bản đồ chỉ tải khi người dùng mở → trang đầu hiện nhanh hơn
 const GuidePage = lazy(() => import('./pages/Guide'));
 const TipsPage = lazy(() => import('./pages/Tips'));
@@ -247,8 +252,11 @@ function Shell() {
       )}
 
       <main className="main">
+        {mounted.has('map') && (
         <div className="map-wrap" aria-hidden={view !== 'map'}>
-          <MapView />
+          <Suspense fallback={<div className="map map--loading" />}>
+            <MapView />
+          </Suspense>
           {activeTrip && view === 'map' && (
             <div className="trip-badge">
               {activeTrip.emoji} {t('map.viewingTrip')} <b>{activeTrip.name}</b>
@@ -268,8 +276,11 @@ function Shell() {
             {activeTrip && <span><i className="dot dot--trip" />{t('legend.trip')}</span>}
           </div>
           {/* Đang chọn 1 điểm cho kỉ niệm: ẩn bảng bên để chạm được bản đồ (nhất là trên điện thoại) */}
-          {view === 'map' && (pickMode === 'place' ? <PickPanel /> : pickMode === 'memory' ? null : <SidePanel />)}
+          <Suspense fallback={view === 'map' ? <div className="panel panel--loading"><Loader /></div> : null}>
+            {view === 'map' && (pickMode === 'place' ? <PickPanel /> : pickMode === 'memory' ? null : <SidePanel />)}
+          </Suspense>
         </div>
+        )}
         <Suspense fallback={view !== 'map' ? <div className="page"><Loader /></div> : null}>
           {mounted.has('explore') && can('explore') && <div className={pageCls('explore')}><ExplorePage /></div>}
           {mounted.has('memories') && <div className={pageCls('memories')}><MemoriesPage /></div>}

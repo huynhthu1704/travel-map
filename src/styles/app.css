@@ -10186,3 +10186,21 @@ a.app-link.place-card__title:hover {
 .tm__public .btn {
   align-self: flex-start;
 }
+
+/* REQ-011: chỗ chờ khi bản đồ / bảng bên đang tải; mốc để dựng thêm ô ảnh khi cuộn */
+.map--loading {
+  background: #eaf3f7;
+}
+.panel--loading {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+}
+.mgrid__more {
+  grid-column: 1 / -1;
+  height: 1px;
+}
+/* Thẻ Đồ du lịch trong trang Cẩm nang: cùng bề rộng và căn giữa như tiêu đề / lưới quốc gia */
+.guide > .gear-promo {
+  margin: 0 auto 16px;
+}

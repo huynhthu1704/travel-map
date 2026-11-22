@@ -1648,6 +1648,8 @@ const EN = {
     'trip.nameRequired': 'Your trip needs a name',
     'trip.endBeforeStart': 'The return date must be after the departure date',
     'trip.stops': '{n} stops',
+    'trip.duration': '{days} days {nights} nights',
+    'trip.planPlaces': '{n} places',
     'trip.code': 'Invite code',
     'trip.invite': '🔗 Invite friends',
     'trip.onMap': '🗺️ View on map',

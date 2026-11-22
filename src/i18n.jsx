@@ -1652,6 +1652,8 @@ const DICT = {
     'trip.nameRequired': 'Chuyến đi cần có tên nha',
     'trip.endBeforeStart': 'Ngày quay về phải sau ngày xuất phát',
     'trip.stops': '{n} điểm dừng',
+    'trip.duration': '{days} ngày {nights} đêm',
+    'trip.planPlaces': '{n} địa điểm',
     'trip.code': 'Mã mời',
     'trip.invite': '🔗 Mời bạn bè',
     'trip.onMap': '🗺️ Xem trên bản đồ',

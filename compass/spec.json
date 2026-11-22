@@ -156,6 +156,37 @@
           "then": "I see all values but no add, edit, delete or drag controls"
         }
       ]
+    },
+    {
+      "id": "REQ-005",
+      "title": "Highlight the selected place on the map",
+      "description": "When a place is selected (place panel open), its pin stands out so users can tell which of dozens of pins they are looking at.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "selectedPin",
+      "ac": [
+        {
+          "given": "the map shows many pins",
+          "when": "I open a place (from the map, search, a list or a trip plan)",
+          "then": "its pin is larger, has a honey ring and a gently pulsing glow, and shows the place name in a label"
+        },
+        {
+          "given": "the selected place is a famous place inside a cluster",
+          "when": "I open it",
+          "then": "its highlighted pin is shown on its own and not hidden in the cluster"
+        },
+        {
+          "given": "a place is selected",
+          "when": "I close the place panel or open another place",
+          "then": "the highlight moves to the new place or disappears"
+        },
+        {
+          "given": "my device asks for reduced motion",
+          "when": "a place is selected",
+          "then": "the glow does not animate"
+        }
+      ]
     }
   ],
   "tests": [
@@ -295,6 +326,32 @@
         "Add estimate only, then tap 🧾 and save actual: row updates",
         "Add actual only: row tagged Unplanned",
         "View as view-only member: no controls"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-013",
+      "title": "Selected place is drawn once, outside normal pins and clusters",
+      "reqIds": [
+        "REQ-005"
+      ],
+      "type": "automated",
+      "file": "tests/mapSelect.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-014",
+      "title": "UI: open a place among many pins — highlighted pin and name label; closing removes it",
+      "reqIds": [
+        "REQ-005"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag selectedPin",
+        "Open a country with many famous places",
+        "Tap a place: highlighted pin with label appears",
+        "Open another place: highlight moves",
+        "Close the panel: highlight disappears"
       ],
       "status": "Passing (demo)"
     }

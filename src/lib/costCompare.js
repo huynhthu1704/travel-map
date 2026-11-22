@@ -66,3 +66,31 @@ export function moveId(ids, id, to) {
   const k = Math.max(0, Math.min(to, rest.length));
   return [...rest.slice(0, k), id, ...rest.slice(k)];
 }
+
+/**
+ * REQ-004: bảng chi phí gộp — mỗi dòng là 1 khoản (dự kiến, kèm các lần chi thực tế gắn với nó),
+ * hoặc 1 khoản thực tế phát sinh ngoài dự kiến. Thứ tự theo order (kéo thả), mặc định theo lúc thêm.
+ */
+export function buildCostTable(costs, { estTotal, actTotal, eps = 0.5 }) {
+  const estimates = costs.filter((c) => c.type === 'estimate');
+  const actuals = costs.filter((c) => c.type === 'actual');
+  const estIds = new Set(estimates.map((e) => e.id));
+  const byDate = (a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0);
+  const top = [...estimates, ...actuals.filter((a) => !a.estimateId || !estIds.has(a.estimateId))];
+  const rows = sortByOrder(top, (a, b) => (a.createdAt || 0) - (b.createdAt || 0)).map((c) => {
+    if (c.type === 'estimate') {
+      const linked = actuals.filter((a) => a.estimateId === c.id).sort(byDate);
+      const planned = estTotal(c);
+      const actual = linked.reduce((s, a) => s + actTotal(a), 0);
+      const diff = linked.length ? actual - planned : null;
+      return { id: c.id, kind: 'item', cost: c, actuals: linked, planned, actual, diff, status: !linked.length ? 'pending' : diff > eps ? 'over' : diff < -eps ? 'under' : 'even' };
+    }
+    const actual = actTotal(c);
+    return { id: c.id, kind: 'extra', cost: c, actuals: [c], planned: null, actual, diff: actual, status: 'extra' };
+  });
+  const planned = rows.reduce((s, r) => s + (r.planned || 0), 0);
+  const actual = rows.reduce((s, r) => s + r.actual, 0);
+  const extra = rows.filter((r) => r.kind === 'extra').reduce((s, r) => s + r.actual, 0);
+  const pending = rows.filter((r) => r.status === 'pending').reduce((s, r) => s + r.planned, 0);
+  return { rows, totals: { planned, actual, extra, pending, diff: actual - planned } };
+}

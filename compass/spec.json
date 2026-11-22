@@ -115,6 +115,47 @@
           "then": "no drag handles are shown"
         }
       ]
+    },
+    {
+      "id": "REQ-004",
+      "title": "Combined cost table: estimate, actual and difference in one table",
+      "description": "Replace the separate Estimated and Actual tables with one table where each cost item shows its estimate, actual spend and difference on the same row. Users can add a cost with the estimate, the actual, or both at once, and record the actual later. Unplanned actual costs appear in the same table, marked. Field sets for estimate and actual stay the same.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 (refines REQ-002)",
+      "featureFlag": "costTable",
+      "ac": [
+        {
+          "given": "I can edit a trip",
+          "when": "I tap 'Add a cost' and fill the estimate and/or the 'Already paid' part",
+          "then": "one estimate and/or one actual cost is saved; if both, the actual is linked to the estimate"
+        },
+        {
+          "given": "a cost item has an estimate only",
+          "when": "I tap 🧾 on its row and save the actual amount",
+          "then": "the actual is linked to that item and the row shows estimate, actual and difference"
+        },
+        {
+          "given": "an item has one or more actual payments",
+          "when": "I view the table",
+          "then": "the row shows the total actual, the difference (over in red, under in green) and each payment underneath with date, who paid and who shares it"
+        },
+        {
+          "given": "an actual cost is not linked to any estimate",
+          "when": "I view the table",
+          "then": "it appears as its own row tagged 'Unplanned' with no estimate and a + difference"
+        },
+        {
+          "given": "the table has rows",
+          "when": "I look at the last row",
+          "then": "I see total estimate, total actual and total difference, plus notes for unplanned and not-yet-spent amounts"
+        },
+        {
+          "given": "I am a view-only member",
+          "when": "I view the table",
+          "then": "I see all values but no add, edit, delete or drag controls"
+        }
+      ]
     }
   ],
   "tests": [
@@ -217,6 +258,43 @@
         "Check the comparison card shows over/under/pending and the unplanned list",
         "Drag an actual cost above another; reload; order is kept",
         "Open as a view-only member: no ⠿ handles"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-010",
+      "title": "Unified table rows: items with linked actuals, extras inline, totals",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-011",
+      "title": "Unified table follows drag order across items and extras",
+      "reqIds": [
+        "REQ-004",
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-012",
+      "title": "UI: add cost with estimate+actual, estimate only then 🧾 actual, actual only (unplanned)",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag costTable",
+        "Add a cost with both parts: one row shows estimate, actual, difference",
+        "Add estimate only, then tap 🧾 and save actual: row updates",
+        "Add actual only: row tagged Unplanned",
+        "View as view-only member: no controls"
       ],
       "status": "Passing (demo)"
     }

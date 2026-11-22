@@ -54,3 +54,34 @@ test('TC-008: dragging writes only the items whose position changed', () => {
   ]);
   assert.deepEqual(reorderPatch(list, ['a', 'b', 'c']), []);
 });
+
+import { buildCostTable } from '../src/lib/costCompare.js';
+
+test('TC-010: unified table — one row per cost item with its linked actuals, extras inline, totals', () => {
+  const list = [
+    { id: 'e1', type: 'estimate', title: 'Flights', amount: 1000, createdAt: 1 },
+    { id: 'a3', type: 'actual', title: 'Taxi', amount: 80, createdAt: 2 },
+    { id: 'e2', type: 'estimate', title: 'Hotel', amount: 600, createdAt: 3 },
+    { id: 'a1', type: 'actual', title: 'Flight 1', amount: 700, estimateId: 'e1', date: '2026-11-10', createdAt: 4 },
+    { id: 'a2', type: 'actual', title: 'Flight 2', amount: 400, estimateId: 'e1', date: '2026-11-09', createdAt: 5 },
+    { id: 'p1', type: 'payment', amount: 5 },
+  ];
+  const r = buildCostTable(list, { estTotal: amt, actTotal: amt });
+  assert.deepEqual(r.rows.map((x) => [x.id, x.kind, x.status]), [
+    ['e1', 'item', 'over'],
+    ['a3', 'extra', 'extra'],
+    ['e2', 'item', 'pending'],
+  ]);
+  assert.deepEqual(r.rows[0].actuals.map((a) => a.id), ['a2', 'a1']);
+  assert.equal(r.rows[0].diff, 100);
+  assert.deepEqual(r.totals, { planned: 1600, actual: 1180, extra: 80, pending: 600, diff: -420 });
+});
+
+test('TC-011: unified table follows drag order across items and extras', () => {
+  const list = [
+    { id: 'e1', type: 'estimate', amount: 1, order: 2 },
+    { id: 'x1', type: 'actual', amount: 1, order: 0 },
+    { id: 'e2', type: 'estimate', amount: 1, order: 1 },
+  ];
+  assert.deepEqual(buildCostTable(list, { estTotal: amt, actTotal: amt }).rows.map((r) => r.id), ['x1', 'e2', 'e1']);
+});

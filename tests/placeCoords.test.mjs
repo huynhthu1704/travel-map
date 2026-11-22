@@ -16,3 +16,20 @@ test('TC-038: overrides without coordinates or with blank values change nothing'
   assert.equal(fixPlace(halong), halong);
   setCoordOverrides({});
 });
+
+// TC-039 — Chỉ đường mở link Google Maps quản trị viên đã gắn (REQ-022)
+test('TC-039: a Google Maps link saved by an admin travels with the place', () => {
+  setCoordOverrides({ 'wd-Q125': { lat: 3.2389573, lng: 101.6816966, gmapsLink: 'https://maps.app.goo.gl/abc123' } });
+  assert.equal(fixPlace(halong).gmapsLink, 'https://maps.app.goo.gl/abc123');
+  setCoordOverrides({});
+});
+
+test('TC-039: only real https Google Maps links are accepted', async () => {
+  const { safeGmapsLink } = await import('../src/lib/fixes.js');
+  assert.ok(safeGmapsLink('https://www.google.com/maps/place/Batu+Caves/@3.2379,101.684,17z'));
+  assert.ok(safeGmapsLink('https://maps.app.goo.gl/xyz'));
+  assert.equal(safeGmapsLink('http://maps.app.goo.gl/xyz'), '');
+  assert.equal(safeGmapsLink('https://evil.example/maps'), '');
+  assert.equal(safeGmapsLink('https://www.google.com/search?q=x'), '');
+  assert.equal(safeGmapsLink('javascript:alert(1)'), '');
+});

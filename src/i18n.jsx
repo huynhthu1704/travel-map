@@ -805,6 +805,7 @@ const DICT = {
     'admin.saved': 'Đã lưu',
     'admin.addPlace': 'Thêm địa điểm',
     'admin.editPlace': 'Sửa địa điểm',
+    'admin.linkForDirections': 'Nút Chỉ đường sẽ mở link này',
     'admin.fromLink': 'Dán link Google Maps để lấy toạ độ…',
     'admin.f.nameVi': 'Tên (tiếng Việt)',
     'admin.f.nameEn': 'Tên (tiếng Anh)',

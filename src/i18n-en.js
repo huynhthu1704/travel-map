@@ -801,6 +801,7 @@ const EN = {
     'admin.saved': 'Saved',
     'admin.addPlace': 'Add place',
     'admin.editPlace': 'Edit place',
+    'admin.linkForDirections': 'Directions will open this link',
     'admin.fromLink': 'Paste a Google Maps link to get coordinates…',
     'admin.f.nameVi': 'Name (Vietnamese)',
     'admin.f.nameEn': 'Name (English)',

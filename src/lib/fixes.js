@@ -6,13 +6,29 @@ export const COORD_FIXES = {
 
 // REQ-021: toạ độ quản trị viên sửa trong Admin → Địa điểm (placeOverrides) — áp cho mọi nơi dùng địa điểm đó
 let adminCoords = {};
-/** Nhận toàn bộ placeOverrides, chỉ giữ phần toạ độ hợp lệ */
+/** REQ-022: chỉ nhận link Google Maps thật (https, tên miền Google) — dùng để mở thẳng trang địa điểm khi chỉ đường */
+export const safeGmapsLink = (s) => {
+  try {
+    const u = new URL(String(s || '').trim());
+    if (u.protocol !== 'https:') return '';
+    const h = u.hostname.toLowerCase();
+    const ok = h === 'maps.app.goo.gl' || (h === 'goo.gl' && u.pathname.startsWith('/maps')) || h === 'maps.google.com' || /^(www\.)?google\.[a-z.]+$/.test(h) && u.pathname.startsWith('/maps');
+    return ok ? u.toString() : '';
+  } catch {
+    return '';
+  }
+};
+/** Nhận toàn bộ placeOverrides, chỉ giữ phần toạ độ hợp lệ và link Google Maps */
 export function setCoordOverrides(overrides = {}) {
   const next = {};
   for (const [id, o] of Object.entries(overrides || {})) {
     const lat = Number(o?.lat);
     const lng = Number(o?.lng);
-    if (o?.lat !== '' && o?.lng !== '' && o?.lat != null && o?.lng != null && Number.isFinite(lat) && Number.isFinite(lng)) next[id] = { lat, lng };
+    const f = {};
+    if (o?.lat !== '' && o?.lng !== '' && o?.lat != null && o?.lng != null && Number.isFinite(lat) && Number.isFinite(lng)) Object.assign(f, { lat, lng });
+    const link = safeGmapsLink(o?.gmapsLink);
+    if (link) f.gmapsLink = link;
+    if (Object.keys(f).length) next[id] = f;
   }
   adminCoords = next;
   return next;
@@ -20,7 +36,8 @@ export function setCoordOverrides(overrides = {}) {
 
 export const fixPlace = (p) => {
   const f = p && (adminCoords[p.id] || COORD_FIXES[p.id]);
-  return f && (p.lat !== f.lat || p.lng !== f.lng) ? { ...p, ...f } : p;
+  if (!f) return p;
+  return Object.keys(f).some((k) => p[k] !== f[k]) ? { ...p, ...f } : p;
 };
 
 export const fixMemory = (m) => {

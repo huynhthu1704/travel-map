@@ -1,4 +1,5 @@
 import countriesLib from 'i18n-iso-countries';
+import { safeGmapsLink } from './fixes.js';
 import { FAMOUS_BY_ID } from '../data/places';
 
 /**
@@ -28,8 +29,11 @@ export const appleMapsUrl = (p) => {
 // Gửi toạ độ chính xác (không gửi tên dạng chữ): Google Maps tìm theo tên hay ra sai chỗ / sai nước
 const hasCoords = (p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng)) && !(Number(p.lat) === 0 && Number(p.lng) === 0);
 const coordsOf = (p) => `${Number(p.lat).toFixed(6)},${Number(p.lng).toFixed(6)}`;
+// REQ-022: quản trị viên đã gắn link Google Maps của đúng địa điểm → mở thẳng trang đó (có tên, ảnh, nút Chỉ đường)
 export const googleMapsUrl = (p) =>
-  `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hasCoords(p) ? coordsOf(p) : destinationQuery(p))}`;
+  safeGmapsLink(p?.gmapsLink)
+    ? safeGmapsLink(p.gmapsLink)
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hasCoords(p) ? coordsOf(p) : destinationQuery(p))}`;
 
 /** Chữ Latin (kể cả tiếng Việt có dấu)? Dùng để tránh hiển thị chữ địa phương như 東京, 서울, กรุงเทพ… */
 export const isLatin = (s = '') => !/[^\u0000-ɏḀ-ỿ -⁯₠-⃏\s]/u.test(s.replace(/\p{Emoji_Presentation}/gu, ''));

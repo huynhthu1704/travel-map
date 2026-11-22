@@ -89,11 +89,15 @@ export function AppProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [overrides, setOverrides] = useState({});
   // REQ-021: toạ độ do quản trị viên sửa áp cho địa điểm đã lưu, kỉ niệm, địa điểm đang mở, chỉ đường
-  const coordKey = useMemo(() => JSON.stringify(setCoordOverrides(overrides)), [overrides]);
+  const [customPlaces, setCustomPlaces] = useState([]);
+  // REQ-022: link Google Maps của địa điểm do đội vận hành thêm cũng dùng cho bản lưu của người dùng
+  const coordKey = useMemo(
+    () => JSON.stringify(setCoordOverrides({ ...Object.fromEntries(customPlaces.filter((c) => c.gmapsLink).map((c) => [c.id, { gmapsLink: c.gmapsLink }])), ...overrides })),
+    [overrides, customPlaces],
+  );
   const places = useMemo(() => rawPlaces.map(fixPlace), [rawPlaces, coordKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const memories = useMemo(() => rawMemories.map(fixMemory), [rawMemories, coordKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedPlace = useMemo(() => fixPlace(rawSelectedPlace), [rawSelectedPlace, coordKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [customPlaces, setCustomPlaces] = useState([]);
   useEffect(() => adminApi.watchSettings(setSettings), []);
   useEffect(() => adminApi.watchOverrides(setOverrides), []);
   const [guideOverrides, setGuideOverrides] = useState({});

@@ -92,7 +92,10 @@ export function buildCostTable(costs, { estTotal, actTotal, eps = 0.5 }) {
   const actual = rows.reduce((s, r) => s + r.actual, 0);
   const extra = rows.filter((r) => r.kind === 'extra').reduce((s, r) => s + r.actual, 0);
   const pending = rows.filter((r) => r.status === 'pending').reduce((s, r) => s + r.planned, 0);
-  return { rows, totals: { planned, actual, extra, pending, diff: actual - planned } };
+  // REQ-010: chênh lệch thật = chỉ so các khoản đã chi (thực tế − dự kiến của chính khoản đó) + phát sinh
+  const spentPlanned = rows.filter((r) => r.kind === 'item' && r.status !== 'pending').reduce((s, r) => s + r.planned, 0);
+  const spentDiff = actual - spentPlanned;
+  return { rows, totals: { planned, actual, extra, pending, diff: actual - planned, spentPlanned, spentDiff } };
 }
 
 /**
@@ -109,4 +112,35 @@ export function estGroupTotal(c, members, conv = (a) => a) {
 /** Phần của mỗi người tham gia khoản dự kiến này */
 export function estShare(c, members, conv = (a) => a) {
   return estGroupTotal(c, members, conv) / estPeople(c, members);
+}
+
+/**
+ * REQ-008: cách xem thứ tự bảng chi phí (chỉ trên máy người xem, không đổi thứ tự chung)
+ * manual: thứ tự chung của nhóm (kéo thả / Lưu thứ tự) · date: ngày chi sớm → muộn (chưa chi để cuối)
+ * amount: số tiền lớn → nhỏ · diff: vượt nhiều nhất trước · name: tên A → Z
+ */
+export const COST_SORTS = ['manual', 'date', 'amount', 'diff', 'name'];
+export function sortRows(rows, mode = 'manual', locale = 'vi') {
+  if (mode === 'manual' || !COST_SORTS.includes(mode)) return rows;
+  const firstDate = (r) => r.actuals.map((a) => a.date).filter(Boolean).sort()[0] || '';
+  const amount = (r) => Math.max(r.planned || 0, r.actual || 0);
+  const cmp = {
+    date: (a, b) => (firstDate(a) ? 0 : 1) - (firstDate(b) ? 0 : 1) || firstDate(a).localeCompare(firstDate(b)),
+    amount: (a, b) => amount(b) - amount(a),
+    diff: (a, b) => (a.diff == null ? 1 : 0) - (b.diff == null ? 1 : 0) || (b.diff ?? 0) - (a.diff ?? 0),
+    name: (a, b) => String(a.cost?.title || '').localeCompare(String(b.cost?.title || ''), locale),
+  }[mode];
+  return rows
+    .map((r, i) => ({ r, i }))
+    .sort((x, y) => cmp(x.r, y.r) || x.i - y.i)
+    .map((w) => w.r);
+}
+/** Sắp các dòng theo danh sách id (thứ tự đang hiện trên màn hình, dùng khi xuất PDF); id lạ / thiếu giữ thứ tự cũ ở cuối */
+export function orderRowsByIds(rows, ids = []) {
+  if (!ids?.length) return rows;
+  const pos = new Map(ids.map((id, i) => [id, i]));
+  return rows
+    .map((r, i) => ({ r, i, p: pos.has(r.id) ? pos.get(r.id) : ids.length + i }))
+    .sort((a, b) => a.p - b.p)
+    .map((w) => w.r);
 }

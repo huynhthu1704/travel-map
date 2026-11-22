@@ -461,6 +461,13 @@ const firebaseBackend = {
     await b.commit();
   },
   // ---- Chi phí: trips/{id}/costs/{costId} ----
+  /** REQ-008: ghi thứ tự mới của nhiều khoản chi trong 1 lần (không bị nhảy qua lại giữa chừng) */
+  async reorderCosts(tripId, list) {
+    if (!list.length) return;
+    const b = writeBatch(db);
+    list.forEach(({ id, order }) => b.update(doc(db, 'trips', tripId, 'costs', id), { order }));
+    await b.commit();
+  },
   watchCosts(tripId, cb) {
     return onSnapshot(collection(db, 'trips', tripId, 'costs'), (s) => cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt))));
   },
@@ -773,6 +780,13 @@ const localBackend = {
   async deletePlanItem(tripId, id) {
     const it = (state.plan?.[tripId] || []).find((x) => x.id === id);
     if (it) Object.assign(it, { removed: true, removedAt: now() });
+    save();
+  },
+  async reorderCosts(tripId, list) {
+    list.forEach(({ id, order }) => {
+      const it = (state.costs?.[tripId] || []).find((x) => x.id === id);
+      if (it) it.order = order;
+    });
     save();
   },
   async reorderPlan(tripId, list) {

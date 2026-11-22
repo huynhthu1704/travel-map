@@ -9804,3 +9804,138 @@ a.app-link.place-card__title:hover {
   padding: 4px 8px;
   border-radius: 10px;
 }
+
+/* REQ-002: Dự kiến vs Thực tế */
+.cmp-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-500);
+}
+.cmp-key {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  border-radius: 4px;
+}
+.cmp-key--plan,
+.cmp-bar--plan {
+  background: var(--ink-100);
+}
+.cmp-key--act,
+.cmp-bar--act {
+  background: var(--honey-400, #ffc629);
+}
+.cmp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cmp-row__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.cmp-row__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cmp-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 5px 0 3px;
+}
+.cmp-bar {
+  display: block;
+  height: 8px;
+  border-radius: 6px;
+  min-width: 2px;
+}
+.cmp-row--over .cmp-bar--act {
+  background: #e57373;
+}
+.cmp-row--pending .cmp-bar--act {
+  display: none;
+}
+.cmp-diff {
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.cmp-diff--over {
+  color: #c62828;
+}
+.cmp-diff--under {
+  color: #2e7d32;
+}
+.cmp-diff--even {
+  color: var(--ink-700);
+}
+.cmp-diff--pending {
+  color: var(--ink-500);
+  font-weight: 600;
+}
+.cmp-extra {
+  border: 1px dashed #e57373;
+  background: #fff5f5;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.cmp-extra__list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.cmp-extra__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  border-top: 1px dashed var(--ink-100);
+  font-size: 14px;
+}
+.cmp-total {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 2px solid var(--honey-200);
+}
+.cmp-total span {
+  display: flex;
+  flex-direction: column;
+}
+.cmp-total small {
+  color: var(--ink-500);
+}
+@media (max-width: 640px) {
+  .cmp-total {
+    grid-template-columns: 1fr;
+  }
+}
+/* REQ-003: kéo thả sắp xếp khoản chi */
+.cost-row--sortable .cost-row__title {
+  position: relative;
+  padding-left: 26px;
+}
+.cost-handle {
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.cost-table.is-sorting {
+  user-select: none;
+}
+.cost-row.is-dragging {
+  background: var(--honey-50);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(31, 26, 20, 0.12);
+}

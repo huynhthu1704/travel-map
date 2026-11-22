@@ -272,6 +272,11 @@
           "given": "a cost was just added or edited",
           "when": "I export the PDF",
           "then": "the PDF includes the latest values"
+        },
+        {
+          "given": "a cost title contains arrows such as 'SGN → SIN'",
+          "when": "I export the costs PDF (or the plan PDF)",
+          "then": "the arrows appear in the PDF instead of disappearing"
         }
       ]
     },
@@ -614,6 +619,20 @@
         "Turn on 'Also show costs': Costs tab appears",
         "Copy this trip: sign in, then an editable copy is created",
         "Turn the link off: the link no longer opens the trip"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-025",
+      "title": "PDF keeps arrow characters (→ ← ↔ ⇒) in titles",
+      "reqIds": [
+        "REQ-009"
+      ],
+      "type": "manual",
+      "steps": [
+        "Name a cost 'Vé máy bay SGN → SIN'",
+        "Export the costs PDF",
+        "The arrow is visible in the row title"
       ],
       "status": "Passing (demo)"
     }

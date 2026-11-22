@@ -585,6 +585,31 @@
           "then": "the original location is used again"
         }
       ]
+    },
+    {
+      "id": "REQ-022",
+      "title": "Directions open the Google Maps link the admin attached",
+      "description": "When Google Maps receives bare coordinates it labels the destination with the nearest named point (e.g. 'Ramayana Cave' for Batu Caves). When an admin fixes a place with a Google Maps link (Find place), the link is saved with the place; Directions → Google Maps then opens that exact place page (name, photos, Directions button). Clearing the link box removes it. Only https Google Maps links are accepted.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "an admin pasted the Google Maps link of Batu Caves, pressed Find place and saved",
+          "when": "a user taps Directions → Google Maps on Batu Caves (from the map, a saved place or a trip)",
+          "then": "Google Maps opens the Batu Caves page"
+        },
+        {
+          "given": "the admin clears the link box and saves",
+          "when": "a user taps Directions",
+          "then": "Google Maps opens with the coordinates as before"
+        },
+        {
+          "given": "a link that is not an https Google Maps link",
+          "when": "it is saved",
+          "then": "it is ignored"
+        }
+      ]
     }
   ],
   "tests": [
@@ -1019,6 +1044,16 @@
       "title": "Admin coordinate overrides apply to saved places and check-ins",
       "reqIds": [
         "REQ-021"
+      ],
+      "type": "automated",
+      "file": "tests/placeCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-039",
+      "title": "Admin Google Maps link is used for directions",
+      "reqIds": [
+        "REQ-022"
       ],
       "type": "automated",
       "file": "tests/placeCoords.test.mjs",

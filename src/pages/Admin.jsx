@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { safeGmapsLink } from '../lib/fixes';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Avatar, Empty, Loader, LoadingImage, formatDate, AppLink, TrashIcon } from '../components/ui';
@@ -699,8 +700,10 @@ function PlaceEditor({ place, cc, onClose }) {
     lat: ov.lat ?? place?.lat ?? '',
     lng: ov.lng ?? place?.lng ?? '',
     country: place?.country || cc,
-    link: '',
+    link: ov.gmapsLink || place?.gmapsLink || '',
   }));
+  // REQ-022: link Google Maps đã dùng để lấy toạ độ — lưu lại để nút Chỉ đường mở đúng trang địa điểm
+  const [usedLink, setUsedLink] = useState(ov.gmapsLink || place?.gmapsLink || '');
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
 
@@ -711,23 +714,26 @@ function PlaceEditor({ place, cc, onClose }) {
     setBusy(false);
     if (!p) return notify(t('link.notFound'), 'error');
     setF((x) => ({ ...x, lat: p.lat, lng: p.lng, country: p.country || x.country, city: x.city || p.city, nameVi: x.nameVi || p.name }));
+    setUsedLink(f.link.trim());
   };
 
   const save = async () => {
     setBusy(true);
+    // Chỉ giữ link khi ô link vẫn là link đã dùng để lấy toạ độ; xoá ô link → bỏ link
+    const gmapsLink = f.link.trim() && f.link.trim() === usedLink ? safeGmapsLink(usedLink) : '';
     try {
       if (isCustom) {
         if (!f.nameVi.trim() || f.lat === '' || f.lng === '') throw new Error(t('admin.needNameCoords'));
         await adminApi.saveCustomPlace({
           id: place?.id, name: f.nameVi.trim(), city: f.city.trim(), country: f.country, lat: Number(f.lat), lng: Number(f.lng),
-          emoji: f.emoji || '📍', desc: f.descVi.trim(), image: f.image.trim(),
+          emoji: f.emoji || '📍', desc: f.descVi.trim(), image: f.image.trim(), gmapsLink,
           i18n: { en: { name: f.nameEn.trim() || f.nameVi.trim(), city: f.cityEn.trim() || f.city.trim(), desc: f.descEn.trim() } },
         });
       } else {
         // Toạ độ: chỉ lưu khi người sửa đổi khác vị trí gốc (sửa link Google Maps / toạ độ cho địa điểm nổi tiếng)
         const lat = Number(f.lat), lng = Number(f.lng);
         const moved = f.lat !== '' && f.lng !== '' && Number.isFinite(lat) && Number.isFinite(lng) && (lat !== Number(place.lat) || lng !== Number(place.lng) || ov.lat != null);
-        await adminApi.saveOverride(place.id, { nameVi: f.nameVi.trim(), nameEn: f.nameEn.trim(), descVi: f.descVi.trim(), descEn: f.descEn.trim(), image: f.image.trim(), ...(moved ? { lat, lng } : {}) }, user.uid);
+        await adminApi.saveOverride(place.id, { nameVi: f.nameVi.trim(), nameEn: f.nameEn.trim(), descVi: f.descVi.trim(), descEn: f.descEn.trim(), image: f.image.trim(), gmapsLink, ...(moved ? { lat, lng } : {}) }, user.uid);
       }
       notify(t('admin.saved'));
       onClose();
@@ -747,6 +753,7 @@ function PlaceEditor({ place, cc, onClose }) {
       </div>
       <div className="row wrap">
         <input className="grow" value={f.link} onChange={set('link')} placeholder={t('admin.fromLink')} />
+        {usedLink && f.link.trim() === usedLink && <span className="tiny muted">✓ {t('admin.linkForDirections')}</span>}
         <button className="btn btn--sm btn--dark" onClick={fromLink} disabled={busy}>
           🔗 {t('link.find')}
         </button>

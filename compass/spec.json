@@ -485,6 +485,31 @@
           "then": "they are ordered by the shown date, newest first"
         }
       ]
+    },
+    {
+      "id": "REQ-018",
+      "title": "Admin can fix the location of famous places with a Google Maps link",
+      "description": "In Admin → Places, the Google Maps link box and latitude/longitude were only shown for places the team added. Famous places (curated list / Wikidata) could not be moved when their pin was wrong. The editor now shows the link box and coordinates for every place; moved coordinates are saved in the place override and the map uses them.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "I edit a famous place such as Ha Long Bay",
+          "when": "I paste a Google Maps link and press Find",
+          "then": "the latitude and longitude fill in"
+        },
+        {
+          "given": "I save with new coordinates",
+          "when": "anyone opens the map",
+          "then": "the pin shows at the new place"
+        },
+        {
+          "given": "I reset the place's edits",
+          "when": "the map reloads",
+          "then": "the original location is used again"
+        }
+      ]
     }
   ],
   "tests": [
@@ -882,6 +907,16 @@
       ],
       "type": "automated",
       "file": "tests/journeyDates.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-035",
+      "title": "Google Maps link and coordinates for every place in Admin",
+      "reqIds": [
+        "REQ-018"
+      ],
+      "type": "automated",
+      "file": "tests/adminPlaceCoords.test.mjs",
       "status": "Passing"
     }
   ],

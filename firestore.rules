@@ -5,6 +5,14 @@ service cloud.firestore {
     function isMember(tripId) {
       return signedIn() && request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds;
     }
+    // REQ-007: chuyến bật "ai có link đều xem được" (publicView); chi phí chỉ hiện khi bật thêm publicCosts
+    function tripPublic(tripId) {
+      return get(/databases/$(database)/documents/trips/$(tripId)).data.get('publicView', false) == true;
+    }
+    function tripPublicCosts(tripId) {
+      let t = get(/databases/$(database)/documents/trips/$(tripId)).data;
+      return t.get('publicView', false) == true && t.get('publicCosts', false) == true;
+    }
     // REQ-001: thành viên "chỉ xem" (trips.viewerIds) xem được nhưng không sửa kế hoạch / chi phí / checklist / thông tin chuyến
     function canEditTrip(tripId) {
       let t = get(/databases/$(database)/documents/trips/$(tripId)).data;
@@ -354,6 +362,8 @@ service cloud.firestore {
     }
     match /trips/{tripId} {
       allow read: if (signedIn() && request.auth.uid in resource.data.memberIds) || hasPerm('trips') || hasPerm('insights');
+      // REQ-007: ai có link đều xem được 1 chuyến (chỉ get theo id, không liệt kê được)
+      allow get: if resource.data.get('publicView', false) == true;
       allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid
                     && request.resource.data.memberIds == [request.auth.uid]
                     && validTripText(request.resource.data);
@@ -387,17 +397,18 @@ service cloud.firestore {
 
       // Kế hoạch: mọi thành viên cùng thêm / sắp xếp / đánh dấu
       match /plan/{itemId} {
-        allow read: if isMember(tripId);
+        allow read: if isMember(tripId) || tripPublic(tripId);
         allow create, update, delete: if canEditTrip(tripId);
       }
       // Chi phí dự kiến / thực tế / thanh toán: cả nhóm cùng xem và ghi
       match /costs/{costId} {
-        allow read: if isMember(tripId);
+        allow read: if isMember(tripId) || tripPublicCosts(tripId);
         allow create, update, delete: if canEditTrip(tripId);
       }
       // Checklist: chung thì cả nhóm dùng; cá nhân chỉ người tạo
       match /checklists/{listId} {
-        allow read: if isMember(tripId) && (resource.data.scope == 'shared' || resource.data.ownerUid == request.auth.uid);
+        allow read: if (isMember(tripId) && (resource.data.scope == 'shared' || resource.data.ownerUid == request.auth.uid))
+                    || (resource.data.scope == 'shared' && tripPublic(tripId));
         // Thành viên chỉ xem vẫn dùng được checklist cá nhân của mình, nhưng không sửa checklist chung
         allow create: if isMember(tripId) && request.resource.data.createdBy == request.auth.uid
                       && ((request.resource.data.scope == 'shared' && canEditTrip(tripId)) || request.resource.data.ownerUid == request.auth.uid);

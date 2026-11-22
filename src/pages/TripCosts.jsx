@@ -1227,7 +1227,7 @@ export default function TripCosts({ trip }) {
                   <span className="cost-row__payer">
                     <Avatar name={nameOf(id)} photo={trip.members?.[id]?.photo} size={22} />
                     {nameOf(id)}
-                    {id === user.uid && <small className="muted"> ({t('trips.you')})</small>}
+                    {id === user?.uid && <small className="muted"> ({t('trips.you')})</small>}
                   </span>
                   <span>{fmtMoney(x.paid, cur)}</span>
                   <span>{fmtMoney(x.share, cur)}</span>

@@ -42,6 +42,8 @@ export default function TripMembers({ trip, onClose }) {
   const members = trip.memberIds || [];
   const statusOf = useMemo(() => Object.fromEntries(invites.map((i) => [i.to, i])), [invites]);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
+  // REQ-007: link chỉ xem — ai có link đều xem được (không cần tham gia)
+  const viewLink = `${location.origin}${location.pathname}#/trips/${encodeURIComponent(trip.id)}`;
   const run = async (key, fn, ok) => {
     setBusy(key);
     try {
@@ -215,6 +217,32 @@ export default function TripMembers({ trip, onClose }) {
               </button>
             )}
             <p className="tiny muted">{t('tm.codeSafety', { lang })}</p>
+            {owner && can('tripPublicView') && (
+              <div className="tm__public">
+                <h4 className="tm__h">👀 {t('pub.title')}</h4>
+                <label className="switch small">
+                  <input
+                    type="checkbox"
+                    checked={!!trip.publicView}
+                    disabled={busy === 'pub'}
+                    onChange={(e) => run('pub', () => api.updateTrip(trip.id, { publicView: e.target.checked, ...(e.target.checked ? {} : { publicCosts: false }) }), e.target.checked ? t('pub.on') : t('pub.off'))}
+                  />
+                  <span>{t('pub.toggle')}</span>
+                </label>
+                {trip.publicView && (
+                  <>
+                    <label className="switch small">
+                      <input type="checkbox" checked={!!trip.publicCosts} disabled={busy === 'pubc'} onChange={(e) => run('pubc', () => api.updateTrip(trip.id, { publicCosts: e.target.checked }))} />
+                      <span>{t('pub.costs')}</span>
+                    </label>
+                    <button className="btn btn--sm btn--soft" onClick={() => navigator.clipboard?.writeText(viewLink).then(() => notify(t('pub.copied')))}>
+                      🔗 {t('pub.copy')}
+                    </button>
+                  </>
+                )}
+                <p className="tiny muted">{t('pub.hint')}</p>
+              </div>
+            )}
           </div>
         )}
       </div>

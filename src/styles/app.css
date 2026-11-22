@@ -10173,3 +10173,16 @@ a.app-link.place-card__title:hover {
   display: inline-flex;
   gap: 2px;
 }
+
+/* REQ-007: link chỉ xem */
+.tm__public {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--ink-100);
+}
+.tm__public .btn {
+  align-self: flex-start;
+}

@@ -390,6 +390,26 @@
           "then": "places deleted from the original plan are not copied"
         }
       ]
+    },
+    {
+      "id": "REQ-013",
+      "title": "About page: group related features, important first",
+      "description": "In 'And there's more', features are grouped (Travel together, Costs & splitting, Guides & packing, Map & discovery, Handy extras) with the most important first in each group, instead of newest first.",
+      "priority": "Could",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "I open the About page",
+          "when": "I scroll to 'And there's more'",
+          "then": "features appear under group headings, related features side by side, the most important first"
+        },
+        {
+          "given": "a new feature is not yet assigned to a group",
+          "when": "it is released",
+          "then": "it still appears, in the last group"
+        }
+      ]
     }
   ],
   "tests": [
@@ -738,6 +758,16 @@
         "Journey (n) decreases and the place is gone from Journey"
       ],
       "status": "Passing (demo: 6 → 5)"
+    },
+    {
+      "id": "TC-030",
+      "title": "Features grouped, important first, none lost or duplicated",
+      "reqIds": [
+        "REQ-013"
+      ],
+      "type": "automated",
+      "file": "tests/aboutGroups.test.mjs",
+      "status": "Passing"
     }
   ],
   "decisions": []

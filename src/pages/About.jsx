@@ -1,4 +1,5 @@
 import { BrandAppIcon } from '../components/Brand.jsx';
+import { groupFeatures } from '../data/aboutGroups';
 import { useState } from 'react';
 import { useApp } from '../AppContext';
 import { Modal } from '../components/ui';
@@ -128,7 +129,9 @@ export default function AboutPage() {
   const shown = (key) => (isSuper ? true : flagReleased(key, settings));
   const pending = (key) => isSuper && !flagReleased(key, settings);
   const sections = SECTIONS.filter((s) => !s.flag || shown(s.flag));
-  const more = FLAGS.filter((f) => f.value && !SECTION_FLAGS.has(f.key) && shown(f.key)).sort((a, b) => (b.since || '').localeCompare(a.since || ''));
+  const more = FLAGS.filter((f) => f.value && !SECTION_FLAGS.has(f.key) && shown(f.key));
+  // REQ-013: xếp theo nhóm liên quan, quan trọng trước
+  const moreGroups = groupFeatures(more);
   const releases = RELEASES.slice(0, 2);
   const start = () => (user ? (goHome(), setView('map')) : setModal({ type: 'login' }));
   const [zoom, setZoom] = useState(null);
@@ -213,18 +216,25 @@ export default function AboutPage() {
       {more.length > 0 && (
         <section id="about-more" className="about-more">
           <h2 className="h2">✨ {t('about.moreTitle')}</h2>
-          <div className="about-grid">
-            {more.map((f) => (
-              <div key={f.key} className="card about-feat">
-                <span className="about-feat__icon">{f.icon}</span>
-                <b>
-                  {L(f.name)}
-                  {pending(f.key) && <span className="about-pending">{t('about.pending')}</span>}
-                </b>
-                <p>{L(f.value)}</p>
+          {moreGroups.map((g) => (
+            <div key={g.id} className="about-group">
+              <h3 className="h3 about-group__title">
+                {g.icon} {L(g.name)}
+              </h3>
+              <div className="about-grid">
+                {g.items.map((f) => (
+                  <div key={f.key} className="card about-feat">
+                    <span className="about-feat__icon">{f.icon}</span>
+                    <b>
+                      {L(f.name)}
+                      {pending(f.key) && <span className="about-pending">{t('about.pending')}</span>}
+                    </b>
+                    <p>{L(f.value)}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </section>
       )}
 

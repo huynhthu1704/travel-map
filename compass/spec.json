@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "idea": {
+    "intent": "Tăng số người dùng hoàn thành checklist chuẩn bị chuyến đi bằng cách thêm nhanh các mục từ cẩm nang",
+    "problem": "Today customer cannot thêm các mục nằm trong cẩm nang vào trip's checklist easily; work is manual and not measurable.",
+    "users": [
+      "Customer",
+      "Admin"
+    ],
+    "outcomeMetric": "",
+    "scopeIn": [
+      "Core flow: Thêm các mục nằm trong cẩm nang vào trip's checklist"
+    ],
+    "scopeOut": [
+      "Native mobile apps",
+      "Payments (phase 2)"
+    ],
+    "risks": [
+      "Unclear success metric",
+      "Data privacy",
+      "Adoption by users"
+    ],
+    "stack": ""
+  },
+  "requirements": [],
+  "tests": [],
+  "decisions": []
+}

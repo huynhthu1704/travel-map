@@ -365,6 +365,31 @@
           "then": "Largest Contentful Paint and Total Blocking Time are lower than before (baseline: LCP 6.5–7.1 s, TBT 0.6–1.2 s)"
         }
       ]
+    },
+    {
+      "id": "REQ-012",
+      "title": "Journey hides places removed from the trip plan",
+      "description": "Places deleted from the trip plan kept appearing in the Journey tab, the stop count and the trip recap (and looked like they came back). The Journey now hides places whose plan items were all removed; adding the place again shows it again. No check-in data is deleted.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "a place was checked in for the trip and later deleted from the Plan",
+          "when": "I open the trip",
+          "then": "it no longer appears in Journey, the stop count or the trip recap"
+        },
+        {
+          "given": "I add that place to the plan again",
+          "when": "I open Journey",
+          "then": "it appears again"
+        },
+        {
+          "given": "I duplicate the trip",
+          "when": "the copy is created",
+          "then": "places deleted from the original plan are not copied"
+        }
+      ]
     }
   ],
   "tests": [
@@ -689,6 +714,30 @@
         "Compare with baseline in REQ-011"
       ],
       "status": "Passing: Explore 44→80, Guides 51→81, Trips 52→75, About 43→75; Map FCP 3.9→3.1 s, LCP 6.5→5.2 s"
+    },
+    {
+      "id": "TC-028",
+      "title": "Stops of places removed from the plan are hidden; re-added places show",
+      "reqIds": [
+        "REQ-012"
+      ],
+      "type": "automated",
+      "file": "tests/journey.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-029",
+      "title": "UI: delete a checked-in place from the plan → Journey count drops",
+      "reqIds": [
+        "REQ-012"
+      ],
+      "type": "manual",
+      "steps": [
+        "Open a trip with check-ins",
+        "Delete one checked-in place from the Plan",
+        "Journey (n) decreases and the place is gone from Journey"
+      ],
+      "status": "Passing (demo: 6 → 5)"
     }
   ],
   "decisions": []

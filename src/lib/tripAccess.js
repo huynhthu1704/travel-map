@@ -31,3 +31,18 @@ export function visibleTripTabs(trip, uid) {
   if (!canViewTrip(trip, uid)) return [];
   return ['plan', ...(trip.publicCosts ? ['costs'] : []), 'checklist'];
 }
+
+/**
+ * REQ-012: địa điểm đã bị xoá khỏi kế hoạch thì cũng không hiện trong Hành trình (và số điểm dừng, tổng hợp).
+ * planAll: mọi mục kế hoạch kể cả đã xoá (removed: true). Một địa điểm bị ẩn khi mọi mục của nó đều đã xoá.
+ */
+export function hideRemovedStops(stops, planAll) {
+  const active = new Set();
+  const removed = new Set();
+  (planAll || []).forEach((it) => {
+    const id = it.place?.id;
+    if (!id) return;
+    (it.removed ? removed : active).add(id);
+  });
+  return (stops || []).filter((s) => !s.place || active.has(s.place.id) || !removed.has(s.place.id));
+}

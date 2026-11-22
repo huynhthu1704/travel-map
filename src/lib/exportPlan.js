@@ -5,6 +5,7 @@ import { countryName } from './countries';
 import { pName, pCity, getLocale } from './lang';
 import { translate as t } from '../i18n';
 import { perPersonOf, groupTotalOf, settle, makeToBase, actualAmountOf, participantsOf, decimalsOf } from './money';
+import { buildCostTable, orderRowsByIds } from './costCompare';
 
 const BASE = import.meta.env.BASE_URL || './';
 /** Nạp thư viện PDF; nếu trang đang chạy bản cũ (file đã đổi tên sau khi cập nhật) → đánh dấu để tải lại trang */
@@ -299,8 +300,11 @@ const pdfMoney = (n, cur = 'VND') => {
   return `${v} ${cur}`;
 };
 
-/** costs: toàn bộ khoản chi của chuyến; plan: kế hoạch (để hiện tên địa điểm gắn với khoản chi) */
-export async function exportCostsPdf(trip, costs, plan = []) {
+/**
+ * costs: toàn bộ khoản chi mới nhất của chuyến; plan: kế hoạch (tên địa điểm gắn với khoản chi)
+ * opts.order: id các dòng theo đúng thứ tự đang hiện trên màn hình (REQ-009)
+ */
+export async function exportCostsPdf(trip, costs, plan = [], opts = {}) {
   const [{ jsPDF }, fonts] = await Promise.all([loadJsPdf(), loadFonts()]);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   doc.addFileToVFS('BVP-R.ttf', fonts.regular);
@@ -334,13 +338,15 @@ export async function exportCostsPdf(trip, costs, plan = []) {
   const n = Math.max(memberIds.length, 1);
   const nameOf = (id, fb) => trip.members?.[id]?.name || fb || '—';
   const placeOf = (c) => plan.find((p) => p.id === c.planItemId)?.place;
-  const estimates = costs.filter((c) => c.type === 'estimate');
-  const actuals = costs.filter((c) => c.type === 'actual').sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
+  const actuals = costs.filter((c) => c.type === 'actual');
   const payments = costs.filter((c) => c.type === 'payment');
   const base = (c, v) => conv(v, c.currency || cur) ?? 0;
-  const estGroup = estimates.reduce((s, c) => s + groupTotalOf(c, n, conv), 0);
+  // REQ-009: 1 bảng giống trên web, đúng thứ tự đang hiện trên màn hình
+  const table = buildCostTable(costs, { estTotal: (c) => groupTotalOf(c, n, conv), actTotal: (c) => base(c, actualAmountOf(c, memberIds)) });
+  const rowsInOrder = orderRowsByIds(table.rows, opts.order);
+  const tot = table.totals;
+  const estGroup = tot.planned;
   const estPerPerson = estGroup / n;
-  const actualTotal = actuals.reduce((s, c) => s + base(c, actualAmountOf(c, memberIds)), 0);
   const { balances, transfers } = settle(costs, memberIds, cur, conv);
   /** Số tiền gốc, kèm "≈ quy đổi" nếu là ngoại tệ */
   const amountLines = (c, v) => {
@@ -401,25 +407,30 @@ export async function exportCostsPdf(trip, costs, plan = []) {
   y += l2.length * 3.8 + 5;
 
   // ---- 4 ô tổng quan ----
-  const diff = actualTotal - estGroup;
+  // REQ-010: chênh lệch chỉ tính trên các khoản đã chi + phát sinh
+  const sd = tot.spentDiff;
   const stats = [
-    [t('cost.estPerPerson'), pdfMoney(estPerPerson, cur), INK],
-    [t('cost.estGroup', { n }), pdfMoney(estGroup, cur), INK],
-    [t('cost.actualTotal'), pdfMoney(actualTotal, cur), INK],
-    [t('cost.diff'), estGroup > 0 ? `${diff > 0 ? '+' : diff < 0 ? '−' : ''}${pdfMoney(Math.abs(diff), cur)}` : '—', estGroup > 0 && diff > 0 ? NEG : INK],
+    [t('sum.planned', { n }), pdfMoney(estGroup, cur), INK, t('sum.perPerson', { v: pdfMoney(estPerPerson, cur) })],
+    [t('cost.actualTotal'), pdfMoney(tot.actual, cur), INK, tot.extra > 0 ? t('sum.inclExtra', { v: pdfMoney(tot.extra, cur) }) : ''],
+    [t('sum.diff'), tot.actual > 0 ? `${sd > 0.5 ? '+' : sd < -0.5 ? '−' : ''}${pdfMoney(Math.abs(sd), cur)}` : '—', sd > 0.5 ? NEG : sd < -0.5 ? POS : INK, tot.actual > 0 ? t('sum.diffHint', { v: pdfMoney(tot.spentPlanned, cur) }) : ''],
+    [t('sum.pending'), pdfMoney(tot.pending, cur), INK, t('sum.pendingHint')],
   ];
   const gap = 3;
   const bwid = (CW - gap * 3) / 4;
-  stats.forEach(([label, val, color], i) => {
+  stats.forEach(([label, val, color, sub], i) => {
     const x = M + i * (bwid + gap);
     doc.setFillColor(...HONEY_SOFT);
-    doc.roundedRect(x, y, bwid, 19, 2.5, 2.5, 'F');
+    doc.roundedRect(x, y, bwid, 24, 2.5, 2.5, 'F');
     font('normal', 7.2, MUTED);
     doc.text(doc.splitTextToSize(plain(label), bwid - 6).slice(0, 2), x + 3, y + 5);
     font('bold', 10.5, color);
-    doc.text(doc.splitTextToSize(val, bwid - 6)[0], x + 3, y + 15);
+    doc.text(doc.splitTextToSize(val, bwid - 6)[0], x + 3, y + 14.5);
+    if (sub) {
+      font('normal', 6.6, MUTED);
+      doc.text(doc.splitTextToSize(plain(sub), bwid - 6).slice(0, 2), x + 3, y + 18.8);
+    }
   });
-  y += 27;
+  y += 32;
 
   // ---- Bảng chung ----
   const ensure = (h, onNew) => {
@@ -484,56 +495,58 @@ export async function exportCostsPdf(trip, costs, plan = []) {
     y += 8;
   };
 
-  // ---- 1. Dự kiến ----
-  section(t('cost.estimates'));
-  if (!estimates.length) empty(t('cost.noEstimates'));
+  // ---- 1. Bảng chi phí: dự kiến · thực tế · chênh lệch (REQ-009) ----
+  section(t('ct.title'));
+  if (!rowsInOrder.length) empty(t('ct.empty'));
   else {
     const cols = [
-      { label: t('cost.item'), x: M, w: 70 },
-      { label: t('cost.amount'), x: M + 72, w: 40, align: 'right' },
-      { label: t('cost.perPersonCol'), x: M + 114, w: 32, align: 'right' },
-      { label: t('cost.actualCol'), x: M + 148, w: CW - 148, align: 'right' },
+      { label: t('cost.item'), x: M, w: 68 },
+      { label: t('cmp.planned'), x: M + 70, w: 36, align: 'right' },
+      { label: t('cmp.actual'), x: M + 108, w: 34, align: 'right' },
+      { label: t('ct.diff'), x: M + 144, w: CW - 144, align: 'right' },
     ];
     head(cols);
-    estimates.forEach((c) => {
-      const rec = actuals.filter((a) => a.estimateId === c.id);
+    rowsInOrder.forEach((r) => {
+      const c = r.cost;
       const p = placeOf(c);
-      row(cols, [
-        { lines: [c.title || '—'], style: 'bold', sub: [[p && pName(p), c.note].filter(Boolean).join(' · ')] },
-        { lines: [`${amountLines(c, c.amount)[0]} / ${c.per === 'person' ? t('cost.person') : t('cost.group')}`], sub: [...amountLines(c, c.amount).slice(1), c.splitAmong?.length ? c.splitAmong.map((id) => nameOf(id)).join(', ') : ''] },
-        { lines: [pdfMoney(perPersonOf(c, n, conv), cur)] },
-        { lines: [rec.length ? pdfMoney(rec.reduce((s, a) => s + base(a, actualAmountOf(a, memberIds)), 0), cur) : '—'], color: rec.length ? POS : MUTED },
-      ]);
+      const perLabel = r.kind === 'item'
+        ? [c.per === 'person' ? t('ct.perPerson') : t('ct.perGroup'), c.splitAmong?.length ? c.splitAmong.map((id) => nameOf(id)).join(', ') : ''].filter(Boolean).join(' · ')
+        : '';
+      const diffTxt =
+        r.status === 'pending' ? t('cmp.pending') : r.status === 'extra' ? `+${pdfMoney(r.actual, cur)}` : r.status === 'even' ? t('cmp.even') : `${r.diff > 0 ? '+' : '−'}${pdfMoney(Math.abs(r.diff), cur)}`;
+      const diffColor = r.status === 'over' || r.status === 'extra' ? NEG : r.status === 'under' ? POS : MUTED;
+      // các lần chi thực tế: ngày · ai trả · chia cho ai · số tiền
+      const pays = r.actuals.map((a) => {
+        const who = a.splitAmong?.length ? participantsOf(a, memberIds).map((id) => nameOf(id)).join(', ') : t('cost.splitAll');
+        return `• ${[a.date ? shortDate(a.date) : '', t('ct.paidBy', { name: nameOf(a.paidBy, a.paidByName) }), who].filter(Boolean).join(' · ')}: ${amountLines(a, actualAmountOf(a, memberIds)).join(' ')}`;
+      });
+      row(
+        cols,
+        [
+          { lines: [`${c.title || '—'}${r.kind === 'extra' ? `  (${t('ct.extra')})` : ''}`], style: 'bold', color: r.kind === 'extra' ? NEG : INK, sub: [[p && pName(p), c.note].filter(Boolean).join(' · '), ...pays] },
+          r.kind === 'item' ? { lines: [amountLines(c, c.amount)[0]], sub: [...amountLines(c, c.amount).slice(1), perLabel] } : { lines: ['—'], color: MUTED },
+          { lines: [r.actuals.length ? pdfMoney(r.actual, cur) : '—'], style: r.actuals.length ? 'bold' : 'normal', color: r.actuals.length ? INK : MUTED },
+          { lines: [diffTxt], style: 'bold', color: diffColor },
+        ],
+        r.kind === 'extra' ? { fill: [255, 245, 245] } : {},
+      );
     });
-    row(cols, [{ lines: [t('cost.total')], style: 'bold' }, { lines: [pdfMoney(estGroup, cur)], style: 'bold' }, { lines: [pdfMoney(estPerPerson, cur)], style: 'bold' }, { lines: [''] }], { fill: HONEY_SOFT });
-  }
-  y += 6;
-
-  // ---- 2. Thực tế ----
-  section(t('cost.actuals'));
-  if (!actuals.length) empty(t('cost.noActuals'));
-  else {
-    const cols = [
-      { label: t('cost.date'), x: M, w: 20 },
-      { label: t('cost.item'), x: M + 22, w: 58 },
-      { label: t('cost.amount'), x: M + 82, w: 36, align: 'right' },
-      { label: t('cost.paidBy'), x: M + 122, w: 26 },
-      { label: t('cost.splitCol'), x: M + 150, w: CW - 150 },
-    ];
-    head(cols);
-    actuals.forEach((c) => {
-      const p = placeOf(c);
-      const total = actualAmountOf(c, memberIds);
-      const al = amountLines(c, total);
-      row(cols, [
-        { lines: [c.date ? shortDate(c.date) : '—'], size: 8.2 },
-        { lines: [c.title || '—'], style: 'bold', sub: [[p && pName(p), c.note].filter(Boolean).join(' · ')] },
-        { lines: [al[0]], style: 'bold', sub: [...al.slice(1), c.per === 'person' ? `${pdfMoney(c.amount, c.currency || cur)} × ${participantsOf(c, memberIds).length}` : ''] },
-        { lines: [nameOf(c.paidBy, c.paidByName)], size: 8.4 },
-        { lines: [c.splitAmong?.length ? participantsOf(c, memberIds).map((id) => nameOf(id)).join(', ') : t('cost.splitAll')], size: 8.2 },
-      ]);
-    });
-    row(cols, [{ lines: [''] }, { lines: [t('cost.total')], style: 'bold' }, { lines: [pdfMoney(actualTotal, cur)], style: 'bold' }, { lines: [''] }, { lines: [''] }], { fill: HONEY_SOFT });
+    row(
+      cols,
+      [
+        { lines: [t('cost.total')], style: 'bold' },
+        { lines: [pdfMoney(tot.planned, cur)], style: 'bold' },
+        { lines: [pdfMoney(tot.actual, cur)], style: 'bold' },
+        { lines: [tot.actual > 0 ? `${sd > 0.5 ? '+' : sd < -0.5 ? '−' : ''}${pdfMoney(Math.abs(sd), cur)}` : '—'], style: 'bold', color: sd > 0.5 ? NEG : sd < -0.5 ? POS : INK },
+      ],
+      { fill: HONEY_SOFT },
+    );
+    const notes = [tot.extra > 0 ? t('ct.extraNote', { v: pdfMoney(tot.extra, cur) }) : '', tot.pending > 0 ? t('cmp.pendingNote', { v: pdfMoney(tot.pending, cur) }) : ''].filter(Boolean).join('  ');
+    if (notes) {
+      font('normal', 8, MUTED);
+      doc.text(doc.splitTextToSize(plain(notes), CW), M, y + 1);
+      y += 5;
+    }
   }
   y += 6;
 

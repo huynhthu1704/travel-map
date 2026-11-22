@@ -95,7 +95,7 @@
       "title": "Reorder costs by drag and drop",
       "description": "Members who can edit a trip can change the order of estimated and actual costs by dragging, and the order is saved for the whole group.",
       "priority": "Could",
-      "status": "In build",
+      "status": "Done",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "costReorder",
       "ac": [
@@ -216,6 +216,82 @@
           "given": "an estimate applies to picked people",
           "when": "I record its actual cost (🧾 or 'Already paid')",
           "then": "the actual form is pre-filled to split between the same people"
+        }
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "title": "Reliable cost ordering and an easier way to sort",
+      "description": "Fix drag-and-drop ordering of costs (rows jumped back or stopped following the pointer) and add easier options: ↑/↓ buttons on each row and a Sort menu (group order, date paid, amount, most over budget, name) that can be saved as the group order.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costReorder, costSort",
+      "ac": [
+        {
+          "given": "I can edit a trip and the table is in group order",
+          "when": "I drag a row by ⠿ (mouse or touch) or tap ↑ / ↓",
+          "then": "the row moves, stays in its new place without jumping back, and the order is saved for the group in one write"
+        },
+        {
+          "given": "the cost table has several rows",
+          "when": "I choose Sort by date, amount, most over budget or name",
+          "then": "the table re-sorts on my device only, drag handles and ↑ ↓ are hidden, and a hint explains it"
+        },
+        {
+          "given": "I sorted the table by something other than group order",
+          "when": "I tap 'Save as group order'",
+          "then": "that order becomes the group order for everyone and the menu returns to 'Group order'"
+        },
+        {
+          "given": "I am a view-only member",
+          "when": "I open the table",
+          "then": "I can change my view sort but cannot reorder or save the group order"
+        }
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "title": "Costs PDF matches the web table and current order",
+      "description": "The costs PDF uses one table like the web (item, estimate, actual, difference, payments under each item, unplanned rows marked) and follows the exact order currently shown on screen, using the latest data.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "I am on the Costs tab",
+          "when": "I tap Export PDF or Share PDF",
+          "then": "the PDF shows a single table with Item, Estimate, Actual and Difference, each item's payments listed under it, unplanned costs marked, and a totals row"
+        },
+        {
+          "given": "I reordered or sorted the table",
+          "when": "I export the PDF",
+          "then": "rows appear in the same order as on screen"
+        },
+        {
+          "given": "a cost was just added or edited",
+          "when": "I export the PDF",
+          "then": "the PDF includes the latest values"
+        }
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "title": "Correct cost summary",
+      "description": "The summary cards no longer subtract unspent estimates from the difference. Cards: estimated for the group (with per-person average), actually spent (incl. unplanned), difference on spent items, and estimated but not spent yet.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "some estimates have no actual cost yet",
+          "when": "I view the summary",
+          "then": "'Difference (spent items)' compares actual spend with the estimates of the items already paid plus unplanned costs, and the unspent estimates are shown separately as 'Estimated, not spent yet'"
+        },
+        {
+          "given": "the PDF is exported",
+          "when": "I read its summary and totals row",
+          "then": "they use the same numbers as the web"
         }
       ]
     }
@@ -408,6 +484,63 @@
         "Add an estimate with Pick people (2 members, per person)",
         "Row shows 'per person · A, B' and total = amount × 2",
         "Tap 🧾: actual form splits between A and B"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-017",
+      "title": "View sorts: manual, date, amount, difference, name",
+      "reqIds": [
+        "REQ-008"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-018",
+      "title": "Sorting never loses or duplicates rows",
+      "reqIds": [
+        "REQ-008"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-019",
+      "title": "PDF rows follow the on-screen order",
+      "reqIds": [
+        "REQ-009"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-020",
+      "title": "Summary difference compares only spent items plus unplanned",
+      "reqIds": [
+        "REQ-010"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-021",
+      "title": "UI: drag, ↑ ↓, sort menu, save as group order, PDF single table in on-screen order",
+      "reqIds": [
+        "REQ-008",
+        "REQ-009",
+        "REQ-010"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable costTable, costReorder, costSort",
+        "Drag a row and tap ↑ ↓: order sticks after reload",
+        "Sort by amount, export PDF: same order, single table",
+        "Save as group order: other members see it"
       ],
       "status": "Passing (demo)"
     }

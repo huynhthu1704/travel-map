@@ -8,7 +8,7 @@ import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, ma
 import { currencyOfCountry } from '../lib/rates';
 import CurrencyRates from '../components/CurrencyRates';
 import { useTripReadOnly } from '../lib/tripAccess';
-import { compareCosts, sortByOrder, reorderPatch, moveId, buildCostTable } from '../lib/costCompare';
+import { compareCosts, sortByOrder, reorderPatch, moveId, buildCostTable, sortRows, COST_SORTS } from '../lib/costCompare';
 import { exportCostsPdf, shareOrDownload, loadJsPdf } from '../lib/exportPlan';
 import { reloadOnce } from '../lib/freshness';
 
@@ -486,43 +486,78 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
 /* REQ-003: kéo thả để sắp xếp khoản chi (chuột & cảm ứng, phím ↑ ↓)   */
 /* ------------------------------------------------------------------ */
 function useDragOrder(items, onCommit) {
+  // REQ-008 (sửa lỗi): theo dõi con trỏ trên cả cửa sổ (không phụ thuộc vào nút đang bị React di chuyển trong DOM),
+  // và giữ thứ tự mới trên màn hình cho tới khi máy chủ trả về đúng thứ tự đó (không bị nhảy về chỗ cũ).
   const [drag, setDrag] = useState(null); // { id, ids }
+  const [held, setHeld] = useState(null); // thứ tự vừa lưu, chờ máy chủ xác nhận
   const ref = useRef(null);
+  const dragRef = useRef(null);
   const cur = items.map((x) => x.id);
-  const ordered = drag ? drag.ids.map((id) => items.find((x) => x.id === id)).filter(Boolean) : items;
-  const move = (e) => {
-    if (!drag || !ref.current) return;
-    const rows = [...ref.current.querySelectorAll('[data-sort-id]')].filter((r) => r.dataset.sortId !== drag.id);
-    const to = rows.filter((r) => {
-      const b = r.getBoundingClientRect();
-      return b.top + b.height / 2 < e.clientY;
-    }).length;
-    const next = moveId(drag.ids, drag.id, to);
-    if (next.join() !== drag.ids.join()) setDrag({ ...drag, ids: next });
+  const curKey = cur.join();
+  useEffect(() => {
+    if (!held) return undefined;
+    if (held.join() === curKey) return setHeld(null), undefined;
+    const tm = setTimeout(() => setHeld(null), 4000);
+    return () => clearTimeout(tm);
+  }, [curKey, held]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shownIds = drag ? drag.ids : held && held.length === cur.length && held.every((id) => cur.includes(id)) ? held : cur;
+  const ordered = shownIds.map((id) => items.find((x) => x.id === id)).filter(Boolean);
+  const commit = (ids) => {
+    if (ids.join() === curKey) return;
+    setHeld(ids);
+    onCommit(ids);
   };
-  const end = () => {
-    if (!drag) return;
-    const ids = drag.ids;
-    setDrag(null);
-    if (ids.join() !== cur.join()) onCommit(ids);
+  const start = (e, id) => {
+    if (e.button != null && e.button !== 0) return;
+    e.preventDefault();
+    dragRef.current = { id, ids: shownIds };
+    setDrag(dragRef.current);
+    const onMove = (ev) => {
+      const d = dragRef.current;
+      if (!d || !ref.current) return;
+      ev.preventDefault?.();
+      const rows = [...ref.current.querySelectorAll('[data-sort-id]')].filter((r) => r.dataset.sortId !== d.id);
+      const to = rows.filter((r) => {
+        const b = r.getBoundingClientRect();
+        return b.top + b.height / 2 < ev.clientY;
+      }).length;
+      const next = moveId(d.ids, d.id, to);
+      if (next.join() !== d.ids.join()) {
+        dragRef.current = { ...d, ids: next };
+        setDrag(dragRef.current);
+      }
+      // tự cuộn khi kéo gần mép trên / dưới màn hình
+      if (ev.clientY < 70) window.scrollBy(0, -12);
+      else if (ev.clientY > window.innerHeight - 70) window.scrollBy(0, 12);
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      const d = dragRef.current;
+      dragRef.current = null;
+      setDrag(null);
+      if (d) commit(d.ids);
+    };
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
   const handle = (id) => ({
-    onPointerDown: (e) => {
-      e.preventDefault();
-      e.currentTarget.setPointerCapture?.(e.pointerId);
-      setDrag({ id, ids: cur });
-    },
-    onPointerMove: move,
-    onPointerUp: end,
-    onPointerCancel: end,
+    onPointerDown: (e) => start(e, id),
     onKeyDown: (e) => {
       if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
       e.preventDefault();
-      const j = cur.indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1);
-      if (j >= 0 && j < cur.length) onCommit(moveId(cur, id, j));
+      const j = shownIds.indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1);
+      if (j >= 0 && j < shownIds.length) commit(moveId(shownIds, id, j));
     },
   });
-  return { ref, ordered, dragId: drag?.id, handle };
+  /** ↑ / ↓: dời 1 bậc (cách sắp xếp dễ hơn kéo thả, nhất là trên điện thoại) */
+  const step = (id, dir) => {
+    const j = shownIds.indexOf(id) + dir;
+    if (j >= 0 && j < shownIds.length) commit(moveId(shownIds, id, j));
+  };
+  return { ref, ordered, ids: shownIds, dragId: drag?.id, handle, step, commit };
 }
 
 /* ------------------------------------------------------------------ */
@@ -697,7 +732,7 @@ export default function TripCosts({ trip }) {
   const doExport = async (share) => {
     setExporting(true);
     try {
-      const file = await exportCostsPdf(trip, costs || [], plan);
+      const file = await exportCostsPdf(trip, costs || [], plan, { order: shownRows.map((r) => r.id) });
       const r = await shareOrDownload(file, { preferShare: share });
       if (r === 'downloaded') notify(t('pdf.downloaded', { name: file.name }));
     } catch (e) {
@@ -712,7 +747,7 @@ export default function TripCosts({ trip }) {
   const canSort = !ro && can('costReorder');
   // REQ-004: bảng chi phí gộp (dự kiến + thực tế + chênh lệch trên cùng 1 dòng)
   const tableOn = can('costTable');
-  const commitOrder = (items) => (ids) => Promise.all(reorderPatch(items, ids).map((p) => api.updateCost(trip.id, p.id, { order: p.order }))).catch((e) => notify(e.message, 'error'));
+  const commitOrder = (items) => (ids) => api.reorderCosts(trip.id, reorderPatch(items, ids)).catch((e) => notify(e.message, 'error'));
   const estDrag = useDragOrder(estimates, commitOrder(estimates));
   const actDrag = useDragOrder(actuals, commitOrder(actuals));
   const estTotalFn = useMemo(() => (c) => groupTotalOf(c, n, conv), [n, cur, JSON.stringify(rates)]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -721,6 +756,29 @@ export default function TripCosts({ trip }) {
   const topCosts = table.rows.map((r) => r.cost);
   const rowDrag = useDragOrder(topCosts, commitOrder(topCosts));
   const [addingItem, setAddingItem] = useState(false);
+  // REQ-008: cách xem thứ tự (chỉ trên máy này); 'manual' = thứ tự chung của nhóm
+  const sortOn = can('costSort');
+  const sortKey = `travel-map-cost-sort-${trip.id}`;
+  const [viewSort, setViewSortState] = useState(() => {
+    try {
+      const v = localStorage.getItem(sortKey);
+      return COST_SORTS.includes(v) ? v : 'manual';
+    } catch {
+      return 'manual';
+    }
+  });
+  const sortMode = sortOn ? viewSort : 'manual';
+  const setViewSort = (v) => {
+    setViewSortState(v);
+    try {
+      localStorage.setItem(sortKey, v);
+    } catch {
+      /* bỏ qua */
+    }
+  };
+  const byId = new Map(table.rows.map((r) => [r.id, r]));
+  const shownRows = sortMode === 'manual' ? rowDrag.ordered.map((c) => byId.get(c.id)).filter(Boolean) : sortRows(table.rows, sortMode);
+  const canMove = canSort && sortMode === 'manual';
   const [actFor, setActFor] = useState(null); // id dự kiến đang ghi thêm chi phí thực tế
   const saveItem = async ({ estimate, actual }) => {
     try {
@@ -765,23 +823,31 @@ export default function TripCosts({ trip }) {
           )}
         </div>
       )}
-      {/* Tổng quan */}
+      {/* Tổng quan (REQ-010): chênh lệch chỉ tính trên các khoản đã chi + phát sinh, không trừ phần dự kiến chưa chi */}
       <div className="cost-summary">
         <div className="cost-stat">
-          <small>{t('cost.estPerPerson')}</small>
-          <b>{fmtMoney(estPerPerson, cur)}</b>
-        </div>
-        <div className="cost-stat">
-          <small>{t('cost.estGroup', { n })}</small>
-          <b>{fmtMoney(estGroup, cur)}</b>
+          <small>{t('sum.planned', { n })}</small>
+          <b>{fmtMoney(table.totals.planned, cur)}</b>
+          <em>{t('sum.perPerson', { v: fmtMoney(estPerPerson, cur) })}</em>
         </div>
         <div className="cost-stat">
           <small>{t('cost.actualTotal')}</small>
-          <b>{fmtMoney(actualTotal, cur)}</b>
+          <b>{fmtMoney(table.totals.actual, cur)}</b>
+          {table.totals.extra > 0 && <em>{t('sum.inclExtra', { v: fmtMoney(table.totals.extra, cur) })}</em>}
         </div>
-        <div className={`cost-stat ${actualTotal > estGroup && estGroup > 0 ? 'is-over' : ''}`}>
-          <small>{t('cost.diff')}</small>
-          <b>{estGroup > 0 ? `${actualTotal > estGroup ? '+' : actualTotal < estGroup ? '−' : ''}${fmtMoney(Math.abs(actualTotal - estGroup), cur)}` : '—'}</b>
+        <div className={`cost-stat ${table.totals.spentDiff > 0.5 ? 'is-over' : table.totals.spentDiff < -0.5 ? 'is-under' : ''}`}>
+          <small>{t('sum.diff')}</small>
+          <b>
+            {table.totals.actual > 0
+              ? `${table.totals.spentDiff > 0.5 ? '+' : table.totals.spentDiff < -0.5 ? '−' : ''}${fmtMoney(Math.abs(table.totals.spentDiff), cur)}`
+              : '—'}
+          </b>
+          <em>{table.totals.actual > 0 ? t('sum.diffHint', { v: fmtMoney(table.totals.spentPlanned, cur) }) : t('sum.noActual')}</em>
+        </div>
+        <div className="cost-stat">
+          <small>{t('sum.pending')}</small>
+          <b>{fmtMoney(table.totals.pending, cur)}</b>
+          <em>{t('sum.pendingHint')}</em>
         </div>
       </div>
       {!ro && (
@@ -801,6 +867,26 @@ export default function TripCosts({ trip }) {
               </button>
             )}
           </div>
+          {sortOn && table.rows.length > 1 && (
+            <div className="ct-sortbar">
+              <label className="ct-sortbar__pick">
+                <span>↕️ {t('sort.label')}</span>
+                <select value={viewSort} onChange={(e) => setViewSort(e.target.value)}>
+                  {COST_SORTS.map((k) => (
+                    <option key={k} value={k}>
+                      {t(`sort.${k}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {sortMode !== 'manual' && !ro && (
+                <button className="btn btn--sm btn--soft" onClick={() => (rowDrag.commit(shownRows.map((r) => r.id)), setViewSort('manual'), notify(t('sort.saved')))}>
+                  📌 {t('sort.saveAsGroup')}
+                </button>
+              )}
+              <small className="muted">{sortMode === 'manual' ? (canMove ? t('sort.manualHint') : '') : t('sort.viewHint')}</small>
+            </div>
+          )}
           {addingItem && <CostItemForm trip={trip} plan={plan} cur={cur} curs={curs} onSave={saveItem} onCancel={() => setAddingItem(false)} />}
           {table.rows.length === 0 && !addingItem && <p className="small muted">{t('ct.empty')}</p>}
           {table.rows.length > 0 && (
@@ -812,7 +898,7 @@ export default function TripCosts({ trip }) {
                 <span>{t('ct.diff')}</span>
                 <span />
               </div>
-              {(rowDrag.dragId ? rowDrag.ordered.map((c) => table.rows.find((r) => r.id === c.id)) : table.rows).map((r) => {
+              {shownRows.map((r, idx) => {
                 const c = r.cost;
                 const pct = r.planned ? Math.min(100, (r.actual / r.planned) * 100) : r.actual ? 100 : 0;
                 return (
@@ -822,7 +908,7 @@ export default function TripCosts({ trip }) {
                     ) : (
                       <div className={`cost-row ct-row ${canSort ? 'cost-row--sortable' : ''}`}>
                         <span className="cost-row__title">
-                          {handleEl(rowDrag, r.id)}
+                          {canMove && handleEl(rowDrag, r.id)}
                           <b>
                             {c.title}
                             {r.kind === 'extra' && <em className="ct-tag">{t('ct.extra')}</em>}
@@ -851,6 +937,16 @@ export default function TripCosts({ trip }) {
                           {diffEl(r)}
                         </span>
                         <span className={`cost-row__actions ${ro ? 'is-hidden' : ''}`}>
+                          {canMove && (
+                            <span className="ct-steps">
+                              <button className="icon-btn icon-btn--sm" title={t('plan.up')} aria-label={t('plan.up')} disabled={idx === 0} onClick={() => rowDrag.step(r.id, -1)}>
+                                ↑
+                              </button>
+                              <button className="icon-btn icon-btn--sm" title={t('plan.down')} aria-label={t('plan.down')} disabled={idx === shownRows.length - 1} onClick={() => rowDrag.step(r.id, 1)}>
+                                ↓
+                              </button>
+                            </span>
+                          )}
                           {r.kind === 'item' && (
                             <button className="icon-btn icon-btn--sm" title={t('ct.addActual')} onClick={() => setActFor(actFor === c.id ? null : c.id)}>
                               🧾
@@ -920,7 +1016,7 @@ export default function TripCosts({ trip }) {
                 <span className="ct-cell" data-label={t('cmp.planned')}>{fmtMoney(table.totals.planned, cur)}</span>
                 <span className="ct-cell" data-label={t('cmp.actual')}>{fmtMoney(table.totals.actual, cur)}</span>
                 <span className="ct-cell" data-label={t('ct.diff')}>
-                  {table.totals.actual ? diffEl({ status: table.totals.diff > 0.5 ? 'over' : table.totals.diff < -0.5 ? 'under' : 'even', diff: table.totals.diff }) : <span className="muted">—</span>}
+                  {table.totals.actual ? diffEl({ status: table.totals.spentDiff > 0.5 ? 'over' : table.totals.spentDiff < -0.5 ? 'under' : 'even', diff: table.totals.spentDiff }) : <span className="muted">—</span>}
                 </span>
                 <span />
               </div>

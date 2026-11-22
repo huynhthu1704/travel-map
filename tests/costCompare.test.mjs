@@ -74,7 +74,7 @@ test('TC-010: unified table — one row per cost item with its linked actuals, e
   ]);
   assert.deepEqual(r.rows[0].actuals.map((a) => a.id), ['a2', 'a1']);
   assert.equal(r.rows[0].diff, 100);
-  assert.deepEqual(r.totals, { planned: 1600, actual: 1180, extra: 80, pending: 600, diff: -420 });
+  assert.deepEqual(r.totals, { planned: 1600, actual: 1180, extra: 80, pending: 600, diff: -420, spentPlanned: 1000, spentDiff: 180 });
 });
 
 test('TC-011: unified table follows drag order across items and extras', () => {

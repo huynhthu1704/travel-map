@@ -2,8 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { TOUR_STEPS } from '../data/tour';
+import { adminApi } from '../lib/adminStore';
+import { LEGAL_VERSION } from '../data/legal';
 
 const SEEN_KEY = 'travel-map-tour-v1';
+/** Tài khoản tạo trong khoảng này mới tự mở hướng dẫn sau lần đăng nhập đầu (tài khoản cũ không bị làm phiền) */
+const NEW_ACCOUNT_MS = 7 * 864e5;
 export const startQuickTour = () => window.dispatchEvent(new Event('tour:start'));
 
 /** Vùng hiển thị của các phần tử khớp selector (gộp lại nếu có nhiều phần tử đang hiện) */
@@ -35,7 +39,7 @@ function findRect(selector) {
  * kèm ảnh minh hoạ và hoạt hình nhỏ. Tự mở ở lần đầu vào web; mở lại từ trang chủ / menu tài khoản.
  */
 export default function QuickTour() {
-  const { view, setView, setModal, modal, setSelectedPlace } = useApp();
+  const { view, setView, setModal, modal, setSelectedPlace, user, profile } = useApp();
   const { t, lang } = useI18n();
   const [step, setStep] = useState(-1); // -1 = đang tắt
   const [rect, setRect] = useState(null);
@@ -58,7 +62,22 @@ export default function QuickTour() {
     } catch {
       /* bỏ qua */
     }
-  }, []);
+    if (user?.uid) adminApi.markTourSeen?.(user.uid).catch(() => {});
+  }, [user?.uid]);
+
+  // Tài khoản mới: tự mở hướng dẫn ngay sau lần đăng nhập đầu tiên (sau khi đã đồng ý điều khoản, không có hộp thoại nào đang mở)
+  const autoForUid = useRef(null);
+  useEffect(() => {
+    if (!user?.uid || !profile || open || modal || autoForUid.current === user.uid) return undefined;
+    if (profile.tourSeenAt || profile.consentVersion !== LEGAL_VERSION) return undefined;
+    const created = typeof profile.createdAt === 'number' ? profile.createdAt : profile.createdAt?.toMillis?.() || 0;
+    if (!created || Date.now() - created > NEW_ACCOUNT_MS) return undefined;
+    const tm = setTimeout(() => {
+      autoForUid.current = user.uid;
+      start();
+    }, 1200);
+    return () => clearTimeout(tm);
+  }, [user?.uid, profile, modal, open, start]);
 
   // Mở bằng sự kiện (nút "Hướng dẫn nhanh") + tự mở lần đầu vào trang bản đồ
   useEffect(() => {

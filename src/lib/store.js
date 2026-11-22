@@ -436,7 +436,7 @@ const firebaseBackend = {
   },
   // ---- Kế hoạch chuyến đi: trips/{id}/plan/{itemId} ----
   watchPlan(tripId, cb) {
-    return onSnapshot(collection(db, 'trips', tripId, 'plan'), (s) => cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).sort(byPlanOrder)));
+    return onSnapshot(collection(db, 'trips', tripId, 'plan'), (s) => cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).filter((x) => !x.removed).sort(byPlanOrder)));
   },
   addPlanItem(user, tripId, { place, date = '', time = '', note = '', order }) {
     return addDoc(collection(db, 'trips', tripId, 'plan'), {
@@ -447,8 +447,12 @@ const firebaseBackend = {
   updatePlanItem(tripId, id, patch) {
     return updateDoc(doc(db, 'trips', tripId, 'plan', id), patch);
   },
+  /**
+   * Xoá khỏi kế hoạch. Giữ lại một "dấu đã xoá" (removed) thay vì xoá hẳn, để bước đồng bộ từ Hành trình
+   * (địa điểm đã check-in trong chuyến) không tự thêm lại mục người dùng vừa xoá.
+   */
   deletePlanItem(tripId, id) {
-    return deleteDoc(doc(db, 'trips', tripId, 'plan', id));
+    return updateDoc(doc(db, 'trips', tripId, 'plan', id), { removed: true, removedAt: now() });
   },
   /** Ghi lại thứ tự mới: [{id, order}] */
   async reorderPlan(tripId, list) {
@@ -507,20 +511,27 @@ const firebaseBackend = {
   async ensureStop(user, tripId, place, kind, date = '') {
     const s = await getDocs(query(collection(db, 'trips', tripId, 'stops'), where('byUid', '==', user.uid)));
     if (!s.docs.some((d) => d.data().place?.id === place.id)) await this.addStop(user, tripId, { place, kind, date });
-    else await this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date });
+    else await this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date, revive: true });
   },
   async addStop(user, tripId, { place, kind, photos = [], caption = '', memoryId = null, date = '' }) {
     const r = await addDoc(collection(db, 'trips', tripId, 'stops'), {
       place: pickPlace(place), kind, photos, caption, memoryId, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
     });
     // Địa điểm trong hành trình cũng có trong kế hoạch (để lập kế hoạch / sắp xếp)
-    await this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date }).catch(() => {});
+    await this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date, revive: true }).catch(() => {});
     return r;
   },
   /** Thêm địa điểm vào kế hoạch nếu chưa có (id cố định theo địa điểm để không bị trùng khi nhiều người cùng thêm) */
-  async ensurePlanItem(user, tripId, place, { done = false, date = '' } = {}) {
+  async ensurePlanItem(user, tripId, place, { done = false, date = '', revive = false } = {}) {
     const s = await getDocs(collection(db, 'trips', tripId, 'plan'));
-    if (s.docs.some((d) => d.data().place?.id === place.id)) return false;
+    const same = s.docs.filter((d) => d.data().place?.id === place.id);
+    if (same.some((d) => !d.data().removed)) return false;
+    // Đã bị xoá khỏi kế hoạch: chỉ thêm lại khi người dùng vừa chủ động check-in / thêm vào chuyến
+    if (same.length) {
+      if (!revive) return false;
+      await updateDoc(same[0].ref, { removed: false, removedAt: null, done, doneBy: done ? user.name : null, doneAt: done ? now() : null, ...(date ? { date } : {}) });
+      return true;
+    }
     await setDoc(doc(db, 'trips', tripId, 'plan', `j_${safeId(place.id)}`), {
       place: pickPlace(place), date: date || '', time: '', note: '', order: now(), done, doneBy: done ? user.name : null, doneAt: done ? now() : null,
       addedBy: user.uid, addedByName: user.name, createdAt: now(), fromJourney: true,
@@ -746,7 +757,7 @@ const localBackend = {
     return sub(() => cb((state.stops[tripId] || []).map((s) => ({ ...s, tripId })).sort(byNewest)));
   },
   watchPlan(tripId, cb) {
-    return sub(() => cb(((state.plan ||= {})[tripId] || []).map((x) => ({ ...x, tripId })).sort(byPlanOrder)));
+    return sub(() => cb(((state.plan ||= {})[tripId] || []).filter((x) => !x.removed).map((x) => ({ ...x, tripId })).sort(byPlanOrder)));
   },
   async addPlanItem(user, tripId, { place, date = '', time = '', note = '', order }) {
     ((state.plan ||= {})[tripId] ||= []).push({
@@ -760,7 +771,8 @@ const localBackend = {
     save();
   },
   async deletePlanItem(tripId, id) {
-    state.plan[tripId] = (state.plan?.[tripId] || []).filter((x) => x.id !== id);
+    const it = (state.plan?.[tripId] || []).find((x) => x.id === id);
+    if (it) Object.assign(it, { removed: true, removedAt: now() });
     save();
   },
   async reorderPlan(tripId, list) {
@@ -813,9 +825,16 @@ const localBackend = {
       this.addStop(user, newTripId, { place, kind: status === 'wishlist' ? 'wishlist' : 'place', date: place.visitedAt });
     save();
   },
-  async ensurePlanItem(user, tripId, place, { done = false, date = '' } = {}) {
+  async ensurePlanItem(user, tripId, place, { done = false, date = '', revive = false } = {}) {
     const list = ((state.plan ||= {})[tripId] ||= []);
-    if (list.some((x) => x.place?.id === place.id)) return false;
+    const same = list.filter((x) => x.place?.id === place.id);
+    if (same.some((x) => !x.removed)) return false;
+    if (same.length) {
+      if (!revive) return false;
+      Object.assign(same[0], { removed: false, removedAt: null, done, doneBy: done ? user.name : null, doneAt: done ? now() : null, ...(date ? { date } : {}) });
+      save();
+      return true;
+    }
     list.push({
       id: `j_${place.id}`, place: pickPlace(place), date: date || '', time: '', note: '', order: now(), done, doneBy: done ? user.name : null, doneAt: done ? now() : null,
       addedBy: user.uid, addedByName: user.name, createdAt: now(), fromJourney: true,
@@ -824,7 +843,7 @@ const localBackend = {
     return true;
   },
   addStop(user, tripId, { place, kind, photos = [], caption = '', date = '' }) {
-    this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date });
+    this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date, revive: true });
     (state.stops[tripId] ||= []).push({
       id: uid(), place: pickPlace(place), kind, photos, caption, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: now(),
     });

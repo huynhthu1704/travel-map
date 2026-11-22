@@ -40,6 +40,7 @@ const NAV = [
   { id: 'map', icon: '🗺️' },
   { id: 'explore', icon: '🌍' },
   { id: 'guide', icon: '📖' },
+  { id: 'gear', icon: '🎒', topOnly: true },
   { id: 'memories', icon: '📸' },
   { id: 'trips', icon: '🧳' },
 ];
@@ -173,7 +174,7 @@ function Shell() {
   const { view, setView, toast, activeTripId, trips, setActiveTripId, pickMode, setPickMode, countries, user, isStaff, settings, banned, goHome, can } = useApp();
   const { t, lang } = useI18n();
   // Mục menu theo cài đặt trang (bật/tắt tính năng) và quyền quản trị
-  const nav = NAV.filter((n) => (n.id === 'explore' || n.id === 'trips' || n.id === 'guide' ? can(n.id) : true)).concat(
+  const nav = NAV.filter((n) => (['explore', 'trips', 'guide', 'gear'].includes(n.id) ? can(n.id) : true)).concat(
     isStaff ? [{ id: 'admin', icon: '🛠️' }] : [],
   );
   // Thông báo đầu trang: theo lịch (Quản trị → Thông báo đầu trang), cập nhật mỗi phút
@@ -285,7 +286,7 @@ function Shell() {
       </main>
 
       <nav className="nav nav--bottom">
-        {nav.map((n) => (
+        {nav.filter((n) => !n.topOnly).map((n) => (
           <AppLink key={n.id} href={hrefView(n.id)} className={view === n.id ? 'on' : ''} onClick={() => setView(n.id)}>
             <span>{n.icon}</span>
             {t('nav.' + n.id)}

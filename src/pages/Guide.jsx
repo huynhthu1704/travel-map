@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react';
 import { useI18n } from '../i18n';
+import GearPromo from '../components/GearPromo';
 import { useApp } from '../AppContext';
 import { countryName, flagOf } from '../lib/countries';
 import { hrefCountry } from '../lib/route';
@@ -180,12 +181,8 @@ function GuideList({ onOpen }) {
         <p className="eyebrow">📖 {t('guide.eyebrow')}</p>
         <h1 className="h1">{t('guide.title')}</h1>
         <p className="muted">{t('guide.lead')}</p>
-        {can('gear') && (
-          <a className="btn btn--sm btn--soft gear-link" href="#/gear">
-            🎒 {t('gear.title')} →
-          </a>
-        )}
       </header>
+      {can('gear') && <GearPromo />}
       <div className="guide-grid">
         {GUIDES.map((g0) => applyGuideOverride(g0, guideOverrides?.[g0.cc])).map((g) => (
           <a key={g.cc} href={`#/guide/${g.cc}`} className="guide-card card" onClick={(e) => (e.preventDefault(), onOpen(g.cc))}>

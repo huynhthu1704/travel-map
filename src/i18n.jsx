@@ -73,6 +73,9 @@ const DICT = {
     'admin.tab.flags': "Tính năng",
     "gear.eyebrow": "Chuẩn bị hành lý",
     "gear.title": "Đồ dùng du lịch",
+    "gear.promoTitle": "Chuẩn bị đồ cho chuyến đi?",
+    "gear.promoSub": "Gợi ý đồ cần mang theo kiểu chuyến đi, kèm link mua sẵn.",
+    "gear.promoBtn": "Xem đồ du lịch",
     "gear.lead": "Những món nhỏ giúp chuyến đi nhẹ nhàng hơn — lọc theo kiểu chuyến đi và công dụng.",
     "gear.affTitle": "Link tiếp thị liên kết:",
     "gear.affText": "một số nút “Xem trên Shopee” là link affiliate. Nếu bạn mua qua link, Bee There có thể nhận hoa hồng nhỏ — giá của bạn không đổi. Khoản này giúp duy trì web miễn phí.",
@@ -437,6 +440,7 @@ const DICT = {
     'log.tip.unhide': "Hiện lại bài kinh nghiệm",
     'log.tip.delete': "Xoá bài kinh nghiệm",
     'nav.guide': "Cẩm nang",
+    'nav.gear': "Đồ du lịch",
     'guide.soon': "Sắp ra mắt",
     'guide.title': "Cẩm nang du lịch châu Á",
     'guide.lead': "Mọi thứ cần biết trước khi lên đường, gói gọn cho từng quốc gia — để chuyến đi tiếp theo của bạn nhẹ nhàng hơn.",
@@ -601,6 +605,7 @@ const DICT = {
     'place.rename': 'Đặt tên cho địa điểm này',
     'common.viewOnMap': '🗺️ Xem trên bản đồ',
     'app.title': 'Bee There',
+    'app.seoTitle': 'Bee There 🐝 Bản đồ du lịch: ghim nơi đã đến, lưu kỉ niệm, lên kế hoạch chuyến đi',
     'app.logo1': 'bee',
     'app.logo2': 'there',
     'app.home': 'Về trang chủ',
@@ -1663,6 +1668,9 @@ const DICT = {
     'admin.tab.flags': "Features",
     "gear.eyebrow": "Packing",
     "gear.title": "Travel gear",
+    "gear.promoTitle": "Packing for your trip?",
+    "gear.promoSub": "Gear ideas for each kind of trip, with shop links.",
+    "gear.promoBtn": "See travel gear",
     "gear.lead": "Small things that make trips easier — filter by trip type and purpose.",
     "gear.affTitle": "Affiliate links:",
     "gear.affText": "some “View on Shopee” buttons are affiliate links. If you buy through them, Bee There may earn a small commission at no extra cost to you. It helps keep the site free.",
@@ -2027,6 +2035,7 @@ const DICT = {
     'log.tip.unhide': "Unhid a tip post",
     'log.tip.delete': "Deleted a tip post",
     'nav.guide': "Guides",
+    'nav.gear': "Gear",
     'guide.soon': "Coming soon",
     'guide.title': "Asia travel guides",
     'guide.lead': "Everything to know before you go, packed into one guide per country — so your next trip feels easier.",
@@ -2191,6 +2200,7 @@ const DICT = {
     'place.rename': 'Name this place',
     'common.viewOnMap': '🗺️ View on map',
     'app.title': 'Bee There',
+    'app.seoTitle': 'Bee There 🐝 Your travel map: pin places, save memories, plan trips together',
     'app.logo1': 'bee',
     'app.logo2': 'there',
     'app.home': 'Back to home',
@@ -3203,7 +3213,7 @@ export function I18nProvider({ children }) {
   }, []);
   useEffect(() => {
     document.documentElement.lang = lang;
-    document.title = `${translate('app.title')} 🍯`;
+    document.title = translate('app.seoTitle');
   }, [lang]);
   // `t` changes identity when the language changes, so memoised views re-render
   const t = useCallback((key, vars) => translate(key, vars), [lang]); // eslint-disable-line react-hooks/exhaustive-deps

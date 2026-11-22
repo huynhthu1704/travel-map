@@ -51,7 +51,7 @@ service cloud.firestore {
                     && request.resource.data.get('banned', false) == false
                     && validPhoto(request.resource.data) && validUserText(request.resource.data);
       allow update: if (signedIn() && request.auth.uid == uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt', 'annRead', 'annReadAt', 'consentVersion', 'consentAt', 'privateProfile', 'hideDates'])
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'name', 'email', 'googlePhoto', 'photo', 'displayName', 'lastLoginAt', 'updatedAt', 'stats', 'createdAt', 'annRead', 'annReadAt', 'consentVersion', 'consentAt', 'privateProfile', 'hideDates', 'tourSeenAt'])
                         && validPhoto(request.resource.data) && validUserText(request.resource.data))
                     || (isAdmin()
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned'])

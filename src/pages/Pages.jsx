@@ -26,6 +26,7 @@ import { TripPlan, TripChecklists } from "./TripPlan";
 import TripCosts from "./TripCosts";
 import DuplicateTrip from "./DuplicateTrip";
 import TripMembers, { MyTripInvites } from "../components/TripMembers";
+import GearPromo from "../components/GearPromo";
 import AdSlot from "../components/AdSlot";
 import CurrencyRates from "../components/CurrencyRates";
 import { currencyOfCountry, fetchMarketRates } from "../lib/rates";
@@ -1228,7 +1229,12 @@ function TripDetail({ trip, onBack }) {
       </div>
       {tab === "plan" && <TripPlan trip={trip} />}
       {tab === "costs" && can("tripCosts") && <TripCosts trip={trip} />}
-      {tab === "checklist" && can("tripChecklist") && <TripChecklists trip={trip} />}
+      {tab === "checklist" && can("tripChecklist") && (
+        <>
+          {can("gear") && <GearPromo />}
+          <TripChecklists trip={trip} />
+        </>
+      )}
       {tab === "journey" && stopList.length > 0 && (
         <TripSummary trip={trip} stops={stopList} />
       )}

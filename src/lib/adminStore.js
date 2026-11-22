@@ -142,6 +142,8 @@ const fb = {
   },
   watchProfile: (uid, cb) => onSnapshot(doc(db, 'users', uid), (s) => cb(s.exists() ? s.data() : null), () => cb(null)),
   setConsent: (uid, version) => updateDoc(doc(db, 'users', uid), { consentVersion: version, consentAt: now() }),
+  /** Tài khoản đã xem hướng dẫn nhanh (để không tự mở lại ở máy khác) */
+  markTourSeen: (uid) => updateDoc(doc(db, 'users', uid), { tourSeenAt: now() }),
   watchSettings: (cb) => onSnapshot(doc(db, 'settings', 'site'), (s) => cb(mergeSettings(s.exists() ? s.data() : {})), () => cb(mergeSettings())),
   saveSettings: (s) => setDoc(doc(db, 'settings', 'site'), s, { merge: true }),
   // Ghi đè toàn bộ vai trò & quyền (để vai trò đã xoá không còn sót lại)
@@ -255,6 +257,10 @@ const local = {
   // Demo: hồ sơ (tên / ảnh tự đặt) nằm ở lớp dữ liệu chính, quyền nằm ở đây → gộp lại
   async setConsent(uid, version) {
     if (st.users[uid]) st.users[uid] = { ...st.users[uid], consentVersion: version, consentAt: now() };
+    persist();
+  },
+  async markTourSeen(uid) {
+    if (st.users[uid]) st.users[uid] = { ...st.users[uid], tourSeenAt: now() };
     persist();
   },
   watchProfile(uid, cb) {

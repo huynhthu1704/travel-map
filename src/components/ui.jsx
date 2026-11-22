@@ -53,7 +53,7 @@ export function TrashIcon({ size = 16 }) {
 
 export function Avatar({ name = '?', photo, size = 32 }) {
   return photo ? (
-    <img className="avatar" src={photo} alt={name} width={size} height={size} referrerPolicy="no-referrer" />
+    <img className="avatar" src={photo} alt={name} width={size} height={size} style={{ width: size, height: size }} referrerPolicy="no-referrer" />
   ) : (
     <span className="avatar avatar--letter" style={{ width: size, height: size, fontSize: size * 0.42 }}>
       {name.trim()[0]?.toUpperCase() || '?'}

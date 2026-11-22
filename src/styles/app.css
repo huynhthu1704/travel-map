@@ -533,6 +533,10 @@ a.btn:focus {
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  /* Luôn tròn: không bị co / kéo giãn thành hình oval trong hàng flex */
+  max-width: none;
+  aspect-ratio: 1;
+  box-sizing: border-box;
   border: 2px solid var(--base-white);
 }
 .avatar--letter {
@@ -1532,6 +1536,11 @@ a.btn:focus {
 }
 .avatars {
   display: flex;
+  flex-shrink: 0;
+}
+.avatars > * {
+  flex-shrink: 0;
+  display: inline-flex;
 }
 .avatars .avatar {
   margin-right: -8px;
@@ -9693,4 +9702,41 @@ a.app-link.place-card__title:hover {
 }
 .quick-links > a:has(.quick-links__ic) {
   min-width: 0;
+}
+
+/* Thẻ giới thiệu Đồ dùng du lịch (Cẩm nang, Checklist chuyến đi) */
+.gear-promo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin: 12px 0;
+  text-decoration: none;
+  color: inherit;
+  background: linear-gradient(90deg, var(--honey-50), #fff);
+  border: 1px solid var(--honey-200);
+}
+.gear-promo:hover {
+  border-color: var(--honey-400);
+}
+.gear-promo__icon {
+  font-size: 32px;
+  line-height: 1;
+}
+.gear-promo__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.gear-promo__text small {
+  color: var(--ink-500);
+}
+@media (max-width: 640px) {
+  .gear-promo {
+    flex-wrap: wrap;
+  }
+  .gear-promo .btn {
+    width: 100%;
+  }
 }

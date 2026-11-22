@@ -21,3 +21,13 @@ export function setViewer(trip, uid, viewOnly) {
 /** true = chuyến đang mở ở chế độ chỉ xem cho người dùng hiện tại (Kế hoạch, Chi phí, Checklist đọc giá trị này) */
 export const TripReadOnly = createContext(false);
 export const useTripReadOnly = () => useContext(TripReadOnly);
+
+/** REQ-007: ai xem được chuyến — thành viên, hoặc bất kỳ ai khi chủ chuyến bật "ai có link đều xem được" */
+export const canViewTrip = (trip, uid) => !!trip && ((!!uid && (trip.memberIds || []).includes(uid)) || trip.publicView === true);
+/** Các tab người xem thấy: người xem bằng link không thấy Hành trình; Chi phí chỉ khi chủ chuyến cho phép */
+export function visibleTripTabs(trip, uid) {
+  const member = !!uid && (trip?.memberIds || []).includes(uid);
+  if (member) return ['plan', 'costs', 'checklist', 'journey'];
+  if (!canViewTrip(trip, uid)) return [];
+  return ['plan', ...(trip.publicCosts ? ['costs'] : []), 'checklist'];
+}

@@ -184,7 +184,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
   // Trạng thái: chưa đi / đã đi / không đi (bấm lại nút đang chọn để quay về "chưa đi")
   const setSkipped = async () => {
     if (item.skipped) return api.updatePlanItem(trip.id, item.id, { skipped: false });
-    await api.updatePlanItem(trip.id, item.id, { skipped: true, done: false, doneBy: user.name, doneAt: null });
+    await api.updatePlanItem(trip.id, item.id, { skipped: true, done: false, doneBy: user?.name, doneAt: null });
     notify(t('plan.skippedToast', { name: pName(item.place) }));
   };
   const toggleDone = async () => {
@@ -192,7 +192,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
       await api.updatePlanItem(trip.id, item.id, { done: false, doneBy: null, doneAt: null });
       return;
     }
-    await api.updatePlanItem(trip.id, item.id, { done: true, skipped: false, doneBy: user.name, doneAt: Date.now() });
+    await api.updatePlanItem(trip.id, item.id, { done: true, skipped: false, doneBy: user?.name, doneAt: Date.now() });
     // Đánh dấu "đã đến" trên bản đồ của mình + thêm vào hành trình chuyến đi
     const d = item.date && item.date <= today() ? item.date : today();
     await saveVisited(item.place, { visitedAt: d }, trip.id);
@@ -614,10 +614,10 @@ function Checklist({ list, trip }) {
   const memberCount = trip.memberIds?.length || 1;
   // Mục "mỗi người" trong checklist chung: ai cũng tick riêng (doneMap: {uid: tên})
   const perPerson = (it) => sharedList && it.scope === 'personal';
-  const isDone = (it) => (perPerson(it) ? !!it.doneMap?.[user.uid] : !!it.done);
+  const isDone = (it) => (perPerson(it) ? !!it.doneMap?.[user?.uid] : !!it.done);
   // Mục "chỉ mình tôi": 1 người nhận lo, chỉ người đó tick được (người khác vẫn thấy ai đang lo)
   const onlyMe = (it) => sharedList && it.scope === 'me';
-  const canTick = (it) => !locked && (!onlyMe(it) || it.ownerUid === user.uid);
+  const canTick = (it) => !locked && (!onlyMe(it) || it.ownerUid === user?.uid);
 
   // Kéo thả để sắp xếp (chuột & cảm ứng): giữ ⠿ rồi kéo lên / xuống
   const [drag, setDrag] = useState(null); // { id, draft: [...] }
@@ -663,11 +663,11 @@ function Checklist({ list, trip }) {
         if (x.id !== it.id) return x;
         if (perPerson(x)) {
           const m = { ...(x.doneMap || {}) };
-          if (m[user.uid]) delete m[user.uid];
-          else m[user.uid] = user.name;
+          if (m[user?.uid]) delete m[user?.uid];
+          else m[user?.uid] = user?.name;
           return { ...x, doneMap: m };
         }
-        return { ...x, done: !x.done, doneBy: !x.done ? user.name : null };
+        return { ...x, done: !x.done, doneBy: !x.done ? user?.name : null };
       }),
     );
   // Bấm biểu tượng để đổi: Chung → Mỗi người → Chỉ mình tôi → Chung
@@ -677,7 +677,7 @@ function Checklist({ list, trip }) {
       items.map((x) => {
         if (x.id !== it.id) return x;
         const scope = NEXT[x.scope || 'shared'] || 'shared';
-        return scope === 'me' ? { ...x, scope, ownerUid: user.uid, ownerName: user.name, done: false, doneBy: null } : { ...x, scope, ownerUid: null, ownerName: null };
+        return scope === 'me' ? { ...x, scope, ownerUid: user?.uid, ownerName: user?.name, done: false, doneBy: null } : { ...x, scope, ownerUid: null, ownerName: null };
       }),
     );
   const remove = (it) => save(items.filter((x) => x.id !== it.id));
@@ -687,7 +687,7 @@ function Checklist({ list, trip }) {
     const scope = sharedList ? newScope : 'personal';
     save([
       ...items,
-      { id: Math.random().toString(36).slice(2, 10), text: text.trim(), scope, done: false, doneBy: null, doneMap: {}, ...(scope === 'me' ? { ownerUid: user.uid, ownerName: user.name } : {}) },
+      { id: Math.random().toString(36).slice(2, 10), text: text.trim(), scope, done: false, doneBy: null, doneMap: {}, ...(scope === 'me' ? { ownerUid: user?.uid, ownerName: user?.name } : {}) },
     ]);
     setText('');
   };
@@ -696,7 +696,7 @@ function Checklist({ list, trip }) {
       items.map((x) => {
         if (!perPerson(x)) return { ...x, done: false, doneBy: null };
         const m = { ...(x.doneMap || {}) };
-        delete m[user.uid];
+        delete m[user?.uid];
         return { ...x, doneMap: m };
       }),
     );
@@ -752,14 +752,14 @@ function Checklist({ list, trip }) {
                     <button
                       type="button"
                       className={`item-scope ${pp ? 'item-scope--each' : ''} ${onlyMe(it) ? 'item-scope--me' : ''}`}
-                      onClick={() => (locked || (onlyMe(it) && it.ownerUid !== user.uid) ? null : switchScope(it))}
+                      onClick={() => (locked || (onlyMe(it) && it.ownerUid !== user?.uid) ? null : switchScope(it))}
                       title={
                         (onlyMe(it) ? t('check.itemMeHelp', { name: it.ownerName }) : pp ? t('check.itemEachHelp') : t('check.itemGroupHelp')) +
                         (pp && names.length ? ` — ✓ ${names.join(', ')}` : '') +
-                        (onlyMe(it) && it.ownerUid !== user.uid ? '' : ` · ${t('check.tapToSwitch')}`)
+                        (onlyMe(it) && it.ownerUid !== user?.uid ? '' : ` · ${t('check.tapToSwitch')}`)
                       }
                     >
-                      {onlyMe(it) ? `👤 ${it.ownerUid === user.uid ? t('check.me') : it.ownerName || '?'}` : pp ? `🙋 ${names.length}/${memberCount}` : '👥'}
+                      {onlyMe(it) ? `👤 ${it.ownerUid === user?.uid ? t('check.me') : it.ownerName || '?'}` : pp ? `🙋 ${names.length}/${memberCount}` : '👥'}
                     </button>
                   )}
                   {!locked && (
@@ -782,7 +782,7 @@ function Checklist({ list, trip }) {
                 <button type="button" className={newScope === 'personal' ? 'on' : ''} onClick={() => setNewScope('personal')} title={t('check.itemEachHelp')}>
                   🙋 {t('check.itemEach')}
                 </button>
-                <button type="button" className={newScope === 'me' ? 'on' : ''} onClick={() => setNewScope('me')} title={t('check.itemMeHelp', { name: user.name })}>
+                <button type="button" className={newScope === 'me' ? 'on' : ''} onClick={() => setNewScope('me')} title={t('check.itemMeHelp', { name: user?.name })}>
                   👤 {t('check.itemMe')}
                 </button>
               </div>

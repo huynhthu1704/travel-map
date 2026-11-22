@@ -294,6 +294,42 @@
           "then": "they use the same numbers as the web"
         }
       ]
+    },
+    {
+      "id": "REQ-007",
+      "title": "View-only trip link for non-members",
+      "description": "The trip owner can turn on a view-only link so anyone with it (signed in or not) can view the plan and shared checklists, and costs if the owner allows, without joining the trip.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "tripPublicView",
+      "ac": [
+        {
+          "given": "I own a trip",
+          "when": "I open Members & invites → Code / link and turn on 'Anyone with the link can view'",
+          "then": "the trip gets publicView and I can copy the view-only link"
+        },
+        {
+          "given": "the link is on",
+          "when": "someone who is not a member (or not signed in) opens it",
+          "then": "they see the trip header, Plan and shared Checklists (Costs only if 'Also show costs' is on) with a 'shared trip' banner, and no edit, member, invite, map, recap or Journey controls"
+        },
+        {
+          "given": "I view a shared trip by link",
+          "when": "I tap 'Copy this trip'",
+          "then": "I am asked to sign in if needed and then get my own editable copy"
+        },
+        {
+          "given": "the owner turns the link off",
+          "when": "someone opens the link",
+          "then": "they can no longer see the trip"
+        },
+        {
+          "given": "the link is on",
+          "when": "anyone tries to list trips, read the journey/photos, personal checklists, or write anything",
+          "then": "Firestore rules deny it"
+        }
+      ]
     }
   ],
   "tests": [
@@ -541,6 +577,43 @@
         "Drag a row and tap ↑ ↓: order sticks after reload",
         "Sort by amount, export PDF: same order, single table",
         "Save as group order: other members see it"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-022",
+      "title": "View access: members or public link; link viewers never edit",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "automated",
+      "file": "tests/publicTrip.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-023",
+      "title": "Tabs visible to link viewers",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "automated",
+      "file": "tests/publicTrip.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-024",
+      "title": "UI: turn link on, open signed-out, copy trip after sign-in, turn link off",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag tripPublicView",
+        "Owner turns on the view-only link and copies it",
+        "Open the link in a private window: Plan + Checklist visible, banner shown, no edit controls",
+        "Turn on 'Also show costs': Costs tab appears",
+        "Copy this trip: sign in, then an editable copy is created",
+        "Turn the link off: the link no longer opens the trip"
       ],
       "status": "Passing (demo)"
     }

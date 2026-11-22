@@ -317,6 +317,14 @@ const firebaseBackend = {
     }
   },
 
+  /** REQ-007: xem 1 chuyến đi theo id (chuyến bật "ai có link đều xem được" hoặc mình là thành viên); không xem được → null */
+  watchTrip(id, cb) {
+    return onSnapshot(
+      doc(db, 'trips', id),
+      (d) => cb(d.exists() ? { id: d.id, ...d.data() } : null),
+      () => cb(null),
+    );
+  },
   watchTrips(uid, cb) {
     return onSnapshot(query(collection(db, 'trips'), where('memberIds', 'array-contains', uid)), (s) =>
       cb(s.docs.map((d) => ({ id: d.id, ...d.data() })).sort(byTripStart)),
@@ -488,8 +496,9 @@ const firebaseBackend = {
     let mine = [];
     const emit = () => cb([...shared, ...mine].sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt)));
     const map = (s) => s.docs.map((d) => ({ id: d.id, tripId, ...d.data() }));
-    const u1 = onSnapshot(query(col, where('scope', '==', 'shared')), (s) => ((shared = map(s)), emit()));
-    const u2 = onSnapshot(query(col, where('ownerUid', '==', uid || '-')), (s) => ((mine = map(s)), emit()));
+    const u1 = onSnapshot(query(col, where('scope', '==', 'shared')), (s) => ((shared = map(s)), emit()), () => emit());
+    // Người xem bằng link (không phải thành viên) không có checklist cá nhân
+    const u2 = uid ? onSnapshot(query(col, where('ownerUid', '==', uid)), (s) => ((mine = map(s)), emit()), () => emit()) : () => {};
     return () => (u1(), u2());
   },
   addChecklist(user, tripId, { title, phase, scope, items }) {
@@ -677,6 +686,12 @@ const localBackend = {
     if (!mem.tripId || !state.stops[mem.tripId]) return;
     state.stops[mem.tripId] = state.stops[mem.tripId].filter((x) => !(x.memoryId === mem.id && x.byUid === user.uid));
     save();
+  },
+  watchTrip(id, cb) {
+    return sub(() => {
+      const t = state.trips.find((x) => x.id === id);
+      cb(t && t.publicView ? t : null);
+    });
   },
   watchTrips(u, cb) {
     return sub(() => cb(state.trips.filter((t) => t.memberIds.includes(u)).sort(byTripStart)));

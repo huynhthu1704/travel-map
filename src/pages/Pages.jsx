@@ -734,11 +734,22 @@ export function TripsPage() {
   const [code, setCode] = useState("");
   const [owner, setOwner] = useState("all"); // all | mine | others
   const { t } = useI18n();
+  // REQ-007: chuyến không có trong danh sách của mình → thử mở ở chế độ xem bằng link (chủ chuyến bật "ai có link đều xem được")
+  const mineOpen = !!user && trips.some((tr) => tr.id === openId);
+  const [pub, setPub] = useState(undefined); // undefined = đang tải, null = không xem được
+  useEffect(() => {
+    if (!openId || mineOpen) return setPub(undefined), undefined;
+    if (user && !loaded.trips) return undefined;
+    setPub(undefined);
+    return api.watchTrip(openId, (tr) => setPub(tr && tr.publicView ? tr : null));
+  }, [openId, mineOpen, user?.uid, loaded.trips, api]); // eslint-disable-line react-hooks/exhaustive-deps
   // Đường dẫn trỏ tới chuyến đi không còn / không có quyền xem → về danh sách
   useEffect(() => {
-    if (openId && loaded.trips && user && !trips.some((tr) => tr.id === openId))
-      setOpenId(null);
-  }, [openId, loaded.trips, trips, user]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (openId && user && loaded.trips && !mineOpen && pub === null) setOpenId(null);
+  }, [openId, loaded.trips, mineOpen, user, pub]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (openId && !mineOpen && pub) return <TripDetail trip={pub} onBack={() => setOpenId(null)} />;
+  if (openId && !mineOpen && pub === undefined && (!user || loaded.trips)) return <Loader />;
 
   if (!user)
     return (
@@ -1012,6 +1023,7 @@ function TripDetail({ trip, onBack }) {
     setTripTab,
     setOpenTripId,
     showTripOnMap,
+    requireLogin,
   } = useApp();
   const tab = ["plan", "costs", "checklist", "journey"].includes(tripTab)
     ? tripTab
@@ -1030,8 +1042,10 @@ function TripDetail({ trip, onBack }) {
   }, [menuOpen]);
   const isMember = !!user && (trip.memberIds || []).includes(user.uid);
   // REQ-001: thành viên chỉ xem — không sửa được, nhưng sao chép được chuyến về tài khoản của mình
-  const readOnly = isMember && isTripViewer(trip, user.uid);
-  useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
+  // REQ-007: người xem bằng link (không phải thành viên) cũng ở chế độ chỉ xem
+  const linkViewer = !isMember;
+  const readOnly = linkViewer || isTripViewer(trip, user?.uid);
+  useEffect(() => (isMember ? api.watchStops(trip.id, setStops) : (setStops([]), undefined)), [trip.id, api, isMember]);
   const [showMembers, setShowMembers] = useState(false);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
   // eslint-disable-next-line no-unused-vars
@@ -1167,6 +1181,7 @@ function TripDetail({ trip, onBack }) {
                 ? ` +${Object.keys(trip.members).length - 3}`
                 : ""}
             </span>
+            {!linkViewer && (
             <button
               className="invite-code"
               title={t("tm.title")}
@@ -1174,6 +1189,7 @@ function TripDetail({ trip, onBack }) {
             >
               👥 {t("tm.manage")}
             </button>
+            )}
             {showMembers && (
               <TripMembers trip={trip} onClose={() => setShowMembers(false)} />
             )}
@@ -1184,7 +1200,7 @@ function TripDetail({ trip, onBack }) {
               {t("trip.invite")}
             </button>
             )}
-            {can("recap") && (
+            {can("recap") && !linkViewer && (
             <button
               className="btn btn--outline"
               disabled={!stopList.length}
@@ -1195,12 +1211,14 @@ function TripDetail({ trip, onBack }) {
               {t("recap.shareTrip")}
             </button>
             )}
+            {!linkViewer && (
             <button
               className="btn btn--dark"
               onClick={() => showTripOnMap(trip.id)}
             >
               {t("trip.onMap")}
             </button>
+            )}
           </div>
         </div>
       </header>
@@ -1219,10 +1237,10 @@ function TripDetail({ trip, onBack }) {
       {readOnly && (
         <div className="trip-ro-banner" role="status">
           <span className="trip-ro-banner__text">
-            <b>👀 {t("ro.title")}</b>
-            <small>{t("ro.text", { owner: trip.members?.[trip.ownerId]?.name || t("trip.owner") })}</small>
+            <b>👀 {t(linkViewer ? "pub.bannerTitle" : "ro.title")}</b>
+            <small>{t(linkViewer ? "pub.bannerText" : "ro.text", { owner: trip.members?.[trip.ownerId]?.name || t("trip.owner") })}</small>
           </span>
-          <button className="btn btn--sm btn--primary" onClick={() => setDuplicating(true)}>
+          <button className="btn btn--sm btn--primary" onClick={() => (user ? setDuplicating(true) : requireLogin(() => setDuplicating(true)))}>
             📋 {t("ro.copy")}
           </button>
         </div>
@@ -1234,7 +1252,7 @@ function TripDetail({ trip, onBack }) {
           ["checklist", `✅ ${t("check.tab")}`],
           ["journey", `👣 ${t("trip.journey")} (${stopList.length})`],
         ]
-          .filter(([id]) => (id === "costs" ? can("tripCosts") : id === "checklist" ? can("tripChecklist") : true))
+          .filter(([id]) => (id === "costs" ? can("tripCosts") && (!linkViewer || trip.publicCosts) : id === "checklist" ? can("tripChecklist") : id === "journey" ? !linkViewer : true))
           .map(([id, label]) => (
           <button
             key={id}
@@ -1247,7 +1265,7 @@ function TripDetail({ trip, onBack }) {
       </div>
       <TripReadOnly.Provider value={readOnly}>
       {tab === "plan" && <TripPlan trip={trip} />}
-      {tab === "costs" && can("tripCosts") && <TripCosts trip={trip} />}
+      {tab === "costs" && can("tripCosts") && (!linkViewer || trip.publicCosts) && <TripCosts trip={trip} />}
       {tab === "checklist" && can("tripChecklist") && (
         <>
           {can("gear") && <GearPromo />}
@@ -1255,7 +1273,7 @@ function TripDetail({ trip, onBack }) {
         </>
       )}
       </TripReadOnly.Provider>
-      {tab === "journey" && stopList.length > 0 && (
+      {tab === "journey" && !linkViewer && stopList.length > 0 && (
         <TripSummary trip={trip} stops={stopList} />
       )}
       {tab === "journey" && (

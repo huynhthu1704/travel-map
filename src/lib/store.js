@@ -786,8 +786,10 @@ const localBackend = {
     return sub(() => cb(((state.costs ||= {})[tripId] || []).map((x) => ({ ...x, tripId }))));
   },
   async addCost(user, tripId, data) {
-    ((state.costs ||= {})[tripId] ||= []).push({ id: uid(), ...data, createdBy: user.uid, createdByName: user.name, createdAt: now() });
+    const id = uid();
+    ((state.costs ||= {})[tripId] ||= []).push({ id, ...data, createdBy: user.uid, createdByName: user.name, createdAt: now() });
     save();
+    return { id };
   },
   async updateCost(tripId, id, patch) {
     const c = (state.costs?.[tripId] || []).find((x) => x.id === id);

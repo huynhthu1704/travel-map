@@ -9939,3 +9939,145 @@ a.app-link.place-card__title:hover {
   border-radius: 8px;
   box-shadow: 0 4px 14px rgba(31, 26, 20, 0.12);
 }
+
+/* REQ-004: bảng chi phí gộp */
+.ct-row {
+  grid-template-columns: minmax(0, 1fr) 150px 140px 130px 96px;
+}
+.ct-item {
+  border-bottom: 1px dashed var(--ink-100);
+}
+.ct-item .cost-row {
+  border-bottom: 0;
+}
+.ct-item--over .cost-row__title b {
+  color: inherit;
+}
+.ct-item--extra {
+  background: #fff7f7;
+}
+.ct-tag {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: #c62828;
+  background: #ffe3e3;
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.ct-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 0;
+}
+.ct-bar {
+  display: block;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--ink-100);
+  overflow: hidden;
+  max-width: 120px;
+}
+.ct-bar i {
+  display: block;
+  height: 100%;
+  background: var(--honey-400, #ffc629);
+}
+.ct-item--over .ct-bar i {
+  background: #e57373;
+}
+.ct-pays {
+  list-style: none;
+  margin: -2px 0 8px;
+  padding: 0 0 0 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ct-pays li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--ink-700);
+}
+.ct-pays li > .cost-form {
+  grid-column: 1 / -1;
+}
+.ct-pays__who {
+  min-width: 0;
+}
+.ct-pays .cost-row__actions .icon-btn {
+  transform: scale(0.85);
+}
+.ct-notes {
+  display: block;
+  padding-top: 6px;
+}
+.cif-parts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.cif-part {
+  border: 1px solid var(--ink-100);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.cif-part.is-off {
+  background: var(--ink-50, #faf8f4);
+}
+.cif-part__head {
+  font-weight: 700;
+}
+@media (max-width: 760px) {
+  .cif-parts {
+    grid-template-columns: 1fr;
+  }
+  .cost-row.ct-row:not(.cost-table__head) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 6px;
+    align-items: start;
+  }
+  .cost-row.ct-row > span {
+    grid-column: auto;
+    font-size: 13px;
+  }
+  .cost-row.ct-row > .ct-cell {
+    align-items: flex-start;
+    text-align: left;
+  }
+  .cost-row.ct-row > .cost-row__title {
+    grid-column: 1 / -1;
+    text-align: left;
+    font-size: 14px;
+  }
+  .cost-row.ct-row > .cost-row__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .cost-row.ct-row > span:first-child:not(.cost-row__title) {
+    grid-column: 1 / -1;
+  }
+  .ct-row .ct-cell::before {
+    content: attr(data-label);
+    font-size: 11px;
+    color: var(--ink-500);
+  }
+  .cost-table__head.ct-row {
+    display: none;
+  }
+  .ct-pays {
+    padding-left: 0;
+  }
+}

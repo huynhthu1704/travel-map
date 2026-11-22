@@ -1025,6 +1025,7 @@ function TripDetail({ trip, onBack }) {
     setOpenTripId,
     showTripOnMap,
     requireLogin,
+    memories,
   } = useApp();
   const tab = ["plan", "costs", "checklist", "journey"].includes(tripTab)
     ? tripTab
@@ -1067,7 +1068,8 @@ function TripDetail({ trip, onBack }) {
     await navigator.clipboard?.writeText(link);
     notify(t("trip.copied"));
   };
-  const stopList = useMemo(() => journeyStops(stops || [], planAll), [stops, planAll]);
+  const memDate = useMemo(() => Object.fromEntries((memories || []).filter((m) => m.date).map((m) => [m.id, m.date])), [memories]);
+  const stopList = useMemo(() => journeyStops(stops || [], planAll, memDate), [stops, planAll, memDate]);
   const countries = [
     ...new Set(stopList.map((s) => s.place.country).filter(Boolean)),
   ];

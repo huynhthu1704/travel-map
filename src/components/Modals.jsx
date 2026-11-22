@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { fixPlace } from '../lib/fixes';
 import { useApp } from '../AppContext';
 import { Modal, Avatar, formatDate, Loader, LoadingImage, OccasionField, DirectionsIcon, AppLink, TrashIcon } from './ui';
 import { hrefProfile, hrefPlace } from '../lib/route';
@@ -187,8 +188,9 @@ function ConsentModal({ onClose }) {
   );
 }
 
-function DirectionsModal({ place, onClose }) {
+function DirectionsModal({ place: raw, onClose }) {
   const { t } = useI18n();
+  const place = fixPlace(raw); // REQ-021: dùng toạ độ quản trị viên đã sửa
   const isApple = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
   const options = [
     { key: 'apple', label: 'Apple Maps', icon: '🍎', url: appleMapsUrl(place) },

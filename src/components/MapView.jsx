@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef } from 'react';
+import { fixPlace } from '../lib/fixes';
 import { pickSelected } from '../lib/mapSelect';
 import { MapContainer, GeoJSON, Marker, Polyline, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from '../lib/leafletGlobal';
@@ -168,14 +169,15 @@ function PickHandler() {
 
 export default function MapView() {
   const {
-    countries, visitedCountries, selectedCountry, places, memories, openPlace, tripStops, tripPlan, activeTripId, selectedPlace, pickMode, famousFor, famousLimit, homeCountry, can,
+    countries, visitedCountries, selectedCountry, places, memories, openPlace, tripStops, tripPlan, activeTripId, selectedPlace, pickMode, famousFor, famousLimit, homeCountry, can, overrides,
   } = useApp();
   const pickRef = useRef(pickMode);
   pickRef.current = pickMode;
   const geoRef = useRef();
   const { lang } = useI18n();
 
-  const planAll = useMemo(() => (activeTripId ? tripPlan.filter((it) => it.tripId === activeTripId && it.place) : []), [activeTripId, tripPlan]);
+  // REQ-021: toạ độ quản trị viên đã sửa cũng áp cho điểm trong kế hoạch
+  const planAll = useMemo(() => (activeTripId ? tripPlan.filter((it) => it.tripId === activeTripId && it.place).map((it) => ({ ...it, place: fixPlace(it.place) })) : []), [activeTripId, tripPlan, overrides]); // eslint-disable-line react-hooks/exhaustive-deps
   const planOrder = useMemo(() => planAll.filter((it) => !it.skipped), [planAll]);
   // Tô màu quốc gia: của chuyến đi đang xem, hoặc tất cả quốc gia đã đến
   const shownCountries = useMemo(
@@ -213,7 +215,7 @@ export default function MapView() {
     if (activeTripId) {
       tripStops
         .filter((s) => s.tripId === activeTripId && s.place)
-        .forEach((s) => m.set(s.place.id, { place: s.place, kind: 'trip', emoji: s.kind === 'wishlist' ? '💛' : '👣', by: s.byName }));
+        .forEach((s) => m.set(s.place.id, { place: fixPlace(s.place), kind: 'trip', emoji: s.kind === 'wishlist' ? '💛' : '👣', by: s.byName }));
       // Kế hoạch: đánh số đúng như trong trang Kế hoạch (đã đi = ghim xanh, vẫn giữ số)
       planAll.forEach((it, i) => {
         if (it.skipped) return void m.delete(it.place.id); // không đi → không hiện trên lộ trình
@@ -230,7 +232,7 @@ export default function MapView() {
     places.forEach((p) => m.set(p.id, { place: p, kind: p.status, emoji: p.status === 'visited' ? '👣' : '💛' }));
     if (selectedPlace && !m.has(selectedPlace.id)) m.set(selectedPlace.id, { place: selectedPlace, kind: 'search', emoji: selectedPlace.emoji || '📍' });
     return [...m.values()];
-  }, [selectedCountry, homeCountry, places, memories, tripStops, planAll, activeTripId, selectedPlace, famousFor, famousLimit]);
+  }, [selectedCountry, homeCountry, places, memories, tripStops, planAll, activeTripId, selectedPlace, famousFor, famousLimit, overrides]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderMarker = ({ place, kind, emoji, by }) => (
     <Marker

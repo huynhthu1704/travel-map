@@ -8,7 +8,7 @@ import { famousIn } from './data/places';
 import { adminApi, isSuperUid, setAdminActor, DEFAULT_SETTINGS } from './lib/adminStore';
 import { permsOf } from './lib/roles';
 import { normalize } from './lib/geo';
-import { COORD_FIXES, fixPlace, fixMemory } from './lib/fixes';
+import { COORD_FIXES, fixPlace, fixMemory, setCoordOverrides } from './lib/fixes';
 import { translate as t } from './i18n';
 import { pName, getLang } from './lib/lang';
 const pCityOf = (p) => (p?.city || '').trim();
@@ -33,8 +33,8 @@ export function AppProvider({ children }) {
         : authUser,
     [authUser, displayName, profilePhoto],
   );
-  const [places, setPlaces] = useState([]);
-  const [memories, setMemories] = useState([]);
+  const [rawPlaces, setPlaces] = useState([]);
+  const [rawMemories, setMemories] = useState([]);
   const [publicMemories, setPublicMemories] = useState([]);
   const [trips, setTrips] = useState([]);
   const codeChecked = useRef(new Set());
@@ -62,7 +62,7 @@ export function AppProvider({ children }) {
     idle(() => loadCountries('110m').finally(() => loadCountries('50m').then((fc) => setCountries(fc))));
   }, [view]);
   const [selectedCountry, setSelectedCountry] = useState(initRoute.country);
-  const [selectedPlace, setSelectedPlace] = useState(initRoute.place);
+  const [rawSelectedPlace, setSelectedPlace] = useState(initRoute.place);
   const [profileUid, setProfileUid] = useState(initRoute.profile); // hồ sơ đang xem (#/u/<uid>)
   const [profileSub, setProfileSub] = useState(initRoute.profileSub);
   const [tipPost, setTipPost] = useState(initRoute.tipPost); // bài kinh nghiệm đang mở
@@ -77,7 +77,7 @@ export function AppProvider({ children }) {
   // Chỉ đường trên máy tính: mở thẳng Google Maps (không hỏi Apple Maps / Google Maps)
   const setModal = useCallback((m) => {
     if (m?.type === 'directions' && m.place && isDesktop()) {
-      window.open(googleMapsUrl(m.place), '_blank', 'noopener');
+      window.open(googleMapsUrl(fixPlace(m.place)), '_blank', 'noopener');
       return;
     }
     setModalState(m);
@@ -88,6 +88,11 @@ export function AppProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [overrides, setOverrides] = useState({});
+  // REQ-021: toạ độ do quản trị viên sửa áp cho địa điểm đã lưu, kỉ niệm, địa điểm đang mở, chỉ đường
+  const coordKey = useMemo(() => JSON.stringify(setCoordOverrides(overrides)), [overrides]);
+  const places = useMemo(() => rawPlaces.map(fixPlace), [rawPlaces, coordKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const memories = useMemo(() => rawMemories.map(fixMemory), [rawMemories, coordKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedPlace = useMemo(() => fixPlace(rawSelectedPlace), [rawSelectedPlace, coordKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const [customPlaces, setCustomPlaces] = useState([]);
   useEffect(() => adminApi.watchSettings(setSettings), []);
   useEffect(() => adminApi.watchOverrides(setOverrides), []);
@@ -435,8 +440,8 @@ export function AppProvider({ children }) {
     const stops = [...tripStops, ...tripPlan].filter((s) => s.tripId === activeTripId && s.place);
     if (!stops.length) return;
     fittedTrip.current = activeTripId;
-    const la = stops.map((s) => s.place.lat);
-    const ln = stops.map((s) => s.place.lng);
+    const la = stops.map((s) => fixPlace(s.place).lat);
+    const ln = stops.map((s) => fixPlace(s.place).lng);
     const pad = 0.05;
     setFlyTarget({ bbox: [Math.min(...la) - pad, Math.max(...la) + pad, Math.min(...ln) - pad, Math.max(...ln) + pad], t: Date.now() });
   }, [activeTripId, tripStops, tripPlan, routeNonce]);
@@ -501,7 +506,7 @@ export function AppProvider({ children }) {
     setPlaceOrigin(from);
     setSelectedPlace(place);
     if (place.country && from !== 'list') setSelectedCountry(place.country);
-    if (fly) setFlyTarget({ lat: place.lat, lng: place.lng, zoom: 13, t: Date.now() });
+    if (fly) { const at = fixPlace(place); setFlyTarget({ lat: at.lat, lng: at.lng, zoom: 13, t: Date.now() }); }
   }, []);
 
   /** Tạo địa điểm tự do từ toạ độ (chọn trên bản đồ / link Google Maps), rồi lấy tên bằng reverse geocode. */

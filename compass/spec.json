@@ -560,6 +560,31 @@
           "then": "it appears only in the new trip"
         }
       ]
+    },
+    {
+      "id": "REQ-021",
+      "title": "Admin-corrected coordinates apply everywhere",
+      "description": "After REQ-018 an admin could fix a place's coordinates, but only the famous-places list used them. Saved places (visited / wishlist), check-ins, the open place, trip stops and plan items, map fly-to and Directions still used the old coordinates. Now all of them use the corrected coordinates.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "an admin moved Ha Long Bay with a Google Maps link",
+          "when": "I open Ha Long Bay from the map, my visited places, a check-in or a trip plan",
+          "then": "the pin and the map zoom use the new location"
+        },
+        {
+          "given": "the same place",
+          "when": "I tap Directions",
+          "then": "Google / Apple Maps open with the new coordinates"
+        },
+        {
+          "given": "the admin resets the place",
+          "when": "the map refreshes",
+          "then": "the original location is used again"
+        }
+      ]
     }
   ],
   "tests": [
@@ -987,6 +1012,16 @@
       ],
       "type": "automated",
       "file": "tests/journeyDates.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-038",
+      "title": "Admin coordinate overrides apply to saved places and check-ins",
+      "reqIds": [
+        "REQ-021"
+      ],
+      "type": "automated",
+      "file": "tests/placeCoords.test.mjs",
       "status": "Passing"
     }
   ],

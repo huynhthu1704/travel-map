@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { pickSelected } from '../lib/mapSelect';
 import { MapContainer, GeoJSON, Marker, Polyline, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from '../lib/leafletGlobal';
 import MarkerClusterGroup from 'react-leaflet-cluster';
@@ -27,6 +28,22 @@ function pinIcon(kind, emoji) {
     });
   }
   return iconCache[key];
+}
+
+/** REQ-005: ghim của địa điểm đang chọn — to hơn, viền mật ong, vòng sáng nhấp nháy nhẹ */
+const selectedCache = {};
+function selectedIcon(kind, emoji) {
+  const key = kind + emoji;
+  if (!selectedCache[key]) {
+    selectedCache[key] = L.divIcon({
+      className: 'pin-selected-wrap',
+      html: `<span class="pin-selected__ring"></span><div class="pin pin--${kind} pin--selected"><span>${emoji}</span></div>`,
+      iconSize: [56, 56],
+      iconAnchor: [28, 52],
+      tooltipAnchor: [0, -50],
+    });
+  }
+  return selectedCache[key];
 }
 
 /** Biểu tượng cụm: vòng tròn vàng mật ong + số địa điểm */
@@ -150,7 +167,7 @@ function PickHandler() {
 
 export default function MapView() {
   const {
-    countries, visitedCountries, selectedCountry, places, memories, openPlace, tripStops, tripPlan, activeTripId, selectedPlace, pickMode, famousFor, famousLimit, homeCountry,
+    countries, visitedCountries, selectedCountry, places, memories, openPlace, tripStops, tripPlan, activeTripId, selectedPlace, pickMode, famousFor, famousLimit, homeCountry, can,
   } = useApp();
   const pickRef = useRef(pickMode);
   pickRef.current = pickMode;
@@ -230,6 +247,9 @@ export default function MapView() {
     </Marker>
   );
 
+  // REQ-005: địa điểm đang chọn được vẽ riêng (không gom cụm, nằm trên cùng, có nhãn tên)
+  const { selected, rest } = can?.('selectedPin') ? pickSelected(markers, selectedPlace?.id) : { selected: null, rest: markers };
+
   return (
     <MapContainer
       className="map"
@@ -266,9 +286,23 @@ export default function MapView() {
         showCoverageOnHover={false}
         iconCreateFunction={clusterIcon}
       >
-        {markers.filter((x) => x.kind === 'famous').map(renderMarker)}
+        {rest.filter((x) => x.kind === 'famous').map(renderMarker)}
       </MarkerClusterGroup>
-      {markers.filter((x) => x.kind !== 'famous').map(renderMarker)}
+      {rest.filter((x) => x.kind !== 'famous').map(renderMarker)}
+      {selected && (
+        <Marker
+          key={`selected-${selected.place.id}`}
+          position={[selected.place.lat, selected.place.lng]}
+          icon={selectedIcon(selected.kind, selected.emoji)}
+          zIndexOffset={2000}
+          eventHandlers={{ click: () => openPlace(selected.place, { fly: false }) }}
+        >
+          <Tooltip direction="top" permanent className="pin-selected__label">
+            {selected.kind === 'plan' || selected.kind === 'plandone' ? `${selected.emoji}. ` : ''}
+            {pName(selected.place)}
+          </Tooltip>
+        </Marker>
+      )}
       <FlyController countries={countries} />
       <PickHandler />
     </MapContainer>

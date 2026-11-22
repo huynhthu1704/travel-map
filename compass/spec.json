@@ -838,6 +838,16 @@
       "type": "automated",
       "file": "tests/pageCss.test.mjs",
       "status": "Passing"
+    },
+    {
+      "id": "TC-033",
+      "title": "Cost table action buttons do not overlap the difference column",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "automated",
+      "file": "tests/costTableLayout.test.mjs",
+      "status": "Passing"
     }
   ],
   "decisions": []

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { renameCheckItem, CHECK_ITEM_MAX } from '../lib/checklist';
 import { useTripReadOnly } from '../lib/tripAccess';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
@@ -604,7 +605,9 @@ function NewChecklist({ trip, onClose, defaultPhase }) {
 
 function Checklist({ list, trip }) {
   const { t } = useI18n();
-  const { api, user } = useApp();
+  const { api, user, can } = useApp();
+  const [editId, setEditId] = useState(null); // REQ-019: việc đang sửa nội dung
+  const [editText, setEditText] = useState('');
   const [text, setText] = useState('');
   const [newScope, setNewScope] = useState('shared'); // mục mới: 👥 chung / 🙋 mỗi người tự tick / 👤 chỉ mình tôi lo
   const [collapsed, setCollapsed] = useState(false);
@@ -681,6 +684,13 @@ function Checklist({ list, trip }) {
       }),
     );
   const remove = (it) => save(items.filter((x) => x.id !== it.id));
+  const canEditText = !locked && can('checkEdit');
+  const startEdit = (it) => (setEditId(it.id), setEditText(it.text));
+  const commitEdit = () => {
+    const next = renameCheckItem(list.items || [], editId, editText);
+    if (next) save(next);
+    setEditId(null);
+  };
   const addItem = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
@@ -743,10 +753,24 @@ function Checklist({ list, trip }) {
                     ⠿
                   </button>
                   )}
+                  {editId === it.id ? (
+                    <form className="check-edit" onSubmit={(e) => (e.preventDefault(), commitEdit())}>
+                      <input
+                        autoFocus
+                        value={editText}
+                        maxLength={CHECK_ITEM_MAX}
+                        aria-label={t('check.editItem')}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onBlur={commitEdit}
+                        onKeyDown={(e) => e.key === 'Escape' && (e.preventDefault(), setEditId(null))}
+                      />
+                    </form>
+                  ) : (
                   <label className={canTick(it) ? '' : 'is-locked'} title={canTick(it) ? '' : t('check.onlyOwnerTicks', { name: it.ownerName })}>
                     <input type="checkbox" checked={isDone(it)} disabled={!canTick(it)} onChange={() => toggle(it)} />
-                    <span>{it.text}</span>
+                    <span onDoubleClick={canEditText ? (e) => (e.preventDefault(), startEdit(it)) : undefined}>{it.text}</span>
                   </label>
+                  )}
                   {sharedList && !pp && !onlyMe(it) && it.done && it.doneBy && <small className="muted">✓ {it.doneBy}</small>}
                   {sharedList && (
                     <button
@@ -760,6 +784,11 @@ function Checklist({ list, trip }) {
                       }
                     >
                       {onlyMe(it) ? `👤 ${it.ownerUid === user?.uid ? t('check.me') : it.ownerName || '?'}` : pp ? `🙋 ${names.length}/${memberCount}` : '👥'}
+                    </button>
+                  )}
+                  {canEditText && editId !== it.id && (
+                    <button className="icon-btn icon-btn--sm" onClick={() => startEdit(it)} aria-label={t('check.editItem')} title={t('check.editItem')}>
+                      ✏️
                     </button>
                   )}
                   {!locked && (

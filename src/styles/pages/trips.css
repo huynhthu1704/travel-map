@@ -1465,3 +1465,13 @@
 .tm__public .btn {
   align-self: flex-start;
 }
+/* REQ-019: sửa nội dung việc trong checklist */
+.check-edit {
+  flex: 1;
+  min-width: 0;
+}
+.check-edit input {
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: 8px;
+}

@@ -1629,6 +1629,7 @@ const EN = {
     'check.kindQ': 'Trip type',
     'check.useTemplate': 'Start with suggested items (edit later)',
     'check.addPlaceholder': 'Add an item…',
+    'check.editItem': 'Edit item',
     'check.add': 'Add',
     'check.reset': 'Untick all',
     'check.delete': 'Delete checklist',

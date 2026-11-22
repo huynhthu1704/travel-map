@@ -1271,7 +1271,16 @@
   box-shadow: 0 4px 14px rgba(31, 26, 20, 0.12);
 }
 .ct-row {
-  grid-template-columns: minmax(0, 1fr) 150px 140px 130px 96px;
+  /* cột cuối đủ chỗ cho ↑ ↓ 🧾 ✏️ 🗑 (5 × 26px) — trước đây 96px nên nút đè lên cột Chênh lệch */
+  grid-template-columns: minmax(0, 1fr) 140px 120px 120px 144px;
+}
+.ct-row > .cost-row__actions {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.ct-row > .ct-cell {
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 .ct-item {
   border-bottom: 1px dashed var(--ink-100);

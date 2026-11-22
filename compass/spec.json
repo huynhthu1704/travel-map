@@ -28,7 +28,7 @@
       "title": "View-only trip members and copying a trip",
       "description": "Trip owners can make an invited member view-only. View-only members see the plan, costs and shared checklists but cannot change them, and can copy the trip to their own account to plan it themselves.",
       "priority": "Should",
-      "status": "In build",
+      "status": "Done",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "tripViewers",
       "ac": [

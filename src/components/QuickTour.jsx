@@ -70,6 +70,8 @@ export default function QuickTour() {
   useEffect(() => {
     if (!user?.uid || !profile || open || modal || autoForUid.current === user.uid) return undefined;
     if (profile.tourSeenAt || profile.consentVersion !== LEGAL_VERSION) return undefined;
+    // Chỉ tự mở khi đang ở trang bản đồ (không cắt ngang khi người dùng mở link mời / chuyến đi / địa điểm)
+    if (view !== 'map' || /^#\/(u|@|trips\/|place|country)/.test(location.hash)) return undefined;
     const created = typeof profile.createdAt === 'number' ? profile.createdAt : profile.createdAt?.toMillis?.() || 0;
     if (!created || Date.now() - created > NEW_ACCOUNT_MS) return undefined;
     const tm = setTimeout(() => {
@@ -77,7 +79,7 @@ export default function QuickTour() {
       start();
     }, 1200);
     return () => clearTimeout(tm);
-  }, [user?.uid, profile, modal, open, start]);
+  }, [user?.uid, profile, modal, open, start, view]);
 
   // Mở bằng sự kiện (nút "Hướng dẫn nhanh") + tự mở lần đầu vào trang bản đồ
   useEffect(() => {

@@ -259,6 +259,16 @@ function CountryGuide({ g, onBack }) {
                   </p>
                 );
               })()}
+              {s.key === 'visa' && g.entryForms?.length > 0 && (
+                <div className="guide-forms">
+                  {g.entryForms.map((f) => (
+                    <a key={f.url} className="btn btn--primary btn--block" href={f.url} target="_blank" rel="noopener noreferrer">
+                      📝 {L(f.name)} ↗
+                    </a>
+                  ))}
+                  <small className="muted">{t('guide.formFree')}</small>
+                </div>
+              )}
               {s.key === 'food' && GUIDE_FOODS[g.cc] && <FoodSection cc={g.cc} byCity={can('guideFoodCities')} />}
               {s.key === 'phrases' && GUIDE_PHRASES[g.cc] && <p className="tiny muted">{t('guide.listenHint')}</p>}
               {s.key === 'places' && can('guideToTrip') && GUIDE_SPOTS[g.cc] && <GuideSpots cc={g.cc} />}

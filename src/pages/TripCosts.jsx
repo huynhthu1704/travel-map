@@ -7,6 +7,8 @@ import { pName } from '../lib/lang';
 import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase, actualAmountOf, participantsOf } from '../lib/money';
 import { currencyOfCountry } from '../lib/rates';
 import CurrencyRates from '../components/CurrencyRates';
+import { exportCostsPdf, shareOrDownload, loadJsPdf } from '../lib/exportPlan';
+import { reloadOnce } from '../lib/freshness';
 
 /* ------------------------------------------------------------------ */
 /* Ô nhập tiền: tự thêm dấu phân cách hàng nghìn                       */
@@ -245,7 +247,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
 /* ------------------------------------------------------------------ */
 export default function TripCosts({ trip }) {
   const { t } = useI18n();
-  const { api, user, notify } = useApp();
+  const { api, user, notify, can } = useApp();
   const [costs, setCosts] = useState(null);
   const [plan, setPlan] = useState([]);
   const [adding, setAdding] = useState(null); // 'estimate' | 'actual' | null
@@ -304,9 +306,52 @@ export default function TripCosts({ trip }) {
   const markPaid = (tr) =>
     api.addCost(user, trip.id, { type: 'payment', title: t('cost.repay'), amount: tr.amount, paidBy: tr.from, payTo: tr.to, paidByName: nameOf(tr.from), date: '' }).then(() => notify(t('cost.paidDone')));
 
+  // Xuất PDF chi phí (dữ liệu mới nhất đang hiển thị)
+  const [exporting, setExporting] = useState(false);
+  const pdfOn = can('tripCostsPdf');
+  useEffect(() => {
+    if (pdfOn) loadJsPdf().catch(() => {});
+  }, [pdfOn]);
+  const canShareFiles =
+    typeof navigator !== 'undefined' &&
+    !!navigator.canShare &&
+    (() => {
+      try {
+        return navigator.canShare({ files: [new File(['x'], 'x.pdf', { type: 'application/pdf' })] });
+      } catch {
+        return false;
+      }
+    })();
+  const doExport = async (share) => {
+    setExporting(true);
+    try {
+      const file = await exportCostsPdf(trip, costs || [], plan);
+      const r = await shareOrDownload(file, { preferShare: share });
+      if (r === 'downloaded') notify(t('pdf.downloaded', { name: file.name }));
+    } catch (e) {
+      if (e.stale) {
+        notify(t('update.reloading'));
+        setTimeout(() => reloadOnce() || notify(t('pdf.error', { msg: e.message }), 'error'), 1200);
+      } else notify(t('pdf.error', { msg: e.message }), 'error');
+    }
+    setExporting(false);
+  };
+
   if (!costs) return <Loader />;
   return (
     <section className="stack costs">
+      {pdfOn && list.length > 0 && (
+        <div className="costs-export" title={t('pdf.costsHint')}>
+          <button className="btn btn--sm btn--primary" onClick={() => doExport(false)} disabled={exporting}>
+            {exporting ? `⏳ ${t('pdf.making')}` : `📄 ${t('pdf.export')}`}
+          </button>
+          {canShareFiles && (
+            <button className="btn btn--sm btn--outline" onClick={() => doExport(true)} disabled={exporting}>
+              📤 {t('pdf.share')}
+            </button>
+          )}
+        </div>
+      )}
       {/* Tổng quan */}
       <div className="cost-summary">
         <div className="cost-stat">

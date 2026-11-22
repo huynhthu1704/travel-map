@@ -135,6 +135,8 @@ export const GUIDES = [
   {
     cc: 'SG',
     visaTag: { vi: 'Miễn visa 30 ngày', en: '30 days visa-free' },
+    // Tờ khai nhập cảnh điện tử chính thức (miễn phí) — hiện thành nút trong mục Visa
+    entryForms: [{ name: { vi: 'Khai SG Arrival Card (trang ICA chính thức)', en: 'Submit SG Arrival Card (official ICA site)' }, url: 'https://eservices.ica.gov.sg/sgarrivalcard/' }],
     lead: { vi: 'Miễn visa 30 ngày, nhỏ gọn, an toàn — 3–4 ngày là đủ, nhưng chỗ ở đắt.', en: '30 days visa-free, compact and safe — 3–4 days is enough, though hotels are pricey.' },
     visa: {
       vi: 'Miễn visa 30 ngày. Khai **SG Arrival Card** điện tử miễn phí trong 3 ngày trước khi đến (trang ICA hoặc app MyICA — tránh trang thu phí). Hộ chiếu còn hạn trên 6 tháng, có vé ra khỏi Singapore.',
@@ -167,6 +169,7 @@ export const GUIDES = [
   {
     cc: 'MY',
     visaTag: { vi: 'Miễn visa 30 ngày', en: '30 days visa-free' },
+    entryForms: [{ name: { vi: 'Khai MDAC (trang Sở Di trú Malaysia)', en: 'Submit MDAC (official Immigration site)' }, url: 'https://imigresen-online.imi.gov.my/mdac/main' }],
     lead: { vi: 'Miễn visa 30 ngày, chi phí dễ chịu, ẩm thực pha trộn Mã Lai – Hoa – Ấn.', en: '30 days visa-free, affordable, with a Malay – Chinese – Indian food mix.' },
     visa: {
       vi: 'Miễn visa 30 ngày. Bắt buộc khai **MDAC** (thẻ nhập cảnh điện tử, miễn phí) trong 3 ngày trước khi đến — cả đường bay, bộ, biển; cẩn thận trang giả thu phí.',

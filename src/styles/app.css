@@ -9740,3 +9740,28 @@ a.app-link.place-card__title:hover {
     width: 100%;
   }
 }
+
+.costs-export {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.guide-forms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+.guide-forms .btn,
+.guide-sec .guide-forms a.btn {
+  color: var(--ink-900);
+  text-decoration: none;
+  white-space: normal;
+  height: auto;
+  min-height: 44px;
+  padding: 10px 16px;
+  line-height: 1.35;
+  text-align: center;
+}

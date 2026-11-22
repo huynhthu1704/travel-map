@@ -1,4 +1,4 @@
-/* Travel Map service worker — lưu sẵn tài nguyên để mở lại gần như tức thì.
+/* Bee There service worker — lưu sẵn tài nguyên để mở lại gần như tức thì.
  * - Mã & ảnh của web (/assets/… có mã băm trong tên file): lấy từ bộ nhớ trước (không đổi theo phiên bản).
  * - Font Google, ô bản đồ, dữ liệu bản đồ nền: dùng bản đã lưu ngay, cập nhật ngầm.
  * - Trang index.html: luôn lấy bản mới từ mạng, mất mạng thì dùng bản đã lưu.

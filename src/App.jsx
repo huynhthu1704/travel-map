@@ -184,14 +184,32 @@ function Shell() {
   }, []);
   const ann = currentAnnouncement(settings, nowTick);
   const annText = ann ? (lang === 'en' ? ann.en || ann.vi : ann.vi || ann.en) : '';
-  const [annClosed, setAnnClosed] = useState(() => sessionStorage.getItem('travel-map-ann') || '');
+  // Thông báo đã đóng được nhớ vĩnh viễn trên máy này (theo id, nên đổi ngôn ngữ cũng không hiện lại)
+  const annKey = ann ? String(ann.id || ann.vi || ann.en) : '';
+  const [annDismissed, setAnnDismissed] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('travel-map-ann-dismissed') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const annShown = !!annText && !annDismissed.includes(annKey);
+  const dismissAnn = () => {
+    const next = [...annDismissed.filter((k) => k !== annKey), annKey].slice(-50);
+    setAnnDismissed(next);
+    try {
+      localStorage.setItem('travel-map-ann-dismissed', JSON.stringify(next));
+    } catch {
+      /* bộ nhớ trình duyệt bị chặn */
+    }
+  };
   const activeTrip = trips.find((t) => t.id === activeTripId);
   // Giữ các trang đã mở trong DOM để khi quay lại vẫn còn tab, bộ lọc và vị trí cuộn
   const [mounted, setMounted] = useState(() => new Set([view]));
   useEffect(() => setMounted((m) => (m.has(view) ? m : new Set([...m, view]))), [view]);
   const pageCls = (id) => (view === id ? '' : 'page-hidden');
   return (
-    <div className={`app view-${view} ${annText && annClosed !== annText ? 'app--ann' : ''}`}>
+    <div className={`app view-${view} ${annShown ? 'app--ann' : ''}`}>
       {can('pullToRefresh') && <PullToRefresh />}
       {can('quickTour') && <QuickTour />}
       <header className="topbar">
@@ -215,14 +233,11 @@ function Shell() {
         <Notifications />
         <UserMenu />
       </header>
-      {annText && annClosed !== annText && (
+      {annShown && (
         <div className={`announce announce--floating announce--${ann.tone || 'info'}`} role="status">
           <span>{annText}</span>
           <button
-            onClick={() => {
-              sessionStorage.setItem('travel-map-ann', annText);
-              setAnnClosed(annText);
-            }}
+            onClick={dismissAnn}
             aria-label={t('common.close')}
           >
             ✕

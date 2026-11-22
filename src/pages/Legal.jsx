@@ -35,7 +35,7 @@ function Privacy({ vi }) {
   const L = vi ? 'vi' : 'en';
   return vi ? (
     <>
-      <p>Chính sách này giải thích Travel Map thu thập dữ liệu gì, dùng để làm gì và bạn có những quyền gì. Trang được vận hành bởi cá nhân, theo tinh thần Luật Bảo vệ dữ liệu cá nhân của Việt Nam (Luật số 91/2025/QH15).</p>
+      <p>Chính sách này giải thích Bee There thu thập dữ liệu gì, dùng để làm gì và bạn có những quyền gì. Trang được vận hành bởi cá nhân, theo tinh thần Luật Bảo vệ dữ liệu cá nhân của Việt Nam (Luật số 91/2025/QH15).</p>
       <h3>1. Dữ liệu chúng tôi thu thập</h3>
       <ul>
         <li><b>Tài khoản Google:</b> tên, email, ảnh đại diện, mã người dùng (uid).</li>
@@ -71,7 +71,7 @@ function Privacy({ vi }) {
         <li>Rút lại đồng ý bằng cách xoá tài khoản; khiếu nại hoặc hỏi đáp qua kênh liên hệ bên dưới.</li>
       </ul>
       <h3>7. Trẻ em</h3>
-      <p>Travel Map không dành cho người dưới 16 tuổi. Nếu bạn dưới 16 tuổi, cần có sự đồng ý của cha mẹ hoặc người giám hộ.</p>
+      <p>Bee There không dành cho người dưới 16 tuổi. Nếu bạn dưới 16 tuổi, cần có sự đồng ý của cha mẹ hoặc người giám hộ.</p>
       <h3>8. Liên hệ</h3>
       <p>
         {vi ? 'Liên hệ' : 'Contact'}: <Contact vi={vi} />
@@ -79,7 +79,7 @@ function Privacy({ vi }) {
     </>
   ) : (
     <>
-      <p>This policy explains what Travel Map collects, why, and what rights you have. The site is run by an individual, following the spirit of Vietnam’s Personal Data Protection Law (Law No. 91/2025/QH15).</p>
+      <p>This policy explains what Bee There collects, why, and what rights you have. The site is run by an individual, following the spirit of Vietnam’s Personal Data Protection Law (Law No. 91/2025/QH15).</p>
       <h3>1. Data we collect</h3>
       <ul>
         <li><b>Google account:</b> name, email, profile photo, user id (uid).</li>
@@ -115,7 +115,7 @@ function Privacy({ vi }) {
         <li>Withdraw consent by deleting your account; send questions or complaints via the contact below.</li>
       </ul>
       <h3>7. Children</h3>
-      <p>Travel Map is not intended for people under 16. If you are under 16 you need a parent’s or guardian’s consent.</p>
+      <p>Bee There is not intended for people under 16. If you are under 16 you need a parent’s or guardian’s consent.</p>
       <h3>8. Contact</h3>
       <p>
         {vi ? 'Liên hệ' : 'Contact'}: <Contact vi={vi} />
@@ -127,23 +127,23 @@ function Privacy({ vi }) {
 function Terms({ vi }) {
   return vi ? (
     <>
-      <p>Khi dùng Travel Map, bạn đồng ý với các điều khoản sau.</p>
+      <p>Khi dùng Bee There, bạn đồng ý với các điều khoản sau.</p>
       <h3>1. Tài khoản</h3>
       <p>Bạn đăng nhập bằng tài khoản Google của mình và chịu trách nhiệm về hoạt động trong tài khoản. Không mạo danh người khác, không chọn @tên gây hiểu lầm hoặc xúc phạm.</p>
       <h3>2. Nội dung của bạn</h3>
       <ul>
-        <li>Bạn giữ quyền sở hữu ảnh và nội dung bạn đăng. Khi đăng ở chế độ công khai, bạn cho phép Travel Map hiển thị nội dung đó cho người khác trong ứng dụng.</li>
+        <li>Bạn giữ quyền sở hữu ảnh và nội dung bạn đăng. Khi đăng ở chế độ công khai, bạn cho phép Bee There hiển thị nội dung đó cho người khác trong ứng dụng.</li>
         <li>Chỉ đăng ảnh bạn có quyền sử dụng. Cân nhắc trước khi đăng công khai ảnh có người khác hoặc trẻ em, và không đăng địa chỉ nhà riêng.</li>
         <li>Không đăng nội dung vi phạm pháp luật, bạo lực, khiêu dâm, thù ghét, quấy rối, spam hoặc quảng cáo trái phép.</li>
       </ul>
       <h3>3. Kiểm duyệt</h3>
       <p>Người dùng có thể báo cáo nội dung. Quản trị viên có thể ẩn nội dung vi phạm, khoá tài khoản vi phạm nhiều lần. Bạn sẽ nhận thông báo khi nội dung của mình bị ẩn.</p>
       <h3>4. Chuyến đi chung</h3>
-      <p>Thành viên chuyến đi cùng xem và sửa kế hoạch, chi phí, checklist chung. Phần chia chi phí chỉ để tham khảo; Travel Map không xử lý tiền và không chịu trách nhiệm về việc thanh toán giữa các thành viên.</p>
+      <p>Thành viên chuyến đi cùng xem và sửa kế hoạch, chi phí, checklist chung. Phần chia chi phí chỉ để tham khảo; Bee There không xử lý tiền và không chịu trách nhiệm về việc thanh toán giữa các thành viên.</p>
       <h3>5. Thông tin địa điểm</h3>
       <p>Thông tin bản đồ, địa điểm, tỉ giá lấy từ nguồn mở và có thể chưa chính xác. Hãy kiểm tra lại trước khi đi.</p>
       <h3>6. Dịch vụ</h3>
-      <p>Travel Map được cung cấp miễn phí “như hiện có”. Tính năng có thể thay đổi, tạm dừng hoặc ngừng. Hãy dùng “Tải dữ liệu của tôi” để tự sao lưu.</p>
+      <p>Bee There được cung cấp miễn phí “như hiện có”. Tính năng có thể thay đổi, tạm dừng hoặc ngừng. Hãy dùng “Tải dữ liệu của tôi” để tự sao lưu.</p>
       <h3>7. Chấm dứt</h3>
       <p>Bạn có thể xoá tài khoản bất cứ lúc nào. Chúng tôi có thể khoá tài khoản vi phạm điều khoản.</p>
       <h3>8. Thay đổi</h3>
@@ -154,23 +154,23 @@ function Terms({ vi }) {
     </>
   ) : (
     <>
-      <p>By using Travel Map you agree to these terms.</p>
+      <p>By using Bee There you agree to these terms.</p>
       <h3>1. Account</h3>
       <p>You sign in with your own Google account and are responsible for activity in it. Don’t impersonate others or pick a misleading or offensive @username.</p>
       <h3>2. Your content</h3>
       <ul>
-        <li>You keep ownership of the photos and content you post. Posting publicly lets Travel Map show that content to others in the app.</li>
+        <li>You keep ownership of the photos and content you post. Posting publicly lets Bee There show that content to others in the app.</li>
         <li>Only post photos you have the right to use. Think before publicly posting photos of other people or children, and don’t post your home address.</li>
         <li>No illegal, violent, sexual, hateful, harassing, spam or unauthorised advertising content.</li>
       </ul>
       <h3>3. Moderation</h3>
       <p>Users can report content. Admins may hide violating content and ban repeat offenders. You are notified when your content is hidden.</p>
       <h3>4. Shared trips</h3>
-      <p>Trip members see and edit the shared plan, costs and checklists together. Cost splitting is for reference only; Travel Map does not handle money and is not responsible for payments between members.</p>
+      <p>Trip members see and edit the shared plan, costs and checklists together. Cost splitting is for reference only; Bee There does not handle money and is not responsible for payments between members.</p>
       <h3>5. Place information</h3>
       <p>Map, place and exchange-rate data come from open sources and may be inaccurate. Double-check before you travel.</p>
       <h3>6. Service</h3>
-      <p>Travel Map is provided free and “as is”. Features may change, pause or stop. Use “Download my data” to keep your own backup.</p>
+      <p>Bee There is provided free and “as is”. Features may change, pause or stop. Use “Download my data” to keep your own backup.</p>
       <h3>7. Termination</h3>
       <p>You can delete your account at any time. We may ban accounts that break these terms.</p>
       <h3>8. Changes</h3>

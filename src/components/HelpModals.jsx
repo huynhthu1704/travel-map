@@ -49,7 +49,7 @@ export function FaqModal({ onClose }) {
   );
 }
 
-/** Ủng hộ người làm Travel Map: quét mã VietQR bằng app ngân hàng / ví */
+/** Ủng hộ người làm Bee There: quét mã VietQR bằng app ngân hàng / ví */
 export function SponsorModal({ onClose }) {
   const { t } = useI18n();
   const { notify } = useApp();

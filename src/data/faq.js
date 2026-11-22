@@ -4,8 +4,8 @@ export const FAQ = {
     {
       group: '🌱 Bắt đầu',
       items: [
-        ['Travel Map là gì?', 'Travel Map là bản đồ du lịch của riêng bạn: lưu những nơi đã đến và muốn đến, check-in kèm ảnh và ghi chú, lên lịch trình, chia chi phí và làm checklist cùng bạn bè trong một chỗ.'],
-        ['Có mất phí không?', 'Không. Mọi tính năng đều miễn phí. Nếu thấy hữu ích, bạn có thể ủng hộ người làm Travel Map ở mục “☕ Ủng hộ” — như mời người làm một ly cà phê.'],
+        ['Bee There là gì?', 'Bee There là bản đồ du lịch của riêng bạn: lưu những nơi đã đến và muốn đến, check-in kèm ảnh và ghi chú, lên lịch trình, chia chi phí và làm checklist cùng bạn bè trong một chỗ.'],
+        ['Có mất phí không?', 'Không. Mọi tính năng đều miễn phí. Nếu thấy hữu ích, bạn có thể ủng hộ người làm Bee There ở mục “☕ Ủng hộ” — như mời người làm một ly cà phê.'],
         ['Có cần đăng nhập không?', 'Xem bản đồ, tìm kiếm và xem kỉ niệm công khai thì không cần. Để lưu địa điểm, check-in, tạo chuyến đi thì đăng nhập bằng tài khoản Google (chỉ mất vài giây).'],
         ['Dùng trên điện thoại được không?', 'Được. Mở website bằng trình duyệt trên điện thoại; bạn có thể chọn “Thêm vào màn hình chính” (Add to Home Screen) để mở nhanh như một ứng dụng.'],
       ],
@@ -17,7 +17,7 @@ export const FAQ = {
         ['Check-in khác gì “Muốn đi”?', '“👣 Check-in” là nơi bạn đã đến — lưu ngày đến, dịp, ghi chú và ảnh; một nơi có thể check-in nhiều lần. “💛 Muốn đi” là danh sách nơi bạn định ghé sau này.'],
         ['Sửa hoặc xoá một lần check-in?', 'Mở địa điểm → mục “📖 Nhật ký check-in” → bấm ✏️ để sửa ngày, dịp, ghi chú hoặc 🗑️ để xoá lần đó.'],
         ['Ai xem được ảnh của tôi?', 'Mỗi lần check-in bạn chọn “Chỉ mình tôi” hoặc “Công khai”. Ảnh gắn với chuyến đi thì các thành viên trong chuyến cũng xem được. Ảnh công khai hiện ở trang Khám phá.'],
-        ['Ảnh tải chậm khi dùng 4G?', 'Travel Map tự chọn ảnh nhỏ, vừa hoặc lớn theo tốc độ mạng, nên ảnh hiện nhanh trước rồi mới nét dần.'],
+        ['Ảnh tải chậm khi dùng 4G?', 'Bee There tự chọn ảnh nhỏ, vừa hoặc lớn theo tốc độ mạng, nên ảnh hiện nhanh trước rồi mới nét dần.'],
       ],
     },
     {
@@ -49,7 +49,7 @@ export const FAQ = {
     {
       group: '🌱 Getting started',
       items: [
-        ['What is Travel Map?', 'Travel Map is your own travel map: save places you have been and want to go, check in with photos and notes, plan itineraries, split costs and share checklists with friends — all in one place.'],
+        ['What is Bee There?', 'Bee There is your own travel map: save places you have been and want to go, check in with photos and notes, plan itineraries, split costs and share checklists with friends — all in one place.'],
         ['Is it free?', 'Yes, every feature is free. If you find it useful you can support the creator under “☕ Support” — just buy them a coffee.'],
         ['Do I need to sign in?', 'Not to browse the map, search or view public memories. Sign in with Google (a few seconds) to save places, check in and create trips.'],
         ['Does it work on my phone?', 'Yes. Open the website in your phone’s browser; choose “Add to Home Screen” to open it like an app.'],
@@ -62,7 +62,7 @@ export const FAQ = {
         ['Check-in vs “Want to go”?', '“👣 Check in” is a place you have visited — with date, occasion, notes and photos; you can check in many times. “💛 Want to go” is your wishlist.'],
         ['Edit or delete a check-in?', 'Open the place → “📖 Check-in log” → ✏️ to edit or 🗑️ to delete that visit.'],
         ['Who can see my photos?', 'Each check-in is “Only me” or “Public”. Photos linked to a trip are visible to its members. Public photos appear on the Explore page.'],
-        ['Photos load slowly on mobile data?', 'Travel Map picks small, medium or large photos based on your connection, so they appear quickly and sharpen afterwards.'],
+        ['Photos load slowly on mobile data?', 'Bee There picks small, medium or large photos based on your connection, so they appear quickly and sharpen afterwards.'],
       ],
     },
     {

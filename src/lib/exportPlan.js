@@ -98,7 +98,7 @@ export async function exportPlanPdf(trip, items) {
     }
   };
 
-  // ---- Thanh thương hiệu: logo + "Travel Map" bên trái, nút "Mở & sửa trên web" bên phải ----
+  // ---- Thanh thương hiệu: logo + "Bee There" bên trái, nút "Mở & sửa trên web" bên phải ----
   const tripUrl = `${location.origin}${location.pathname}#/trips/${encodeURIComponent(trip.id)}`;
   const logo = await loadLogo();
   if (logo) doc.addImage(logo, 'PNG', M, y - 1, 7, 7);
@@ -107,10 +107,13 @@ export async function exportPlanPdf(trip, items) {
     doc.roundedRect(M, y - 1, 7, 7, 2, 2, 'F');
   }
   font('bold', 11.5, INK);
-  doc.text('Travel', M + 9.5, y + 4.2);
-  const tw = doc.getTextWidth('Travel ');
-  doc.setTextColor(214, 150, 0);
-  doc.text('Map', M + 9.5 + tw, y + 4.2);
+  doc.text('bee', M + 9.5, y + 4.2);
+  const tw = doc.getTextWidth('bee');
+  doc.setTextColor(168, 116, 0);
+  doc.text('.', M + 9.5 + tw, y + 4.2);
+  const tw2 = tw + doc.getTextWidth('.');
+  doc.setTextColor(...INK);
+  doc.text('there', M + 9.5 + tw2, y + 4.2);
   // nút liên kết
   font('bold', 8.5, INK);
   const btnLabel = plain(t('pdf.editOnWebBtn'));

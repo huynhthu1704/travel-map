@@ -49,7 +49,7 @@ export const RELEASES = [
     items: [
       {
         icon: '🔎',
-        title: { vi: 'Tìm bạn bè trên Travel Map', en: 'Find other travellers' },
+        title: { vi: 'Tìm bạn bè trên Bee There', en: 'Find other travellers' },
         desc: {
           vi: 'Gõ tên một người vào ô tìm kiếm để mở hồ sơ của họ. Bạn cũng có thể bấm vào tên tác giả trên một check-in công khai, hoặc gửi link hồ sơ của mình bằng nút “Chia sẻ hồ sơ”.',
           en: 'Type a name in the search bar to open someone’s profile. You can also tap the author’s name on a public check-in, or send your own profile with the “Share profile” button.',

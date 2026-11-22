@@ -32,8 +32,8 @@ export const ANNOUNCEMENT_TEMPLATES = [
     id: 'launched',
     icon: '🎉',
     tone: 'success',
-    vi: '🎉 Tính năng mới: [tên tính năng] đã có trên Travel Map — thử ngay nhé!',
-    en: '🎉 New: [feature name] is now live on Travel Map — give it a try!',
+    vi: '🎉 Tính năng mới: [tên tính năng] đã có trên Bee There — thử ngay nhé!',
+    en: '🎉 New: [feature name] is now live on Bee There — give it a try!',
   },
   {
     id: 'maintenance',

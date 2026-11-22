@@ -8,7 +8,7 @@ export const TOUR_STEPS = [
   {
     id: 'welcome',
     demo: 'welcome',
-    title: { vi: 'Chào mừng tới Travel Map! 👋', en: 'Welcome to Travel Map! 👋' },
+    title: { vi: 'Chào mừng tới Bee There! 👋', en: 'Welcome to Bee There! 👋' },
     text: {
       vi: 'Lưu mọi nơi bạn đã đến và muốn đến trên một tấm bản đồ, ghi lại kỉ niệm bằng ảnh và lên kế hoạch chuyến đi cùng bạn bè. Mình dẫn bạn đi một vòng trong 1 phút nhé.',
       en: 'Keep every place you have been and want to go on one map, save memories with photos and plan trips with friends. Let us show you around — it takes a minute.',

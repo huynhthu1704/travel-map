@@ -169,6 +169,11 @@ code {
 }
 
 /* ---------- Buttons ---------- */
+a.btn,
+a.btn:hover,
+a.btn:focus {
+  text-decoration: none;
+}
 .btn {
   display: inline-flex;
   align-items: center;
@@ -7835,6 +7840,8 @@ a.app-link.place-card__title:hover {
 /* ---------- Ô quảng cáo mẫu ---------- */
 .ad-slot {
   position: relative;
+  /* Không cho co lại trong trang dạng cột (flex) — trước đây trên mobile bị ép còn một đường gạch */
+  flex-shrink: 0;
   width: 100%;
   max-width: 728px;
   height: var(--ad-h);

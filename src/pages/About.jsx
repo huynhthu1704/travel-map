@@ -140,7 +140,7 @@ export default function AboutPage() {
         </div>
         <p className="eyebrow">{t('about.eyebrow')}</p>
         <h1 className="h1">
-          Travel <span className="about-hero__accent">Map</span>
+          Bee <span className="about-hero__accent">There</span>
         </h1>
         <p className="about-hero__lead">{t('about.lead')}</p>
         <div className="about-chips">

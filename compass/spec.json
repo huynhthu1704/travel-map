@@ -435,6 +435,31 @@
           "then": "I still see the Journey stop count"
         }
       ]
+    },
+    {
+      "id": "REQ-015",
+      "title": "Faster first paint: non-blocking CSS and CSS per page",
+      "description": "Pages still felt slow. (C) The main stylesheet no longer blocks the first paint: the boot screen (inline CSS) shows at once while the CSS loads in parallel, and the app renders once it is ready. (D) Styles used by only one area (admin, about, guides, gear, tips, legal, profile, trips, share studio, feedback, map) move into their own CSS files that load with that area's code, so the shared stylesheet is much smaller.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22 ('hãy làm luôn C và D')",
+      "ac": [
+        {
+          "given": "I open any page",
+          "when": "the HTML arrives",
+          "then": "the boot screen paints without waiting for the main CSS file"
+        },
+        {
+          "given": "the main CSS has not finished loading",
+          "when": "the app is about to render",
+          "then": "it waits for the CSS (max 4s) so I never see an unstyled page"
+        },
+        {
+          "given": "I open a page such as Guides or About",
+          "when": "it loads",
+          "then": "only the shared CSS plus that page's CSS are downloaded, and the page looks the same as before"
+        }
+      ]
     }
   ],
   "tests": [
@@ -802,6 +827,16 @@
       ],
       "type": "automated",
       "file": "tests/tripFacts.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-032",
+      "title": "Main CSS is non-blocking; page CSS is split out",
+      "reqIds": [
+        "REQ-015"
+      ],
+      "type": "automated",
+      "file": "tests/pageCss.test.mjs",
       "status": "Passing"
     }
   ],

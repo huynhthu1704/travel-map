@@ -27,6 +27,7 @@ import TripCosts from "./TripCosts";
 import DuplicateTrip from "./DuplicateTrip";
 import TripMembers, { MyTripInvites } from "../components/TripMembers";
 import GearPromo from "../components/GearPromo";
+import { TripReadOnly, isTripViewer } from "../lib/tripAccess";
 import AdSlot from "../components/AdSlot";
 import CurrencyRates from "../components/CurrencyRates";
 import { currencyOfCountry, fetchMarketRates } from "../lib/rates";
@@ -1028,6 +1029,8 @@ function TripDetail({ trip, onBack }) {
     return () => document.removeEventListener("pointerdown", close);
   }, [menuOpen]);
   const isMember = !!user && (trip.memberIds || []).includes(user.uid);
+  // REQ-001: thành viên chỉ xem — không sửa được, nhưng sao chép được chuyến về tài khoản của mình
+  const readOnly = isMember && isTripViewer(trip, user.uid);
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
   const [showMembers, setShowMembers] = useState(false);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
@@ -1086,6 +1089,7 @@ function TripDetail({ trip, onBack }) {
                   className="trip-menu"
                   onMouseLeave={() => setMenuOpen(false)}
                 >
+                  {!readOnly && (
                   <button
                     onClick={() => {
                       setEditing(true);
@@ -1094,7 +1098,8 @@ function TripDetail({ trip, onBack }) {
                   >
                     ✏️ {t("trip.edit")}
                   </button>
-                  {can("tripDuplicate") && (
+                  )}
+                  {(can("tripDuplicate") || readOnly) && (
                   <button
                     onClick={() => {
                       setDuplicating(true);
@@ -1174,9 +1179,11 @@ function TripDetail({ trip, onBack }) {
             )}
           </div>
           <div className="trip-hero__actions">
+            {!readOnly && (
             <button className="btn btn--primary" onClick={() => setShowMembers(true)}>
               {t("trip.invite")}
             </button>
+            )}
             {can("recap") && (
             <button
               className="btn btn--outline"
@@ -1209,6 +1216,17 @@ function TripDetail({ trip, onBack }) {
           }}
         />
       )}
+      {readOnly && (
+        <div className="trip-ro-banner" role="status">
+          <span className="trip-ro-banner__text">
+            <b>👀 {t("ro.title")}</b>
+            <small>{t("ro.text", { owner: trip.members?.[trip.ownerId]?.name || t("trip.owner") })}</small>
+          </span>
+          <button className="btn btn--sm btn--primary" onClick={() => setDuplicating(true)}>
+            📋 {t("ro.copy")}
+          </button>
+        </div>
+      )}
       <div className="chips trip-tabs">
         {[
           ["plan", `🗓️ ${t("plan.tab")}`],
@@ -1227,6 +1245,7 @@ function TripDetail({ trip, onBack }) {
           </button>
         ))}
       </div>
+      <TripReadOnly.Provider value={readOnly}>
       {tab === "plan" && <TripPlan trip={trip} />}
       {tab === "costs" && can("tripCosts") && <TripCosts trip={trip} />}
       {tab === "checklist" && can("tripChecklist") && (
@@ -1235,6 +1254,7 @@ function TripDetail({ trip, onBack }) {
           <TripChecklists trip={trip} />
         </>
       )}
+      </TripReadOnly.Provider>
       {tab === "journey" && stopList.length > 0 && (
         <TripSummary trip={trip} stops={stopList} />
       )}

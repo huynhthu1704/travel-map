@@ -5,6 +5,12 @@ service cloud.firestore {
     function isMember(tripId) {
       return signedIn() && request.auth.uid in get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds;
     }
+    // REQ-001: thành viên "chỉ xem" (trips.viewerIds) xem được nhưng không sửa kế hoạch / chi phí / checklist / thông tin chuyến
+    function canEditTrip(tripId) {
+      let t = get(/databases/$(database)/documents/trips/$(tripId)).data;
+      return signedIn() && request.auth.uid in t.memberIds
+        && (request.auth.uid == t.ownerId || !(request.auth.uid in t.get('viewerIds', [])));
+    }
 
     // ---- Quản trị: quản trị viên gốc (theo email) + vai trò lưu trong users/{uid}.role ----
     // Quản trị viên gốc theo mã người dùng (uid) — không ghi email trong tệp luật
@@ -371,8 +377,9 @@ service cloud.firestore {
         (request.auth.uid in resource.data.memberIds
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'members'])
           && removesOnly(request.auth.uid)) ||
-        // Thành viên sửa tên, biểu tượng, ngày đi / về, điểm đến, tiền tệ
+        // Thành viên sửa tên, biểu tượng, ngày đi / về, điểm đến, tiền tệ (trừ thành viên chỉ xem)
         (request.auth.uid in resource.data.memberIds
+          && !(request.auth.uid in resource.data.get('viewerIds', []))
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'emoji', 'startDate', 'endDate', 'kind', 'destinations', 'currency', 'rates', 'updatedAt'])
           && validTripText(request.resource.data))
       ));
@@ -380,18 +387,21 @@ service cloud.firestore {
 
       // Kế hoạch: mọi thành viên cùng thêm / sắp xếp / đánh dấu
       match /plan/{itemId} {
-        allow read, create, update, delete: if isMember(tripId);
+        allow read: if isMember(tripId);
+        allow create, update, delete: if canEditTrip(tripId);
       }
       // Chi phí dự kiến / thực tế / thanh toán: cả nhóm cùng xem và ghi
       match /costs/{costId} {
-        allow read, create, update, delete: if isMember(tripId);
+        allow read: if isMember(tripId);
+        allow create, update, delete: if canEditTrip(tripId);
       }
       // Checklist: chung thì cả nhóm dùng; cá nhân chỉ người tạo
       match /checklists/{listId} {
         allow read: if isMember(tripId) && (resource.data.scope == 'shared' || resource.data.ownerUid == request.auth.uid);
+        // Thành viên chỉ xem vẫn dùng được checklist cá nhân của mình, nhưng không sửa checklist chung
         allow create: if isMember(tripId) && request.resource.data.createdBy == request.auth.uid
-                      && (request.resource.data.scope == 'shared' || request.resource.data.ownerUid == request.auth.uid);
-        allow update, delete: if isMember(tripId) && (resource.data.scope == 'shared' || resource.data.ownerUid == request.auth.uid);
+                      && ((request.resource.data.scope == 'shared' && canEditTrip(tripId)) || request.resource.data.ownerUid == request.auth.uid);
+        allow update, delete: if isMember(tripId) && ((resource.data.scope == 'shared' && canEditTrip(tripId)) || resource.data.ownerUid == request.auth.uid);
       }
 
       match /stops/{stopId} {

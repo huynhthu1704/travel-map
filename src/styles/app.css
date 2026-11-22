@@ -9765,3 +9765,42 @@ a.app-link.place-card__title:hover {
   line-height: 1.35;
   text-align: center;
 }
+
+/* REQ-001: chuyến đi chỉ xem */
+.trip-ro-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: var(--radius-lg, 16px);
+  background: var(--honey-50);
+  border: 1px dashed var(--honey-400);
+}
+.trip-ro-banner__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 220px;
+}
+.trip-ro-banner__text small {
+  color: var(--ink-700);
+}
+.cost-row__actions.is-hidden {
+  visibility: hidden;
+}
+.plan-status__btn:disabled,
+.plan-item__check:disabled {
+  cursor: default;
+  opacity: 1;
+}
+.tm__role,
+.tm__list .tm__role {
+  width: auto;
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 10px;
+}

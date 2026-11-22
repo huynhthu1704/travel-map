@@ -3,6 +3,7 @@ import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Avatar, Modal, formatDate } from './ui';
 import { socialApi } from '../lib/social';
+import { isTripViewer, setViewer } from '../lib/tripAccess';
 
 const STATUS_ICON = { pending: '⏳', accepted: '✅', declined: '✖️', cancelled: '🚫' };
 
@@ -17,6 +18,8 @@ export default function TripMembers({ trip, onClose }) {
   const { user, api, notify, can } = useApp();
   const { t, lang } = useI18n();
   const owner = trip.ownerId === user?.uid;
+  // Thành viên chỉ xem không thấy mã / link mời (tránh mời người khác vào với quyền sửa)
+  const viewer = isTripViewer(trip, user?.uid);
   const canInvite = owner && can('tripInvites');
   const [tab, setTab] = useState(canInvite ? 'invite' : 'members');
   const [q, setQ] = useState('');
@@ -67,9 +70,11 @@ export default function TripMembers({ trip, onClose }) {
           <button className={tab === 'members' ? 'on' : ''} onClick={() => setTab('members')}>
             👥 {t('tm.tabMembers', { n: members.length })}
           </button>
+          {!viewer && (
           <button className={tab === 'code' ? 'on' : ''} onClick={() => setTab('code')}>
             🔗 {t('tm.tabCode')}
           </button>
+          )}
         </div>
 
         {tab === 'invite' && canInvite && (
@@ -120,8 +125,22 @@ export default function TripMembers({ trip, onClose }) {
                         {m.name || '—'}
                         {id === user?.uid && <em> · {t('social.you')}</em>}
                       </b>
-                      <small>{id === trip.ownerId ? `👑 ${t('trip.owner')}` : t('tm.member')}</small>
+                      <small>{id === trip.ownerId ? `👑 ${t('trip.owner')}` : isTripViewer(trip, id) ? `👀 ${t('ro.viewer')}` : t('tm.member')}</small>
                     </span>
+                    {owner && id !== user.uid && can('tripViewers') && (
+                      <select
+                        className="tm__role"
+                        value={isTripViewer(trip, id) ? 'view' : 'edit'}
+                        disabled={busy === `role-${id}`}
+                        aria-label={t('ro.roleLabel', { name: m.name || '' })}
+                        onChange={(e) =>
+                          run(`role-${id}`, () => api.updateTrip(trip.id, { viewerIds: setViewer(trip, id, e.target.value === 'view') }), t('ro.saved'))
+                        }
+                      >
+                        <option value="edit">✏️ {t('ro.canEdit')}</option>
+                        <option value="view">👀 {t('ro.viewOnly')}</option>
+                      </select>
+                    )}
                     {owner && id !== user.uid && (
                       <button
                         className="btn btn--sm btn--ghost danger"
@@ -174,7 +193,7 @@ export default function TripMembers({ trip, onClose }) {
           </div>
         )}
 
-        {tab === 'code' && (
+        {tab === 'code' && !viewer && (
           <div className="stack-sm">
             <p className="small muted">{t('tm.codeHint')}</p>
             <div className="tm__code">

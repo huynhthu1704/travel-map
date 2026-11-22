@@ -35,6 +35,7 @@ import DestinationPicker, {
   destLabel,
   cleanDests,
 } from "../components/DestinationPicker";
+import '../styles/pages/trips.css';
 
 const TRIP_EMOJIS = [
   "🧳",

@@ -441,7 +441,7 @@
       "title": "Faster first paint: non-blocking CSS and CSS per page",
       "description": "Pages still felt slow. (C) The main stylesheet no longer blocks the first paint: the boot screen (inline CSS) shows at once while the CSS loads in parallel, and the app renders once it is ready. (D) Styles used by only one area (admin, about, guides, gear, tips, legal, profile, trips, share studio, feedback, map) move into their own CSS files that load with that area's code, so the shared stylesheet is much smaller.",
       "priority": "Should",
-      "status": "In build",
+      "status": "Done",
       "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22 ('hãy làm luôn C và D')",
       "ac": [
         {

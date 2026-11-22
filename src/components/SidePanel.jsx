@@ -14,6 +14,7 @@ import Combobox from './Combobox';
 import { normalize } from '../lib/geo';
 import DateInput from './DateInput';
 import TimeInput from './TimeInput';
+import '../styles/pages/map.css';
 
 /**
  * Bảng dưới dạng "bottom sheet" trên điện thoại / máy tính bảng dọc:

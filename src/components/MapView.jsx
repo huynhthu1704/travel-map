@@ -11,6 +11,7 @@ import { famousIn } from '../data/places';
 import { useI18n } from '../i18n';
 import { countryName } from '../lib/countries';
 import { pName, getLocale } from '../lib/lang';
+import '../styles/pages/map.css';
 
 const fmtDay = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(getLocale(), { weekday: 'short', day: '2-digit', month: '2-digit' });
 

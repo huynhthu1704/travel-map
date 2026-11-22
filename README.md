@@ -106,7 +106,7 @@ feedback/{id}, reports/{id}, adminLogs/{id}, stats/{id}
 
 ## Deployment
 
-- **GitHub Pages**: the `.github/workflows/deploy.yml` workflow builds the app on every push to `main`. To set it up:
+- **GitHub Pages**: the `.github/workflows/compass-deploy.yml` workflow builds the app on every push to `main` (CI checks run in `compass-ci.yml`). To set it up:
   1. Go to *Settings → Pages* and set *Source* to *GitHub Actions*.
   2. The Firebase web config is read from `.env.production` (committed on purpose: Firebase web config is public by design and data access is protected by `firestore.rules`).
   3. Add the site's domain (`beetheremap.com`, `www.beetheremap.com`) to Firebase *Authorized domains*.

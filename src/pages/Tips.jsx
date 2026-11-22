@@ -7,6 +7,7 @@ import { hrefCountry, hrefProfile } from '../lib/route';
 import { tipsApi, rankPosts, isFlagged, isStale, TOPICS, TOPIC_ICON, DEFAULT_COMMUNITY } from '../lib/tips';
 import { socialApi } from '../lib/social';
 import AdSlot from '../components/AdSlot';
+import '../styles/pages/tips.css';
 
 const ago = (ts, lang) => {
   const d = Math.max(0, Date.now() - (ts || 0));

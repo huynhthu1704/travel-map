@@ -2,8 +2,24 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import pkg from './package.json' with { type: 'json' };
 
+/**
+ * REQ-015: CSS chính không chặn lúc vẽ trang — màn hình chờ (CSS nội tuyến trong index.html) hiện ngay,
+ * CSS tải song song; main.jsx đợi CSS xong mới vẽ app để không bị "nháy" giao diện thô.
+ */
+export const asyncMainCss = () => ({
+  name: 'async-main-css',
+  apply: 'build',
+  transformIndexHtml: {
+    order: 'post',
+    handler: (html) =>
+      html.replace(/<link rel="stylesheet"( crossorigin)? href="([^"]+\.css)">/g, (_, co = '', href) =>
+        `<link rel="preload" as="style"${co} href="${href}" data-app-css onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="${href}"></noscript>`,
+      ),
+  },
+});
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), asyncMainCss()],
   // Phiên bản đang chạy (hiện trong “Có gì mới”) — tăng trong package.json mỗi lần phát hành
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // Dùng base tương đối để có thể deploy lên GitHub Pages / Firebase Hosting / Vercel

@@ -34,7 +34,22 @@ import './styles/tokens.css';
 import './styles/app.css';
 
 // REQ-011: người dùng tiếng Anh → tải từ điển English trước khi vẽ (tiếng Việt có sẵn)
-loadLangDict(getLang()).finally(() => createRoot(document.getElementById('root')).render(
+// REQ-015: CSS chính được tải không chặn (xem vite.config.js) → đợi nó xong rồi mới vẽ app
+const appCssReady = () =>
+  new Promise((resolve) => {
+    const links = [...document.querySelectorAll('link[data-app-css]')];
+    const pending = links.filter((l) => l.rel !== 'stylesheet' || !l.sheet);
+    if (!pending.length) return resolve();
+    let left = pending.length;
+    const done = () => --left <= 0 && resolve();
+    pending.forEach((l) => {
+      l.addEventListener('load', done, { once: true });
+      l.addEventListener('error', done, { once: true });
+    });
+    setTimeout(resolve, 4000);
+  });
+
+Promise.all([loadLangDict(getLang()), appCssReady()]).finally(() => createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <I18nProvider>
       <App />

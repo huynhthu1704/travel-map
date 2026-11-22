@@ -443,8 +443,13 @@ const firebaseBackend = {
     );
   },
   // ---- Kế hoạch chuyến đi: trips/{id}/plan/{itemId} ----
-  watchPlan(tripId, cb) {
-    return onSnapshot(collection(db, 'trips', tripId, 'plan'), (s) => cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).filter((x) => !x.removed).sort(byPlanOrder)));
+  /** opts.includeRemoved: trả cả mục đã xoá khỏi kế hoạch (dấu removed) — dùng để ẩn chúng khỏi Hành trình (REQ-012) */
+  watchPlan(tripId, cb, opts = {}) {
+    return onSnapshot(
+      collection(db, 'trips', tripId, 'plan'),
+      (s) => cb(s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })).filter((x) => opts.includeRemoved || !x.removed).sort(byPlanOrder)),
+      () => cb([]),
+    );
   },
   addPlanItem(user, tripId, { place, date = '', time = '', note = '', order }) {
     return addDoc(collection(db, 'trips', tripId, 'plan'), {
@@ -778,8 +783,8 @@ const localBackend = {
   watchStops(tripId, cb) {
     return sub(() => cb((state.stops[tripId] || []).map((s) => ({ ...s, tripId })).sort(byNewest)));
   },
-  watchPlan(tripId, cb) {
-    return sub(() => cb(((state.plan ||= {})[tripId] || []).filter((x) => !x.removed).map((x) => ({ ...x, tripId })).sort(byPlanOrder)));
+  watchPlan(tripId, cb, opts = {}) {
+    return sub(() => cb(((state.plan ||= {})[tripId] || []).filter((x) => opts.includeRemoved || !x.removed).map((x) => ({ ...x, tripId })).sort(byPlanOrder)));
   },
   async addPlanItem(user, tripId, { place, date = '', time = '', note = '', order }) {
     ((state.plan ||= {})[tripId] ||= []).push({

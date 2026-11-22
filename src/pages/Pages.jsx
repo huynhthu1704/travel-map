@@ -27,7 +27,7 @@ import TripCosts from "./TripCosts";
 import DuplicateTrip from "./DuplicateTrip";
 import TripMembers, { MyTripInvites } from "../components/TripMembers";
 import GearPromo from "../components/GearPromo";
-import { TripReadOnly, isTripViewer } from "../lib/tripAccess";
+import { TripReadOnly, isTripViewer, hideRemovedStops } from "../lib/tripAccess";
 import AdSlot from "../components/AdSlot";
 import CurrencyRates from "../components/CurrencyRates";
 import { currencyOfCountry, fetchMarketRates } from "../lib/rates";
@@ -1046,6 +1046,9 @@ function TripDetail({ trip, onBack }) {
   const linkViewer = !isMember;
   const readOnly = linkViewer || isTripViewer(trip, user?.uid);
   useEffect(() => (isMember ? api.watchStops(trip.id, setStops) : (setStops([]), undefined)), [trip.id, api, isMember]);
+  // REQ-012: cả các mục đã xoá khỏi kế hoạch, để ẩn chúng khỏi Hành trình
+  const [planAll, setPlanAll] = useState([]);
+  useEffect(() => (isMember ? api.watchPlan(trip.id, setPlanAll, { includeRemoved: true }) : (setPlanAll([]), undefined)), [trip.id, api, isMember]);
   const [showMembers, setShowMembers] = useState(false);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
   // eslint-disable-next-line no-unused-vars
@@ -1062,7 +1065,7 @@ function TripDetail({ trip, onBack }) {
     await navigator.clipboard?.writeText(link);
     notify(t("trip.copied"));
   };
-  const stopList = stops || [];
+  const stopList = useMemo(() => hideRemovedStops(stops || [], planAll), [stops, planAll]);
   const countries = [
     ...new Set(stopList.map((s) => s.place.country).filter(Boolean)),
   ];

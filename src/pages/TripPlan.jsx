@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTripReadOnly } from '../lib/tripAccess';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Empty, Loader, formatDate, DirectionsIcon, AppLink, TrashIcon } from '../components/ui';
@@ -165,6 +166,7 @@ function PlacePicker({ onPick, placeholder, countrycodes = '' }) {
 function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
   const { t } = useI18n();
   const { api, user, notify, openPlace, setModal, saveVisited } = useApp();
+  const ro = useTripReadOnly();
   const [editing, setEditing] = useState(false);
   const [date, setDate] = useState(item.date || '');
   const [time, setTime] = useState(item.time || '');
@@ -198,7 +200,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
   };
   return (
     <li className={`plan-item ${item.done ? 'is-done' : ''} ${item.skipped ? 'is-skipped' : ''}`}>
-      <button className="plan-item__check" onClick={toggleDone} aria-pressed={!!item.done} title={item.done ? t('plan.undo') : t('plan.markDone')}>
+      <button className="plan-item__check" onClick={toggleDone} disabled={ro} aria-pressed={!!item.done} title={item.done ? t('plan.undo') : t('plan.markDone')}>
         {item.done ? '✓' : item.skipped ? '✕' : index + 1}
       </button>
       <div className="plan-item__body">
@@ -211,19 +213,19 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
           {(item.done || item.skipped) && item.doneBy && <> · {t(item.skipped ? 'plan.skippedBy' : 'plan.doneBy', { name: item.doneBy })}</>}
         </small>
         <div className="plan-status" role="group" aria-label={t('plan.status')}>
-          <button type="button" className={`plan-status__btn ${item.done ? 'on on--done' : ''}`} onClick={toggleDone} aria-pressed={!!item.done}>
+          <button type="button" className={`plan-status__btn ${item.done ? 'on on--done' : ''}`} onClick={toggleDone} disabled={ro} aria-pressed={!!item.done}>
             👣 {t('plan.statusDone')}
           </button>
-          <button type="button" className={`plan-status__btn ${item.skipped ? 'on on--skip' : ''}`} onClick={setSkipped} aria-pressed={!!item.skipped}>
+          <button type="button" className={`plan-status__btn ${item.skipped ? 'on on--skip' : ''}`} onClick={setSkipped} disabled={ro} aria-pressed={!!item.skipped}>
             🚫 {t('plan.statusSkip')}
           </button>
         </div>
         {item.note && !editing && (
-          <button className="small plan-item__note" onClick={() => setEditing(true)} title={t('plan.edit')}>
+          <button className="small plan-item__note" onClick={() => !ro && setEditing(true)} title={ro ? undefined : t('plan.edit')}>
             📝 {item.note}
           </button>
         )}
-        {!item.note && !editing && (
+        {!item.note && !editing && !ro && (
           <button className="plan-item__add-note" onClick={() => setEditing(true)}>
             ＋ {t('plan.addNote')}
           </button>
@@ -269,6 +271,8 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
       </div>
       {!editing && (
         <div className="plan-item__actions">
+          {!ro && (
+          <>
           <button className="icon-btn" onClick={() => onMove(-1)} disabled={!canUp} aria-label={t('plan.up')} title={t('plan.up')}>
             ↑
           </button>
@@ -278,9 +282,12 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
           <button className="icon-btn" onClick={() => setEditing(true)} aria-label={t('plan.edit')} title={t('plan.edit')}>
             ✏️
           </button>
+          </>
+          )}
           <button className="icon-btn" onClick={() => setModal({ type: 'directions', place: item.place })} aria-label={t('common.directions')} title={t('common.directions')}>
             <DirectionsIcon />
           </button>
+          {!ro && (
           <button
             className="icon-btn"
             onClick={() => confirm(t('plan.confirmDelete', { name: pName(item.place) })) && api.deletePlanItem(trip.id, item.id)}
@@ -289,6 +296,7 @@ function PlanItem({ item, index, canUp, canDown, onMove, trip }) {
           >
             <TrashIcon />
           </button>
+          )}
         </div>
       )}
     </li>
@@ -299,6 +307,7 @@ export function TripPlan({ trip }) {
   const { can } = useApp();
   const { t } = useI18n();
   const { api, user, notify, places, famousFor, ensureFamous, setActiveTripId, setView, placeById, showTripOnMap } = useApp();
+  const ro = useTripReadOnly();
   const [items, setItems] = useState(null);
   const [addDate, setAddDate] = useState('');
   useEffect(() => api.watchPlan(trip.id, setItems), [trip.id, api]);
@@ -307,7 +316,7 @@ export function TripPlan({ trip }) {
   useEffect(() => api.watchStops(trip.id, setStops), [trip.id, api]);
   const synced = useRef(false);
   useEffect(() => {
-    if (synced.current || !items || !stops || !user || !(trip.memberIds || []).includes(user.uid)) return;
+    if (ro || synced.current || !items || !stops || !user || !(trip.memberIds || []).includes(user.uid)) return;
     synced.current = true;
     const have = new Set(items.map((i) => i.place?.id));
     const todo = [];
@@ -455,6 +464,8 @@ export function TripPlan({ trip }) {
             </small>
           </div>
         )}
+        {!ro && (
+        <>
         <div className="plan-add">
           <PlacePicker onPick={(p) => add(p)} placeholder={t('plan.searchPlaceholder')} countrycodes={trip.destinations?.length ? destCcs.join(',') : ''} />
           <label className="field plan-add__date">
@@ -486,6 +497,8 @@ export function TripPlan({ trip }) {
               ))}
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
 
@@ -533,6 +546,7 @@ export function TripPlan({ trip }) {
 function NewChecklist({ trip, onClose, defaultPhase }) {
   const { t, lang } = useI18n();
   const { api, user, notify } = useApp();
+  const ro = useTripReadOnly();
   const [phase, setPhase] = useState(defaultPhase || 'before');
   const [scope, setScope] = useState('personal');
   const [kind, setKind] = useState(trip.kind || 'domestic');
@@ -563,7 +577,7 @@ function NewChecklist({ trip, onClose, defaultPhase }) {
       <div className="new-check__grid">
         <div className="new-check__field">
           <span title={t('check.scopeHelp.' + scope)}>{t('check.scopeQShort')}</span>
-          <Seg value={scope} set={setScope} options={[['personal', `🙋 ${t('check.scope.personal')}`], ['shared', `👥 ${t('check.scope.sharedShort')}`]]} />
+          <Seg value={scope} set={setScope} options={[['personal', `🙋 ${t('check.scope.personal')}`], ...(ro ? [] : [['shared', `👥 ${t('check.scope.sharedShort')}`]])]} />
         </div>
         <div className="new-check__field">
           <span>{t('check.phaseQ')}</span>
@@ -595,13 +609,15 @@ function Checklist({ list, trip }) {
   const [newScope, setNewScope] = useState('shared'); // mục mới: 👥 chung / 🙋 mỗi người tự tick / 👤 chỉ mình tôi lo
   const [collapsed, setCollapsed] = useState(false);
   const sharedList = list.scope === 'shared';
+  // Thành viên chỉ xem: checklist chung chỉ đọc; checklist cá nhân của mình vẫn dùng bình thường
+  const locked = useTripReadOnly() && sharedList;
   const memberCount = trip.memberIds?.length || 1;
   // Mục "mỗi người" trong checklist chung: ai cũng tick riêng (doneMap: {uid: tên})
   const perPerson = (it) => sharedList && it.scope === 'personal';
   const isDone = (it) => (perPerson(it) ? !!it.doneMap?.[user.uid] : !!it.done);
   // Mục "chỉ mình tôi": 1 người nhận lo, chỉ người đó tick được (người khác vẫn thấy ai đang lo)
   const onlyMe = (it) => sharedList && it.scope === 'me';
-  const canTick = (it) => !onlyMe(it) || it.ownerUid === user.uid;
+  const canTick = (it) => !locked && (!onlyMe(it) || it.ownerUid === user.uid);
 
   // Kéo thả để sắp xếp (chuột & cảm ứng): giữ ⠿ rồi kéo lên / xuống
   const [drag, setDrag] = useState(null); // { id, draft: [...] }
@@ -709,6 +725,7 @@ function Checklist({ list, trip }) {
               const names = Object.values(it.doneMap || {});
               return (
                 <li key={it.id} data-id={it.id} className={`${isDone(it) ? 'is-done' : ''} ${drag?.id === it.id ? 'is-dragging' : ''}`}>
+                  {!locked && (
                   <button
                     type="button"
                     className="check-handle"
@@ -725,6 +742,7 @@ function Checklist({ list, trip }) {
                   >
                     ⠿
                   </button>
+                  )}
                   <label className={canTick(it) ? '' : 'is-locked'} title={canTick(it) ? '' : t('check.onlyOwnerTicks', { name: it.ownerName })}>
                     <input type="checkbox" checked={isDone(it)} disabled={!canTick(it)} onChange={() => toggle(it)} />
                     <span>{it.text}</span>
@@ -734,7 +752,7 @@ function Checklist({ list, trip }) {
                     <button
                       type="button"
                       className={`item-scope ${pp ? 'item-scope--each' : ''} ${onlyMe(it) ? 'item-scope--me' : ''}`}
-                      onClick={() => (onlyMe(it) && it.ownerUid !== user.uid ? null : switchScope(it))}
+                      onClick={() => (locked || (onlyMe(it) && it.ownerUid !== user.uid) ? null : switchScope(it))}
                       title={
                         (onlyMe(it) ? t('check.itemMeHelp', { name: it.ownerName }) : pp ? t('check.itemEachHelp') : t('check.itemGroupHelp')) +
                         (pp && names.length ? ` — ✓ ${names.join(', ')}` : '') +
@@ -744,13 +762,17 @@ function Checklist({ list, trip }) {
                       {onlyMe(it) ? `👤 ${it.ownerUid === user.uid ? t('check.me') : it.ownerName || '?'}` : pp ? `🙋 ${names.length}/${memberCount}` : '👥'}
                     </button>
                   )}
+                  {!locked && (
                   <button className="icon-btn icon-btn--sm" onClick={() => remove(it)} aria-label={t('plan.remove')}>
                     ✕
                   </button>
+                  )}
                 </li>
               );
             })}
           </ul>
+          {!locked && (
+          <>
           <form className="row" onSubmit={addItem}>
             {sharedList && (
               <div className="segmented segmented--sm check-new-scope" role="group" aria-label={t('check.itemScope')}>
@@ -778,6 +800,8 @@ function Checklist({ list, trip }) {
               <TrashIcon /> {t('check.delete')}
             </button>
           </div>
+          </>
+          )}
         </>
       )}
     </div>

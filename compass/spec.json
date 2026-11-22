@@ -22,7 +22,90 @@
     ],
     "stack": ""
   },
-  "requirements": [],
-  "tests": [],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "title": "View-only trip members and copying a trip",
+      "description": "Trip owners can make an invited member view-only. View-only members see the plan, costs and shared checklists but cannot change them, and can copy the trip to their own account to plan it themselves.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "tripViewers",
+      "ac": [
+        {
+          "given": "I own a trip with an accepted member",
+          "when": "I open Members & invites and set that member to View only",
+          "then": "the member is stored in trips.viewerIds and shows as 'View only' in the member list"
+        },
+        {
+          "given": "I am a view-only member of a trip",
+          "when": "I open the trip",
+          "then": "I see a view-only banner, and controls to add, edit, reorder, tick or delete plan items, costs and shared checklist items are hidden or disabled"
+        },
+        {
+          "given": "I am a view-only member",
+          "when": "I try to write plan items, costs, shared checklists or trip details (UI or API)",
+          "then": "Firestore security rules reject the write"
+        },
+        {
+          "given": "I am a view-only member",
+          "when": "I tap 'Copy this trip' and confirm",
+          "then": "a new trip owned by me is created with the plan, checklists and estimated costs I chose, and I can edit it"
+        },
+        {
+          "given": "I am the trip owner",
+          "when": "anyone tries to make me view-only",
+          "then": "I keep full edit rights"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-001",
+      "title": "Owner and editors can edit; viewers cannot",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-002",
+      "title": "Non-members and signed-out users cannot edit",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-003",
+      "title": "Switching a member between view-only and edit never affects the owner",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-004",
+      "title": "Viewer UI: banner shown, edit controls hidden, Copy this trip creates an editable copy",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "manual",
+      "steps": [
+        "Owner sets member B to View only",
+        "Sign in as B and open the trip",
+        "Check Plan, Costs, Checklist tabs have no add/edit/delete controls",
+        "Tap Copy this trip, confirm, and edit the new trip"
+      ],
+      "status": "Passing (demo)"
+    }
+  ],
   "decisions": []
 }

@@ -7,6 +7,7 @@ import { pName } from '../lib/lang';
 import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase, actualAmountOf, participantsOf } from '../lib/money';
 import { currencyOfCountry } from '../lib/rates';
 import CurrencyRates from '../components/CurrencyRates';
+import { useTripReadOnly } from '../lib/tripAccess';
 import { exportCostsPdf, shareOrDownload, loadJsPdf } from '../lib/exportPlan';
 import { reloadOnce } from '../lib/freshness';
 
@@ -248,6 +249,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
 export default function TripCosts({ trip }) {
   const { t } = useI18n();
   const { api, user, notify, can } = useApp();
+  const ro = useTripReadOnly();
   const [costs, setCosts] = useState(null);
   const [plan, setPlan] = useState([]);
   const [adding, setAdding] = useState(null); // 'estimate' | 'actual' | null
@@ -371,16 +373,18 @@ export default function TripCosts({ trip }) {
           <b>{estGroup > 0 ? `${actualTotal > estGroup ? '+' : actualTotal < estGroup ? '−' : ''}${fmtMoney(Math.abs(actualTotal - estGroup), cur)}` : '—'}</b>
         </div>
       </div>
+      {!ro && (
       <div className="card">
         <CurrencyRates value={{ base: cur, rates }} suggest={suggestCurs} onChange={(v) => api.updateTrip(trip.id, { currency: v.base, rates: v.rates })} />
         {missingRate && <p className="small warn">⚠️ {t('fx.missingWarn')}</p>}
       </div>
+      )}
 
       {/* Dự kiến */}
       <div className="card stack-sm">
         <div className="trip-summary__head">
           <h3 className="h3">📝 {t('cost.estimates')}</h3>
-          {adding !== 'estimate' && (
+          {!ro && adding !== 'estimate' && (
             <button className="btn btn--sm btn--soft" onClick={() => setAdding('estimate')}>
               ＋ {t('cost.addEstimate')}
             </button>
@@ -422,7 +426,7 @@ export default function TripCosts({ trip }) {
                       <span className="muted small">—</span>
                     )}
                   </span>
-                  <span className="cost-row__actions">
+                  <span className={`cost-row__actions ${ro ? 'is-hidden' : ''}`}>
                     <button
                       className="icon-btn icon-btn--sm"
                       title={t('cost.toActual')}
@@ -458,7 +462,7 @@ export default function TripCosts({ trip }) {
       <div className="card stack-sm">
         <div className="trip-summary__head">
           <h3 className="h3">🧾 {t('cost.actuals')}</h3>
-          {adding !== 'actual' && (
+          {!ro && adding !== 'actual' && (
             <button className="btn btn--sm btn--primary" onClick={() => setAdding('actual')}>
               ＋ {t('cost.addActual')}
             </button>
@@ -524,7 +528,7 @@ export default function TripCosts({ trip }) {
                   <span className="small" title={participantsOf(c, memberIds).map((id) => nameOf(id)).join(', ')}>
                     {c.splitAmong?.length ? participantsOf(c, memberIds).map((id) => nameOf(id)).join(', ') : t('cost.splitAll')}
                   </span>
-                  <span className="cost-row__actions">
+                  <span className={`cost-row__actions ${ro ? 'is-hidden' : ''}`}>
                     <button className="icon-btn icon-btn--sm" title={t('plan.edit')} onClick={() => setEditId(c.id)}>
                       ✏️
                     </button>
@@ -584,9 +588,11 @@ export default function TripCosts({ trip }) {
                       <b>{nameOf(tr.from)}</b> → <b>{nameOf(tr.to)}</b>
                     </span>
                     <b className="transfer__amt">{fmtMoney(tr.amount, cur)}</b>
+                    {!ro && (
                     <button className="btn btn--sm btn--soft" onClick={() => markPaid(tr)}>
                       ✓ {t('cost.markPaid')}
                     </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -602,9 +608,11 @@ export default function TripCosts({ trip }) {
                       ✓ {nameOf(p.paidBy, p.paidByName)} → {nameOf(p.payTo)}
                     </span>
                     <span>{fmtMoney(p.amount, cur)}</span>
+                    {!ro && (
                     <button className="icon-btn icon-btn--sm" title={t('cost.undo')} onClick={() => api.deleteCost(trip.id, p.id)}>
                       ↩️
                     </button>
+                    )}
                   </div>
                 ))}
               </details>

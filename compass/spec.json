@@ -460,6 +460,31 @@
           "then": "only the shared CSS plus that page's CSS are downloaded, and the page looks the same as before"
         }
       ]
+    },
+    {
+      "id": "REQ-017",
+      "title": "Journey shows the itinerary date for visited places",
+      "description": "Places ticked as visited from the plan showed the day they were ticked (e.g. 22/11) instead of the day in the itinerary. The Journey now shows, for each stop: the memory's date for check-ins with photos; the plan date for places that are in the plan; otherwise the saved date. It is ordered by that date, newest first. Works for existing data without any migration.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "a place in the plan for 18/11 was ticked visited on 22/11",
+          "when": "I open the Journey",
+          "then": "it shows 18/11"
+        },
+        {
+          "given": "a check-in memory dated 17/11",
+          "when": "I open the Journey",
+          "then": "it shows 17/11"
+        },
+        {
+          "given": "stops with different dates",
+          "when": "I open the Journey",
+          "then": "they are ordered by the shown date, newest first"
+        }
+      ]
     }
   ],
   "tests": [
@@ -847,6 +872,16 @@
       ],
       "type": "automated",
       "file": "tests/costTableLayout.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-034",
+      "title": "Journey dates follow the itinerary",
+      "reqIds": [
+        "REQ-017"
+      ],
+      "type": "automated",
+      "file": "tests/journeyDates.test.mjs",
       "status": "Passing"
     }
   ],

@@ -58,3 +58,31 @@ export function tripDuration(start, end) {
 }
 /** Số địa điểm đang có trong kế hoạch (bỏ mục đã xoá) */
 export const planPlaceCount = (planAll) => new Set((planAll || []).filter((it) => !it.removed && it.place?.id).map((it) => it.place.id)).size;
+
+/**
+ * Hành trình: ngày hiển thị của mỗi điểm dừng.
+ * - Kỉ niệm (check-in có ảnh): ngày của kỉ niệm.
+ * - Điểm "đã đến" có trong kế hoạch có ngày: ngày trong lịch trình (không phải ngày bấm "đã đến").
+ * - Còn lại: ngày đã lưu, cuối cùng là lúc tạo.
+ * Trả về danh sách đã ẩn mục bị xoá khỏi kế hoạch, kèm `shownDate` (YYYY-MM-DD hoặc mốc thời gian),
+ * sắp xếp mới nhất trước.
+ */
+export function journeyStops(stops, planAll) {
+  const planDate = {};
+  (planAll || []).forEach((it) => {
+    const id = it.place?.id;
+    if (!id || it.removed || !it.date) return;
+    if (!planDate[id] || it.date < planDate[id]) planDate[id] = it.date;
+  });
+  const ms = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
+  return hideRemovedStops(stops, planAll)
+    .map((s) => {
+      const shownDate = (s.kind !== 'memory' && planDate[s.place?.id]) || s.date || s.createdAt || null;
+      return { ...s, shownDate };
+    })
+    .sort((a, b) => {
+      const ka = typeof a.shownDate === 'string' ? a.shownDate.slice(0, 10) : new Date(ms(a.shownDate) || 0).toISOString().slice(0, 10);
+      const kb = typeof b.shownDate === 'string' ? b.shownDate.slice(0, 10) : new Date(ms(b.shownDate) || 0).toISOString().slice(0, 10);
+      return kb.localeCompare(ka) || ms(b.createdAt) - ms(a.createdAt);
+    });
+}

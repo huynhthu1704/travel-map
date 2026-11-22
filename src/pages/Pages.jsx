@@ -27,7 +27,7 @@ import TripCosts from "./TripCosts";
 import DuplicateTrip from "./DuplicateTrip";
 import TripMembers, { MyTripInvites } from "../components/TripMembers";
 import GearPromo from "../components/GearPromo";
-import { TripReadOnly, isTripViewer, hideRemovedStops, tripDuration, planPlaceCount } from "../lib/tripAccess";
+import { TripReadOnly, isTripViewer, journeyStops, tripDuration, planPlaceCount } from "../lib/tripAccess";
 import AdSlot from "../components/AdSlot";
 import CurrencyRates from "../components/CurrencyRates";
 import { currencyOfCountry, fetchMarketRates } from "../lib/rates";
@@ -1067,7 +1067,7 @@ function TripDetail({ trip, onBack }) {
     await navigator.clipboard?.writeText(link);
     notify(t("trip.copied"));
   };
-  const stopList = useMemo(() => hideRemovedStops(stops || [], planAll), [stops, planAll]);
+  const stopList = useMemo(() => journeyStops(stops || [], planAll), [stops, planAll]);
   const countries = [
     ...new Set(stopList.map((s) => s.place.country).filter(Boolean)),
   ];
@@ -1294,7 +1294,7 @@ function TripDetail({ trip, onBack }) {
           <h3 className="section-title">{t("trip.journey")}</h3>
           {!stops ? (
             <Loader />
-          ) : stops.length === 0 ? (
+          ) : stopList.length === 0 ? (
             <Empty
               emoji="📍"
               title={t("trip.noStops")}
@@ -1302,7 +1302,7 @@ function TripDetail({ trip, onBack }) {
             />
           ) : (
             <ol className="timeline">
-              {stops.map((s) => (
+              {stopList.map((s) => (
                 <li key={s.id}>
                   <div className="timeline__dot">
                     {s.kind === "memory" ? "📸" : "👣"}
@@ -1321,7 +1321,7 @@ function TripDetail({ trip, onBack }) {
                         .filter(Boolean)
                         .join(", ")}{" "}
                       · {t("trip.by", { name: s.byName })}
-                      {s.createdAt ? ` · ${formatDate(s.createdAt)}` : ""}
+                      {s.shownDate ? ` · ${formatDate(s.shownDate)}` : ""}
                     </div>
                     {s.caption && <p>{s.caption}</p>}
                     {s.photos?.length > 0 && (

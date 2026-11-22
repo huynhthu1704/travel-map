@@ -7,6 +7,7 @@ import { useI18n } from '../i18n';
 import { FLAGS, flagReleased } from '../data/flags';
 import { RELEASES } from '../data/releases';
 import { formatDate } from '../components/ui';
+import '../styles/pages/about.css';
 
 /* ------------------------------------------------------------------ */
 /* Trang Giới thiệu (#/about)                                          */

@@ -22,6 +22,7 @@ import { ANNOUNCEMENT_TEMPLATES, announcementStatus } from '../lib/announcements
 import { AD_PLACEMENTS } from '../components/AdSlot';
 import AdminInsights from './AdminInsights';
 import { AdminFeedback } from '../components/Feedback';
+import '../styles/pages/admin.css';
 
 /* ------------------------------------------------------------------ */
 /* Trang quản trị: người dùng & phân quyền, kiểm duyệt nội dung,       */

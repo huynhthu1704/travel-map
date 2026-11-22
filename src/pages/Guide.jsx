@@ -16,6 +16,7 @@ import { useWikiThumb } from '../lib/placeImage';
 import GuideCostCalc from '../components/GuideCostCalc';
 import { LINK_CATS } from '../data/guideLinkCats';
 import { useI18n as useI18nSpeak } from '../i18n';
+import '../styles/pages/guide.css';
 
 /** Đọc to bằng giọng bản địa (Web Speech API của trình duyệt) */
 function speakText(text, lang) {

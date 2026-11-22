@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { Empty, Loader } from '../components/ui';
 import { normalize } from '../lib/geo';
 import { GEAR_TAGS, GEAR_TRIPS, GEAR_TAG, GEAR_TRIP } from '../data/gear';
+import '../styles/pages/gear.css';
 
 /* ------------------------------------------------------------------ */
 /* Đồ dùng du lịch (#/gear): lọc theo hình thức đi, công năng, tìm kiếm */

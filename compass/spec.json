@@ -510,6 +510,31 @@
           "then": "the original location is used again"
         }
       ]
+    },
+    {
+      "id": "REQ-019",
+      "title": "Edit the text of a checklist item",
+      "description": "Members can change the wording of a checklist item when plans change instead of deleting and re-adding it. Tap ✏️ (or double-click the text), Enter or click away to save, Esc to cancel. Ticks, who-ticked and the item's scope are kept. View-only members cannot edit shared lists. Behind the flag checkEdit.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "a checklist item 'Mua eSIM'",
+          "when": "I tap ✏️, type 'Mua eSIM Singapore' and press Enter",
+          "then": "the item shows the new text for everyone and stays ticked if it was ticked"
+        },
+        {
+          "given": "I am editing an item",
+          "when": "I press Esc or clear the text",
+          "then": "nothing changes"
+        },
+        {
+          "given": "I am a view-only member",
+          "when": "I open a shared checklist",
+          "then": "I do not see ✏️"
+        }
+      ]
     }
   ],
   "tests": [
@@ -917,6 +942,16 @@
       ],
       "type": "automated",
       "file": "tests/adminPlaceCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-036",
+      "title": "Rename a checklist item keeping its state",
+      "reqIds": [
+        "REQ-019"
+      ],
+      "type": "automated",
+      "file": "tests/checklistEdit.test.mjs",
       "status": "Passing"
     }
   ],

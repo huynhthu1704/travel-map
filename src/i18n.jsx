@@ -1633,6 +1633,7 @@ const DICT = {
     'check.kindQ': 'Loại chuyến đi',
     'check.useTemplate': 'Thêm sẵn các mục gợi ý (bỏ bớt / thêm sau được)',
     'check.addPlaceholder': 'Thêm mục mới…',
+    'check.editItem': 'Sửa nội dung',
     'check.add': 'Thêm',
     'check.reset': 'Bỏ tick tất cả',
     'check.delete': 'Xoá checklist',

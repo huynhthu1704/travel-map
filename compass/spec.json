@@ -535,6 +535,31 @@
           "then": "I do not see ✏️"
         }
       ]
+    },
+    {
+      "id": "REQ-020",
+      "title": "Journey shows the check-in date the user entered",
+      "description": "Check-ins with photos showed the upload day (e.g. 18/11) instead of the check-in date the user entered, because trip stops were saved without a date and were not updated when a check-in was edited. Now: stops save the check-in date; editing a check-in's date, caption or trip replaces my stop in the Journey; and the Journey uses the date of my own check-ins directly, so existing stops show the right date at once.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "I checked in at Chinatown with date 10/11 but uploaded on 18/11",
+          "when": "I open the trip's Journey",
+          "then": "it shows 10/11"
+        },
+        {
+          "given": "I change a check-in's date to 11/11",
+          "when": "anyone in the trip opens the Journey",
+          "then": "it shows 11/11"
+        },
+        {
+          "given": "I move a check-in to another trip",
+          "when": "I open both Journeys",
+          "then": "it appears only in the new trip"
+        }
+      ]
     }
   ],
   "tests": [
@@ -952,6 +977,16 @@
       ],
       "type": "automated",
       "file": "tests/checklistEdit.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-037",
+      "title": "Journey uses the entered check-in date",
+      "reqIds": [
+        "REQ-020"
+      ],
+      "type": "automated",
+      "file": "tests/journeyDates.test.mjs",
       "status": "Passing"
     }
   ],

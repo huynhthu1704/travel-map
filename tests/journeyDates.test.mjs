@@ -28,3 +28,15 @@ test('TC-034: a check-in memory keeps its own date; stops outside the plan keep 
 test('TC-034: the journey is ordered by the shown date, newest first', () => {
   assert.deepEqual(journeyStops(stops, plan).map((s) => s.id), ['s3', 's1', 's2']);
 });
+
+// TC-037 — ngày check-in người dùng nhập (REQ-020)
+test('TC-037: a check-in shows the date the user entered, even if the stop was saved without one', () => {
+  const st = [{ id: 'm', place: { id: 'cn' }, kind: 'memory', memoryId: 'mem1', createdAt: Date.parse('2026-11-18T12:00:00Z') }];
+  assert.equal(journeyStops(st, [], { mem1: '2026-11-10' })[0].shownDate, '2026-11-10');
+  assert.equal(journeyStops(st, [])[0].shownDate, st[0].createdAt);
+});
+
+test('TC-037: an edited check-in date wins over the date saved on the stop', () => {
+  const st = [{ id: 'm', place: { id: 'cn' }, kind: 'memory', memoryId: 'mem1', date: '2026-11-18' }];
+  assert.equal(journeyStops(st, [{ place: { id: 'cn' }, date: '2026-11-11' }], { mem1: '2026-11-10' })[0].shownDate, '2026-11-10');
+});

@@ -916,6 +916,9 @@ function CheckinModal({ place, tripId: initialTrip, memory, legacy, preserve, on
           await api.updateMemoryPhotos(user, { ...memory, caption: caption.trim(), tripId: tripId || null }, { keep, files });
         }
         await api.updateMemory(memory.id, { date, occasion, caption: caption.trim(), tripId: tripId || null, visibility: hasPhotos ? visibility : 'private' });
+        // REQ-020: Hành trình của chuyến đi hiện đúng ngày check-in / chú thích vừa sửa
+        if (date !== memory.date || caption.trim() !== (memory.caption || '') || (tripId || null) !== (memory.tripId || null))
+          await api.syncMemoryStop(user, memory, { ...memory, date, caption: caption.trim(), tripId: tripId || null });
         await api.setPlace(user, { ...(placeById[place.id] || place) }, 'visited', placeById[place.id]?.tripId || tripId || null, latest, placeById[place.id]?.occasion || occasion);
       } else {
         if (preserve && !legacy && preserve.visitedAt !== date)

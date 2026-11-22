@@ -285,7 +285,7 @@ const firebaseBackend = {
         const s = await getDocs(query(collection(db, 'trips', mem.tripId, 'stops'), where('memoryId', '==', id)));
         for (const d of s.docs) if (d.data().byUid === user.uid) await deleteDoc(d.ref);
         await addDoc(collection(db, 'trips', mem.tripId, 'stops'), {
-          place: pickPlace(mem.place), kind: 'memory', photos: thumbs, caption: mem.caption || '', memoryId: id, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
+          place: pickPlace(mem.place), kind: 'memory', photos: thumbs, caption: mem.caption || '', memoryId: id, date: mem.date || '', byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
         });
       } catch {
         /* không phải thành viên nữa: bỏ qua */
@@ -307,6 +307,23 @@ const firebaseBackend = {
     await b.commit();
   },
   /** Xoá điểm dừng trong chuyến đi được tạo từ lần check-in này */
+  /**
+   * REQ-020: sửa ngày / chú thích / chuyến đi của 1 check-in → cập nhật điểm dừng trong Hành trình
+   * (luật Firestore không cho sửa điểm dừng, nên xoá điểm cũ của mình rồi tạo lại, giữ ảnh và thời điểm tạo).
+   */
+  async syncMemoryStop(user, oldMem, mem) {
+    let photos = mem.photos || [];
+    if (oldMem.tripId) {
+      try {
+        const s = await getDocs(query(collection(db, 'trips', oldMem.tripId, 'stops'), where('memoryId', '==', mem.id), where('byUid', '==', user.uid)));
+        if (s.docs[0]?.data().photos?.length) photos = s.docs[0].data().photos;
+        await Promise.all(s.docs.map((d) => deleteDoc(d.ref)));
+      } catch {
+        /* không còn là thành viên chuyến: bỏ qua */
+      }
+    }
+    if (mem.tripId) await this.addStop(user, mem.tripId, { place: mem.place, kind: 'memory', photos, caption: mem.caption || '', memoryId: mem.id, date: mem.date || '' }).catch(() => {});
+  },
   async deleteStopsOfMemory(user, mem) {
     if (!mem.tripId) return;
     try {
@@ -536,7 +553,7 @@ const firebaseBackend = {
   },
   async addStop(user, tripId, { place, kind, photos = [], caption = '', memoryId = null, date = '' }) {
     const r = await addDoc(collection(db, 'trips', tripId, 'stops'), {
-      place: pickPlace(place), kind, photos, caption, memoryId, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
+      place: pickPlace(place), kind, photos, caption, memoryId, date: date || '', byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: serverTimestamp(),
     });
     // Địa điểm trong hành trình cũng có trong kế hoạch (để lập kế hoạch / sắp xếp)
     await this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date, revive: true }).catch(() => {});
@@ -878,10 +895,20 @@ const localBackend = {
     save();
     return true;
   },
-  addStop(user, tripId, { place, kind, photos = [], caption = '', date = '' }) {
+  syncMemoryStop(user, oldMem, mem) {
+    let photos = mem.photos || [];
+    if (oldMem.tripId && state.stops[oldMem.tripId]) {
+      const mine = state.stops[oldMem.tripId].filter((x) => x.memoryId === mem.id && x.byUid === user.uid);
+      if (mine[0]?.photos?.length) photos = mine[0].photos;
+      state.stops[oldMem.tripId] = state.stops[oldMem.tripId].filter((x) => !mine.includes(x));
+    }
+    if (mem.tripId) this.addStop(user, mem.tripId, { place: mem.place, kind: 'memory', photos, caption: mem.caption || '', memoryId: mem.id, date: mem.date || '' });
+    save();
+  },
+  addStop(user, tripId, { place, kind, photos = [], caption = '', memoryId = null, date = '' }) {
     this.ensurePlanItem(user, tripId, place, { done: kind !== 'wishlist', date, revive: true });
     (state.stops[tripId] ||= []).push({
-      id: uid(), place: pickPlace(place), kind, photos, caption, byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: now(),
+      id: uid(), place: pickPlace(place), kind, photos, caption, memoryId, date: date || '', byUid: user.uid, byName: user.name, byPhoto: user.photo || '', createdAt: now(),
     });
     save();
   },

@@ -67,7 +67,7 @@ export const planPlaceCount = (planAll) => new Set((planAll || []).filter((it) =
  * Trả về danh sách đã ẩn mục bị xoá khỏi kế hoạch, kèm `shownDate` (YYYY-MM-DD hoặc mốc thời gian),
  * sắp xếp mới nhất trước.
  */
-export function journeyStops(stops, planAll) {
+export function journeyStops(stops, planAll, memDate = {}) {
   const planDate = {};
   (planAll || []).forEach((it) => {
     const id = it.place?.id;
@@ -77,7 +77,10 @@ export function journeyStops(stops, planAll) {
   const ms = (v) => (v?.toMillis ? v.toMillis() : typeof v === 'number' ? v : v ? Date.parse(v) || 0 : 0);
   return hideRemovedStops(stops, planAll)
     .map((s) => {
-      const shownDate = (s.kind !== 'memory' && planDate[s.place?.id]) || s.date || s.createdAt || null;
+      const shownDate =
+        s.kind === 'memory'
+          ? (s.memoryId && memDate[s.memoryId]) || s.date || s.createdAt || null // REQ-020: ngày check-in người dùng nhập
+          : planDate[s.place?.id] || s.date || s.createdAt || null;
       return { ...s, shownDate };
     })
     .sort((a, b) => {

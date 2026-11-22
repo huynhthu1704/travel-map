@@ -49,17 +49,77 @@ const Seg = ({ value, set, options }) => (
   </div>
 );
 
+/**
+ * REQ-006: cách tính chi phí dự kiến — Cả nhóm / Mỗi người / Chọn người.
+ * Chọn người: bấm chọn những ai tham gia, rồi chọn số tiền là tổng (chia đều cho họ) hay cho mỗi người.
+ */
+function EstimateSplit({ mode, setMode, per, setPer, among, setAmong, trip, amount, cur, allowPick }) {
+  const { t } = useI18n();
+  const { user } = useApp();
+  const memberIds = trip.memberIds || [];
+  const n = Math.max(memberIds.length, 1);
+  const k = mode === 'pick' ? among.length : n;
+  const toggle = (id) => setAmong((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
+  const each = mode === 'person' || (mode === 'pick' && per === 'person');
+  return (
+    <div className="stack-sm est-split">
+      <Seg
+        value={mode}
+        set={setMode}
+        options={[
+          ['group', `👥 ${t('cost.perGroup')}`],
+          ['person', `🙋 ${t('cost.perPerson')}`],
+          ...(allowPick || mode === 'pick' ? [['pick', `👤 ${t('cost.pickPeople')}`]] : []),
+        ]}
+      />
+      {mode === 'pick' && (
+        <>
+          <div className="cost-form__split">
+            {memberIds.map((id) => (
+              <button key={id} type="button" className={`chip chip--sm ${among.includes(id) ? 'chip--on' : ''}`} onClick={() => toggle(id)}>
+                {among.includes(id) ? '✓ ' : ''}
+                {trip.members?.[id]?.name || id}
+                {id === user?.uid ? ` (${t('trips.you')})` : ''}
+              </button>
+            ))}
+          </div>
+          <Seg value={per} set={setPer} options={[['group', `💵 ${t('est.total')}`], ['person', `🙋 ${t('cost.perPerson')}`]]} />
+        </>
+      )}
+      {amount > 0 && k > 0 && (
+        <small className="muted">
+          {mode === 'pick'
+            ? each
+              ? t('est.hintEach', { total: fmtMoney(amount * k, cur), n: k })
+              : t('est.hintTotal', { each: fmtMoney(amount / k, cur), n: k })
+            : each
+              ? t('cost.personHint', { total: fmtMoney(amount * k, cur), n: k })
+              : t('cost.groupHint', { each: fmtMoney(amount / k, cur), n: k })}
+        </small>
+      )}
+      {mode === 'pick' && !among.length && <small className="warn">{t('est.pickOne')}</small>}
+    </div>
+  );
+}
+const estModeOf = (c) => (c.splitAmong?.length ? 'pick' : c.per || 'group');
+/** Ghi chú ngắn cho 1 khoản dự kiến: "mỗi người · An, Bình" */
+const estPerLabel = (c, t, nameOf) => {
+  const base = c.per === 'person' ? t('ct.perPerson') : t('ct.perGroup');
+  return c.splitAmong?.length ? `${c.per === 'person' ? t('ct.perPerson') : t('est.splitBetween')} · ${c.splitAmong.map((id) => nameOf(id)).join(', ')}` : base;
+};
+
 /* ------------------------------------------------------------------ */
 /* Form thêm / sửa 1 khoản chi (dự kiến hoặc thực tế)                  */
 /* ------------------------------------------------------------------ */
 function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates = [], onSave, onCancel }) {
   const { t } = useI18n();
-  const { user } = useApp();
+  const { user, can } = useApp();
   const memberIds = trip.memberIds || [];
   const n = Math.max(memberIds.length, 1);
   const [title, setTitle] = useState(initial.title || '');
   const [amount, setAmount] = useState(initial.amount ?? null);
   const [per, setPer] = useState(initial.per || 'group');
+  const [estMode, setEstMode] = useState(estModeOf(initial));
   const [planItemId, setPlanItemId] = useState(initial.planItemId || '');
   const [estimateId, setEstimateId] = useState(initial.estimateId || '');
   const [paidBy, setPaidBy] = useState(initial.paidBy || user.uid);
@@ -79,13 +139,17 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
     if (c && curs.includes(c)) setCur(c);
   }, [planItemId]); // eslint-disable-line react-hooks/exhaustive-deps
   const finalTitle = title.trim() || (linked ? pName(linked.place) : '');
-  const ok = finalTitle && amount > 0 && (type === 'estimate' || (paidBy && people.length));
+  const ok = finalTitle && amount > 0 && (type === 'estimate' ? estMode !== 'pick' || among.length > 0 : paidBy && people.length);
   const toggle = (id) => setAmong((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
   const fromEstimate = (e) => {
     setEstimateId(e.id);
     setTitle(e.title);
     setAmount(e.amount);
     setPer(e.per || 'group');
+    if (e.splitAmong?.length) {
+      setAmong(e.splitAmong);
+      setWho('some');
+    }
     setCur(e.currency && curs.includes(e.currency) ? e.currency : base);
     setPlanItemId(e.planItemId || '');
     if (e.note) setNote(e.note);
@@ -100,7 +164,8 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
       /* bỏ qua */
     }
     const common = { type, title: finalTitle, amount, currency: cur, planItemId: planItemId || null, note: note.trim() };
-    if (type === 'estimate') onSave({ ...common, per });
+    if (type === 'estimate')
+      onSave({ ...common, per: estMode === 'pick' ? per : estMode, splitAmong: estMode === 'pick' ? among : [] });
     else
       onSave({
         ...common,
@@ -168,7 +233,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
         <div className="cf-grid">
           <div className="cf-field">
             <span>{t('cost.calcBy')}</span>
-            <Seg value={per} set={setPer} options={[['group', `👥 ${t('cost.perGroup')}`], ['person', `🙋 ${t('cost.perPerson')}`]]} />
+            <EstimateSplit mode={estMode} setMode={setEstMode} per={per} setPer={setPer} among={among} setAmong={setAmong} trip={trip} amount={amount} cur={cur} allowPick={can('costPickPeople')} />
           </div>
           {placeSelect}
         </div>
@@ -191,13 +256,6 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
           </div>
           {placeSelect}
         </div>
-      )}
-      {type === 'estimate' && amount > 0 && (
-        <small className="muted">
-          {per === 'group'
-            ? t('cost.groupHint', { each: fmtMoney(amount / n, cur), n })
-            : t('cost.personHint', { total: fmtMoney(amount * n, cur), n })}
-        </small>
       )}
       {type === 'actual' && (
         <div className="cf-grid cf-grid--2">
@@ -261,6 +319,9 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
   const [estAmount, setEstAmount] = useState(null);
   const [estCur, setEstCur] = useState(firstCur);
   const [estPer, setEstPer] = useState('group');
+  const [estMode, setEstMode] = useState('group');
+  const [estAmong, setEstAmong] = useState(memberIds);
+  const { can } = useApp();
   const [hasAct, setHasAct] = useState(false);
   const [actAmount, setActAmount] = useState(null);
   const [actCur, setActCur] = useState(firstCur);
@@ -272,7 +333,7 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
   const people = who === 'all' ? memberIds : among;
   const linked = plan.find((p) => p.id === planItemId);
   const finalTitle = title.trim() || (linked ? pName(linked.place) : '');
-  const ok = finalTitle && (hasEst || hasAct) && (!hasEst || estAmount > 0) && (!hasAct || (actAmount > 0 && paidBy && people.length));
+  const ok = finalTitle && (hasEst || hasAct) && (!hasEst || (estAmount > 0 && (estMode !== 'pick' || estAmong.length))) && (!hasAct || (actAmount > 0 && paidBy && people.length));
   const toggle = (id) => setAmong((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]));
   const curSel = (value, set) =>
     curs.length > 1 ? (
@@ -292,7 +353,9 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
     }
     const common = { title: finalTitle, planItemId: planItemId || null, note: note.trim() };
     onSave({
-      estimate: hasEst ? { ...common, type: 'estimate', amount: estAmount, currency: estCur, per: estPer } : null,
+      estimate: hasEst
+        ? { ...common, type: 'estimate', amount: estAmount, currency: estCur, per: estMode === 'pick' ? estPer : estMode, splitAmong: estMode === 'pick' ? estAmong : [] }
+        : null,
       actual: hasAct
         ? {
             ...common,
@@ -341,12 +404,7 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
                 <MoneyInput value={estAmount} onChange={setEstAmount} cur={estCur} />
                 {curSel(estCur, setEstCur)}
               </div>
-              <Seg value={estPer} set={setEstPer} options={[['group', `👥 ${t('cost.perGroup')}`], ['person', `🙋 ${t('cost.perPerson')}`]]} />
-              {estAmount > 0 && (
-                <small className="muted">
-                  {estPer === 'group' ? t('cost.groupHint', { each: fmtMoney(estAmount / n, estCur), n }) : t('cost.personHint', { total: fmtMoney(estAmount * n, estCur), n })}
-                </small>
-              )}
+              <EstimateSplit mode={estMode} setMode={setEstMode} per={estPer} setPer={setEstPer} among={estAmong} setAmong={setEstAmong} trip={trip} amount={estAmount} cur={estCur} allowPick={can('costPickPeople')} />
             </>
           )}
         </fieldset>
@@ -360,7 +418,11 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
                 if (e.target.checked && actAmount == null && estAmount) {
                   setActAmount(estAmount);
                   setActCur(estCur);
-                  setActPer(estPer);
+                  setActPer(estMode === 'pick' ? estPer : estMode);
+                  if (estMode === 'pick' && estAmong.length) {
+                    setAmong(estAmong);
+                    setWho('some');
+                  }
                 }
               }}
             />
@@ -593,8 +655,9 @@ export default function TripCosts({ trip }) {
   // Dự kiến đã được ghi thành chi phí thực tế (qua estimateId)
   const recorded = Object.fromEntries(estimates.map((e) => [e.id, actuals.filter((a) => a.estimateId === e.id)]));
   const openEstimates = estimates.filter((e) => !recorded[e.id]?.length);
-  const estPerPerson = estimates.reduce((s, c) => s + perPersonOf(c, n, conv), 0);
   const estGroup = estimates.reduce((s, c) => s + groupTotalOf(c, n, conv), 0);
+  // Trung bình mỗi người (khoản chỉ áp dụng cho vài người vẫn được tính vào tổng nhóm)
+  const estPerPerson = estGroup / n;
   const actualTotal = actuals.reduce((s, c) => s + (conv(actualAmountOf(c, memberIds), c.currency) ?? 0), 0);
   const missingRate = list.some((c) => c.currency && c.currency !== cur && conv(1, c.currency) == null);
   const { balances, transfers } = useMemo(() => settle(list, memberIds, cur, conv), [costs, memberIds.join(), cur, JSON.stringify(rates)]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -770,7 +833,7 @@ export default function TripCosts({ trip }) {
                           {r.kind === 'item' ? (
                             <>
                               <Amount c={c} />
-                              <small className="muted">{c.per === 'person' ? t('ct.perPerson') : t('ct.perGroup')}</small>
+                              <small className="muted">{estPerLabel(c, t, nameOf)}</small>
                             </>
                           ) : (
                             <span className="muted">—</span>
@@ -840,7 +903,7 @@ export default function TripCosts({ trip }) {
                     {actFor === c.id && (
                       <CostForm
                         type="actual"
-                        initial={{ title: c.title, amount: c.amount, per: c.per, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id }}
+                        initial={{ title: c.title, amount: c.amount, per: c.per, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id, splitAmong: c.splitAmong || [] }}
                         trip={trip}
                         plan={plan}
                         cur={cur}
@@ -909,7 +972,7 @@ export default function TripCosts({ trip }) {
                   </span>
                   <span>
                     <Amount c={c} />
-                    <small className="muted"> / {c.per === 'person' ? t('cost.person') : t('cost.group')}</small>
+                    <small className="muted"> · {estPerLabel(c, t, nameOf)}</small>
                   </span>
                   <span>{fmtMoney(perPersonOf(c, n, conv), cur)}</span>
                   <span>
@@ -926,7 +989,7 @@ export default function TripCosts({ trip }) {
                       className="icon-btn icon-btn--sm"
                       title={t('cost.toActual')}
                       onClick={() => {
-                        setPrefill({ title: c.title, amount: c.amount, per: c.per, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id });
+                        setPrefill({ title: c.title, amount: c.amount, per: c.per, currency: c.currency, planItemId: c.planItemId, note: c.note, estimateId: c.id, splitAmong: c.splitAmong || [] });
                         setAdding('actual');
                       }}
                     >

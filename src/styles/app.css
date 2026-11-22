@@ -10133,3 +10133,8 @@ a.app-link.place-card__title:hover {
     animation: none;
   }
 }
+
+/* REQ-006: chi phí dự kiến cho người được chọn */
+.est-split .cost-form__split {
+  margin: 0;
+}

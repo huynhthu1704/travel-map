@@ -338,8 +338,8 @@ export async function exportCostsPdf(trip, costs, plan = []) {
   const actuals = costs.filter((c) => c.type === 'actual').sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
   const payments = costs.filter((c) => c.type === 'payment');
   const base = (c, v) => conv(v, c.currency || cur) ?? 0;
-  const estPerPerson = estimates.reduce((s, c) => s + perPersonOf(c, n, conv), 0);
   const estGroup = estimates.reduce((s, c) => s + groupTotalOf(c, n, conv), 0);
+  const estPerPerson = estGroup / n;
   const actualTotal = actuals.reduce((s, c) => s + base(c, actualAmountOf(c, memberIds)), 0);
   const { balances, transfers } = settle(costs, memberIds, cur, conv);
   /** Số tiền gốc, kèm "≈ quy đổi" nếu là ngoại tệ */
@@ -500,7 +500,7 @@ export async function exportCostsPdf(trip, costs, plan = []) {
       const p = placeOf(c);
       row(cols, [
         { lines: [c.title || '—'], style: 'bold', sub: [[p && pName(p), c.note].filter(Boolean).join(' · ')] },
-        { lines: [`${amountLines(c, c.amount)[0]} / ${c.per === 'person' ? t('cost.person') : t('cost.group')}`], sub: amountLines(c, c.amount).slice(1) },
+        { lines: [`${amountLines(c, c.amount)[0]} / ${c.per === 'person' ? t('cost.person') : t('cost.group')}`], sub: [...amountLines(c, c.amount).slice(1), c.splitAmong?.length ? c.splitAmong.map((id) => nameOf(id)).join(', ') : ''] },
         { lines: [pdfMoney(perPersonOf(c, n, conv), cur)] },
         { lines: [rec.length ? pdfMoney(rec.reduce((s, a) => s + base(a, actualAmountOf(a, memberIds)), 0), cur) : '—'], color: rec.length ? POS : MUTED },
       ]);

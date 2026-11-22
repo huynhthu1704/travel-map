@@ -94,3 +94,19 @@ export function buildCostTable(costs, { estTotal, actTotal, eps = 0.5 }) {
   const pending = rows.filter((r) => r.status === 'pending').reduce((s, r) => s + r.planned, 0);
   return { rows, totals: { planned, actual, extra, pending, diff: actual - planned } };
 }
+
+/**
+ * REQ-006: chi phí dự kiến có thể chỉ áp dụng cho một số người (splitAmong).
+ * - per 'group': số tiền là tổng, chia đều cho những người tham gia
+ * - per 'person': số tiền tính cho mỗi người tham gia
+ * Người tham gia = splitAmong (nếu có) hoặc cả nhóm (members người).
+ */
+export const estPeople = (c, members) => (c.splitAmong?.length ? c.splitAmong.length : Math.max(members, 1));
+export function estGroupTotal(c, members, conv = (a) => a) {
+  const a = conv(Number(c.amount) || 0, c.currency) ?? 0;
+  return c.per === 'person' ? a * estPeople(c, members) : a;
+}
+/** Phần của mỗi người tham gia khoản dự kiến này */
+export function estShare(c, members, conv = (a) => a) {
+  return estGroupTotal(c, members, conv) / estPeople(c, members);
+}

@@ -1,5 +1,6 @@
 // Tiền tệ, định dạng số tiền và tính chia tiền sau chuyến đi.
 import { getLocale } from './lang';
+import { estShare, estGroupTotal } from './costCompare';
 
 export const CURRENCIES = ['VND', 'USD', 'EUR', 'GBP', 'SGD', 'MYR', 'THB', 'IDR', 'PHP', 'KHR', 'LAK', 'JPY', 'KRW', 'CNY', 'TWD', 'HKD', 'AUD', 'NZD', 'CAD', 'CHF', 'INR', 'AED'];
 const NO_DECIMALS = new Set(['VND', 'JPY', 'KRW', 'TWD', 'IDR', 'KHR', 'LAK', 'CLP', 'HUF', 'ISK', 'UZS', 'MNT']);
@@ -47,15 +48,12 @@ export const makeToBase = (base, rates = {}) => (amount, cur) => {
   return r > 0 ? a * r : null;
 };
 
-/** Chi phí dự kiến cho mỗi người: theo nhóm thì chia đều cho số thành viên */
-export const perPersonOf = (c, members, conv = (a) => a) => {
-  const a = conv(Number(c.amount) || 0, c.currency) ?? 0;
-  return c.per === 'person' ? a : a / Math.max(members, 1);
-};
-export const groupTotalOf = (c, members, conv = (a) => a) => {
-  const a = conv(Number(c.amount) || 0, c.currency) ?? 0;
-  return c.per === 'person' ? a * Math.max(members, 1) : a;
-};
+/**
+ * Chi phí dự kiến: phần của mỗi người tham gia / tổng cả nhóm.
+ * Có splitAmong (chọn người, REQ-006) thì chỉ tính cho những người đó.
+ */
+export const perPersonOf = (c, members, conv = (a) => a) => estShare(c, members, conv);
+export const groupTotalOf = (c, members, conv = (a) => a) => estGroupTotal(c, members, conv);
 
 /** Người tham gia 1 khoản chi thực tế (trống = cả nhóm) */
 export const participantsOf = (c, memberIds) => (c.splitAmong?.length ? c.splitAmong : memberIds).filter(Boolean);

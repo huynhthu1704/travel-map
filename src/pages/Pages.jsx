@@ -27,7 +27,7 @@ import TripCosts from "./TripCosts";
 import DuplicateTrip from "./DuplicateTrip";
 import TripMembers, { MyTripInvites } from "../components/TripMembers";
 import GearPromo from "../components/GearPromo";
-import { TripReadOnly, isTripViewer, hideRemovedStops } from "../lib/tripAccess";
+import { TripReadOnly, isTripViewer, hideRemovedStops, tripDuration, planPlaceCount } from "../lib/tripAccess";
 import AdSlot from "../components/AdSlot";
 import CurrencyRates from "../components/CurrencyRates";
 import { currencyOfCountry, fetchMarketRates } from "../lib/rates";
@@ -1048,7 +1048,8 @@ function TripDetail({ trip, onBack }) {
   useEffect(() => (isMember ? api.watchStops(trip.id, setStops) : (setStops([]), undefined)), [trip.id, api, isMember]);
   // REQ-012: cả các mục đã xoá khỏi kế hoạch, để ẩn chúng khỏi Hành trình
   const [planAll, setPlanAll] = useState([]);
-  useEffect(() => (isMember ? api.watchPlan(trip.id, setPlanAll, { includeRemoved: true }) : (setPlanAll([]), undefined)), [trip.id, api, isMember]);
+  // Người xem bằng link cũng đọc được kế hoạch → dùng để đếm số địa điểm (REQ-014)
+  useEffect(() => api.watchPlan(trip.id, setPlanAll, { includeRemoved: true }), [trip.id, api]);
   const [showMembers, setShowMembers] = useState(false);
   const link = `${location.origin}${location.pathname}#join=${trip.inviteCode}`;
   // eslint-disable-next-line no-unused-vars
@@ -1086,9 +1087,17 @@ function TripDetail({ trip, onBack }) {
               {destLabel(trip.destinations) && (
                 <span className="fact">{destLabel(trip.destinations)}</span>
               )}
-              <span className="fact">
-                👣 {t("trip.stops", { n: stopList.length })}
-              </span>
+              {/* REQ-014: độ dài chuyến; thành viên thấy số điểm dừng (Hành trình), người xem bằng link thấy số địa điểm trong kế hoạch */}
+              {tripDuration(trip.startDate, trip.endDate) && (
+                <span className="fact">🌙 {t("trip.duration", tripDuration(trip.startDate, trip.endDate))}</span>
+              )}
+              {linkViewer ? (
+                <span className="fact">📍 {t("trip.planPlaces", { n: planPlaceCount(planAll) })}</span>
+              ) : (
+                <span className="fact">
+                  👣 {t("trip.stops", { n: stopList.length })}
+                </span>
+              )}
             </div>
           </div>
           {isMember && (

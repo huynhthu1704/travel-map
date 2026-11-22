@@ -46,3 +46,15 @@ export function hideRemovedStops(stops, planAll) {
   });
   return (stops || []).filter((s) => !s.place || active.has(s.place.id) || !removed.has(s.place.id));
 }
+
+/** REQ-014: số ngày / đêm của chuyến từ ngày đi – về (cả hai ngày đều tính); thiếu ngày → null */
+export function tripDuration(start, end) {
+  if (!start) return null;
+  const a = new Date(`${start}T00:00:00Z`);
+  const b = new Date(`${end || start}T00:00:00Z`);
+  if (isNaN(a) || isNaN(b) || b < a) return null;
+  const days = Math.round((b - a) / 864e5) + 1;
+  return { days, nights: days - 1 };
+}
+/** Số địa điểm đang có trong kế hoạch (bỏ mục đã xoá) */
+export const planPlaceCount = (planAll) => new Set((planAll || []).filter((it) => !it.removed && it.place?.id).map((it) => it.place.id)).size;

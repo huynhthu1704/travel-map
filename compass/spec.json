@@ -410,6 +410,31 @@
           "then": "it still appears, in the last group"
         }
       ]
+    },
+    {
+      "id": "REQ-014",
+      "title": "Trip header shows length and the right place count",
+      "description": "Link viewers saw '0 stops' because they cannot read the Journey. The header now shows the trip length (days/nights) for everyone, the number of planned places for link viewers, and the Journey stop count for members.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        {
+          "given": "a trip has start and end dates",
+          "when": "anyone opens it",
+          "then": "the header shows e.g. '🌙 5 days 4 nights'"
+        },
+        {
+          "given": "I view a trip by its view-only link",
+          "when": "I look at the header",
+          "then": "I see '📍 N places' from the plan instead of '0 stops'"
+        },
+        {
+          "given": "I am a member",
+          "when": "I look at the header",
+          "then": "I still see the Journey stop count"
+        }
+      ]
     }
   ],
   "tests": [
@@ -767,6 +792,16 @@
       ],
       "type": "automated",
       "file": "tests/aboutGroups.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-031",
+      "title": "Trip length and planned-place count",
+      "reqIds": [
+        "REQ-014"
+      ],
+      "type": "automated",
+      "file": "tests/tripFacts.test.mjs",
       "status": "Passing"
     }
   ],

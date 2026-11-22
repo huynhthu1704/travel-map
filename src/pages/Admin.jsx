@@ -696,8 +696,8 @@ function PlaceEditor({ place, cc, onClose }) {
     descEn: ov.descEn || place?.i18n?.en?.desc || '',
     image: ov.image || place?.image || '',
     emoji: place?.emoji || '📍',
-    lat: place?.lat ?? '',
-    lng: place?.lng ?? '',
+    lat: ov.lat ?? place?.lat ?? '',
+    lng: ov.lng ?? place?.lng ?? '',
     country: place?.country || cc,
     link: '',
   }));
@@ -724,7 +724,10 @@ function PlaceEditor({ place, cc, onClose }) {
           i18n: { en: { name: f.nameEn.trim() || f.nameVi.trim(), city: f.cityEn.trim() || f.city.trim(), desc: f.descEn.trim() } },
         });
       } else {
-        await adminApi.saveOverride(place.id, { nameVi: f.nameVi.trim(), nameEn: f.nameEn.trim(), descVi: f.descVi.trim(), descEn: f.descEn.trim(), image: f.image.trim() }, user.uid);
+        // Toạ độ: chỉ lưu khi người sửa đổi khác vị trí gốc (sửa link Google Maps / toạ độ cho địa điểm nổi tiếng)
+        const lat = Number(f.lat), lng = Number(f.lng);
+        const moved = f.lat !== '' && f.lng !== '' && Number.isFinite(lat) && Number.isFinite(lng) && (lat !== Number(place.lat) || lng !== Number(place.lng) || ov.lat != null);
+        await adminApi.saveOverride(place.id, { nameVi: f.nameVi.trim(), nameEn: f.nameEn.trim(), descVi: f.descVi.trim(), descEn: f.descEn.trim(), image: f.image.trim(), ...(moved ? { lat, lng } : {}) }, user.uid);
       }
       notify(t('admin.saved'));
       onClose();
@@ -742,14 +745,12 @@ function PlaceEditor({ place, cc, onClose }) {
           ✕
         </button>
       </div>
-      {isCustom && (
-        <div className="row wrap">
-          <input className="grow" value={f.link} onChange={set('link')} placeholder={t('admin.fromLink')} />
-          <button className="btn btn--sm btn--dark" onClick={fromLink} disabled={busy}>
-            🔗 {t('link.find')}
-          </button>
-        </div>
-      )}
+      <div className="row wrap">
+        <input className="grow" value={f.link} onChange={set('link')} placeholder={t('admin.fromLink')} />
+        <button className="btn btn--sm btn--dark" onClick={fromLink} disabled={busy}>
+          🔗 {t('link.find')}
+        </button>
+      </div>
       <div className="grid-2">
         <label className="field">
           <span>{t('admin.f.nameVi')}</span>
@@ -770,14 +771,6 @@ function PlaceEditor({ place, cc, onClose }) {
               <input value={f.cityEn} onChange={set('cityEn')} />
             </label>
             <label className="field">
-              <span>{t('admin.f.lat')}</span>
-              <input value={f.lat} onChange={set('lat')} inputMode="decimal" />
-            </label>
-            <label className="field">
-              <span>{t('admin.f.lng')}</span>
-              <input value={f.lng} onChange={set('lng')} inputMode="decimal" />
-            </label>
-            <label className="field">
               <span>{t('admin.f.emoji')}</span>
               <input value={f.emoji} onChange={set('emoji')} maxLength={4} />
             </label>
@@ -787,6 +780,14 @@ function PlaceEditor({ place, cc, onClose }) {
             </label>
           </>
         )}
+        <label className="field">
+          <span>{t('admin.f.lat')}</span>
+          <input value={f.lat} onChange={set('lat')} inputMode="decimal" />
+        </label>
+        <label className="field">
+          <span>{t('admin.f.lng')}</span>
+          <input value={f.lng} onChange={set('lng')} inputMode="decimal" />
+        </label>
         <label className="field">
           <span>{t('admin.f.descVi')}</span>
           <textarea rows={2} value={f.descVi} onChange={set('descVi')} />

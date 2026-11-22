@@ -961,11 +961,24 @@ function PlacePanel() {
   );
 }
 
+/** REQ-011: lưới ảnh dài chỉ dựng ~24 ô đầu, cuộn gần cuối mới dựng thêm → trang không bị "đơ" khi mở */
+const GRID_STEP = 24;
 export function MemoryGrid({ items, adsEvery = 0 }) {
   const { setModal, placeStatus, user, openProfile } = useApp();
+  const [limit, setLimit] = useState(GRID_STEP);
+  const firstId = items[0]?.id;
+  useEffect(() => setLimit(GRID_STEP), [firstId, items.length < GRID_STEP]); // eslint-disable-line react-hooks/exhaustive-deps
+  const moreRef = useRef(null);
+  const hasMore = items.length > limit;
+  useEffect(() => {
+    if (!hasMore || !moreRef.current || !('IntersectionObserver' in window)) return undefined;
+    const io = new IntersectionObserver((es) => es.some((e) => e.isIntersecting) && setLimit((l) => l + GRID_STEP), { rootMargin: '600px 0px' });
+    io.observe(moreRef.current);
+    return () => io.disconnect();
+  }, [hasMore, limit]);
   return (
     <div className="mgrid">
-      {items.map((m, i) => (
+      {items.slice(0, limit).map((m, i) => (
         <Fragment key={m.id}>
         {adsEvery > 0 && i > 0 && i % adsEvery === 0 && <AdSlot placement={`explore-${i}`} size="inline" />}
         <div
@@ -999,6 +1012,7 @@ export function MemoryGrid({ items, adsEvery = 0 }) {
         </div>
         </Fragment>
       ))}
+      {hasMore && <div ref={moreRef} className="mgrid__more" aria-hidden />}
     </div>
   );
 }

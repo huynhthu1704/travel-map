@@ -53,6 +53,14 @@ export function AppProvider({ children }) {
   const markLoaded = (k) => setLoaded((l) => (l[k] ? l : { ...l, [k]: true }));
 
   const [view, setView] = useState(initRoute.view);
+  // REQ-011: bản chi tiết (50m, ~230 KB nén) chỉ tải khi mở trang Bản đồ lần đầu, lúc trình duyệt rảnh
+  const detailRequested = useRef(false);
+  useEffect(() => {
+    if (view !== 'map' || detailRequested.current) return;
+    detailRequested.current = true;
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200));
+    idle(() => loadCountries('110m').finally(() => loadCountries('50m').then((fc) => setCountries(fc))));
+  }, [view]);
   const [selectedCountry, setSelectedCountry] = useState(initRoute.country);
   const [selectedPlace, setSelectedPlace] = useState(initRoute.place);
   const [profileUid, setProfileUid] = useState(initRoute.profile); // hồ sơ đang xem (#/u/<uid>)
@@ -153,12 +161,9 @@ export function AppProvider({ children }) {
   const can = useCallback((key) => flagAllows(key, settings, user, isSuper), [settings, user, isSuper]); // feature flags
   setAdminActor(isStaff ? user : null); // người thực hiện thao tác quản trị — ghi vào nhật ký
   useEffect(() => {
-    // Bản đồ quốc gia nhẹ trước để hiện nhanh, rồi thay bằng bản chi tiết khi trình duyệt rảnh
+    // Bản đồ quốc gia nhẹ (~36 KB nén) để tìm kiếm / tô màu nhanh
     let alive = true;
-    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 1200));
-    loadCountries('110m')
-      .then((fc) => alive && setCountries((cur) => cur || fc))
-      .finally(() => idle(() => loadCountries('50m').then((fc) => alive && setCountries(fc))));
+    loadCountries('110m').then((fc) => alive && setCountries((cur) => cur || fc));
     return () => {
       alive = false;
     };

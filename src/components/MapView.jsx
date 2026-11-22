@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef } from 'react';
 import { pickSelected } from '../lib/mapSelect';
 import { MapContainer, GeoJSON, Marker, Polyline, Tooltip, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from '../lib/leafletGlobal';
@@ -248,7 +248,9 @@ export default function MapView() {
   );
 
   // REQ-005: địa điểm đang chọn được vẽ riêng (không gom cụm, nằm trên cùng, có nhãn tên)
-  const { selected, rest } = can?.('selectedPin') ? pickSelected(markers, selectedPlace?.id) : { selected: null, rest: markers };
+  // REQ-011: vẽ hàng chục ghim ở chế độ "nền" (React chia nhỏ công việc) để trang không bị đơ lúc mở
+  const lazyMarkers = useDeferredValue(markers);
+  const { selected, rest } = can?.('selectedPin') ? pickSelected(lazyMarkers, selectedPlace?.id) : { selected: null, rest: lazyMarkers };
 
   return (
     <MapContainer

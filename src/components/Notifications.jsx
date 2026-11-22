@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Avatar, Empty, Loader } from './ui';
 import { socialApi } from '../lib/social';
-import { FeedList } from '../pages/Profile';
+// REQ-011: chỉ tải phần hồ sơ khi mở tab Bạn bè (không kéo cả trang Hồ sơ vào lúc mở web)
+const FeedList = lazy(() => import('../pages/Profile').then((m) => ({ default: m.FeedList })));
 
 const ago = (ms, lang) => {
   const s = Math.max(1, Math.round((Date.now() - ms) / 1000));
@@ -214,6 +215,7 @@ function FriendsFeed({ ids }) {
   if (!rows) return <Loader size="sm" />;
   if (!rows.length) return <Empty emoji="🗺️" title={t('notif.noFriendNews')} />;
   return (
+    <Suspense fallback={<Loader />}>
     <div className="notif__body">
       {rows.map(({ it, who }, i) => (
         <div key={i} className="notif__friend">
@@ -222,5 +224,6 @@ function FriendsFeed({ ids }) {
         </div>
       ))}
     </div>
+    </Suspense>
   );
 }

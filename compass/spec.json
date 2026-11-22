@@ -335,6 +335,36 @@
           "then": "Firestore rules deny it"
         }
       ]
+    },
+    {
+      "id": "REQ-011",
+      "title": "Faster page loading",
+      "description": "Pages load too slowly on phones. Load the map only when the Map page is opened, load the English dictionary only for English users, stop loading the profile page at start-up, defer detailed country borders, render long photo grids progressively, and render map pins in the background.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 after the performance test",
+      "ac": [
+        {
+          "given": "I open Trips, Guides, Explore, Memories or About",
+          "when": "the page loads",
+          "then": "the map code (Leaflet, MapLibre, country borders) is not downloaded"
+        },
+        {
+          "given": "my language is Vietnamese",
+          "when": "the site loads",
+          "then": "the English dictionary is not downloaded; switching to English downloads it first and then switches"
+        },
+        {
+          "given": "Explore or Memories has many photos",
+          "when": "I open it",
+          "then": "about 24 cards render first and more render as I scroll"
+        },
+        {
+          "given": "the mobile Lighthouse test (4G) is run on Trips, Guides, Explore and About",
+          "when": "compared with the baseline",
+          "then": "Largest Contentful Paint and Total Blocking Time are lower than before (baseline: LCP 6.5–7.1 s, TBT 0.6–1.2 s)"
+        }
+      ]
     }
   ],
   "tests": [
@@ -635,6 +665,30 @@
         "The arrow is visible in the row title"
       ],
       "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-026",
+      "title": "English dictionary loads on its own and covers the Vietnamese keys",
+      "reqIds": [
+        "REQ-011"
+      ],
+      "type": "automated",
+      "file": "tests/pageSpeed.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-027",
+      "title": "Lighthouse mobile before/after on Map, Explore, Guides, Trips, About",
+      "reqIds": [
+        "REQ-011"
+      ],
+      "type": "manual",
+      "steps": [
+        "npm run build && npx vite preview",
+        "Run Lighthouse (mobile, performance) on each page",
+        "Compare with baseline in REQ-011"
+      ],
+      "status": "Passing: Explore 44→80, Guides 51→81, Trips 52→75, About 43→75; Map FCP 3.9→3.1 s, LCP 6.5→5.2 s"
     }
   ],
   "decisions": []

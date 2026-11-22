@@ -1,15 +1,15 @@
 {
   "version": 1,
   "idea": {
-    "intent": "Tăng số người dùng hoàn thành checklist chuẩn bị chuyến đi bằng cách thêm nhanh các mục từ cẩm nang",
-    "problem": "Today customer cannot thêm các mục nằm trong cẩm nang vào trip's checklist easily; work is manual and not measurable.",
+    "intent": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist",
+    "problem": "Today user cannot increase the number of user by adding some suggestion from 'Guides' into trip's checklist easily; work is manual and not measurable.",
     "users": [
-      "Customer",
+      "user",
       "Admin"
     ],
     "outcomeMetric": "",
     "scopeIn": [
-      "Core flow: Thêm các mục nằm trong cẩm nang vào trip's checklist"
+      "Core flow: Increase the number of user by adding some suggestion from 'Guides' into trip's checklist"
     ],
     "scopeOut": [
       "Native mobile apps",
@@ -22,7 +22,71 @@
     ],
     "stack": ""
   },
-  "requirements": [],
-  "tests": [],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist",
+      "priority": "Must",
+      "status": "In build",
+      "story": "As an user, I want to increase the number of user by adding some suggestion from 'Guides' into trip's checklist, so that I can get it done without back-and-forth messages.",
+      "ac": [
+        "Given I am an user\nWhen I increase the number of user by adding some suggestion from 'Guides' into trip's checklist with valid details and confirm\nThen the result is saved and I see a confirmation",
+        "Given a required field is empty or invalid\nWhen I confirm\nThen I see an error next to that field and nothing is saved"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "title": "Accessibility and performance baseline",
+      "priority": "Should",
+      "status": "Approved",
+      "story": "As an user, I want every page to work with keyboard and screen readers and load quickly, so that everyone can use the product.",
+      "ac": [
+        "Given any page\nWhen I navigate with the keyboard only\nThen every action is reachable and has a visible focus state",
+        "Given a 4G connection\nWhen I open the home page\nThen it becomes interactive within 2.5 seconds (Lighthouse)"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "TC-001",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — happy path",
+      "gherkin": "Given I am an user\nWhen I increase the number of user by adding some suggestion from 'Guides' into trip's checklist with valid details and confirm\nThen the result is saved and I see a confirmation",
+      "type": "Automated",
+      "status": "Not run"
+    },
+    {
+      "id": "TC-002",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — invalid input",
+      "gherkin": "Given a required field is empty or invalid\nWhen I confirm\nThen I see an error next to that field and nothing is saved",
+      "type": "Automated",
+      "status": "Not run"
+    },
+    {
+      "id": "TC-003",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "title": "Accessibility and performance baseline — happy path",
+      "gherkin": "Given any page\nWhen I navigate with the keyboard only\nThen every action is reachable and has a visible focus state",
+      "type": "Automated",
+      "status": "Not run"
+    },
+    {
+      "id": "TC-004",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "title": "Accessibility and performance baseline — invalid input",
+      "gherkin": "Given invalid input for Accessibility and performance baseline\nWhen I submit\nThen I see an error and nothing is saved",
+      "type": "Manual",
+      "status": "Not run"
+    }
+  ],
   "decisions": []
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Avatar, Loader, formatDate, TrashIcon } from '../components/ui';
@@ -8,6 +8,7 @@ import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, ma
 import { currencyOfCountry } from '../lib/rates';
 import CurrencyRates from '../components/CurrencyRates';
 import { useTripReadOnly } from '../lib/tripAccess';
+import { compareCosts, sortByOrder, reorderPatch, moveId } from '../lib/costCompare';
 import { exportCostsPdf, shareOrDownload, loadJsPdf } from '../lib/exportPlan';
 import { reloadOnce } from '../lib/freshness';
 
@@ -244,6 +245,132 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
 }
 
 /* ------------------------------------------------------------------ */
+/* REQ-003: kéo thả để sắp xếp khoản chi (chuột & cảm ứng, phím ↑ ↓)   */
+/* ------------------------------------------------------------------ */
+function useDragOrder(items, onCommit) {
+  const [drag, setDrag] = useState(null); // { id, ids }
+  const ref = useRef(null);
+  const cur = items.map((x) => x.id);
+  const ordered = drag ? drag.ids.map((id) => items.find((x) => x.id === id)).filter(Boolean) : items;
+  const move = (e) => {
+    if (!drag || !ref.current) return;
+    const rows = [...ref.current.querySelectorAll('[data-sort-id]')].filter((r) => r.dataset.sortId !== drag.id);
+    const to = rows.filter((r) => {
+      const b = r.getBoundingClientRect();
+      return b.top + b.height / 2 < e.clientY;
+    }).length;
+    const next = moveId(drag.ids, drag.id, to);
+    if (next.join() !== drag.ids.join()) setDrag({ ...drag, ids: next });
+  };
+  const end = () => {
+    if (!drag) return;
+    const ids = drag.ids;
+    setDrag(null);
+    if (ids.join() !== cur.join()) onCommit(ids);
+  };
+  const handle = (id) => ({
+    onPointerDown: (e) => {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      setDrag({ id, ids: cur });
+    },
+    onPointerMove: move,
+    onPointerUp: end,
+    onPointerCancel: end,
+    onKeyDown: (e) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const j = cur.indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1);
+      if (j >= 0 && j < cur.length) onCommit(moveId(cur, id, j));
+    },
+  });
+  return { ref, ordered, dragId: drag?.id, handle };
+}
+
+/* ------------------------------------------------------------------ */
+/* REQ-002: so sánh dự kiến và thực tế trong 1 bảng                    */
+/* ------------------------------------------------------------------ */
+function CostCompare({ costs, cur, estTotal, actTotal }) {
+  const { t } = useI18n();
+  const r = useMemo(() => compareCosts(costs, { estTotal, actTotal, eps: 0.5 }), [costs, estTotal, actTotal]);
+  if (!r.rows.length && !r.unplanned.length) return null;
+  const pct = (v) => `${Math.max(0, Math.min(100, (v / r.max) * 100))}%`;
+  const Diff = ({ v, status }) =>
+    status === 'pending' ? (
+      <span className="cmp-diff cmp-diff--pending">{t('cmp.pending')}</span>
+    ) : (
+      <span className={`cmp-diff cmp-diff--${v > 0.5 ? 'over' : v < -0.5 ? 'under' : 'even'}`}>
+        {v > 0.5 ? '▲ +' : v < -0.5 ? '▼ −' : '='} {Math.abs(v) > 0.5 ? fmtMoney(Math.abs(v), cur) : t('cmp.even')}
+      </span>
+    );
+  const tot = r.totals;
+  return (
+    <div className="card stack-sm cmp">
+      <div className="trip-summary__head">
+        <h3 className="h3">📊 {t('cmp.title')}</h3>
+        <span className="cmp-legend small">
+          <i className="cmp-key cmp-key--plan" /> {t('cmp.planned')} <i className="cmp-key cmp-key--act" /> {t('cmp.actual')}
+        </span>
+      </div>
+      {r.rows.length > 0 && (
+        <ul className="cmp-list">
+          {r.rows.map((x) => (
+            <li key={x.id} className={`cmp-row cmp-row--${x.status}`}>
+              <div className="cmp-row__top">
+                <b className="cmp-row__title">{x.title}</b>
+                <Diff v={x.diff} status={x.status} />
+              </div>
+              <div className="cmp-bars">
+                <span className="cmp-bar cmp-bar--plan" style={{ width: pct(x.planned) }} />
+                <span className="cmp-bar cmp-bar--act" style={{ width: pct(x.actual) }} />
+              </div>
+              <small className="muted">
+                {t('cmp.planned')} {fmtMoney(x.planned, cur)} · {t('cmp.actual')} {x.status === 'pending' ? '—' : fmtMoney(x.actual, cur)}
+              </small>
+            </li>
+          ))}
+        </ul>
+      )}
+      {r.unplanned.length > 0 && (
+        <div className="cmp-extra">
+          <div className="cmp-row__top">
+            <b>⚠️ {t('cmp.unplanned', { n: r.unplanned.length })}</b>
+            <span className="cmp-diff cmp-diff--over">+ {fmtMoney(tot.unplanned, cur)}</span>
+          </div>
+          <small className="muted">{t('cmp.unplannedHint')}</small>
+          <ul className="cmp-extra__list">
+            {r.unplanned.map((u) => (
+              <li key={u.id}>
+                <span>
+                  {u.title}
+                  {u.date && <small className="muted"> · {formatDate(u.date)}</small>}
+                </span>
+                <b>{fmtMoney(u.actual, cur)}</b>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="cmp-total">
+        <span>
+          <small>{t('cmp.planned')}</small>
+          <b>{fmtMoney(tot.planned, cur)}</b>
+        </span>
+        <span>
+          <small>{t('cmp.actualAll')}</small>
+          <b>{fmtMoney(tot.actual, cur)}</b>
+        </span>
+        <span>
+          <small>{t('cost.diff')}</small>
+          <Diff v={tot.diff} status={tot.actual ? 'done' : 'pending'} />
+        </span>
+      </div>
+      {tot.pending > 0 && <small className="muted">⏳ {t('cmp.pendingNote', { v: fmtMoney(tot.pending, cur) })}</small>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Trang Chi phí của chuyến đi                                         */
 /* ------------------------------------------------------------------ */
 export default function TripCosts({ trip }) {
@@ -280,8 +407,12 @@ export default function TripCosts({ trip }) {
   const placeOf = (c) => plan.find((p) => p.id === c.planItemId)?.place;
 
   const list = costs || [];
-  const estimates = list.filter((c) => c.type === 'estimate');
-  const actuals = list.filter((c) => c.type === 'actual').sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0));
+  // REQ-003: thứ tự do người dùng kéo thả (trường order); chưa sắp thì dự kiến theo lúc thêm, thực tế theo ngày chi
+  const estimates = sortByOrder(list.filter((c) => c.type === 'estimate'));
+  const actuals = sortByOrder(
+    list.filter((c) => c.type === 'actual'),
+    (a, b) => (a.date || '').localeCompare(b.date || '') || (a.createdAt || 0) - (b.createdAt || 0),
+  );
   const payments = list.filter((c) => c.type === 'payment');
   // Dự kiến đã được ghi thành chi phí thực tế (qua estimateId)
   const recorded = Object.fromEntries(estimates.map((e) => [e.id, actuals.filter((a) => a.estimateId === e.id)]));
@@ -339,6 +470,19 @@ export default function TripCosts({ trip }) {
     setExporting(false);
   };
 
+  const canSort = !ro && can('costReorder');
+  const commitOrder = (items) => (ids) => Promise.all(reorderPatch(items, ids).map((p) => api.updateCost(trip.id, p.id, { order: p.order }))).catch((e) => notify(e.message, 'error'));
+  const estDrag = useDragOrder(estimates, commitOrder(estimates));
+  const actDrag = useDragOrder(actuals, commitOrder(actuals));
+  const estTotalFn = useMemo(() => (c) => groupTotalOf(c, n, conv), [n, cur, JSON.stringify(rates)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const actTotalFn = useMemo(() => (c) => conv(actualAmountOf(c, memberIds), c.currency) ?? 0, [memberIds.join(), cur, JSON.stringify(rates)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleEl = (drag, id) =>
+    canSort ? (
+      <button type="button" className="check-handle cost-handle" aria-label={t('check.reorder')} title={t('cmp.dragHint')} {...drag.handle(id)}>
+        ⠿
+      </button>
+    ) : null;
+
   if (!costs) return <Loader />;
   return (
     <section className="stack costs">
@@ -380,6 +524,8 @@ export default function TripCosts({ trip }) {
       </div>
       )}
 
+      {can('costCompare') && <CostCompare costs={list} cur={cur} estTotal={estTotalFn} actTotal={actTotalFn} />}
+
       {/* Dự kiến */}
       <div className="card stack-sm">
         <div className="trip-summary__head">
@@ -393,7 +539,7 @@ export default function TripCosts({ trip }) {
         {adding === 'estimate' && <CostForm type="estimate" trip={trip} plan={plan} cur={cur} curs={curs} onSave={(d) => save(d)} onCancel={() => setAdding(null)} />}
         {estimates.length === 0 && adding !== 'estimate' && <p className="small muted">{t('cost.noEstimates')}</p>}
         {estimates.length > 0 && (
-          <div className="cost-table">
+          <div className={`cost-table ${estDrag.dragId ? 'is-sorting' : ''}`} ref={estDrag.ref}>
             <div className="cost-table__head cost-row--est">
               <span>{t('cost.item')}</span>
               <span>{t('cost.amount')}</span>
@@ -401,12 +547,13 @@ export default function TripCosts({ trip }) {
               <span>{t('cost.actualCol')}</span>
               <span />
             </div>
-            {estimates.map((c) =>
+            {estDrag.ordered.map((c) =>
               editId === c.id ? (
                 <CostForm key={c.id} type="estimate" initial={c} trip={trip} plan={plan} cur={cur} curs={curs} onSave={(d) => save(d, c.id)} onCancel={() => setEditId(null)} />
               ) : (
-                <div key={c.id} className="cost-row cost-row--est">
+                <div key={c.id} data-sort-id={c.id} className={`cost-row cost-row--est ${canSort ? 'cost-row--sortable' : ''} ${estDrag.dragId === c.id ? 'is-dragging' : ''}`}>
                   <span className="cost-row__title">
+                    {handleEl(estDrag, c.id)}
                     <b>{c.title}</b>
                     {(placeOf(c) || c.note) && (
                       <small className="muted">{[placeOf(c) && `📍 ${pName(placeOf(c))}`, c.note].filter(Boolean).join(' · ')}</small>
@@ -487,7 +634,7 @@ export default function TripCosts({ trip }) {
         )}
         {actuals.length === 0 && adding !== 'actual' && <p className="small muted">{t('cost.noActuals')}</p>}
         {actuals.length > 0 && (
-          <div className="cost-table">
+          <div className={`cost-table ${actDrag.dragId ? 'is-sorting' : ''}`} ref={actDrag.ref}>
             <div className="cost-table__head cost-row--act">
               <span>{t('cost.item')}</span>
               <span>{t('cost.amount')}</span>
@@ -495,12 +642,13 @@ export default function TripCosts({ trip }) {
               <span>{t('cost.splitCol')}</span>
               <span />
             </div>
-            {actuals.map((c) =>
+            {actDrag.ordered.map((c) =>
               editId === c.id ? (
                 <CostForm key={c.id} type="actual" initial={c} trip={trip} plan={plan} cur={cur} curs={curs} onSave={(d) => save(d, c.id)} onCancel={() => setEditId(null)} />
               ) : (
-                <div key={c.id} className="cost-row cost-row--act">
+                <div key={c.id} data-sort-id={c.id} className={`cost-row cost-row--act ${canSort ? 'cost-row--sortable' : ''} ${actDrag.dragId === c.id ? 'is-dragging' : ''}`}>
                   <span className="cost-row__title">
+                    {handleEl(actDrag, c.id)}
                     <b>{c.title}</b>
                     <small className="muted">
                       {[

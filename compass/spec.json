@@ -58,6 +58,63 @@
           "then": "I keep full edit rights"
         }
       ]
+    },
+    {
+      "id": "REQ-002",
+      "title": "Estimated vs actual cost comparison",
+      "description": "Show estimated and actual costs side by side in one view so members can see the difference per item and spot costs that were not in the original estimate.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costCompare",
+      "ac": [
+        {
+          "given": "a trip has estimated costs and actual costs recorded from them",
+          "when": "I open the Costs tab",
+          "then": "a 'Estimated vs actual' card lists each estimate with its estimated amount, actual amount, and the difference marked over / under / on budget, with bars to compare"
+        },
+        {
+          "given": "an estimate has no actual cost linked yet",
+          "when": "I view the comparison",
+          "then": "it shows 'Not spent yet' and is counted in the 'not spent yet' note, not as a saving"
+        },
+        {
+          "given": "some actual costs are not linked to any estimate (or their estimate was deleted)",
+          "when": "I view the comparison",
+          "then": "they are listed under 'Not in the estimate' with their total, sorted by date"
+        },
+        {
+          "given": "the comparison is shown",
+          "when": "I look at the footer",
+          "then": "I see total estimated, total actual including extras, and the overall difference"
+        }
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "title": "Reorder costs by drag and drop",
+      "description": "Members who can edit a trip can change the order of estimated and actual costs by dragging, and the order is saved for the whole group.",
+      "priority": "Could",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costReorder",
+      "ac": [
+        {
+          "given": "I can edit the trip",
+          "when": "I hold the ⠿ handle of a cost and drag it up or down (mouse or touch), or press ↑ / ↓ on the handle",
+          "then": "the cost moves to the new position and the new order is saved for everyone"
+        },
+        {
+          "given": "costs have never been reordered",
+          "when": "I open the Costs tab",
+          "then": "estimates keep the order they were added and actual costs are sorted by date"
+        },
+        {
+          "given": "I am a view-only member",
+          "when": "I open the Costs tab",
+          "then": "no drag handles are shown"
+        }
+      ]
     }
   ],
   "tests": [
@@ -103,6 +160,63 @@
         "Sign in as B and open the trip",
         "Check Plan, Costs, Checklist tabs have no add/edit/delete controls",
         "Tap Copy this trip, confirm, and edit the new trip"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-005",
+      "title": "Each estimate shows planned, actual, difference and status",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-006",
+      "title": "Unlinked actuals are listed as unplanned; totals include them",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-007",
+      "title": "sortByOrder: ordered items first, others keep fallback order",
+      "reqIds": [
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-008",
+      "title": "Dragging writes only items whose position changed",
+      "reqIds": [
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-009",
+      "title": "UI: comparison card renders, drag reorders and persists, no handles for viewers",
+      "reqIds": [
+        "REQ-002",
+        "REQ-003"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flags costCompare and costReorder",
+        "Open a trip with estimates and actuals",
+        "Check the comparison card shows over/under/pending and the unplanned list",
+        "Drag an actual cost above another; reload; order is kept",
+        "Open as a view-only member: no ⠿ handles"
       ],
       "status": "Passing (demo)"
     }

@@ -6,6 +6,7 @@ import { countryName, flagOf } from '../lib/countries';
 import { formatDate } from './ui';
 import { useI18n } from '../i18n';
 import { pName, pCity } from '../lib/lang';
+import '../styles/pages/studio.css';
 
 /* --------------------------------------------------------------- */
 /* Studio tạo ảnh / video chia sẻ mạng xã hội từ 1–4 tấm ảnh        */

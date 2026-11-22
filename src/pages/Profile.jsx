@@ -10,6 +10,7 @@ import { countryName, flagOf } from '../lib/countries';
 import { socialApi, cleanUsername, usernameProblem } from '../lib/social';
 import { fixMemory } from '../lib/fixes';
 import { makeAvatar } from '../lib/avatar';
+import '../styles/pages/profile.css';
 
 const BIO_MAX = 160;
 

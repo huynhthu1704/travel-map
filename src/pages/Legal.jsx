@@ -2,6 +2,7 @@ import { useI18n } from '../i18n';
 import { useApp } from '../AppContext';
 
 import { LEGAL_VERSION } from '../data/legal';
+import '../styles/pages/legal.css';
 // Email liên hệ đặt trong biến môi trường VITE_CONTACT_EMAIL (không ghi cứng trong mã nguồn).
 // Chưa đặt → hướng dẫn dùng nút Góp ý trong ứng dụng.
 export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || '';

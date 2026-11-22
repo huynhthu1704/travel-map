@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { Modal, Avatar, Loader, Empty, TrashIcon } from './ui';
 import { maskEmail } from '../lib/adminStore';
 import { feedbackApi, feedbackDraft, envInfo, prepareFile, FEEDBACK_STATUSES, MAX_VIDEO_MB } from '../lib/feedback';
+import '../styles/pages/feedback.css';
 
 /* ------------------------------------------------------------------ */
 /* Góp ý / báo lỗi: form cho người dùng, danh sách góp ý của tôi,      */

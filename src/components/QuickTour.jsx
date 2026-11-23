@@ -89,13 +89,17 @@ export default function QuickTour() {
   const s = open ? TOUR_STEPS[step] : null;
   const L = (o) => (o ? o[lang] || o.vi : '');
 
+  // Bug #54: set once the tour has been opened or finished, so a late auto-open timer cannot reopen it
+  const handled = useRef(false);
   const start = useCallback(() => {
+    handled.current = true;
     setModal(null);
     setSelectedPlace?.(null);
     setView('map');
     setStep(0);
   }, [setModal, setView, setSelectedPlace]);
   const finish = useCallback(() => {
+    handled.current = true;
     setStep(-1);
     try {
       localStorage.setItem(SEEN_KEY, '1');
@@ -134,7 +138,19 @@ export default function QuickTour() {
       /* bỏ qua */
     }
     if (seen || view !== 'map' || /^#\/(u|@|trips\/|place|country)/.test(location.hash)) return undefined;
-    const tm = setTimeout(() => !modal && setStep(0), 1800);
+    const tm = setTimeout(() => {
+      // Re-check when the timer fires: the tour may have been opened (and skipped) by the new-account timer meanwhile
+      let seenNow = false;
+      try {
+        seenNow = !!localStorage.getItem(SEEN_KEY);
+      } catch {
+        /* ignore */
+      }
+      if (!modal && !seenNow && !handled.current) {
+        handled.current = true;
+        setStep(0);
+      }
+    }, 1800);
     return () => clearTimeout(tm);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

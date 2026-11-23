@@ -79,7 +79,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-140 | Country travel tips | — | Should | Done | TC-106 |
 | REQ-141 | Travel gear page | — | Could | Done | TC-106 |
 | REQ-142 | About page with auto-updating features | — | Should | Done | TC-107 |
-| REQ-143 | Quick tour | — | Must | Done | TC-107 |
+| REQ-143 | Quick tour | — | Must | Done | TC-107, TC-056 |
 | REQ-144 | Feedback and bug reports | — | Should | Done | TC-107 |
 | REQ-145 | FAQ, What's new and Support the creator | — | Could | Done | TC-107 |
 | REQ-146 | Site announcements | — | Must | Done | TC-107 |

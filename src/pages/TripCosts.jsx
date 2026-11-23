@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { Avatar, Loader, formatDate, TrashIcon } from '../components/ui';
 import DateInput from '../components/DateInput';
 import { pName, getLang } from '../lib/lang';
+import { COST_TYPES, COST_TYPE } from '../data/costTypes';
 import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase, actualAmountOf, participantsOf } from '../lib/money';
 import { currencyOfCountry } from '../lib/rates';
 import CurrencyRates from '../components/CurrencyRates';
@@ -111,6 +112,31 @@ const estPerLabel = (c, t, nameOf) => {
 /* ------------------------------------------------------------------ */
 /* Form thêm / sửa 1 khoản chi (dự kiến hoặc thực tế)                  */
 /* ------------------------------------------------------------------ */
+/** REQ-031: optional cost type picker */
+function CostTypeSelect({ value, onChange }) {
+  const { t, lang } = useI18n();
+  return (
+    <label className="cf-field">
+      <span>🏷️ {t('cost.typeLabel')}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t('cost.typeNone')}</option>
+        {COST_TYPES.map((x) => (
+          <option key={x.key} value={x.key}>
+            {x.icon} {x[lang] || x.vi}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+/** Icon + name of a cost's type, for the cost lists ('' when none or the feature is off) */
+function useCostTypeText() {
+  const { lang } = useI18n();
+  const { can } = useApp();
+  const on = can('costType');
+  return (c) => (on && c?.costType ? `${COST_TYPE[c.costType]?.icon || '🏷️'} ${COST_TYPE[c.costType]?.[lang] || COST_TYPE[c.costType]?.vi || c.costType}` : '');
+}
+
 function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates = [], onSave, onCancel }) {
   const { t } = useI18n();
   const { user, can } = useApp();
@@ -129,6 +155,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
   const people = who === 'all' ? memberIds : among;
   const [date, setDate] = useState(initial.date || '');
   const [note, setNote] = useState(initial.note || '');
+  const [costType, setCostType] = useState(initial.costType || '');
   const linked = plan.find((p) => p.id === planItemId);
   // Tiền tệ của khoản này: nhập đúng tiền đã trả, chỉ quy đổi khi tính tổng / chia tiền
   const lastKey = `travel-map-cur-${trip.id}`;
@@ -153,6 +180,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
     setCur(e.currency && curs.includes(e.currency) ? e.currency : base);
     setPlanItemId(e.planItemId || '');
     if (e.note) setNote(e.note);
+    if (e.costType) setCostType(e.costType);
   };
   const chosenEst = estimates.find((e) => e.id === estimateId);
   const submit = (e) => {
@@ -163,7 +191,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
     } catch {
       /* bỏ qua */
     }
-    const common = { type, title: finalTitle, amount, currency: cur, planItemId: planItemId || null, note: note.trim() };
+    const common = { type, title: finalTitle, amount, currency: cur, planItemId: planItemId || null, note: note.trim(), costType: costType || null };
     if (type === 'estimate')
       onSave({ ...common, per: estMode === 'pick' ? per : estMode, splitAmong: estMode === 'pick' ? among : [] });
     else
@@ -236,6 +264,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
             <EstimateSplit mode={estMode} setMode={setEstMode} per={per} setPer={setPer} among={among} setAmong={setAmong} trip={trip} amount={amount} cur={cur} allowPick={can('costPickPeople')} />
           </div>
           {placeSelect}
+          {can('costType') && <CostTypeSelect value={costType} onChange={setCostType} />}
         </div>
       ) : (
         <div className="cf-grid">
@@ -255,6 +284,7 @@ function CostForm({ type, initial = {}, trip, plan, cur: base, curs, estimates =
             <DateInput value={date} onChange={setDate} ariaLabel={t('cost.date')} />
           </div>
           {placeSelect}
+          {can('costType') && <CostTypeSelect value={costType} onChange={setCostType} />}
         </div>
       )}
       {type === 'actual' && (
@@ -315,6 +345,7 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
   const [title, setTitle] = useState('');
   const [planItemId, setPlanItemId] = useState('');
   const [note, setNote] = useState('');
+  const [costType, setCostType] = useState('');
   const [hasEst, setHasEst] = useState(true);
   const [estAmount, setEstAmount] = useState(null);
   const [estCur, setEstCur] = useState(firstCur);
@@ -351,7 +382,7 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
     } catch {
       /* bỏ qua */
     }
-    const common = { title: finalTitle, planItemId: planItemId || null, note: note.trim() };
+    const common = { title: finalTitle, planItemId: planItemId || null, note: note.trim(), costType: costType || null };
     onSave({
       estimate: hasEst
         ? { ...common, type: 'estimate', amount: estAmount, currency: estCur, per: estMode === 'pick' ? estPer : estMode, splitAmong: estMode === 'pick' ? estAmong : [] }
@@ -391,6 +422,7 @@ function CostItemForm({ trip, plan, cur: base, curs, onSave, onCancel }) {
             </select>
           </label>
         )}
+        {can('costType') && <CostTypeSelect value={costType} onChange={setCostType} />}
       </div>
       <div className="cif-parts">
         <fieldset className={`cif-part ${hasEst ? '' : 'is-off'}`}>
@@ -649,6 +681,7 @@ function CostCompare({ costs, cur, estTotal, actTotal }) {
 export default function TripCosts({ trip }) {
   const { t } = useI18n();
   const { api, user, notify, can } = useApp();
+  const typeText = useCostTypeText();
   const ro = useTripReadOnly();
   const [costs, setCosts] = useState(null);
   const [plan, setPlan] = useState([]);
@@ -935,7 +968,7 @@ export default function TripCosts({ trip }) {
                             {c.title}
                             {r.kind === 'extra' && <em className="ct-tag">{t('ct.extra')}</em>}
                           </b>
-                          {(placeOf(c) || c.note) && <small className="muted">{[placeOf(c) && `📍 ${pName(placeOf(c))}`, c.note].filter(Boolean).join(' · ')}</small>}
+                          {(typeText(c) || placeOf(c) || c.note) && <small className="muted">{[typeText(c), placeOf(c) && `📍 ${pName(placeOf(c))}`, c.note].filter(Boolean).join(' · ')}</small>}
                         </span>
                         <span className="ct-cell" data-label={t('cmp.planned')}>
                           {r.kind === 'item' ? (
@@ -1084,8 +1117,8 @@ export default function TripCosts({ trip }) {
                   <span className="cost-row__title">
                     {handleEl(estDrag, c.id)}
                     <b>{c.title}</b>
-                    {(placeOf(c) || c.note) && (
-                      <small className="muted">{[placeOf(c) && `📍 ${pName(placeOf(c))}`, c.note].filter(Boolean).join(' · ')}</small>
+                    {(typeText(c) || placeOf(c) || c.note) && (
+                      <small className="muted">{[typeText(c), placeOf(c) && `📍 ${pName(placeOf(c))}`, c.note].filter(Boolean).join(' · ')}</small>
                     )}
                   </span>
                   <span>
@@ -1181,6 +1214,7 @@ export default function TripCosts({ trip }) {
                     <b>{c.title}</b>
                     <small className="muted">
                       {[
+                        typeText(c),
                         placeOf(c) && `📍 ${pName(placeOf(c))}`,
                         c.date && formatDate(c.date),
                         c.estimateId && estimates.find((e) => e.id === c.estimateId) && `📝 ${t('cost.fromEstimate')}`,

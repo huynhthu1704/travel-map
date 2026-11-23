@@ -14,6 +14,8 @@
  * trip currency and the difference. Currency columns only appear when the trip uses more than one currency.
  */
 
+import { COST_TYPES, costTypeLabel } from '../data/costTypes.js';
+
 const LABELS = {
   vi: {
     sheets: { plan: 'Lịch trình & chi phí', settle: 'Chia tiền', rates: 'Tỉ giá', master: 'Master data' },
@@ -44,7 +46,6 @@ const LABELS = {
     rates: ['Tiền tệ', (b) => `1 đơn vị = ? ${b}`],
     ratesNote: (b) => `Số tiền ở sheet Lịch trình & chi phí được quy đổi về ${b} theo bảng này — sửa tỉ giá, cả file tự tính lại.`,
     master: ['Trạng thái', 'Loại dòng', 'Cách tính tiền', 'Loại chi phí', 'Tiền tệ', 'Thành viên'],
-    costTypes: ['Vé máy bay', 'Lưu trú', 'Di chuyển', 'Ăn uống', 'Tham quan', 'Mua sắm', 'SIM / Internet', 'Bảo hiểm', 'Giấy tờ', 'Khác'],
   },
   en: {
     sheets: { plan: 'Itinerary & costs', settle: 'Settle up', rates: 'Rates', master: 'Master data' },
@@ -75,7 +76,6 @@ const LABELS = {
     rates: ['Currency', (b) => `1 unit = ? ${b}`],
     ratesNote: (b) => `Amounts on the Itinerary & costs sheet are converted to ${b} with this table — change a rate and the whole file recalculates.`,
     master: ['Status', 'Row type', 'Split', 'Cost type', 'Currency', 'Member'],
-    costTypes: ['Flights', 'Accommodation', 'Transport', 'Food & drinks', 'Sightseeing', 'Shopping', 'SIM / Internet', 'Insurance', 'Paperwork', 'Other'],
   },
 };
 
@@ -124,7 +124,8 @@ export function formulaValuesOf(data) {
  * @param opts   { lang, transfers: [{from, to, amount}] (uids), placeName(place) }
  */
 export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
-  const L = LABELS[opts.lang] || LABELS.vi;
+  const lang = LABELS[opts.lang] ? opts.lang : 'vi';
+  const L = LABELS[lang];
   const S = L.sheets;
   const base = trip.currency || 'VND';
   const money = base === 'VND' ? '#,##0' : '#,##0.00';
@@ -236,7 +237,7 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
         });
       }
     }
-    put(row, 'costType', { value: main.costType || est?.costType || '', ...SUB });
+    put(row, 'costType', { value: costTypeLabel(main.costType || est?.costType, lang), ...SUB });
     const notes = [];
     if (est && peopleOf(est) > 1) notes.push(`${est.amount} ${estCur} ${L.perPerson(peopleOf(est))}`);
     if (act && peopleOf(act) > 1) notes.push(`${act.amount} ${actCur} ${L.perPerson(peopleOf(act))}`);
@@ -382,7 +383,7 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
   };
 
   // ---------- Master data (lists behind the drop-downs) ----------
-  const lists = [L.status, Object.values(L.kinds), [L.split.all, ...memberIds.map((id) => L.split.only(nameOf(id))), L.split.pick], L.costTypes, currencies, memberIds.map(nameOf)];
+  const lists = [L.status, Object.values(L.kinds), [L.split.all, ...memberIds.map((id) => L.split.only(nameOf(id))), L.split.pick], COST_TYPES.map((x) => x[lang]), currencies, memberIds.map(nameOf)];
   const masterRows = Math.max(...lists.map((x) => x.length));
   const masterSheet = {
     sheet: S.master,

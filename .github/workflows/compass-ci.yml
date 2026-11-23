@@ -21,6 +21,12 @@ jobs:
         run: node compass/check-spec.mjs
       - name: Install
         run: if [ -f package-lock.json ]; then npm ci; elif [ -f package.json ]; then npm install; fi
+      # REQ-034: library security check. Critical issues in the libraries shipped to users block the build;
+      # the full report (incl. high / dev-only) is shown in the run summary.
+      - name: Library security audit
+        run: |
+          { echo '## npm audit'; echo '```'; npm audit || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          npm audit --omit=dev --audit-level=critical
       - name: Test
         run: if [ -f package.json ]; then npm test --if-present; fi
       - name: Build

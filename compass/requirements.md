@@ -36,6 +36,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-031 | Choose a cost type when entering a cost | — | Should | Done | TC-051, TC-052 |
 | REQ-032 | Excel export: Google Maps column shows the URL | — | Should | Done | TC-050 |
 | REQ-033 | Set a due day for checklist items, picked from the trip days | — | Should | Done | TC-053, TC-054 |
+| REQ-034 | Safer release pipeline: deploy only after green CI, smoke test with rollback, library security audit | — | Should | Done | TC-055 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -359,6 +360,16 @@ As a trip member, I want to mark the day a checklist item must be done, choosing
 - Given a checklist item is due today or overdue and not ticked · When I open the checklist · Then its due day is highlighted
 - Given I clear the due day · When I save · Then the item has no due day
 - Given a trip without dates · When I set a due day · Then I can pick any date
+
+## REQ-034 — Safer release pipeline: deploy only after green CI, smoke test with rollback, library security audit
+
+As the product owner, I want only tested code to reach beetheremap.com, and a broken release to be undone automatically, so that users never get a broken site.
+
+- Given a commit is pushed to main · When Compass CI fails · Then the site is not deployed
+- Given Compass CI is green for a commit on main · When the deploy runs · Then exactly that commit is built and deployed
+- Given a deploy finished · When the live site does not serve the new build with the Bee There title within 10 minutes · Then the last good version is redeployed and a bug issue is opened
+- Given CI runs · When a shipped library has a critical vulnerability · Then CI fails; the full audit report is shown in the run summary
+- Given I need to roll back by hand · When I run Compass Deploy with a commit SHA · Then that commit is deployed
 
 ## REQ-101 — Sign in with Google
 

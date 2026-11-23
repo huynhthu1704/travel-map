@@ -1081,6 +1081,21 @@
         "Given a trip without dates\nWhen I set a due day\nThen I can pick any date"
       ],
       "source": "Requested by the Product Owner on 2026-11-23 (issue #49)"
+    },
+    {
+      "id": "REQ-034",
+      "title": "Safer release pipeline: deploy only after green CI, smoke test with rollback, library security audit",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want only tested code to reach beetheremap.com, and a broken release to be undone automatically, so that users never get a broken site.",
+      "ac": [
+        "Given a commit is pushed to main\nWhen Compass CI fails\nThen the site is not deployed",
+        "Given Compass CI is green for a commit on main\nWhen the deploy runs\nThen exactly that commit is built and deployed",
+        "Given a deploy finished\nWhen the live site does not serve the new build with the Bee There title within 10 minutes\nThen the last good version is redeployed and a bug issue is opened",
+        "Given CI runs\nWhen a shipped library has a critical vulnerability\nThen CI fails; the full audit report is shown in the run summary",
+        "Given I need to roll back by hand\nWhen I run Compass Deploy with a commit SHA\nThen that commit is deployed"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #50)"
     }
   ],
   "tests": [
@@ -1806,6 +1821,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "e2e/checkDue.spec.mjs"
+    },
+    {
+      "id": "TC-055",
+      "title": "Workflows: deploy gated on green CI, smoke test + rollback, npm audit",
+      "reqIds": [
+        "REQ-034"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/cicd.test.mjs"
     }
   ]
 }

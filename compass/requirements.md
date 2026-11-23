@@ -33,6 +33,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-028 | Archive trips older than the retention period (Excel-only access) | — | Could | Draft | — |
 | REQ-029 | Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet | — | Must | Done | TC-046, TC-048 |
 | REQ-030 | Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side | — | Must | Done | TC-046, TC-049 |
+| REQ-032 | Excel export: Google Maps column shows the URL | — | Should | Done | TC-050 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -330,6 +331,13 @@ As a trip member, I want the exported costs grouped by day, with costs not linke
 - Given costs linked to plan items · When I export · Then they appear under their plan item inside that item's day, with item, day and trip totals
 - Given an estimate and its actual cost · When I export · Then they share one row with columns: estimated cost, estimated currency, actual cost, actual currency, final amount in the trip currency, difference
 - Given every cost of the trip is in the trip currency · When I export · Then the two currency columns are not shown
+
+## REQ-032 — Excel export: Google Maps column shows the URL
+
+As a trip member, I want the Google Maps column of the Excel export to contain the full Google Maps URL so that I can copy it, see where it points and open it from any app.
+
+- Given a plan item with a location or an admin-attached Google Maps link · When I export the trip to Excel · Then its Google Maps cell shows the full URL as a clickable link
+- Given I open the file in a viewer that does not recalculate · When I look at the Google Maps column · Then the URL text is visible
 
 ## REQ-101 — Sign in with Google
 

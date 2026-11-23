@@ -80,3 +80,15 @@ test('TC-045 / TC-048: settle-up balances, cached values, hidden helper column a
   assert.ok(v.indexOf('<dataValidations') < v.indexOf('<pageMargins'));
   assert.equal(col(28), 'AB');
 });
+
+// TC-050 — Google Maps column shows the URL (REQ-032)
+test('TC-050: the Google Maps cell holds the full URL as a clickable link', () => {
+  const { sheets, columns: C } = buildTripWorkbook(trip, plan, costs);
+  const row = sheets[0].data[find(sheets[0].data, 'Chinatown')];
+  const cell = row[C.maps - 1];
+  assert.equal(cell.value, '=HYPERLINK("https://www.google.com/maps/search/?api=1&query=1.280000,103.840000")');
+  assert.equal(cell.cached, 'https://www.google.com/maps/search/?api=1&query=1.280000,103.840000');
+  const gm = buildTripWorkbook(trip, [{ ...plan[0], place: { ...plan[0].place, gmapsLink: 'https://maps.app.goo.gl/x' } }], []);
+  const data = gm.sheets[0].data;
+  assert.equal(data[find(data, 'Chinatown')][gm.columns.maps - 1].cached, 'https://maps.app.goo.gl/x');
+});

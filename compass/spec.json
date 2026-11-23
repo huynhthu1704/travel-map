@@ -1052,6 +1052,21 @@
         "Given I open the file in a viewer that does not recalculate\nWhen I look at the Google Maps column\nThen the URL text is visible"
       ],
       "source": "Requested by the Product Owner on 2026-11-23 (issue #48)"
+    },
+    {
+      "id": "REQ-033",
+      "title": "Set a due day for checklist items, picked from the trip days",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As a trip member, I want to mark the day a checklist item must be done, choosing from the days of the trip, so that I know what to prepare on each day.",
+      "ac": [
+        "Given a trip from 10/11 to 14/11\nWhen I set the due day of a checklist item\nThen the options are Before the trip, Day 1 · 10/11 … Day 5 · 14/11 and Other date…",
+        "Given I mark item A for Day 3\nWhen I look at the checklist\nThen item A shows Day 3 · 12/11",
+        "Given a checklist item is due today or overdue and not ticked\nWhen I open the checklist\nThen its due day is highlighted",
+        "Given I clear the due day\nWhen I save\nThen the item has no due day",
+        "Given a trip without dates\nWhen I set a due day\nThen I can pick any date"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #49)"
     }
   ],
   "tests": [
@@ -1737,6 +1752,26 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-053",
+      "title": "Checklist due day: trip day list, set/clear, due-today and overdue status",
+      "reqIds": [
+        "REQ-033"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/checklistEdit.test.mjs"
+    },
+    {
+      "id": "TC-054",
+      "title": "UI: mark an item for Day 3, highlighted on that day, kept after reload, cleared",
+      "reqIds": [
+        "REQ-033"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkDue.spec.mjs"
     }
   ]
 }

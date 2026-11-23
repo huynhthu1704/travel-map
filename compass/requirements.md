@@ -34,6 +34,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-029 | Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet | — | Must | Done | TC-046, TC-048 |
 | REQ-030 | Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side | — | Must | Done | TC-046, TC-049 |
 | REQ-032 | Excel export: Google Maps column shows the URL | — | Should | Done | TC-050 |
+| REQ-033 | Set a due day for checklist items, picked from the trip days | — | Should | Done | TC-053, TC-054 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -338,6 +339,16 @@ As a trip member, I want the Google Maps column of the Excel export to contain t
 
 - Given a plan item with a location or an admin-attached Google Maps link · When I export the trip to Excel · Then its Google Maps cell shows the full URL as a clickable link
 - Given I open the file in a viewer that does not recalculate · When I look at the Google Maps column · Then the URL text is visible
+
+## REQ-033 — Set a due day for checklist items, picked from the trip days
+
+As a trip member, I want to mark the day a checklist item must be done, choosing from the days of the trip, so that I know what to prepare on each day.
+
+- Given a trip from 10/11 to 14/11 · When I set the due day of a checklist item · Then the options are Before the trip, Day 1 · 10/11 … Day 5 · 14/11 and Other date…
+- Given I mark item A for Day 3 · When I look at the checklist · Then item A shows Day 3 · 12/11
+- Given a checklist item is due today or overdue and not ticked · When I open the checklist · Then its due day is highlighted
+- Given I clear the due day · When I save · Then the item has no due day
+- Given a trip without dates · When I set a due day · Then I can pick any date
 
 ## REQ-101 — Sign in with Google
 

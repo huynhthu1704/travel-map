@@ -1433,6 +1433,8 @@ const EN = {
     'dup.done': 'Created “{name}” ✨',
     'cost.tab': 'Costs',
     'cost.pickFromEst': 'Quick pick from estimates:',
+    'cost.typeLabel': 'Cost type',
+    'cost.typeNone': '— Not set —',
     'cost.placeLabel': 'Place',
     'cost.calcBy': 'Counted',
     'cost.vsEstimate': 'Estimated: {v}',

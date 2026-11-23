@@ -33,6 +33,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-028 | Archive trips older than the retention period (Excel-only access) | — | Could | Draft | — |
 | REQ-029 | Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet | — | Must | Done | TC-046, TC-048 |
 | REQ-030 | Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side | — | Must | Done | TC-046, TC-049 |
+| REQ-031 | Choose a cost type when entering a cost | — | Should | Done | TC-051, TC-052 |
 | REQ-032 | Excel export: Google Maps column shows the URL | — | Should | Done | TC-050 |
 | REQ-033 | Set a due day for checklist items, picked from the trip days | — | Should | Done | TC-053, TC-054 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
@@ -332,6 +333,15 @@ As a trip member, I want the exported costs grouped by day, with costs not linke
 - Given costs linked to plan items · When I export · Then they appear under their plan item inside that item's day, with item, day and trip totals
 - Given an estimate and its actual cost · When I export · Then they share one row with columns: estimated cost, estimated currency, actual cost, actual currency, final amount in the trip currency, difference
 - Given every cost of the trip is in the trip currency · When I export · Then the two currency columns are not shown
+
+## REQ-031 — Choose a cost type when entering a cost
+
+As a trip member, I want to pick a cost type when I add or edit a cost so that costs are categorised and can later be filtered and totalled by type.
+
+- Given I add an estimated or actual cost · When I open the cost form · Then I can choose a cost type from a list (optional)
+- Given I saved a cost with a type · When I look at the cost list · Then the cost shows its type icon and name
+- Given I edit the cost · When I change or clear the type and save · Then the new type is shown
+- Given a cost has a type · When I export the trip to Excel · Then the Cost type column shows that type
 
 ## REQ-032 — Excel export: Google Maps column shows the URL
 

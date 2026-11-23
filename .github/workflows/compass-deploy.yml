@@ -1,37 +1,69 @@
 name: Compass Deploy
+# The run title carries the deployed commit so a rollback can find the last good one
+run-name: Deploy ${{ inputs.ref || github.event.workflow_run.head_sha || github.sha }}
+# REQ-034: deploy only a commit whose Compass CI run is green, check the live site afterwards,
+# and roll back to the last good version when that check fails.
 on:
-  push:
-    branches: [main, master]
+  # Runs after Compass CI finishes on main (push only, not the nightly run)
+  workflow_run:
+    workflows: [Compass CI]
+    types: [completed]
+    branches: [main]
+  # Manual deploy / rollback: Actions → Compass Deploy → Run workflow → enter a commit SHA (empty = latest main)
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Commit SHA or tag to deploy (empty = latest main)'
+        required: false
+        default: ''
 permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write
+  actions: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
+env:
+  SITE_URL: https://beetheremap.com
 jobs:
   build:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.ref.outputs.sha }}
+      entry: ${{ steps.entry.outputs.entry }}
     steps:
+      - id: ref
+        name: Pick the commit to deploy
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ inputs.ref || github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ref.outputs.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Build site
         run: |
-          if [ -f package.json ] && node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
-            if [ -f package-lock.json ]; then npm ci; else npm install; fi
-            npm run build
-            echo "SITE_DIR=dist" >> $GITHUB_ENV
-          else
-            mkdir -p _site && cp -r $(ls -A | grep -v -E '^(\.git|\.github|_site|node_modules|compass|tests)$') _site/
-            echo "SITE_DIR=_site" >> $GITHUB_ENV
-          fi
+          npm ci
+          npm run build
+      # The main script file name has a content hash; the smoke test checks the live site serves this exact file
+      - id: entry
+        name: Note the built entry script
+        run: echo "entry=$(grep -oE '/assets/index-[^"]+\.js' dist/index.html | head -1)" >> "$GITHUB_OUTPUT"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ env.SITE_DIR }}
+          path: dist
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -41,3 +73,52 @@ jobs:
     steps:
       - id: d
         uses: actions/deploy-pages@v4
+
+  smoke-test:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the live site
+        env:
+          ENTRY: ${{ needs.build.outputs.entry }}
+        run: |
+          # GitHub Pages can take a few minutes to serve the new version
+          for i in $(seq 1 20); do
+            html=$(curl -fsSL --max-time 20 "$SITE_URL/?smoke=$GITHUB_RUN_ID" || true)
+            if echo "$html" | grep -q "<title>[^<]*Bee There" && echo "$html" | grep -qF "$ENTRY"; then
+              if curl -fsS --max-time 20 -o /dev/null "$SITE_URL$ENTRY"; then
+                echo "Live site OK: title found and $ENTRY is served"; exit 0
+              fi
+            fi
+            echo "Attempt $i: new version not live yet, waiting 30s…"; sleep 30
+          done
+          echo "::error::Smoke test failed: $SITE_URL does not serve the new build ($ENTRY)"; exit 1
+
+  rollback:
+    needs: [build, smoke-test]
+    if: failure() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Redeploy the last good version and open a bug
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BAD: ${{ needs.build.outputs.sha }}
+        run: |
+          # Last deploy whose smoke test passed, for a different commit = the version that was live before
+          GOOD=""
+          for run in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/compass-deploy.yml/runs?status=success&per_page=20" --jq '.workflow_runs[].id'); do
+            ok=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs" --jq '[.jobs[] | select(.name=="smoke-test" and .conclusion=="success")] | length')
+            sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.display_title | sub("^Deploy ";"")')
+            if [ "$ok" = "1" ] && [ "$sha" != "$BAD" ]; then GOOD=$sha; break; fi
+          done
+          # Only automatic deploys roll back by themselves; a failed manual deploy/rollback just opens the bug (no loops)
+          if [ "${{ github.event_name }}" != "workflow_run" ]; then GOOD=""; NOTE_MANUAL=" (manual run: no automatic rollback)"; fi
+          if [ -n "$GOOD" ]; then
+            gh workflow run compass-deploy.yml --repo "$GITHUB_REPOSITORY" --ref main -f ref="$GOOD"
+            NOTE="Rolled back automatically: redeploying \`$GOOD\`."
+          else
+            NOTE="Nothing was rolled back$NOTE_MANUAL. Redeploy a good commit from Actions → Compass Deploy → Run workflow."
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/issues" -f title="[Deploy] Smoke test failed for ${BAD:0:7}" \
+            -f body="The live site check failed after deploying \`$BAD\` ([run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)). $NOTE" \
+            -f "labels[]=bug" --jq .html_url

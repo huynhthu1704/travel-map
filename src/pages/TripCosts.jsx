@@ -3,7 +3,7 @@ import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Avatar, Loader, formatDate, TrashIcon } from '../components/ui';
 import DateInput from '../components/DateInput';
-import { pName } from '../lib/lang';
+import { pName, getLang } from '../lib/lang';
 import { fmtMoney, parseMoney, inputMoney, perPersonOf, groupTotalOf, settle, makeToBase, actualAmountOf, participantsOf } from '../lib/money';
 import { currencyOfCountry } from '../lib/rates';
 import CurrencyRates from '../components/CurrencyRates';
@@ -808,17 +808,39 @@ export default function TripCosts({ trip }) {
       </button>
     ) : null;
 
+  // REQ-026: itinerary + costs as an Excel workbook
+  const excelOn = can('tripExcel');
+  const [excelBusy, setExcelBusy] = useState(false);
+  const doExcel = async () => {
+    setExcelBusy(true);
+    try {
+      const { exportTripExcel } = await import('../lib/tripExcel.js');
+      const r = await exportTripExcel(trip, plan, costs || [], { lang: getLang(), transfers, placeName: pName });
+      if (r === 'downloaded') notify(t('excel.downloaded'));
+    } catch (e) {
+      notify(t('excel.error', { msg: e.message }), 'error');
+    }
+    setExcelBusy(false);
+  };
+
   if (!costs) return <Loader />;
   return (
     <section className="stack costs">
-      {pdfOn && list.length > 0 && (
+      {(pdfOn || excelOn) && list.length > 0 && (
         <div className="costs-export" title={t('pdf.costsHint')}>
+          {pdfOn && (
           <button className="btn btn--sm btn--primary" onClick={() => doExport(false)} disabled={exporting}>
             {exporting ? `⏳ ${t('pdf.making')}` : `📄 ${t('pdf.export')}`}
           </button>
-          {canShareFiles && (
+          )}
+          {pdfOn && canShareFiles && (
             <button className="btn btn--sm btn--outline" onClick={() => doExport(true)} disabled={exporting}>
               📤 {t('pdf.share')}
+            </button>
+          )}
+          {excelOn && (
+            <button className="btn btn--sm btn--outline" onClick={doExcel} disabled={excelBusy}>
+              {excelBusy ? `⏳ ${t('excel.making')}` : `📊 ${t('excel.export')}`}
             </button>
           )}
         </div>

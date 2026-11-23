@@ -28,6 +28,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-023 | Quick tour points at visible buttons on phones | — | Must | Done | TC-040 |
 | REQ-024 | Increase the number of user by adding some suggestion from 'Guides' into trip's checklist | F-001 | Must | In build | TC-041, TC-042 |
 | REQ-025 | Accessibility and performance baseline | F-001 | Should | Approved | TC-043, TC-044 |
+| REQ-026 | Export the trip itinerary and costs to Excel | — | Should | Done | TC-045, TC-046 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -282,6 +283,15 @@ As an user, I want every page to work with keyboard and screen readers and load 
 
 - Given any page · When I navigate with the keyboard only · Then every action is reachable and has a visible focus state
 - Given a 4G connection · When I open the home page · Then it becomes interactive within 2.5 seconds (Lighthouse)
+
+## REQ-026 — Export the trip itinerary and costs to Excel
+
+As a trip member, I want to export the itinerary and costs to Excel so that I can review, share and adjust the budget offline in the same layout as our planning spreadsheets.
+
+- Given a trip with a plan and costs · When I tap Export Excel on the Plan or Costs tab · Then an .xlsx file downloads with Itinerary, Costs, Settle up (groups), Rates, Places and Master data sheets
+- Given an actual cost linked to a plan item · When I open the Itinerary sheet · Then the item's Actual cell sums it with a formula that refers to the Costs sheet
+- Given I change a rate in the Rates sheet · When Excel recalculates · Then converted amounts, itinerary totals and balances update
+- Given a trip with one member · When I export · Then there is no Settle up sheet and no per-member columns
 
 ## REQ-101 — Sign in with Google
 

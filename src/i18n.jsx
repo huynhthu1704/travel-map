@@ -1437,6 +1437,8 @@ const DICT = {
     'dup.done': 'Đã tạo chuyến “{name}” ✨',
     'cost.tab': 'Chi phí',
     'cost.pickFromEst': 'Chọn nhanh từ chi phí dự kiến:',
+    'cost.typeLabel': 'Loại chi phí',
+    'cost.typeNone': '— Chưa chọn —',
     'cost.placeLabel': 'Địa điểm',
     'cost.calcBy': 'Tính theo',
     'cost.vsEstimate': 'Dự kiến: {v}',

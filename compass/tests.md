@@ -54,6 +54,8 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-048 | Excel: one itinerary & costs sheet, item totals, cached formula values, sheet list | REQ-029 | automated | Passing | tests/tripExcel.test.mjs |
 | TC-049 | Excel: pre-trip costs first, day blocks, estimate/actual columns, currency columns only for multi-currency trips, totals | REQ-030 | automated | Passing | tests/tripExcel.test.mjs |
 | TC-050 | Excel: Google Maps cell holds the full URL (also the admin link) | REQ-032 | automated | Passing | tests/tripExcel.test.mjs |
+| TC-051 | Cost types list and Excel cost type column | REQ-031 | automated | Passing | tests/costTypes.test.mjs |
+| TC-052 | UI: save a cost with a type; picker hidden while the flag is off | REQ-031 | automated | Passing | e2e/costType.spec.mjs |
 | TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
 | TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
 | TC-103 | Automated UI tests: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | automated | Passing | e2e/checkins.spec.mjs |

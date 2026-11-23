@@ -60,3 +60,13 @@ test('REQ-146: a live announcement shows until closed, then stays hidden', async
   await page.waitForTimeout(1500);
   await expect(bar).toBeHidden();
 });
+
+// TC-056 — bug #54: skipping the tour quickly must not make it open again
+test('REQ-143 (#54): skipping the tour right after it opens keeps it closed', async ({ page }) => {
+  await openApp(page, '#/', { tour: true, newUser: true, flags: { quickTour: true } });
+  const tour = page.locator('.tour');
+  await expect(tour).toBeVisible({ timeout: 10_000 });
+  await tour.getByRole('button', { name: /Bỏ qua/ }).click();
+  await page.waitForTimeout(2500);
+  await expect(tour).toBeHidden();
+});

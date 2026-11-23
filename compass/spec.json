@@ -1831,6 +1831,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/cicd.test.mjs"
+    },
+    {
+      "id": "TC-056",
+      "title": "Bug #54: skipping the quick tour right after it opens keeps it closed",
+      "reqIds": [
+        "REQ-143"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/help.spec.mjs"
     }
   ]
 }

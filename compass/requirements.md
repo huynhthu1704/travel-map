@@ -29,6 +29,8 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-024 | Increase the number of user by adding some suggestion from 'Guides' into trip's checklist | F-001 | Must | In build | TC-041, TC-042 |
 | REQ-025 | Accessibility and performance baseline | F-001 | Should | Approved | TC-043, TC-044 |
 | REQ-026 | Export the trip itinerary and costs to Excel | — | Should | Done | TC-045, TC-046 |
+| REQ-027 | Failing UI tests are logged as GitHub bug issues | — | Should | Done | TC-047 |
+| REQ-028 | Archive trips older than the retention period (Excel-only access) | — | Could | Draft | — |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -292,6 +294,22 @@ As a trip member, I want to export the itinerary and costs to Excel so that I ca
 - Given an actual cost linked to a plan item · When I open the Itinerary sheet · Then the item's Actual cell sums it with a formula that refers to the Costs sheet
 - Given I change a rate in the Rates sheet · When Excel recalculates · Then converted amounts, itinerary totals and balances update
 - Given a trip with one member · When I export · Then there is no Settle up sheet and no per-member columns
+
+## REQ-027 — Failing UI tests are logged as GitHub bug issues
+
+As the Product Owner, I want every UI test that fails on main or in the nightly run to become a GitHub bug issue so that I can pick a bug by its number and ask for a fix.
+
+- Given a UI test fails on main or in the nightly run · When the CI job finishes · Then a GitHub issue labelled bug and e2e is opened with the requirement, error, run link and how to reproduce
+- Given that issue is still open and the test fails again · When the next run finishes · Then a comment is added instead of a duplicate issue
+- Given the test passes again · When the run finishes · Then the issue is closed with a comment
+- Given a pull request run fails · When the CI job finishes · Then no issue is opened (the pull request shows the failure)
+
+## REQ-028 — Archive trips older than the retention period (Excel-only access)
+
+As the Product Owner, I want trips older than a retention period (default 2 years, editable by admins) to be archived and only viewable through an Excel export so that storage stays small.
+
+- Given a trip ended more than the retention period ago · When a member opens it · Then it is archived and only its Excel export is available
+- Given I am an admin · When I change the retention period in Admin · Then the new period is used for archiving
 
 ## REQ-101 — Sign in with Google
 

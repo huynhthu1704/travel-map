@@ -34,6 +34,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-029 | Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet | — | Must | Done | TC-046, TC-048 |
 | REQ-030 | Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side | — | Must | Done | TC-046, TC-049 |
 | REQ-031 | Choose a cost type when entering a cost | — | Should | Done | TC-051, TC-052 |
+| REQ-032 | Excel export: Google Maps column shows the URL | — | Should | Done | TC-050 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -340,6 +341,13 @@ As a trip member, I want to pick a cost type when I add or edit a cost so that c
 - Given I saved a cost with a type · When I look at the cost list · Then the cost shows its type icon and name
 - Given I edit the cost · When I change or clear the type and save · Then the new type is shown
 - Given a cost has a type · When I export the trip to Excel · Then the Cost type column shows that type
+
+## REQ-032 — Excel export: Google Maps column shows the URL
+
+As a trip member, I want the Google Maps column of the Excel export to contain the full Google Maps URL so that I can copy it, see where it points and open it from any app.
+
+- Given a plan item with a location or an admin-attached Google Maps link · When I export the trip to Excel · Then its Google Maps cell shows the full URL as a clickable link
+- Given I open the file in a viewer that does not recalculate · When I look at the Google Maps column · Then the URL text is visible
 
 ## REQ-101 — Sign in with Google
 

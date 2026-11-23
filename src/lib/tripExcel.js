@@ -35,7 +35,6 @@ const LABELS = {
     dayTotal: 'Cộng ngày',
     sectionTotal: 'Cộng',
     total: 'TỔNG CẢ CHUYẾN',
-    openMap: 'Mở bản đồ',
     kinds: { item: 'Lịch trình', cost: 'Chi phí', payment: 'Trả lại' },
     status: ['Chưa làm', 'Đang làm', 'Xong', 'Không đi'],
     split: { all: 'Cả nhóm', only: (n) => `Riêng - ${n}`, pick: 'Chọn người' },
@@ -65,7 +64,6 @@ const LABELS = {
     dayTotal: 'Day total',
     sectionTotal: 'Total',
     total: 'TRIP TOTAL',
-    openMap: 'Open map',
     kinds: { item: 'Itinerary', cost: 'Cost', payment: 'Repayment' },
     status: ['To do', 'In progress', 'Done', 'Skipped'],
     split: { all: 'Whole group', only: (n) => `Only - ${n}`, pick: 'Picked people' },
@@ -159,7 +157,7 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     if (typeof v === 'function') return v(base);
     return !multi && (k === 'est' || k === 'act$') ? `${v} (${base})` : v;
   };
-  const widths = { date: 12, time: 7, city: 14, act: 36, status: 11, est: 14, estCur: 9, act$: 14, actCur: 9, final: 15, diff: 15, payer: 13, payee: 13, split: 18, costType: 15, maps: 12, note: 32, type: 10, estBase: 14 };
+  const widths = { date: 12, time: 7, city: 14, act: 36, status: 11, est: 14, estCur: 9, act$: 14, actCur: 9, final: 15, diff: 15, payer: 13, payee: 13, split: 18, costType: 15, maps: 40, note: 32, type: 10, estBase: 14 };
 
   const rows = [];
   const blank = (style = {}) => Array.from({ length: width }, () => ({ value: '', ...style }));
@@ -309,7 +307,8 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
       put(row, 'status', { value: statusOf(p), ...ITEM });
       put(row, 'type', { value: L.kinds.item, ...SUB });
       const url = mapsUrl(p.place);
-      if (url) put(row, 'maps', fx(`=HYPERLINK(${str(url)},${str(L.openMap)})`, L.openMap, undefined, { color: '#1155CC' }));
+      // REQ-032: show the full URL (copyable, readable in any viewer) and keep it clickable
+      if (url) put(row, 'maps', fx(`=HYPERLINK(${str(url)})`, url, undefined, { color: '#1155CC' }));
       put(row, 'note', { value: p.note || '', wrap: true });
       rows.push(row);
       const lines = linesOfPlan.get(p.id).map((l) => lineRow(l));

@@ -1042,6 +1042,18 @@
       "source": "Requested by the Product Owner on 2026-11-23 (issue #45); changes REQ-026 / REQ-029"
     },
     {
+      "id": "REQ-032",
+      "title": "Excel export: Google Maps column shows the URL",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As a trip member, I want the Google Maps column of the Excel export to contain the full Google Maps URL so that I can copy it, see where it points and open it from any app.",
+      "ac": [
+        "Given a plan item with a location or an admin-attached Google Maps link\nWhen I export the trip to Excel\nThen its Google Maps cell shows the full URL as a clickable link",
+        "Given I open the file in a viewer that does not recalculate\nWhen I look at the Google Maps column\nThen the URL text is visible"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #48)"
+    },
+    {
       "id": "REQ-031",
       "title": "Choose a cost type when entering a cost",
       "priority": "Should",
@@ -1725,6 +1737,16 @@
       "title": "Excel: pre-trip costs first, day blocks, estimate/actual columns, currency columns only for multi-currency trips, totals",
       "reqIds": [
         "REQ-030"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-050",
+      "title": "Excel: Google Maps cell holds the full URL (also the admin link)",
+      "reqIds": [
+        "REQ-032"
       ],
       "type": "automated",
       "status": "Passing",

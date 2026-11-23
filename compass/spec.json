@@ -1423,7 +1423,7 @@
     },
     {
       "id": "TC-101",
-      "title": "Baseline manual regression: Account & platform",
+      "title": "Automated UI tests: Account & platform",
       "reqIds": [
         "REQ-101",
         "REQ-102",
@@ -1436,13 +1436,13 @@
         "REQ-109",
         "REQ-110"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/account.spec.mjs"
     },
     {
       "id": "TC-102",
-      "title": "Baseline manual regression: Map & places",
+      "title": "Automated UI tests: Map & places",
       "reqIds": [
         "REQ-111",
         "REQ-112",
@@ -1452,9 +1452,9 @@
         "REQ-116",
         "REQ-117"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/map.spec.mjs"
     },
     {
       "id": "TC-103",

@@ -1458,7 +1458,7 @@
     },
     {
       "id": "TC-103",
-      "title": "Baseline manual regression: Check-ins & memories",
+      "title": "Automated UI tests: Check-ins & memories",
       "reqIds": [
         "REQ-118",
         "REQ-119",
@@ -1466,25 +1466,25 @@
         "REQ-121",
         "REQ-122"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkins.spec.mjs"
     },
     {
       "id": "TC-104",
-      "title": "Baseline manual regression: Social",
+      "title": "Automated UI tests: Social",
       "reqIds": [
         "REQ-123",
         "REQ-124",
         "REQ-125"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/social.spec.mjs"
     },
     {
       "id": "TC-105",
-      "title": "Baseline manual regression: Trips",
+      "title": "Automated UI tests: Trips",
       "reqIds": [
         "REQ-126",
         "REQ-127",
@@ -1495,13 +1495,13 @@
         "REQ-132",
         "REQ-133"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/trips.spec.mjs"
     },
     {
       "id": "TC-106",
-      "title": "Baseline manual regression: Guides, tips & gear",
+      "title": "Automated UI tests: Guides, tips & gear",
       "reqIds": [
         "REQ-134",
         "REQ-135",
@@ -1512,13 +1512,13 @@
         "REQ-140",
         "REQ-141"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/guides.spec.mjs"
     },
     {
       "id": "TC-107",
-      "title": "Baseline manual regression: Help & onboarding",
+      "title": "Automated UI tests: Help & onboarding",
       "reqIds": [
         "REQ-142",
         "REQ-143",
@@ -1526,13 +1526,13 @@
         "REQ-145",
         "REQ-146"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/help.spec.mjs"
     },
     {
       "id": "TC-108",
-      "title": "Baseline manual regression: Admin",
+      "title": "Automated UI tests: Admin",
       "reqIds": [
         "REQ-147",
         "REQ-148",
@@ -1542,9 +1542,9 @@
         "REQ-152",
         "REQ-153"
       ],
-      "type": "manual",
-      "status": "Not automated yet",
-      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/admin.spec.mjs"
     },
     {
       "id": "TC-040",

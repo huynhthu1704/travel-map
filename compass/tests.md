@@ -50,9 +50,9 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-044 | Accessibility and performance baseline — invalid input | REQ-025 | Manual | Not run | — |
 | TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
 | TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
-| TC-103 | Baseline manual regression: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | manual | Not automated yet | — |
-| TC-104 | Baseline manual regression: Social | REQ-123, REQ-124, REQ-125 | manual | Not automated yet | — |
-| TC-105 | Baseline manual regression: Trips | REQ-126, REQ-127, REQ-128, REQ-129, REQ-130, REQ-131, REQ-132, REQ-133 | manual | Not automated yet | — |
-| TC-106 | Baseline manual regression: Guides, tips & gear | REQ-134, REQ-135, REQ-136, REQ-137, REQ-138, REQ-139, REQ-140, REQ-141 | manual | Not automated yet | — |
-| TC-107 | Baseline manual regression: Help & onboarding | REQ-142, REQ-143, REQ-144, REQ-145, REQ-146 | manual | Not automated yet | — |
-| TC-108 | Baseline manual regression: Admin | REQ-147, REQ-148, REQ-149, REQ-150, REQ-151, REQ-152, REQ-153 | manual | Not automated yet | — |
+| TC-103 | Automated UI tests: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | automated | Passing | e2e/checkins.spec.mjs |
+| TC-104 | Automated UI tests: Social | REQ-123, REQ-124, REQ-125 | automated | Passing | e2e/social.spec.mjs |
+| TC-105 | Automated UI tests: Trips | REQ-126, REQ-127, REQ-128, REQ-129, REQ-130, REQ-131, REQ-132, REQ-133 | automated | Passing | e2e/trips.spec.mjs |
+| TC-106 | Automated UI tests: Guides, tips & gear | REQ-134, REQ-135, REQ-136, REQ-137, REQ-138, REQ-139, REQ-140, REQ-141 | automated | Passing | e2e/guides.spec.mjs |
+| TC-107 | Automated UI tests: Help & onboarding | REQ-142, REQ-143, REQ-144, REQ-145, REQ-146 | automated | Passing | e2e/help.spec.mjs |
+| TC-108 | Automated UI tests: Admin | REQ-147, REQ-148, REQ-149, REQ-150, REQ-151, REQ-152, REQ-153 | automated | Passing | e2e/admin.spec.mjs |

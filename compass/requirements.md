@@ -31,6 +31,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-026 | Export the trip itinerary and costs to Excel | — | Should | Done | TC-045, TC-046 |
 | REQ-027 | Failing UI tests are logged as GitHub bug issues | — | Should | Done | TC-047 |
 | REQ-028 | Archive trips older than the retention period (Excel-only access) | — | Could | Draft | — |
+| REQ-029 | Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet | — | Must | Done | TC-046, TC-048 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -290,7 +291,7 @@ As an user, I want every page to work with keyboard and screen readers and load 
 
 As a trip member, I want to export the itinerary and costs to Excel so that I can review, share and adjust the budget offline in the same layout as our planning spreadsheets.
 
-- Given a trip with a plan and costs · When I tap Export Excel on the Plan or Costs tab · Then an .xlsx file downloads with Itinerary, Costs, Settle up (groups), Rates, Places and Master data sheets
+- Given a trip with a plan and costs · When I tap Export Excel on the Plan or Costs tab · Then an .xlsx file downloads with Itinerary & costs, Settle up (groups), Rates and Master data sheets (layout changed by REQ-029)
 - Given an actual cost linked to a plan item · When I open the Itinerary sheet · Then the item's Actual cell sums it with a formula that refers to the Costs sheet
 - Given I change a rate in the Rates sheet · When Excel recalculates · Then converted amounts, itinerary totals and balances update
 - Given a trip with one member · When I export · Then there is no Settle up sheet and no per-member columns
@@ -310,6 +311,15 @@ As the Product Owner, I want trips older than a retention period (default 2 year
 
 - Given a trip ended more than the retention period ago · When a member opens it · Then it is archived and only its Excel export is available
 - Given I am an admin · When I change the retention period in Admin · Then the new period is used for archiving
+
+## REQ-029 — Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet
+
+As a trip member, I want the itinerary and its costs on the same sheet, with amounts visible as soon as the file opens, so that I can read each stop together with what it cost.
+
+- Given I export a trip to Excel · When I open the file · Then the first sheet lists each day, each plan item and, right under it, the estimates and actuals linked to it, with item, day and trip totals
+- Given costs not linked to a plan item or repayments · When I open the file · Then they appear in an Other costs section and a Repayments section; repayments are not counted as trip spending
+- Given I export a trip · When I look at the sheet tabs · Then there is no Places sheet and no separate Costs sheet; Settle up (groups), Rates and Master data stay
+- Given I open the file in a viewer that does not recalculate (Excel Protected View, previews) · When the sheet appears · Then all amounts and totals are already visible
 
 ## REQ-101 — Sign in with Google
 

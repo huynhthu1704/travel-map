@@ -1,5 +1,9 @@
 /**
- * REQ-026: drop-down lists (Excel data validation) for write-excel-file.
+ * REQ-026 / REQ-029: extras for write-excel-file sheets.
+ * - Drop-down lists (Excel data validation).
+ * - Cached formula results: write-excel-file only stores the formula, so viewers that do not recalculate
+ *   (Excel Protected View, previews) showed empty cells. Each sheet may carry `formulaValues: { A1: value }`;
+ *   the value is written as the formula's cached result. Formulas are also stored without the leading "=".
  * Each sheet may carry `validations: [{ sqref: 'C2:C200', list: "'Master data'!$A$2:$A$5" }]`;
  * this feature writes them as <dataValidations> in the sheet XML, keeping the element order Excel requires.
  */
@@ -27,11 +31,21 @@ export function insertDataValidations(xml, validations) {
   return xml.slice(0, at) + markup + xml.slice(at);
 }
 
+/** Store formulas without the leading "=" and add their cached results */
+export function addFormulaValues(xml, values = {}) {
+  return xml.replace(/<c r="([A-Z]+\d+)"([^>]*)><f>=?([\s\S]*?)<\/f><\/c>/g, (m, ref, attrs, f) => {
+    const v = values[ref];
+    if (v === undefined || v === null || v === '') return `<c r="${ref}"${attrs}><f>${f}</f></c>`;
+    if (typeof v === 'number' && Number.isFinite(v)) return `<c r="${ref}"${attrs.replace(/\s+t="[^"]*"/, '')}><f>${f}</f><v>${v}</v></c>`;
+    return `<c r="${ref}"${attrs.replace(/\s+t="[^"]*"/, '')} t="str"><f>${f}</f><v>${esc(v)}</v></c>`;
+  });
+}
+
 export const dataValidationFeature = {
   files: {
     transform: {
       'xl/worksheets/sheet{id}.xml': {
-        transform: (content, sheetOptions) => insertDataValidations(content, sheetOptions?.validations),
+        transform: (content, sheetOptions) => insertDataValidations(addFormulaValues(content, sheetOptions?.formulaValues), sheetOptions?.validations),
       },
     },
   },

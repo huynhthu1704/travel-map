@@ -980,7 +980,7 @@
       "status": "Done",
       "story": "As a trip member, I want to export the itinerary and costs to Excel so that I can review, share and adjust the budget offline in the same layout as our planning spreadsheets.",
       "ac": [
-        "Given a trip with a plan and costs\nWhen I tap Export Excel on the Plan or Costs tab\nThen an .xlsx file downloads with Itinerary, Costs, Settle up (groups), Rates, Places and Master data sheets",
+        "Given a trip with a plan and costs\nWhen I tap Export Excel on the Plan or Costs tab\nThen an .xlsx file downloads with Itinerary & costs, Settle up (groups), Rates and Master data sheets (layout changed by REQ-029)",
         "Given an actual cost linked to a plan item\nWhen I open the Itinerary sheet\nThen the item's Actual cell sums it with a formula that refers to the Costs sheet",
         "Given I change a rate in the Rates sheet\nWhen Excel recalculates\nThen converted amounts, itinerary totals and balances update",
         "Given a trip with one member\nWhen I export\nThen there is no Settle up sheet and no per-member columns"
@@ -1012,6 +1012,20 @@
         "Given I am an admin\nWhen I change the retention period in Admin\nThen the new period is used for archiving"
       ],
       "source": "Requested by the Product Owner in chat on 2026-11-23 (01:14); on hold — the Product Owner is deciding what 'archive' means, which date counts and what the Excel file contains"
+    },
+    {
+      "id": "REQ-029",
+      "title": "Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As a trip member, I want the itinerary and its costs on the same sheet, with amounts visible as soon as the file opens, so that I can read each stop together with what it cost.",
+      "ac": [
+        "Given I export a trip to Excel\nWhen I open the file\nThen the first sheet lists each day, each plan item and, right under it, the estimates and actuals linked to it, with item, day and trip totals",
+        "Given costs not linked to a plan item or repayments\nWhen I open the file\nThen they appear in an Other costs section and a Repayments section; repayments are not counted as trip spending",
+        "Given I export a trip\nWhen I look at the sheet tabs\nThen there is no Places sheet and no separate Costs sheet; Settle up (groups), Rates and Master data stay",
+        "Given I open the file in a viewer that does not recalculate (Excel Protected View, previews)\nWhen the sheet appears\nThen all amounts and totals are already visible"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #43); fixes bug #42; changes REQ-026"
     }
   ],
   "tests": [
@@ -1650,7 +1664,8 @@
       "id": "TC-046",
       "title": "UI: Export Excel on the Plan and Costs tabs, hidden while the flag is off",
       "reqIds": [
-        "REQ-026"
+        "REQ-026",
+        "REQ-029"
       ],
       "type": "automated",
       "status": "Passing",
@@ -1665,6 +1680,16 @@
       "type": "manual",
       "status": "Passing (dry run, 2026-11-23)",
       "file": "e2e/report-bugs.mjs"
+    },
+    {
+      "id": "TC-048",
+      "title": "Excel: one itinerary & costs sheet, item totals, cached formula values, sheet list",
+      "reqIds": [
+        "REQ-029"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
     }
   ]
 }

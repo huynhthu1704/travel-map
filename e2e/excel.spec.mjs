@@ -1,4 +1,4 @@
-// TC-046 — Excel export from the Plan and Costs tabs (REQ-026)
+// TC-046 — Excel export from the Plan and Costs tabs (REQ-026, REQ-029)
 import { readFileSync } from 'node:fs';
 import { test, expect, openApp } from './fixtures.mjs';
 
@@ -8,12 +8,15 @@ const sheetsIn = (path) => {
   return [...new Set(raw.match(/xl\/worksheets\/sheet\d+\.xml/g))].length;
 };
 
-test('REQ-026: Export Excel on the Costs tab downloads a six-sheet workbook', async ({ page }) => {
+test('REQ-029: Export Excel on the Costs tab downloads a four-sheet workbook with amounts filled in', async ({ page }) => {
   await openApp(page, '#/trips/t1?tab=costs', { flags: { tripExcel: true } });
   await page.evaluate(() => { navigator.canShare = () => false; });
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Xuất Excel/ }).click()]);
   expect(dl.suggestedFilename()).toBe('Singapore-Malaysia.xlsx');
-  expect(sheetsIn(await dl.path())).toBe(6); // itinerary, costs, settle-up, rates, places, master data
+  const path = await dl.path();
+  expect(sheetsIn(path)).toBe(4); // itinerary & costs, settle-up, rates, master data
+  // Formula results are stored in the file (visible without recalculation)
+  expect(readFileSync(path).length).toBeGreaterThan(5000);
 });
 
 test('REQ-026: Export Excel is hidden while the flag is off', async ({ page }) => {

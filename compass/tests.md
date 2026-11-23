@@ -50,6 +50,7 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-044 | Accessibility and performance baseline — invalid input | REQ-025 | Manual | Not run | — |
 | TC-045 | Excel workbook: sheets, formulas linking costs to the itinerary, rates, drop-downs | REQ-026 | automated | Passing | tests/tripExcel.test.mjs |
 | TC-046 | UI: Export Excel on the Plan and Costs tabs, hidden while the flag is off | REQ-026 | automated | Passing | e2e/excel.spec.mjs |
+| TC-047 | Bug reporter: a deliberately failing test produces one issue (dry run); reruns comment; passes close | REQ-027 | manual | Passing (dry run, 2026-11-23) | e2e/report-bugs.mjs |
 | TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
 | TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
 | TC-103 | Automated UI tests: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | automated | Passing | e2e/checkins.spec.mjs |

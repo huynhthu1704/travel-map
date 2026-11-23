@@ -986,6 +986,32 @@
         "Given a trip with one member\nWhen I export\nThen there is no Settle up sheet and no per-member columns"
       ],
       "source": "Requested by the Product Owner on 2026-11-23 (GitHub issue #34); templates: solo and group trip spreadsheets"
+    },
+    {
+      "id": "REQ-027",
+      "title": "Failing UI tests are logged as GitHub bug issues",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the Product Owner, I want every UI test that fails on main or in the nightly run to become a GitHub bug issue so that I can pick a bug by its number and ask for a fix.",
+      "ac": [
+        "Given a UI test fails on main or in the nightly run\nWhen the CI job finishes\nThen a GitHub issue labelled bug and e2e is opened with the requirement, error, run link and how to reproduce",
+        "Given that issue is still open and the test fails again\nWhen the next run finishes\nThen a comment is added instead of a duplicate issue",
+        "Given the test passes again\nWhen the run finishes\nThen the issue is closed with a comment",
+        "Given a pull request run fails\nWhen the CI job finishes\nThen no issue is opened (the pull request shows the failure)"
+      ],
+      "source": "Requested by the Product Owner in chat on 2026-11-23 (10:08)"
+    },
+    {
+      "id": "REQ-028",
+      "title": "Archive trips older than the retention period (Excel-only access)",
+      "priority": "Could",
+      "status": "Draft",
+      "story": "As the Product Owner, I want trips older than a retention period (default 2 years, editable by admins) to be archived and only viewable through an Excel export so that storage stays small.",
+      "ac": [
+        "Given a trip ended more than the retention period ago\nWhen a member opens it\nThen it is archived and only its Excel export is available",
+        "Given I am an admin\nWhen I change the retention period in Admin\nThen the new period is used for archiving"
+      ],
+      "source": "Requested by the Product Owner in chat on 2026-11-23 (01:14); on hold — the Product Owner is deciding what 'archive' means, which date counts and what the Excel file contains"
     }
   ],
   "tests": [
@@ -1629,6 +1655,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "e2e/excel.spec.mjs"
+    },
+    {
+      "id": "TC-047",
+      "title": "Bug reporter: a deliberately failing test produces one issue (dry run); reruns comment; passes close",
+      "reqIds": [
+        "REQ-027"
+      ],
+      "type": "manual",
+      "status": "Passing (dry run, 2026-11-23)",
+      "file": "e2e/report-bugs.mjs"
     }
   ]
 }

@@ -1485,6 +1485,31 @@
           "then": "I see who received and read it and can export it to Excel"
         }
       ]
+    },
+    {
+      "id": "REQ-023",
+      "title": "Quick tour points at visible buttons on phones",
+      "description": "On phones some tour steps highlighted the wrong area or hid the button behind the tour card (e.g. 'Save memories' pointed at the map because the Add memory button was scrolled out of the bottom sheet; the Feedback tab was covered by the card). The tour now scrolls the target into view inside its panel, only highlights the visible part, and places the card in the larger free space above or below the target, shrinking it (and hiding the illustration) so it never covers the target. Fixes REQ-143.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-23 with iPhone screenshots",
+      "ac": [
+        {
+          "given": "I am on a phone at step 5 'Save memories'",
+          "when": "the step opens",
+          "then": "the Add memory button is scrolled into view, highlighted and not covered by the card"
+        },
+        {
+          "given": "I am at step 8 'Send feedback'",
+          "when": "the step opens",
+          "then": "the Feedback tab is highlighted and the card sits above or below it"
+        },
+        {
+          "given": "the step highlights the whole map",
+          "when": "it opens",
+          "then": "the card stays at the bottom as before"
+        }
+      ]
     }
   ],
   "tests": [
@@ -2058,6 +2083,16 @@
       "type": "manual",
       "status": "Not automated yet",
       "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-040",
+      "title": "Tour card never covers the highlighted target on phones",
+      "reqIds": [
+        "REQ-023"
+      ],
+      "type": "automated",
+      "file": "tests/tourLayout.test.mjs",
+      "status": "Passing"
     }
   ],
   "decisions": []

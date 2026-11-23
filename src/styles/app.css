@@ -3525,6 +3525,7 @@ a.app-link.place-card__title:hover {
 .tour__card.is-mobile {
   width: auto;
   max-height: 62dvh;
+  overflow-y: auto; /* REQ-154: thẻ thấp lại cho vừa khoảng trống → cuộn bên trong */
 }
 @keyframes tourCardIn {
   from {

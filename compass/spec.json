@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "stack": "Static web app (HTML/JS ES modules), node:test, GitHub Pages",
+  "stack": "React 18 + Vite, Firebase (Auth, Firestore) on the Spark plan, node:test unit tests, Playwright UI tests, GitHub Pages",
   "features": [
     {
       "id": "F-001",
@@ -43,9 +43,914 @@
       "createdAt": "2026-11-23T03:16:00.940Z"
     }
   ],
+  "decisions": [],
   "requirements": [
     {
       "id": "REQ-001",
+      "title": "View-only trip members and copying a trip",
+      "description": "Trip owners can make an invited member view-only. View-only members see the plan, costs and shared checklists but cannot change them, and can copy the trip to their own account to plan it themselves.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "tripViewers",
+      "ac": [
+        "Given I own a trip with an accepted member\nWhen I open Members & invites and set that member to View only\nThen the member is stored in trips.viewerIds and shows as 'View only' in the member list",
+        "Given I am a view-only member of a trip\nWhen I open the trip\nThen I see a view-only banner, and controls to add, edit, reorder, tick or delete plan items, costs and shared checklist items are hidden or disabled",
+        "Given I am a view-only member\nWhen I try to write plan items, costs, shared checklists or trip details (UI or API)\nThen Firestore security rules reject the write",
+        "Given I am a view-only member\nWhen I tap 'Copy this trip' and confirm\nThen a new trip owned by me is created with the plan, checklists and estimated costs I chose, and I can edit it",
+        "Given I am the trip owner\nWhen anyone tries to make me view-only\nThen I keep full edit rights"
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "title": "Estimated vs actual cost comparison",
+      "description": "Show estimated and actual costs side by side in one view so members can see the difference per item and spot costs that were not in the original estimate.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costCompare",
+      "ac": [
+        "Given a trip has estimated costs and actual costs recorded from them\nWhen I open the Costs tab\nThen a 'Estimated vs actual' card lists each estimate with its estimated amount, actual amount, and the difference marked over / under / on budget, with bars to compare",
+        "Given an estimate has no actual cost linked yet\nWhen I view the comparison\nThen it shows 'Not spent yet' and is counted in the 'not spent yet' note, not as a saving",
+        "Given some actual costs are not linked to any estimate (or their estimate was deleted)\nWhen I view the comparison\nThen they are listed under 'Not in the estimate' with their total, sorted by date",
+        "Given the comparison is shown\nWhen I look at the footer\nThen I see total estimated, total actual including extras, and the overall difference"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "title": "Reorder costs by drag and drop",
+      "description": "Members who can edit a trip can change the order of estimated and actual costs by dragging, and the order is saved for the whole group.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costReorder",
+      "ac": [
+        "Given I can edit the trip\nWhen I hold the ⠿ handle of a cost and drag it up or down (mouse or touch), or press ↑ / ↓ on the handle\nThen the cost moves to the new position and the new order is saved for everyone",
+        "Given costs have never been reordered\nWhen I open the Costs tab\nThen estimates keep the order they were added and actual costs are sorted by date",
+        "Given I am a view-only member\nWhen I open the Costs tab\nThen no drag handles are shown"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "title": "Combined cost table: estimate, actual and difference in one table",
+      "description": "Replace the separate Estimated and Actual tables with one table where each cost item shows its estimate, actual spend and difference on the same row. Users can add a cost with the estimate, the actual, or both at once, and record the actual later. Unplanned actual costs appear in the same table, marked. Field sets for estimate and actual stay the same.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 (refines REQ-002)",
+      "featureFlag": "costTable",
+      "ac": [
+        "Given I can edit a trip\nWhen I tap 'Add a cost' and fill the estimate and/or the 'Already paid' part\nThen one estimate and/or one actual cost is saved; if both, the actual is linked to the estimate",
+        "Given a cost item has an estimate only\nWhen I tap 🧾 on its row and save the actual amount\nThen the actual is linked to that item and the row shows estimate, actual and difference",
+        "Given an item has one or more actual payments\nWhen I view the table\nThen the row shows the total actual, the difference (over in red, under in green) and each payment underneath with date, who paid and who shares it",
+        "Given an actual cost is not linked to any estimate\nWhen I view the table\nThen it appears as its own row tagged 'Unplanned' with no estimate and a + difference",
+        "Given the table has rows\nWhen I look at the last row\nThen I see total estimate, total actual and total difference, plus notes for unplanned and not-yet-spent amounts",
+        "Given I am a view-only member\nWhen I view the table\nThen I see all values but no add, edit, delete or drag controls"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "title": "Highlight the selected place on the map",
+      "description": "When a place is selected (place panel open), its pin stands out so users can tell which of dozens of pins they are looking at.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "selectedPin",
+      "ac": [
+        "Given the map shows many pins\nWhen I open a place (from the map, search, a list or a trip plan)\nThen its pin is larger, has a honey ring and a gently pulsing glow, and shows the place name in a label",
+        "Given the selected place is a famous place inside a cluster\nWhen I open it\nThen its highlighted pin is shown on its own and not hidden in the cluster",
+        "Given a place is selected\nWhen I close the place panel or open another place\nThen the highlight moves to the new place or disappears",
+        "Given my device asks for reduced motion\nWhen a place is selected\nThen the glow does not animate"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "title": "Estimated costs for picked people",
+      "description": "Besides 'Group' and 'Per person', an estimated cost can apply to picked people only (e.g. a side tour two of four members join). The amount is either a total split between them or per picked person.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costPickPeople",
+      "ac": [
+        "Given I add or edit an estimated cost\nWhen I choose 'Pick people', select members and choose 'Total' or 'Per person'\nThen the estimate is saved with those members (splitAmong) and the hint shows the per-person share or the total for them",
+        "Given 'Pick people' is chosen\nWhen no member is selected\nThen I cannot save and see 'Pick at least one person'",
+        "Given an estimate applies to picked people\nWhen I view the cost tables and the PDF\nThen its group total counts only the picked people, the label lists their names, and 'Estimated / person' shows the group average",
+        "Given an estimate applies to picked people\nWhen I record its actual cost (🧾 or 'Already paid')\nThen the actual form is pre-filled to split between the same people"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "title": "Reliable cost ordering and an easier way to sort",
+      "description": "Fix drag-and-drop ordering of costs (rows jumped back or stopped following the pointer) and add easier options: ↑/↓ buttons on each row and a Sort menu (group order, date paid, amount, most over budget, name) that can be saved as the group order.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costReorder, costSort",
+      "ac": [
+        "Given I can edit a trip and the table is in group order\nWhen I drag a row by ⠿ (mouse or touch) or tap ↑ / ↓\nThen the row moves, stays in its new place without jumping back, and the order is saved for the group in one write",
+        "Given the cost table has several rows\nWhen I choose Sort by date, amount, most over budget or name\nThen the table re-sorts on my device only, drag handles and ↑ ↓ are hidden, and a hint explains it",
+        "Given I sorted the table by something other than group order\nWhen I tap 'Save as group order'\nThen that order becomes the group order for everyone and the menu returns to 'Group order'",
+        "Given I am a view-only member\nWhen I open the table\nThen I can change my view sort but cannot reorder or save the group order"
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "title": "Costs PDF matches the web table and current order",
+      "description": "The costs PDF uses one table like the web (item, estimate, actual, difference, payments under each item, unplanned rows marked) and follows the exact order currently shown on screen, using the latest data.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I am on the Costs tab\nWhen I tap Export PDF or Share PDF\nThen the PDF shows a single table with Item, Estimate, Actual and Difference, each item's payments listed under it, unplanned costs marked, and a totals row",
+        "Given I reordered or sorted the table\nWhen I export the PDF\nThen rows appear in the same order as on screen",
+        "Given a cost was just added or edited\nWhen I export the PDF\nThen the PDF includes the latest values",
+        "Given a cost title contains arrows such as 'SGN → SIN'\nWhen I export the costs PDF (or the plan PDF)\nThen the arrows appear in the PDF instead of disappearing"
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "title": "Correct cost summary",
+      "description": "The summary cards no longer subtract unspent estimates from the difference. Cards: estimated for the group (with per-person average), actually spent (incl. unplanned), difference on spent items, and estimated but not spent yet.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given some estimates have no actual cost yet\nWhen I view the summary\nThen 'Difference (spent items)' compares actual spend with the estimates of the items already paid plus unplanned costs, and the unspent estimates are shown separately as 'Estimated, not spent yet'",
+        "Given the PDF is exported\nWhen I read its summary and totals row\nThen they use the same numbers as the web"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "title": "View-only trip link for non-members",
+      "description": "The trip owner can turn on a view-only link so anyone with it (signed in or not) can view the plan and shared checklists, and costs if the owner allows, without joining the trip.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "tripPublicView",
+      "ac": [
+        "Given I own a trip\nWhen I open Members & invites → Code / link and turn on 'Anyone with the link can view'\nThen the trip gets publicView and I can copy the view-only link",
+        "Given the link is on\nWhen someone who is not a member (or not signed in) opens it\nThen they see the trip header, Plan and shared Checklists (Costs only if 'Also show costs' is on) with a 'shared trip' banner, and no edit, member, invite, map, recap or Journey controls",
+        "Given I view a shared trip by link\nWhen I tap 'Copy this trip'\nThen I am asked to sign in if needed and then get my own editable copy",
+        "Given the owner turns the link off\nWhen someone opens the link\nThen they can no longer see the trip",
+        "Given the link is on\nWhen anyone tries to list trips, read the journey/photos, personal checklists, or write anything\nThen Firestore rules deny it"
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "title": "Faster page loading",
+      "description": "Pages load too slowly on phones. Load the map only when the Map page is opened, load the English dictionary only for English users, stop loading the profile page at start-up, defer detailed country borders, render long photo grids progressively, and render map pins in the background.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 after the performance test",
+      "ac": [
+        "Given I open Trips, Guides, Explore, Memories or About\nWhen the page loads\nThen the map code (Leaflet, MapLibre, country borders) is not downloaded",
+        "Given my language is Vietnamese\nWhen the site loads\nThen the English dictionary is not downloaded; switching to English downloads it first and then switches",
+        "Given Explore or Memories has many photos\nWhen I open it\nThen about 24 cards render first and more render as I scroll",
+        "Given the mobile Lighthouse test (4G) is run on Trips, Guides, Explore and About\nWhen compared with the baseline\nThen Largest Contentful Paint and Total Blocking Time are lower than before (baseline: LCP 6.5–7.1 s, TBT 0.6–1.2 s)"
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "title": "Journey hides places removed from the trip plan",
+      "description": "Places deleted from the trip plan kept appearing in the Journey tab, the stop count and the trip recap (and looked like they came back). The Journey now hides places whose plan items were all removed; adding the place again shows it again. No check-in data is deleted.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a place was checked in for the trip and later deleted from the Plan\nWhen I open the trip\nThen it no longer appears in Journey, the stop count or the trip recap",
+        "Given I add that place to the plan again\nWhen I open Journey\nThen it appears again",
+        "Given I duplicate the trip\nWhen the copy is created\nThen places deleted from the original plan are not copied"
+      ]
+    },
+    {
+      "id": "REQ-013",
+      "title": "About page: group related features, important first",
+      "description": "In 'And there's more', features are grouped (Travel together, Costs & splitting, Guides & packing, Map & discovery, Handy extras) with the most important first in each group, instead of newest first.",
+      "priority": "Could",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I open the About page\nWhen I scroll to 'And there's more'\nThen features appear under group headings, related features side by side, the most important first",
+        "Given a new feature is not yet assigned to a group\nWhen it is released\nThen it still appears, in the last group"
+      ]
+    },
+    {
+      "id": "REQ-014",
+      "title": "Trip header shows length and the right place count",
+      "description": "Link viewers saw '0 stops' because they cannot read the Journey. The header now shows the trip length (days/nights) for everyone, the number of planned places for link viewers, and the Journey stop count for members.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a trip has start and end dates\nWhen anyone opens it\nThen the header shows e.g. '🌙 5 days 4 nights'",
+        "Given I view a trip by its view-only link\nWhen I look at the header\nThen I see '📍 N places' from the plan instead of '0 stops'",
+        "Given I am a member\nWhen I look at the header\nThen I still see the Journey stop count"
+      ]
+    },
+    {
+      "id": "REQ-015",
+      "title": "Faster first paint: non-blocking CSS and CSS per page",
+      "description": "Pages still felt slow. (C) The main stylesheet no longer blocks the first paint: the boot screen (inline CSS) shows at once while the CSS loads in parallel, and the app renders once it is ready. (D) Styles used by only one area (admin, about, guides, gear, tips, legal, profile, trips, share studio, feedback, map) move into their own CSS files that load with that area's code, so the shared stylesheet is much smaller.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22 ('hãy làm luôn C và D')",
+      "ac": [
+        "Given I open any page\nWhen the HTML arrives\nThen the boot screen paints without waiting for the main CSS file",
+        "Given the main CSS has not finished loading\nWhen the app is about to render\nThen it waits for the CSS (max 4s) so I never see an unstyled page",
+        "Given I open a page such as Guides or About\nWhen it loads\nThen only the shared CSS plus that page's CSS are downloaded, and the page looks the same as before"
+      ]
+    },
+    {
+      "id": "REQ-017",
+      "title": "Journey shows the itinerary date for visited places",
+      "description": "Places ticked as visited from the plan showed the day they were ticked (e.g. 22/11) instead of the day in the itinerary. The Journey now shows, for each stop: the memory's date for check-ins with photos; the plan date for places that are in the plan; otherwise the saved date. It is ordered by that date, newest first. Works for existing data without any migration.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a place in the plan for 18/11 was ticked visited on 22/11\nWhen I open the Journey\nThen it shows 18/11",
+        "Given a check-in memory dated 17/11\nWhen I open the Journey\nThen it shows 17/11",
+        "Given stops with different dates\nWhen I open the Journey\nThen they are ordered by the shown date, newest first"
+      ]
+    },
+    {
+      "id": "REQ-018",
+      "title": "Admin can fix the location of famous places with a Google Maps link",
+      "description": "In Admin → Places, the Google Maps link box and latitude/longitude were only shown for places the team added. Famous places (curated list / Wikidata) could not be moved when their pin was wrong. The editor now shows the link box and coordinates for every place; moved coordinates are saved in the place override and the map uses them.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I edit a famous place such as Ha Long Bay\nWhen I paste a Google Maps link and press Find\nThen the latitude and longitude fill in",
+        "Given I save with new coordinates\nWhen anyone opens the map\nThen the pin shows at the new place",
+        "Given I reset the place's edits\nWhen the map reloads\nThen the original location is used again"
+      ]
+    },
+    {
+      "id": "REQ-019",
+      "title": "Edit the text of a checklist item",
+      "description": "Members can change the wording of a checklist item when plans change instead of deleting and re-adding it. Tap ✏️ (or double-click the text), Enter or click away to save, Esc to cancel. Ticks, who-ticked and the item's scope are kept. View-only members cannot edit shared lists. Behind the flag checkEdit.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a checklist item 'Mua eSIM'\nWhen I tap ✏️, type 'Mua eSIM Singapore' and press Enter\nThen the item shows the new text for everyone and stays ticked if it was ticked",
+        "Given I am editing an item\nWhen I press Esc or clear the text\nThen nothing changes",
+        "Given I am a view-only member\nWhen I open a shared checklist\nThen I do not see ✏️"
+      ]
+    },
+    {
+      "id": "REQ-020",
+      "title": "Journey shows the check-in date the user entered",
+      "description": "Check-ins with photos showed the upload day (e.g. 18/11) instead of the check-in date the user entered, because trip stops were saved without a date and were not updated when a check-in was edited. Now: stops save the check-in date; editing a check-in's date, caption or trip replaces my stop in the Journey; and the Journey uses the date of my own check-ins directly, so existing stops show the right date at once.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I checked in at Chinatown with date 10/11 but uploaded on 18/11\nWhen I open the trip's Journey\nThen it shows 10/11",
+        "Given I change a check-in's date to 11/11\nWhen anyone in the trip opens the Journey\nThen it shows 11/11",
+        "Given I move a check-in to another trip\nWhen I open both Journeys\nThen it appears only in the new trip"
+      ]
+    },
+    {
+      "id": "REQ-021",
+      "title": "Admin-corrected coordinates apply everywhere",
+      "description": "After REQ-018 an admin could fix a place's coordinates, but only the famous-places list used them. Saved places (visited / wishlist), check-ins, the open place, trip stops and plan items, map fly-to and Directions still used the old coordinates. Now all of them use the corrected coordinates.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given an admin moved Ha Long Bay with a Google Maps link\nWhen I open Ha Long Bay from the map, my visited places, a check-in or a trip plan\nThen the pin and the map zoom use the new location",
+        "Given the same place\nWhen I tap Directions\nThen Google / Apple Maps open with the new coordinates",
+        "Given the admin resets the place\nWhen the map refreshes\nThen the original location is used again"
+      ]
+    },
+    {
+      "id": "REQ-022",
+      "title": "Directions open the Google Maps link the admin attached",
+      "description": "When Google Maps receives bare coordinates it labels the destination with the nearest named point (e.g. 'Ramayana Cave' for Batu Caves). When an admin fixes a place with a Google Maps link (Find place), the link is saved with the place; Directions → Google Maps then opens that exact place page (name, photos, Directions button). Clearing the link box removes it. Only https Google Maps links are accepted.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given an admin pasted the Google Maps link of Batu Caves, pressed Find place and saved\nWhen a user taps Directions → Google Maps on Batu Caves (from the map, a saved place or a trip)\nThen Google Maps opens the Batu Caves page",
+        "Given the admin clears the link box and saves\nWhen a user taps Directions\nThen Google Maps opens with the coordinates as before",
+        "Given a link that is not an https Google Maps link\nWhen it is saved\nThen it is ignored"
+      ]
+    },
+    {
+      "id": "REQ-101",
+      "title": "Sign in with Google",
+      "description": "[Baseline · Account & platform] Users sign in with their Google account; without Firebase config the app runs in demo mode with data in the browser.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I am signed out\nWhen I tap Sign in with Google and accept\nThen I am signed in and my name and avatar show in the header",
+        "Given the app has no Firebase config\nWhen I open it\nThen it runs in demo mode with a simulated login"
+      ]
+    },
+    {
+      "id": "REQ-102",
+      "title": "Consent, privacy policy and terms",
+      "description": "[Baseline · Account & platform] New users must accept the Terms of Use and Privacy Policy before using an account; both pages are always reachable.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I sign in for the first time\nWhen the consent screen shows\nThen I cannot continue until I tick the agreement",
+        "Given I am on any page\nWhen I open Privacy Policy or Terms\nThen the legal page opens with tabs to switch"
+      ]
+    },
+    {
+      "id": "REQ-103",
+      "title": "Download my data and delete my account",
+      "description": "[Baseline · Account & platform] Users can download their data and permanently delete their account from the profile ⋯ menu.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I am signed in\nWhen I choose Download my data\nThen I get a file with my places, check-ins and trips",
+        "Given I choose Delete account and confirm\nWhen the deletion finishes\nThen my account and content are removed and I am signed out"
+      ]
+    },
+    {
+      "id": "REQ-104",
+      "title": "Profile, display name, @username and avatar",
+      "description": "[Baseline · Account & platform] Each user has a public profile with a display name, a unique @username and an avatar (uploaded photos are cropped round).",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I edit my profile\nWhen I pick a username someone else has\nThen I am told it is taken",
+        "Given I upload an avatar\nWhen I save\nThen it shows as a circle everywhere"
+      ]
+    },
+    {
+      "id": "REQ-105",
+      "title": "Vietnamese and English interface",
+      "description": "[Baseline · Account & platform] Vietnamese is the default; the flag button switches to English and the choice is remembered.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the app for the first time\nWhen nothing is chosen\nThen the interface is in Vietnamese",
+        "Given I tap the flag and pick English\nWhen I reload\nThen the interface stays in English"
+      ]
+    },
+    {
+      "id": "REQ-106",
+      "title": "Responsive layout for desktop, tablet and phone",
+      "description": "[Baseline · Account & platform] Side panel on desktop; draggable bottom sheet and bottom navigation on tablet and phone; no iOS input zoom; pull to refresh on phones. Feature flag: pullToRefresh.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I use a phone\nWhen I open the map\nThen the panel is a bottom sheet I can drag",
+        "Given I pull down at the top of a page on a phone\nWhen I release\nThen the page refreshes"
+      ]
+    },
+    {
+      "id": "REQ-107",
+      "title": "Installable app with fast reopening",
+      "description": "[Baseline · Account & platform] A web app manifest makes the site installable; a service worker caches the app so it reopens almost instantly and shows an 'update available' bar for new versions.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I have visited before\nWhen I reopen the site\nThen it loads from cache almost at once",
+        "Given a new version is deployed\nWhen I have the old one open\nThen I see an 'update available' bar"
+      ]
+    },
+    {
+      "id": "REQ-108",
+      "title": "Links keep the current page",
+      "description": "[Baseline · Account & platform] Each view has its own URL (#/map, #/trips/…, #/guide/SG…) so reload, back and shared links open the same page.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I am on a trip's Costs tab\nWhen I reload\nThen the same trip and tab open"
+      ]
+    },
+    {
+      "id": "REQ-109",
+      "title": "Search engine and link-preview friendly",
+      "description": "[Baseline · Account & platform] Descriptive title and meta description, Open Graph / Twitter cards, JSON-LD, robots.txt, sitemap.xml and crawlable static text.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given someone shares beetheremap.com in a chat app\nWhen the preview loads\nThen it shows the Bee There title, description and image"
+      ]
+    },
+    {
+      "id": "REQ-110",
+      "title": "Custom domain over HTTPS",
+      "description": "[Baseline · Account & platform] The site is served at https://beetheremap.com through GitHub Pages.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open beetheremap.com\nWhen the page loads\nThen it is served over HTTPS without warnings"
+      ]
+    },
+    {
+      "id": "REQ-111",
+      "title": "World map of visited countries",
+      "description": "[Baseline · Map & places] Visited countries are filled honey yellow with a 👣 pin per visited place and 💛 for wishlist places; nearby famous places cluster.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I have visited places in 3 countries\nWhen I open the map\nThen those 3 countries are filled and each place has a pin"
+      ]
+    },
+    {
+      "id": "REQ-112",
+      "title": "Country view with famous places",
+      "description": "[Baseline · Map & places] Clicking a country zooms in and lists its famous places (hand-picked plus up to ~100 from Wikidata, ranked by Wikipedia coverage, cached 7 days), filterable by city or region. Feature flag: wikidata.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I click Malaysia\nWhen the country opens\nThen I see its famous places on the map and in the panel",
+        "Given I pick a city filter\nWhen the list updates\nThen only places in that city show"
+      ]
+    },
+    {
+      "id": "REQ-113",
+      "title": "Add places by search, map tap or Google Maps link",
+      "description": "[Baseline · Map & places] Find any country, city or place (OpenStreetMap), tap the map to pin a spot (must be inside a country, user can name it), or paste a Google Maps link (short links supported).",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I paste a Google Maps link\nWhen I confirm\nThen a pin is created at that place",
+        "Given I tap the sea\nWhen I try to pin it\nThen I am told to pick a place inside a country"
+      ]
+    },
+    {
+      "id": "REQ-114",
+      "title": "Visited and wishlist lists",
+      "description": "[Baseline · Map & places] Mark places visited (with date and optional occasion) or wishlist; lists grouped by country then city; places can be removed.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I mark a place visited with date 10/11\nWhen I open Visited\nThen it shows under its country and city with that date",
+        "Given I remove a wishlist place\nWhen the list refreshes\nThen it is gone"
+      ]
+    },
+    {
+      "id": "REQ-115",
+      "title": "Directions to a place",
+      "description": "[Baseline · Map & places] Directions open Google Maps (desktop opens it directly) or Apple Maps (choice on phones) with the exact coordinates.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open a place\nWhen I tap Directions on a phone\nThen I can choose Apple Maps or Google Maps"
+      ]
+    },
+    {
+      "id": "REQ-116",
+      "title": "Home panel: overview, popular places, quick links",
+      "description": "[Baseline · Map & places] The map panel has Overview / Visited / Wishlist / Famous tabs, stats, most checked-in places and quick links. Feature flag: popularPlaces.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the home map\nWhen the panel loads\nThen I see my stats and the most checked-in places"
+      ]
+    },
+    {
+      "id": "REQ-117",
+      "title": "Show a trip on the map",
+      "description": "[Baseline · Map & places] A trip can be shown on the map with its stops and numbered plan route; the map fits the trip.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I tap 'View on map' on a trip\nWhen the map opens\nThen only that trip's stops and numbered route show"
+      ]
+    },
+    {
+      "id": "REQ-118",
+      "title": "Photo check-ins",
+      "description": "[Baseline · Check-ins & memories] Check in at any place with photos, caption, date, occasion and private/public visibility; several check-ins per place; photos compressed in the browser in 3 sizes and loaded according to network speed.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I check in with 3 photos and set Public\nWhen I save\nThen the check-in appears in Memories and on Explore",
+        "Given I am on a slow network\nWhen I open a photo\nThen the medium-size version loads"
+      ]
+    },
+    {
+      "id": "REQ-119",
+      "title": "Edit and delete check-ins",
+      "description": "[Baseline · Check-ins & memories] Edit caption, date, occasion, trip and photos; deleting a check-in updates the visited list and trip stops.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I delete my only check-in at a place\nWhen the deletion finishes\nThen the trip's Journey no longer shows it"
+      ]
+    },
+    {
+      "id": "REQ-120",
+      "title": "Memories page",
+      "description": "[Baseline · Check-ins & memories] My check-ins sorted by check-in date, newest first, with 'On this day'.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open Memories\nWhen the page loads\nThen my check-ins are sorted newest first"
+      ]
+    },
+    {
+      "id": "REQ-121",
+      "title": "Share studio",
+      "description": "[Baseline · Check-ins & memories] Share 1–4 photos of a check-in as an image or video: Polaroid, Postcard, Film strip, Bento; Story 9:16, 4:5 or 1:1; preview before saving. Feature flag: share.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I pick 2 photos, Polaroid and Story\nWhen I export\nThen I get a 9:16 image I can save or share"
+      ]
+    },
+    {
+      "id": "REQ-122",
+      "title": "Year and trip recap",
+      "description": "[Baseline · Check-ins & memories] Recap images and videos for a year or a trip with selectable layouts and photos. Feature flag: recap.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the year recap\nWhen I choose a layout\nThen I can preview and save the image or video"
+      ]
+    },
+    {
+      "id": "REQ-123",
+      "title": "Explore public check-ins",
+      "description": "[Baseline · Social] Everyone's public check-ins by country or city, with likes. Feature flag: explore.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open Explore and filter Singapore\nWhen the page loads\nThen I see public check-ins from Singapore"
+      ]
+    },
+    {
+      "id": "REQ-124",
+      "title": "Follow, friends feed and likes",
+      "description": "[Baseline · Social] Follow people, see a friends feed and like public check-ins. Feature flag: follow.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I follow Thư\nWhen Thư posts a public check-in\nThen it shows in my friends feed"
+      ]
+    },
+    {
+      "id": "REQ-125",
+      "title": "In-app notifications",
+      "description": "[Baseline · Social] Notifications for trip invites, follows and announcements from the team, with unread count.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given someone invites me to a trip\nWhen I open notifications\nThen I see the invite with Join and Decline"
+      ]
+    },
+    {
+      "id": "REQ-126",
+      "title": "Create and manage shared trips",
+      "description": "[Baseline · Trips] Create a trip with name, icon, dates and destinations; members edit details; only the owner deletes; trips sorted by start date and filterable by creator. Feature flag: trips.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I create a trip with dates 10–14/11\nWhen I open Trips\nThen it is listed by start date",
+        "Given I am a member but not the owner\nWhen I open the trip menu\nThen I cannot delete it"
+      ]
+    },
+    {
+      "id": "REQ-127",
+      "title": "Invite members",
+      "description": "[Baseline · Trips] Invite by link, code or @username; invitees must accept; trips are visible to members only. Feature flag: tripInvites.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I invite @thu\nWhen Thư accepts\nThen Thư becomes a member and sees the trip",
+        "Given someone is not a member\nWhen they open the trip link\nThen they cannot see its content"
+      ]
+    },
+    {
+      "id": "REQ-128",
+      "title": "Day-by-day plan",
+      "description": "[Baseline · Trips] Plan places by day and time, reorder, mark done or skipped, change date/time from the map route panel; destinations suggest places.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I add 3 places on 11/11 at different times\nWhen I open the Plan\nThen they are sorted by time within the day",
+        "Given I mark a place done\nWhen the plan refreshes\nThen it shows as done and the place is marked visited"
+      ]
+    },
+    {
+      "id": "REQ-129",
+      "title": "Journey",
+      "description": "[Baseline · Trips] The Journey lists the places the group has been and check-ins linked to the trip.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I check in at a place and link the trip\nWhen the trip's Journey refreshes\nThen the check-in is listed with its photos"
+      ]
+    },
+    {
+      "id": "REQ-130",
+      "title": "Costs and settle-up",
+      "description": "[Baseline · Trips] Estimated and actual costs, multi-currency with live rates, paid-by and split among the group or picked people, and who owes whom. Feature flag: tripCosts.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I paid 100 SGD for 2 people\nWhen I open Costs\nThen each owes half converted with the trip rate and settle-up shows who pays whom"
+      ]
+    },
+    {
+      "id": "REQ-131",
+      "title": "Checklists",
+      "description": "[Baseline · Trips] Shared and personal checklists; items can be for the group, for each person, or 'only me'; drag to reorder. Feature flag: tripChecklist.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an item is 'each person'\nWhen I tick it\nThen only my tick is recorded and the count shows ticks per member"
+      ]
+    },
+    {
+      "id": "REQ-132",
+      "title": "Plan PDF export",
+      "description": "[Baseline · Trips] Export or share the itinerary as a compact PDF with the Bee There header. Feature flag: tripPdf.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I tap Export PDF on a plan\nWhen the file is ready\nThen the PDF lists the days, times and places"
+      ]
+    },
+    {
+      "id": "REQ-133",
+      "title": "Duplicate a trip",
+      "description": "[Baseline · Trips] Copy an existing trip as a new trip. Feature flag: tripDuplicate.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I duplicate a trip\nWhen I open the copy\nThen it has the same plan and checklists but only me as member"
+      ]
+    },
+    {
+      "id": "REQ-134",
+      "title": "Country guides",
+      "description": "[Baseline · Guides, tips & gear] Guides for 12 Asian countries: where to go, money, power plugs, visas with official entry-form links, emergency numbers with tap-to-call. Feature flag: guide.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the Singapore guide\nWhen the page loads\nThen I see sections incl. the SG Arrival Card link and tap-to-call emergency numbers"
+      ]
+    },
+    {
+      "id": "REQ-135",
+      "title": "Phrases with listen button",
+      "description": "[Baseline · Guides, tips & gear] Phrases with native script and a 🔊 button; falls back to Google Translate when the device has no voice.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given my device has no voice for Thai\nWhen I tap 🔊\nThen Google Translate opens with the phrase"
+      ]
+    },
+    {
+      "id": "REQ-136",
+      "title": "Add guide places to a trip",
+      "description": "[Baseline · Guides, tips & gear] Tap a place in 'Where to go' to add it to a trip plan. Feature flag: guideToTrip.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I tap Add to trip on a guide place\nWhen I pick my trip\nThen the place is added to the plan"
+      ]
+    },
+    {
+      "id": "REQ-137",
+      "title": "Local food by city",
+      "description": "[Baseline · Guides, tips & gear] Must-try food filterable by city or region, with photos. Feature flag: guideFoodCities.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I filter Penang\nWhen the food list updates\nThen only Penang dishes show"
+      ]
+    },
+    {
+      "id": "REQ-138",
+      "title": "Sample trip cost calculator",
+      "description": "[Baseline · Guides, tips & gear] Days, people and budget level give estimated costs in VND and local currency; can be applied to a trip. Feature flag: guideCosts.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I choose 4 days, 2 people, mid budget\nWhen I tap Apply to trip\nThen the estimates are added to the trip's costs"
+      ]
+    },
+    {
+      "id": "REQ-139",
+      "title": "Useful Google Maps links in guides",
+      "description": "[Baseline · Guides, tips & gear] Staff-managed useful places (money exchange, embassies…) in each guide. Feature flag: guideLinks.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given staff add a link\nWhen I open the guide\nThen the link shows and opens Google Maps"
+      ]
+    },
+    {
+      "id": "REQ-140",
+      "title": "Country travel tips",
+      "description": "[Baseline · Guides, tips & gear] Community tips per country with Helpful / Misleading votes and Q&A; ranking configurable by admins. Feature flag: tips.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I vote Helpful on a tip\nWhen the list refreshes\nThen its score goes up"
+      ]
+    },
+    {
+      "id": "REQ-141",
+      "title": "Travel gear page",
+      "description": "[Baseline · Guides, tips & gear] Gear ideas by trip type and purpose with clearly disclosed affiliate links; reachable from the top nav, Guides, a trip's Checklist tab and home quick links. Feature flag: gear.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open Gear and pick 'Beach'\nWhen the list updates\nThen I see beach gear with shop links marked as affiliate"
+      ]
+    },
+    {
+      "id": "REQ-142",
+      "title": "About page with auto-updating features",
+      "description": "[Baseline · Help & onboarding] About page with real screenshots; released features with a value text are listed automatically.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an admin releases a feature with a value text\nWhen I open About\nThen the feature is listed"
+      ]
+    },
+    {
+      "id": "REQ-143",
+      "title": "Quick tour",
+      "description": "[Baseline · Help & onboarding] Onboarding tour that opens automatically after a new account's first sign-in (only on the map) and can be reopened. Feature flag: quickTour.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I sign in for the first time\nWhen the map loads\nThen the quick tour opens",
+        "Given I finished the tour\nWhen I sign in again\nThen it does not open by itself"
+      ]
+    },
+    {
+      "id": "REQ-144",
+      "title": "Feedback and bug reports",
+      "description": "[Baseline · Help & onboarding] Feedback tab with an element picker and screenshot; admins triage in the Feedback inbox. Feature flag: feedback.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I pick an element and send a bug report\nWhen an admin opens Feedback\nThen the report shows with my screenshot"
+      ]
+    },
+    {
+      "id": "REQ-145",
+      "title": "FAQ, What's new and Support the creator",
+      "description": "[Baseline · Help & onboarding] FAQ, release notes and a support page with the owner's VietQR code.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open What's new\nWhen the page loads\nThen I see the latest release notes"
+      ]
+    },
+    {
+      "id": "REQ-146",
+      "title": "Site announcements",
+      "description": "[Baseline · Help & onboarding] Scheduled banners; once a user closes a banner it does not show again.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I close an announcement\nWhen I reload\nThen it does not show again"
+      ]
+    },
+    {
+      "id": "REQ-147",
+      "title": "Roles and permissions",
+      "description": "[Baseline · Admin] Admin, Editor, Moderator, Marketing presets plus custom roles; modules show by permission; Admin always has every permission; enforced by Firestore rules.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given a user has the Editor role\nWhen they open Admin\nThen they only see modules their role allows"
+      ]
+    },
+    {
+      "id": "REQ-148",
+      "title": "Feature flags",
+      "description": "[Baseline · Admin] New features ship off by default (owner sees them); admins release them to beta users or everyone in Admin → Features.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given a flag is off\nWhen a normal user opens the app\nThen the feature is hidden",
+        "Given the admin releases it to everyone\nWhen the user reloads\nThen the feature shows"
+      ]
+    },
+    {
+      "id": "REQ-149",
+      "title": "Insights and audit log",
+      "description": "[Baseline · Admin] Usage stats and charts; every admin action is written to the audit log.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an admin hides a memory\nWhen I open Logs\nThen the action is listed with who and when"
+      ]
+    },
+    {
+      "id": "REQ-150",
+      "title": "Content moderation and reports",
+      "description": "[Baseline · Admin] Users report check-ins; moderators review full-size photos and hide or delete content.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given a check-in is reported\nWhen a moderator hides it\nThen it disappears from Explore"
+      ]
+    },
+    {
+      "id": "REQ-151",
+      "title": "Places management",
+      "description": "[Baseline · Admin] Override names, descriptions, images and hide wrong famous places; add custom places.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an admin hides a wrong place\nWhen users open that country\nThen the place is not shown"
+      ]
+    },
+    {
+      "id": "REQ-152",
+      "title": "Guides, tips, trips, gear and ads management",
+      "description": "[Baseline · Admin] Admins edit guide content and links, tips settings, trips, the gear catalog and sample ad slots.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an editor changes a guide section\nWhen users open the guide\nThen they see the new text"
+      ]
+    },
+    {
+      "id": "REQ-153",
+      "title": "Send notifications",
+      "description": "[Baseline · Admin] Send to everyone, a role or chosen users; history incl. revoked; received/read report exportable to Excel.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I send a notification to the Editor role\nWhen I open the report\nThen I see who received and read it and can export it to Excel"
+      ]
+    },
+    {
+      "id": "REQ-023",
+      "title": "Quick tour points at visible buttons on phones",
+      "description": "On phones some tour steps highlighted the wrong area or hid the button behind the tour card (e.g. 'Save memories' pointed at the map because the Add memory button was scrolled out of the bottom sheet; the Feedback tab was covered by the card). The tour now scrolls the target into view inside its panel, only highlights the visible part, and places the card in the larger free space above or below the target, shrinking it (and hiding the illustration) so it never covers the target. Fixes REQ-143.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-23 with iPhone screenshots",
+      "ac": [
+        "Given I am on a phone at step 5 'Save memories'\nWhen the step opens\nThen the Add memory button is scrolled into view, highlighted and not covered by the card",
+        "Given I am at step 8 'Send feedback'\nWhen the step opens\nThen the Feedback tab is highlighted and the card sits above or below it",
+        "Given the step highlights the whole map\nWhen it opens\nThen the card stays at the bottom as before"
+      ]
+    },
+    {
+      "id": "REQ-024",
       "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist",
       "priority": "Must",
       "status": "In build",
@@ -57,7 +962,7 @@
       "featureId": "F-001"
     },
     {
-      "id": "REQ-002",
+      "id": "REQ-025",
       "title": "Accessibility and performance baseline",
       "priority": "Should",
       "status": "Approved",
@@ -72,8 +977,589 @@
   "tests": [
     {
       "id": "TC-001",
+      "title": "Owner and editors can edit; viewers cannot",
       "reqIds": [
         "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-002",
+      "title": "Non-members and signed-out users cannot edit",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-003",
+      "title": "Switching a member between view-only and edit never affects the owner",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-004",
+      "title": "Viewer UI: banner shown, edit controls hidden, Copy this trip creates an editable copy",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "manual",
+      "steps": [
+        "Owner sets member B to View only",
+        "Sign in as B and open the trip",
+        "Check Plan, Costs, Checklist tabs have no add/edit/delete controls",
+        "Tap Copy this trip, confirm, and edit the new trip"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-005",
+      "title": "Each estimate shows planned, actual, difference and status",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-006",
+      "title": "Unlinked actuals are listed as unplanned; totals include them",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-007",
+      "title": "sortByOrder: ordered items first, others keep fallback order",
+      "reqIds": [
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-008",
+      "title": "Dragging writes only items whose position changed",
+      "reqIds": [
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-009",
+      "title": "UI: comparison card renders, drag reorders and persists, no handles for viewers",
+      "reqIds": [
+        "REQ-002",
+        "REQ-003"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flags costCompare and costReorder",
+        "Open a trip with estimates and actuals",
+        "Check the comparison card shows over/under/pending and the unplanned list",
+        "Drag an actual cost above another; reload; order is kept",
+        "Open as a view-only member: no ⠿ handles"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-010",
+      "title": "Unified table rows: items with linked actuals, extras inline, totals",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-011",
+      "title": "Unified table follows drag order across items and extras",
+      "reqIds": [
+        "REQ-004",
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-012",
+      "title": "UI: add cost with estimate+actual, estimate only then 🧾 actual, actual only (unplanned)",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag costTable",
+        "Add a cost with both parts: one row shows estimate, actual, difference",
+        "Add estimate only, then tap 🧾 and save actual: row updates",
+        "Add actual only: row tagged Unplanned",
+        "View as view-only member: no controls"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-013",
+      "title": "Selected place is drawn once, outside normal pins and clusters",
+      "reqIds": [
+        "REQ-005"
+      ],
+      "type": "automated",
+      "file": "tests/mapSelect.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-014",
+      "title": "UI: open a place among many pins — highlighted pin and name label; closing removes it",
+      "reqIds": [
+        "REQ-005"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag selectedPin",
+        "Open a country with many famous places",
+        "Tap a place: highlighted pin with label appears",
+        "Open another place: highlight moves",
+        "Close the panel: highlight disappears"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-015",
+      "title": "Group total and per-person share for group / per person / picked people",
+      "reqIds": [
+        "REQ-006"
+      ],
+      "type": "automated",
+      "file": "tests/estimatePeople.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-016",
+      "title": "UI: pick people in the estimate form, label shows names, actual pre-filled with same people",
+      "reqIds": [
+        "REQ-006"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag costPickPeople",
+        "Add an estimate with Pick people (2 members, per person)",
+        "Row shows 'per person · A, B' and total = amount × 2",
+        "Tap 🧾: actual form splits between A and B"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-017",
+      "title": "View sorts: manual, date, amount, difference, name",
+      "reqIds": [
+        "REQ-008"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-018",
+      "title": "Sorting never loses or duplicates rows",
+      "reqIds": [
+        "REQ-008"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-019",
+      "title": "PDF rows follow the on-screen order",
+      "reqIds": [
+        "REQ-009"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-020",
+      "title": "Summary difference compares only spent items plus unplanned",
+      "reqIds": [
+        "REQ-010"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-021",
+      "title": "UI: drag, ↑ ↓, sort menu, save as group order, PDF single table in on-screen order",
+      "reqIds": [
+        "REQ-008",
+        "REQ-009",
+        "REQ-010"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable costTable, costReorder, costSort",
+        "Drag a row and tap ↑ ↓: order sticks after reload",
+        "Sort by amount, export PDF: same order, single table",
+        "Save as group order: other members see it"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-022",
+      "title": "View access: members or public link; link viewers never edit",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "automated",
+      "file": "tests/publicTrip.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-023",
+      "title": "Tabs visible to link viewers",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "automated",
+      "file": "tests/publicTrip.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-024",
+      "title": "UI: turn link on, open signed-out, copy trip after sign-in, turn link off",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag tripPublicView",
+        "Owner turns on the view-only link and copies it",
+        "Open the link in a private window: Plan + Checklist visible, banner shown, no edit controls",
+        "Turn on 'Also show costs': Costs tab appears",
+        "Copy this trip: sign in, then an editable copy is created",
+        "Turn the link off: the link no longer opens the trip"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-025",
+      "title": "PDF keeps arrow characters (→ ← ↔ ⇒) in titles",
+      "reqIds": [
+        "REQ-009"
+      ],
+      "type": "manual",
+      "steps": [
+        "Name a cost 'Vé máy bay SGN → SIN'",
+        "Export the costs PDF",
+        "The arrow is visible in the row title"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-026",
+      "title": "English dictionary loads on its own and covers the Vietnamese keys",
+      "reqIds": [
+        "REQ-011"
+      ],
+      "type": "automated",
+      "file": "tests/pageSpeed.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-027",
+      "title": "Lighthouse mobile before/after on Map, Explore, Guides, Trips, About",
+      "reqIds": [
+        "REQ-011"
+      ],
+      "type": "manual",
+      "steps": [
+        "npm run build && npx vite preview",
+        "Run Lighthouse (mobile, performance) on each page",
+        "Compare with baseline in REQ-011"
+      ],
+      "status": "Passing: Explore 44→80, Guides 51→81, Trips 52→75, About 43→75; Map FCP 3.9→3.1 s, LCP 6.5→5.2 s"
+    },
+    {
+      "id": "TC-028",
+      "title": "Stops of places removed from the plan are hidden; re-added places show",
+      "reqIds": [
+        "REQ-012"
+      ],
+      "type": "automated",
+      "file": "tests/journey.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-029",
+      "title": "UI: delete a checked-in place from the plan → Journey count drops",
+      "reqIds": [
+        "REQ-012"
+      ],
+      "type": "manual",
+      "steps": [
+        "Open a trip with check-ins",
+        "Delete one checked-in place from the Plan",
+        "Journey (n) decreases and the place is gone from Journey"
+      ],
+      "status": "Passing (demo: 6 → 5)"
+    },
+    {
+      "id": "TC-030",
+      "title": "Features grouped, important first, none lost or duplicated",
+      "reqIds": [
+        "REQ-013"
+      ],
+      "type": "automated",
+      "file": "tests/aboutGroups.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-031",
+      "title": "Trip length and planned-place count",
+      "reqIds": [
+        "REQ-014"
+      ],
+      "type": "automated",
+      "file": "tests/tripFacts.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-032",
+      "title": "Main CSS is non-blocking; page CSS is split out",
+      "reqIds": [
+        "REQ-015"
+      ],
+      "type": "automated",
+      "file": "tests/pageCss.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-033",
+      "title": "Cost table action buttons do not overlap the difference column",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "automated",
+      "file": "tests/costTableLayout.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-034",
+      "title": "Journey dates follow the itinerary",
+      "reqIds": [
+        "REQ-017"
+      ],
+      "type": "automated",
+      "file": "tests/journeyDates.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-035",
+      "title": "Google Maps link and coordinates for every place in Admin",
+      "reqIds": [
+        "REQ-018"
+      ],
+      "type": "automated",
+      "file": "tests/adminPlaceCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-036",
+      "title": "Rename a checklist item keeping its state",
+      "reqIds": [
+        "REQ-019"
+      ],
+      "type": "automated",
+      "file": "tests/checklistEdit.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-037",
+      "title": "Journey uses the entered check-in date",
+      "reqIds": [
+        "REQ-020"
+      ],
+      "type": "automated",
+      "file": "tests/journeyDates.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-038",
+      "title": "Admin coordinate overrides apply to saved places and check-ins",
+      "reqIds": [
+        "REQ-021"
+      ],
+      "type": "automated",
+      "file": "tests/placeCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-039",
+      "title": "Admin Google Maps link is used for directions",
+      "reqIds": [
+        "REQ-022"
+      ],
+      "type": "automated",
+      "file": "tests/placeCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-101",
+      "title": "Baseline manual regression: Account & platform",
+      "reqIds": [
+        "REQ-101",
+        "REQ-102",
+        "REQ-103",
+        "REQ-104",
+        "REQ-105",
+        "REQ-106",
+        "REQ-107",
+        "REQ-108",
+        "REQ-109",
+        "REQ-110"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-102",
+      "title": "Baseline manual regression: Map & places",
+      "reqIds": [
+        "REQ-111",
+        "REQ-112",
+        "REQ-113",
+        "REQ-114",
+        "REQ-115",
+        "REQ-116",
+        "REQ-117"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-103",
+      "title": "Baseline manual regression: Check-ins & memories",
+      "reqIds": [
+        "REQ-118",
+        "REQ-119",
+        "REQ-120",
+        "REQ-121",
+        "REQ-122"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-104",
+      "title": "Baseline manual regression: Social",
+      "reqIds": [
+        "REQ-123",
+        "REQ-124",
+        "REQ-125"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-105",
+      "title": "Baseline manual regression: Trips",
+      "reqIds": [
+        "REQ-126",
+        "REQ-127",
+        "REQ-128",
+        "REQ-129",
+        "REQ-130",
+        "REQ-131",
+        "REQ-132",
+        "REQ-133"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-106",
+      "title": "Baseline manual regression: Guides, tips & gear",
+      "reqIds": [
+        "REQ-134",
+        "REQ-135",
+        "REQ-136",
+        "REQ-137",
+        "REQ-138",
+        "REQ-139",
+        "REQ-140",
+        "REQ-141"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-107",
+      "title": "Baseline manual regression: Help & onboarding",
+      "reqIds": [
+        "REQ-142",
+        "REQ-143",
+        "REQ-144",
+        "REQ-145",
+        "REQ-146"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-108",
+      "title": "Baseline manual regression: Admin",
+      "reqIds": [
+        "REQ-147",
+        "REQ-148",
+        "REQ-149",
+        "REQ-150",
+        "REQ-151",
+        "REQ-152",
+        "REQ-153"
+      ],
+      "type": "manual",
+      "status": "Not automated yet",
+      "steps": "Walk through each acceptance criterion of the listed requirements on the live site or in demo mode."
+    },
+    {
+      "id": "TC-040",
+      "title": "Tour card never covers the highlighted target on phones",
+      "reqIds": [
+        "REQ-023"
+      ],
+      "type": "automated",
+      "file": "tests/tourLayout.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-041",
+      "reqIds": [
+        "REQ-024"
       ],
       "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — happy path",
       "gherkin": "Given I am an user\nWhen I increase the number of user by adding some suggestion from 'Guides' into trip's checklist with valid details and confirm\nThen the result is saved and I see a confirmation",
@@ -81,9 +1567,9 @@
       "status": "Not run"
     },
     {
-      "id": "TC-002",
+      "id": "TC-042",
       "reqIds": [
-        "REQ-001"
+        "REQ-024"
       ],
       "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — invalid input",
       "gherkin": "Given a required field is empty or invalid\nWhen I confirm\nThen I see an error next to that field and nothing is saved",
@@ -91,9 +1577,9 @@
       "status": "Not run"
     },
     {
-      "id": "TC-003",
+      "id": "TC-043",
       "reqIds": [
-        "REQ-002"
+        "REQ-025"
       ],
       "title": "Accessibility and performance baseline — happy path",
       "gherkin": "Given any page\nWhen I navigate with the keyboard only\nThen every action is reachable and has a visible focus state",
@@ -101,15 +1587,14 @@
       "status": "Not run"
     },
     {
-      "id": "TC-004",
+      "id": "TC-044",
       "reqIds": [
-        "REQ-002"
+        "REQ-025"
       ],
       "title": "Accessibility and performance baseline — invalid input",
       "gherkin": "Given invalid input for Accessibility and performance baseline\nWhen I submit\nThen I see an error and nothing is saved",
       "type": "Manual",
       "status": "Not run"
     }
-  ],
-  "decisions": []
+  ]
 }

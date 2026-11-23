@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFC629" />
+    <meta name="description" content="Bee There là bản đồ du lịch miễn phí: ghim những nơi bạn đã đến và muốn đến, lưu kỉ niệm bằng ảnh, lên lịch trình và chia chi phí chuyến đi cùng bạn bè, xem cẩm nang du lịch 12 nước châu Á." />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Font: ít độ đậm hơn + tải không chặn, để mã của web được tải trước trên mạng chậm -->
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&family=Lexend:wght@600;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&family=Lexend:wght@600;700&display=swap" />
+    </noscript>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin />
+    <style>
+      /* Màn hình chờ hiện ngay khi mở web (trước khi mã JavaScript tải xong) */
+      #boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#FFFCF5;font-family:system-ui,sans-serif;color:#4A4237;z-index:0}
+      #boot svg{width:72px;height:72px;animation:bootf 1.4s ease-in-out infinite}
+      #boot b{font-size:26px;color:#1F1A14}#boot b em{font-style:normal;color:#A87400}#boot b{font-family:Lexend,system-ui,sans-serif}
+      #boot .seo{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+      #boot i{display:block;width:140px;height:5px;border-radius:9px;background:#FFF0C2;overflow:hidden;position:relative}
+      #boot i::after{content:"";position:absolute;inset:0;width:40%;background:#FFC629;border-radius:9px;animation:boots 1.1s ease-in-out infinite}
+      @keyframes bootf{50%{transform:translateY(-8px)}}@keyframes boots{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+    </style>
+    <meta name="application-name" content="Bee There" />
+    <meta name="apple-mobile-web-app-title" content="Bee There" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="canonical" href="https://beetheremap.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bee There" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:title" content="Bee There 🐝 Bản đồ du lịch của riêng bạn" />
+    <meta property="og:description" content="Ghim nơi đã đến, lưu kỉ niệm bằng ảnh và lên kế hoạch chuyến đi cùng bạn bè — miễn phí." />
+    <meta property="og:url" content="https://beetheremap.com/" />
+    <meta property="og:image" content="https://beetheremap.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bee There — bản đồ du lịch" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bee There 🐝 Bản đồ du lịch của riêng bạn" />
+    <meta name="twitter:description" content="Ghim nơi đã đến, lưu kỉ niệm bằng ảnh và lên kế hoạch chuyến đi cùng bạn bè — miễn phí." />
+    <meta name="twitter:image" content="https://beetheremap.com/og-image.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Bee There",
+        "alternateName": "bee.there",
+        "url": "https://beetheremap.com/",
+        "description": "Bản đồ du lịch miễn phí: ghim nơi đã đến và muốn đến, lưu kỉ niệm bằng ảnh, lên lịch trình và chia chi phí chuyến đi cùng bạn bè, cẩm nang du lịch 12 nước châu Á.",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "inLanguage": ["vi", "en"],
+        "image": "https://beetheremap.com/icon-512.png",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "VND" }
+      }
+    </script>
+    <title>Bee There 🐝 Bản đồ du lịch: ghim nơi đã đến, lưu kỉ niệm, lên kế hoạch chuyến đi</title>
+    <script type="module" crossorigin src="./assets/index-D-WLGq3c.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-react-Ch23enP4.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-firebase-qSMTJldT.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-firestore-WgoApGpj.js">
+    <link rel="preload" as="style" crossorigin href="./assets/index-DTXYhTRW.css" data-app-css onload="this.onload=null;this.rel='stylesheet'"><noscript><link rel="stylesheet" href="./assets/index-DTXYhTRW.css"></noscript>
+  </head>
+  <body>
+    <div id="root">
+      <div id="boot">
+        <svg viewBox="0 0 512 512" fill="none" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#FFC629"/><path d="M196 181.981C219.915 168.174 232.586 145.349 224.301 131C216.017 116.651 189.915 116.212 166 130.019C142.085 143.826 129.414 166.651 137.699 181C145.983 195.349 172.085 195.788 196 181.981Z" fill="#FFE38A" stroke="#1F1A14" stroke-width="5"/><path d="M316 181.981C339.915 195.788 366.017 195.349 374.301 181C382.586 166.651 369.915 143.826 346 130.019C322.085 116.212 295.983 116.651 287.699 131C279.414 145.349 292.085 168.174 316 181.981Z" fill="#FFE38A" stroke="#1F1A14" stroke-width="5"/><path d="M256 411C256 411 151 296 151 226C151 198.152 162.062 171.445 181.754 151.754C201.445 132.062 228.152 121 256 121C283.848 121 310.555 132.062 330.246 151.754C349.938 171.445 361 198.152 361 226C361 296 256 411 256 411Z" fill="white"/><path d="M156.075 256L157.575 260.575L159.2 265.175L160.975 269.75L162.85 274.325L164.825 278.925L166.925 283.5H345.075L347.175 278.925L349.15 274.325L351.025 269.75L352.8 265.175L354.425 260.575L355.925 256H156.075Z" fill="#1F1A14"/><path d="M183.125 313.5L185.925 318.075L188.8 322.675L191.7 327.25L194.725 331.825L197.75 336.425L200.9 341H311.1L314.25 336.425L317.275 331.825L320.3 327.25L323.2 322.675L326.075 318.075L328.875 313.5H183.125Z" fill="#1F1A14"/><path d="M256 411C256 411 151 296 151 226C151 198.152 162.062 171.445 181.754 151.754C201.445 132.062 228.152 121 256 121C283.848 121 310.555 132.062 330.246 151.754C349.938 171.445 361 198.152 361 226C361 296 256 411 256 411Z" stroke="#1F1A14" stroke-width="5" stroke-linejoin="round"/><path d="M256 228.5C271.188 228.5 283.5 216.188 283.5 201C283.5 185.812 271.188 173.5 256 173.5C240.812 173.5 228.5 185.812 228.5 201C228.5 216.188 240.812 228.5 256 228.5Z" fill="#FFC629" stroke="#1F1A14" stroke-width="5"/></svg>
+        <b>bee<em>.</em>there</b>
+        <i></i>
+        <!-- Nội dung tĩnh cho công cụ tìm kiếm / trình duyệt không chạy JavaScript (React thay thế khi tải xong) -->
+        <div class="seo">
+          <h1>Bee There — bản đồ du lịch của riêng bạn</h1>
+          <p>Ghim những nơi bạn đã đến và muốn đến trên bản đồ thế giới, lưu kỉ niệm bằng ảnh, lên lịch trình theo ngày, chia chi phí và checklist cùng bạn bè. Miễn phí, đăng nhập bằng Google, dùng được trên điện thoại và máy tính.</p>
+          <p>Cẩm nang du lịch 12 nước châu Á: Việt Nam, Thái Lan, Singapore, Malaysia, Nhật Bản, Hàn Quốc, Trung Quốc, Đài Loan, Indonesia, Philippines, Campuchia, Lào — nơi nên đi, món ăn địa phương, câu nói thông dụng, tiền tệ, số khẩn cấp.</p>
+          <noscript><p>Hãy bật JavaScript để dùng Bee There.</p></noscript>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -12,6 +12,7 @@ import { templateItems } from '../data/checklists';
 import { countryName, flagOf } from '../lib/countries';
 import { normalize, searchNominatim, isGoogleMapsLink } from '../lib/geo';
 import { getLang, getLocale, pName, pCity } from '../lib/lang';
+import { settle, makeToBase } from '../lib/money';
 import { resolveGoogleMaps } from '../components/Modals';
 import { destLabel } from '../components/DestinationPicker';
 import { exportPlanPdf, shareOrDownload, loadJsPdf } from '../lib/exportPlan';
@@ -429,6 +430,29 @@ export function TripPlan({ trip }) {
     }
     setExporting(false);
   };
+  // REQ-026: itinerary + costs as an Excel workbook (costs are read once at export time)
+  const [excelBusy, setExcelBusy] = useState(false);
+  const doExcel = async () => {
+    setExcelBusy(true);
+    try {
+      const costs = await new Promise((res) => {
+        let off = null;
+        off = api.watchCosts(trip.id, (c) => {
+          res(c || []);
+          setTimeout(() => off && off(), 0);
+        });
+      });
+      const memberIds = trip.memberIds || [];
+      const conv = makeToBase(trip.currency || 'VND', trip.rates || {});
+      const { transfers } = settle(costs, memberIds, trip.currency || 'VND', conv);
+      const { exportTripExcel } = await import('../lib/tripExcel.js');
+      const r = await exportTripExcel(trip, list, costs, { lang: getLang(), transfers, placeName: pName });
+      if (r === 'downloaded') notify(t('excel.downloaded'));
+    } catch (e) {
+      notify(t('excel.error', { msg: e.message }), 'error');
+    }
+    setExcelBusy(false);
+  };
   let counter = 0;
   return (
     <section className="stack">
@@ -443,6 +467,11 @@ export function TripPlan({ trip }) {
               {canShareFiles && (
                 <button className="btn btn--sm btn--outline" onClick={() => doExport(true)} disabled={exporting}>
                   📤 {t('pdf.share')}
+                </button>
+              )}
+              {can('tripExcel') && (
+                <button className="btn btn--sm btn--outline" onClick={doExcel} disabled={excelBusy}>
+                  {excelBusy ? `⏳ ${t('excel.making')}` : `📊 ${t('excel.export')}`}
                 </button>
               )}
               <button

@@ -972,6 +972,20 @@
         "Given a 4G connection\nWhen I open the home page\nThen it becomes interactive within 2.5 seconds (Lighthouse)"
       ],
       "featureId": "F-001"
+    },
+    {
+      "id": "REQ-026",
+      "title": "Export the trip itinerary and costs to Excel",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As a trip member, I want to export the itinerary and costs to Excel so that I can review, share and adjust the budget offline in the same layout as our planning spreadsheets.",
+      "ac": [
+        "Given a trip with a plan and costs\nWhen I tap Export Excel on the Plan or Costs tab\nThen an .xlsx file downloads with Itinerary, Costs, Settle up (groups), Rates, Places and Master data sheets",
+        "Given an actual cost linked to a plan item\nWhen I open the Itinerary sheet\nThen the item's Actual cell sums it with a formula that refers to the Costs sheet",
+        "Given I change a rate in the Rates sheet\nWhen Excel recalculates\nThen converted amounts, itinerary totals and balances update",
+        "Given a trip with one member\nWhen I export\nThen there is no Settle up sheet and no per-member columns"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (GitHub issue #34); templates: solo and group trip spreadsheets"
     }
   ],
   "tests": [
@@ -1595,6 +1609,26 @@
       "gherkin": "Given invalid input for Accessibility and performance baseline\nWhen I submit\nThen I see an error and nothing is saved",
       "type": "Manual",
       "status": "Not run"
+    },
+    {
+      "id": "TC-045",
+      "title": "Excel workbook: sheets, formulas linking costs to the itinerary, rates, drop-downs",
+      "reqIds": [
+        "REQ-026"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-046",
+      "title": "UI: Export Excel on the Plan and Costs tabs, hidden while the flag is off",
+      "reqIds": [
+        "REQ-026"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/excel.spec.mjs"
     }
   ]
 }

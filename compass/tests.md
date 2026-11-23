@@ -1,6 +1,6 @@
 # Tests
 
-_Generated from `spec.json`._
+_Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run test:e2e` (e2e/, Playwright, demo mode)._
 
 | ID | Title | Requirements | Type | Status | File |
 |---|---|---|---|---|---|
@@ -43,8 +43,9 @@ _Generated from `spec.json`._
 | TC-037 | Journey uses the entered check-in date | REQ-020 | automated | Passing | tests/journeyDates.test.mjs |
 | TC-038 | Admin coordinate overrides apply to saved places and check-ins | REQ-021 | automated | Passing | tests/placeCoords.test.mjs |
 | TC-039 | Admin Google Maps link is used for directions | REQ-022 | automated | Passing | tests/placeCoords.test.mjs |
-| TC-101 | Baseline manual regression: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | manual | Not automated yet | — |
-| TC-102 | Baseline manual regression: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | manual | Not automated yet | — |
+| TC-040 | Tour card never covers the highlighted target on phones | REQ-023 | automated | Passing | tests/tourLayout.test.mjs |
+| TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
+| TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
 | TC-103 | Baseline manual regression: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | manual | Not automated yet | — |
 | TC-104 | Baseline manual regression: Social | REQ-123, REQ-124, REQ-125 | manual | Not automated yet | — |
 | TC-105 | Baseline manual regression: Trips | REQ-126, REQ-127, REQ-128, REQ-129, REQ-130, REQ-131, REQ-132, REQ-133 | manual | Not automated yet | — |

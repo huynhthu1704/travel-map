@@ -7,3 +7,7 @@ dist
 .DS_Store
 *.log
 .firebase
+dist-e2e
+test-results
+playwright-report
+e2e-results

@@ -11,3 +11,43 @@ export function renameCheckItem(items, id, text) {
   });
   return changed ? next : null;
 }
+
+/**
+ * REQ-033: due day of a checklist item. `due` is 'before' (before the trip) or a YYYY-MM-DD date.
+ * tripDays() lists the trip's days so the picker can offer "Day 1 · 10/11", "Day 2 · 11/11"…
+ */
+export function tripDays(start, end, max = 60) {
+  if (!start) return [];
+  const out = [];
+  const d = new Date(`${start}T00:00:00Z`);
+  const stop = new Date(`${end || start}T00:00:00Z`);
+  for (let i = 1; d <= stop && i <= max; i++) {
+    out.push({ day: i, date: d.toISOString().slice(0, 10) });
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+
+/** Set (or clear with null / '') the due day of one item; returns the new item list */
+export function setItemDue(items, id, due) {
+  return (items || []).map((x) => {
+    if (x.id !== id) return x;
+    const { due: _old, ...rest } = x; // eslint-disable-line no-unused-vars
+    return due ? { ...rest, due } : rest;
+  });
+}
+
+/** 'overdue' | 'today' | '' for an item that is not done yet (a 'before' item is due on the first trip day) */
+export function dueStatus(due, done, today, tripStart) {
+  if (!due || done) return '';
+  const date = due === 'before' ? tripStart : due;
+  if (!date) return '';
+  if (due === 'before') return today >= date ? 'overdue' : '';
+  return date < today ? 'overdue' : date === today ? 'today' : '';
+}
+
+/** Which trip day a due date falls on (0 when outside the trip) */
+export const dueDayNumber = (due, start, end) => {
+  const days = tripDays(start, end);
+  return days.find((x) => x.date === due)?.day || 0;
+};

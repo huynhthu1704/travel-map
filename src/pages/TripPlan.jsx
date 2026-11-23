@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { renameCheckItem, CHECK_ITEM_MAX } from '../lib/checklist';
+import { renameCheckItem, CHECK_ITEM_MAX, tripDays, setItemDue, dueStatus, dueDayNumber } from '../lib/checklist';
 import { useTripReadOnly } from '../lib/tripAccess';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
@@ -714,6 +714,22 @@ function Checklist({ list, trip }) {
     );
   const remove = (it) => save(items.filter((x) => x.id !== it.id));
   const canEditText = !locked && can('checkEdit');
+  // REQ-033: due day of an item, picked from the trip days
+  const dueOn = can('checkDue');
+  const days = tripDays(trip.startDate, trip.endDate);
+  const [dueEditId, setDueEditId] = useState(null);
+  const [dueOther, setDueOther] = useState(false);
+  const setDue = (it, due) => {
+    save(setItemDue(list.items || [], it.id, due));
+    setDueEditId(null);
+    setDueOther(false);
+  };
+  const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+  const dueText = (due) => {
+    if (due === 'before') return t('check.dueBefore');
+    const n = dueDayNumber(due, trip.startDate, trip.endDate);
+    return n ? t('check.dueDay', { n, d: ddmm(due) }) : `${ddmm(due)}/${due.slice(0, 4)}`;
+  };
   const startEdit = (it) => (setEditId(it.id), setEditText(it.text));
   const commitEdit = () => {
     const next = renameCheckItem(list.items || [], editId, editText);
@@ -799,6 +815,46 @@ function Checklist({ list, trip }) {
                     <input type="checkbox" checked={isDone(it)} disabled={!canTick(it)} onChange={() => toggle(it)} />
                     <span onDoubleClick={canEditText ? (e) => (e.preventDefault(), startEdit(it)) : undefined}>{it.text}</span>
                   </label>
+                  )}
+                  {dueOn && dueEditId === it.id ? (
+                    <span className="check-due-edit">
+                      {days.length > 0 && !dueOther ? (
+                        <select
+                          autoFocus
+                          aria-label={t('check.dueSet')}
+                          value={it.due && (it.due === 'before' || days.some((x) => x.date === it.due)) ? it.due : ''}
+                          onChange={(e) => (e.target.value === 'other' ? setDueOther(true) : setDue(it, e.target.value || null))}
+                        >
+                          <option value="">{t('check.dueNone')}</option>
+                          <option value="before">{t('check.dueBefore')}</option>
+                          {days.map((x) => (
+                            <option key={x.date} value={x.date}>
+                              {t('check.dueDay', { n: x.day, d: ddmm(x.date) })}
+                            </option>
+                          ))}
+                          <option value="other">{t('check.dueOther')}</option>
+                        </select>
+                      ) : (
+                        <input type="date" autoFocus aria-label={t('check.dueSet')} defaultValue={it.due && it.due !== 'before' ? it.due : ''} onChange={(e) => e.target.value && setDue(it, e.target.value)} />
+                      )}
+                      <button type="button" className="icon-btn icon-btn--sm" onClick={() => (setDueEditId(null), setDueOther(false))} aria-label={t('common.close')}>
+                        ↩
+                      </button>
+                    </span>
+                  ) : (
+                    dueOn &&
+                    (it.due || !locked) && (
+                      <button
+                        type="button"
+                        className={`check-due ${it.due ? 'is-set' : ''} ${dueStatus(it.due, isDone(it), today(), trip.startDate) ? `is-${dueStatus(it.due, isDone(it), today(), trip.startDate)}` : ''}`}
+                        onClick={() => !locked && (setDueEditId(it.id), setDueOther(false))}
+                        disabled={locked}
+                        aria-label={it.due ? `${t('check.dueSet')}: ${dueText(it.due)}` : t('check.dueSet')}
+                        title={t('check.dueSet')}
+                      >
+                        📅{it.due ? ` ${dueText(it.due)}` : ''}
+                      </button>
+                    )
                   )}
                   {sharedList && !pp && !onlyMe(it) && it.done && it.doneBy && <small className="muted">✓ {it.doneBy}</small>}
                   {sharedList && (

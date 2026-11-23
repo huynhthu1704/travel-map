@@ -1026,6 +1026,20 @@
         "Given I open the file in a viewer that does not recalculate (Excel Protected View, previews)\nWhen the sheet appears\nThen all amounts and totals are already visible"
       ],
       "source": "Requested by the Product Owner on 2026-11-23 (issue #43); fixes bug #42; changes REQ-026"
+    },
+    {
+      "id": "REQ-030",
+      "title": "Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As a trip member, I want the exported costs grouped by day, with costs not linked to any plan item at the top, and each estimate next to its actual cost, so that I can see what to pay before the trip and add up every column easily.",
+      "ac": [
+        "Given costs not linked to any plan item\nWhen I export the trip to Excel\nThen they are listed in a section at the top of the sheet, before the days",
+        "Given costs linked to plan items\nWhen I export\nThen they appear under their plan item inside that item's day, with item, day and trip totals",
+        "Given an estimate and its actual cost\nWhen I export\nThen they share one row with columns: estimated cost, estimated currency, actual cost, actual currency, final amount in the trip currency, difference",
+        "Given every cost of the trip is in the trip currency\nWhen I export\nThen the two currency columns are not shown"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #45); changes REQ-026 / REQ-029"
     }
   ],
   "tests": [
@@ -1665,7 +1679,8 @@
       "title": "UI: Export Excel on the Plan and Costs tabs, hidden while the flag is off",
       "reqIds": [
         "REQ-026",
-        "REQ-029"
+        "REQ-029",
+        "REQ-030"
       ],
       "type": "automated",
       "status": "Passing",
@@ -1686,6 +1701,16 @@
       "title": "Excel: one itinerary & costs sheet, item totals, cached formula values, sheet list",
       "reqIds": [
         "REQ-029"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-049",
+      "title": "Excel: pre-trip costs first, day blocks, estimate/actual columns, currency columns only for multi-currency trips, totals",
+      "reqIds": [
+        "REQ-030"
       ],
       "type": "automated",
       "status": "Passing",

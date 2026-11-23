@@ -1,14 +1,17 @@
 /**
- * REQ-026 / REQ-029: trip itinerary + costs as an Excel workbook.
+ * REQ-026 / REQ-029 / REQ-030: trip itinerary + costs as an Excel workbook.
  * buildTripWorkbook() is pure (no browser APIs) so it can be unit-tested in Node; it returns the sheets in
  * write-excel-file's multi-sheet format. Extra sheet options read by xlsxValidation.js:
  *   validations    drop-down lists (Excel data validation)
  *   formulaValues  { A1: value } — the calculated value of every formula cell, so amounts are visible even in
  *                  viewers that do not recalculate (Excel Protected View, previews, phones)
+ *   hiddenColumns  [n] — helper columns kept for the formulas but hidden from view
  *
  * Sheets: Itinerary & costs · Settle up (groups only) · Rates · Master data.
- * Each plan item is followed by the estimates and actual costs linked to it; item, day and trip totals are
- * formulas, and every converted amount looks up the Rates sheet, so editing a rate updates the whole file.
+ * Layout of the first sheet (top to bottom): costs not linked to any plan item (usually pre-trip), plan items
+ * without a date, then one block per day; each plan item is followed by its cost lines. A cost line holds an
+ * estimate and its actual side by side: estimated cost, [currency], actual cost, [currency], final amount in the
+ * trip currency and the difference. Currency columns only appear when the trip uses more than one currency.
  */
 
 const LABELS = {
@@ -17,19 +20,21 @@ const LABELS = {
     title: (t) => `LỊCH TRÌNH & CHI PHÍ | ${t}`,
     cols: {
       date: 'Ngày', time: 'Giờ', city: 'Thành phố', act: 'Hoạt động / khoản chi', status: 'Trạng thái',
-      est: 'Dự kiến', actual: 'Thực tế', diff: 'Chênh lệch', type: 'Loại dòng', amount: 'Số tiền gốc', cur: 'Tiền tệ',
+      est: 'Chi phí dự kiến', estCur: 'Tiền tệ (dự kiến)', act$: 'Chi phí thực tế', actCur: 'Tiền tệ (thực tế)',
+      final: (b) => `Thành tiền (${b})`, diff: 'Chênh lệch (thực tế − dự kiến)',
       payer: 'Người trả', payee: 'Người nhận', split: 'Cách tính tiền', costType: 'Loại chi phí', maps: 'Google Maps', note: 'Ghi chú',
+      type: 'Loại dòng', estBase: (b) => `Dự kiến quy đổi (${b})`,
     },
     share: (n) => `Phần của ${n}`,
+    pre: 'Chi phí chung / trước chuyến đi (không gắn địa điểm)',
     undated: 'Chưa xếp ngày',
     day: (n) => `Ngày ${n}`,
-    other: 'Chi phí khác (không gắn lịch trình)',
     repay: 'Trả lại giữa các thành viên',
     dayTotal: 'Cộng ngày',
     sectionTotal: 'Cộng',
     total: 'TỔNG CẢ CHUYẾN',
     openMap: 'Mở bản đồ',
-    kinds: { item: 'Lịch trình', estimate: 'Dự kiến', actual: 'Thực tế', payment: 'Trả lại' },
+    kinds: { item: 'Lịch trình', cost: 'Chi phí', payment: 'Trả lại' },
     status: ['Chưa làm', 'Đang làm', 'Xong', 'Không đi'],
     split: { all: 'Cả nhóm', only: (n) => `Riêng - ${n}`, pick: 'Chọn người' },
     perPerson: (n) => `× ${n} người`,
@@ -46,19 +51,21 @@ const LABELS = {
     title: (t) => `ITINERARY & COSTS | ${t}`,
     cols: {
       date: 'Date', time: 'Time', city: 'City', act: 'Activity / cost', status: 'Status',
-      est: 'Estimated', actual: 'Actual', diff: 'Difference', type: 'Row type', amount: 'Original amount', cur: 'Currency',
+      est: 'Estimated cost', estCur: 'Currency (estimated)', act$: 'Actual cost', actCur: 'Currency (actual)',
+      final: (b) => `Final amount (${b})`, diff: 'Difference (actual − estimated)',
       payer: 'Paid by', payee: 'Paid to', split: 'Split', costType: 'Cost type', maps: 'Google Maps', note: 'Note',
+      type: 'Row type', estBase: (b) => `Estimated in ${b}`,
     },
     share: (n) => `${n}'s share`,
+    pre: 'General / pre-trip costs (not linked to a place)',
     undated: 'Not scheduled',
     day: (n) => `Day ${n}`,
-    other: 'Other costs (not linked to the itinerary)',
     repay: 'Repayments between members',
     dayTotal: 'Day total',
     sectionTotal: 'Total',
     total: 'TRIP TOTAL',
     openMap: 'Open map',
-    kinds: { item: 'Itinerary', estimate: 'Estimate', actual: 'Actual', payment: 'Repayment' },
+    kinds: { item: 'Itinerary', cost: 'Cost', payment: 'Repayment' },
     status: ['To do', 'In progress', 'Done', 'Skipped'],
     split: { all: 'Whole group', only: (n) => `Only - ${n}`, pick: 'Picked people' },
     perPerson: (n) => `× ${n} people`,
@@ -121,6 +128,7 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
   const S = L.sheets;
   const base = trip.currency || 'VND';
   const money = base === 'VND' ? '#,##0' : '#,##0.00';
+  const fmtOf = (cur) => (cur === 'VND' ? '#,##0' : '#,##0.00');
   const memberIds = trip.memberIds?.length ? trip.memberIds : Object.keys(trip.members || {});
   const nameOf = (uid) => trip.members?.[uid]?.name || uid || '';
   const group = memberIds.length > 1;
@@ -130,24 +138,38 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     const among = (c.splitAmong || []).filter(Boolean);
     return c.per === 'person' ? Math.max((among.length ? among : memberIds).length, 1) : 1;
   };
-  const convOf = (c) => round2((Number(c.amount) || 0) * peopleOf(c) * rateOf(c.currency || base));
+  const totalOf = (c) => (Number(c.amount) || 0) * peopleOf(c); // whole-group amount in the cost's own currency
+  const convOf = (c) => round2(totalOf(c) * rateOf(c.currency || base));
+  const multi = costs.some((c) => (c.currency || base) !== base);
 
   // ---------- Columns ----------
-  const keys = ['date', 'time', 'city', 'act', 'status', 'est', 'actual', 'diff', ...(group ? memberIds.map((id) => `share:${id}`) : []), 'type', 'amount', 'cur', ...(group ? ['payer', 'payee', 'split'] : []), 'costType', 'maps', 'note'];
+  const keys = [
+    'date', 'time', 'city', 'act', 'status',
+    'est', ...(multi ? ['estCur'] : []), 'act$', ...(multi ? ['actCur'] : []), 'final', 'diff',
+    ...(group ? memberIds.map((id) => `share:${id}`) : []),
+    ...(group ? ['payer', 'payee', 'split'] : []), 'costType', 'maps', 'note', 'type', 'estBase',
+  ];
   const C = Object.fromEntries(keys.map((k, i) => [k, i + 1]));
-  const X = (k) => col(C[k]); // column letter
+  const X = (k) => col(C[k]);
   const width = keys.length;
-  const headText = (k) => (k.startsWith('share:') ? L.share(nameOf(k.slice(6))) : k === 'est' || k === 'actual' ? `${L.cols[k]} (${base})` : L.cols[k]);
-  const widths = { date: 12, time: 7, city: 14, act: 36, status: 11, est: 13, actual: 13, diff: 13, type: 11, amount: 13, cur: 8, payer: 13, payee: 13, split: 18, costType: 15, maps: 12, note: 32 };
+  const headText = (k) => {
+    if (k.startsWith('share:')) return L.share(nameOf(k.slice(6)));
+    const v = L.cols[k];
+    if (typeof v === 'function') return v(base);
+    return !multi && (k === 'est' || k === 'act$') ? `${v} (${base})` : v;
+  };
+  const widths = { date: 12, time: 7, city: 14, act: 36, status: 11, est: 14, estCur: 9, act$: 14, actCur: 9, final: 15, diff: 15, payer: 13, payee: 13, split: 18, costType: 15, maps: 12, note: 32, type: 10, estBase: 14 };
 
   const rows = [];
   const blank = (style = {}) => Array.from({ length: width }, () => ({ value: '', ...style }));
-  const put = (row, k, cell) => (row[C[k] - 1] = cell);
+  const put = (row, k, cell) => C[k] && (row[C[k] - 1] = cell);
   rows.push([{ value: L.title(trip.name || ''), fontWeight: 'bold', fontSize: 14, columnSpan: width }, ...Array(width - 1).fill(null)]);
   rows.push(keys.map((k) => ({ value: headText(k), ...HEAD })));
-  const FIRST = 3; // first data row
+  const FIRST = 3;
+  const RATES = q(S.rates);
+  const rate = (curCell) => (multi ? `*IFERROR(VLOOKUP(${curCell},${RATES}!$A:$B,2,FALSE),0)` : '');
 
-  // ---------- Which costs belong to which plan item ----------
+  // ---------- Pair estimates with actuals; attach lines to plan items ----------
   const sortedPlan = [...plan].sort((a, b) =>
     (a.date || '').localeCompare(b.date || '') || (a.time || '99').localeCompare(b.time || '99') || (a.order ?? 0) - (b.order ?? 0),
   );
@@ -156,16 +178,17 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
   const estimates = costs.filter((c) => c.type === 'estimate').sort(byDate);
   const actuals = costs.filter((c) => c.type === 'actual').sort(byDate);
   const payments = costs.filter((c) => c.type === 'payment').sort(byDate);
-  const estPlan = new Map(estimates.map((e) => [e.id, e.planItemId && planIds.has(e.planItemId) ? e.planItemId : null]));
-  const planOfActual = (a) => (a.planItemId && planIds.has(a.planItemId) ? a.planItemId : (a.estimateId && estPlan.get(a.estimateId)) || null);
-  const costsOfPlan = new Map(sortedPlan.map((p) => [p.id, []]));
-  estimates.forEach((e) => estPlan.get(e.id) && costsOfPlan.get(estPlan.get(e.id)).push(e));
-  actuals.forEach((a) => planOfActual(a) && costsOfPlan.get(planOfActual(a)).push(a));
-  // Unlinked costs: each estimate followed by its actuals, then actuals without an estimate
-  const unlinked = [];
-  estimates.filter((e) => !estPlan.get(e.id)).forEach((e) => unlinked.push(e, ...actuals.filter((a) => !planOfActual(a) && a.estimateId === e.id)));
-  const unlinkedEst = new Set(unlinked.filter((c) => c.type === 'estimate').map((c) => c.id));
-  actuals.filter((a) => !planOfActual(a) && !unlinkedEst.has(a.estimateId)).forEach((a) => unlinked.push(a));
+  const estIds = new Set(estimates.map((e) => e.id));
+  // A "line" is { est?, act? }: an estimate with its first actual; further actuals get their own line
+  const linesOfEst = (e) => {
+    const acts = actuals.filter((a) => a.estimateId === e.id);
+    return acts.length ? acts.map((a, i) => (i === 0 ? { est: e, act: a } : { act: a })) : [{ est: e }];
+  };
+  const planOf = (c) => (c.planItemId && planIds.has(c.planItemId) ? c.planItemId : null);
+  const linesOfPlan = new Map(sortedPlan.map((p) => [p.id, []]));
+  const preLines = [];
+  for (const e of estimates) (planOf(e) ? linesOfPlan.get(planOf(e)) : preLines).push(...linesOfEst(e));
+  for (const a of actuals.filter((x) => !x.estimateId || !estIds.has(x.estimateId))) (planOf(a) ? linesOfPlan.get(planOf(a)) : preLines).push({ act: a });
 
   const splitLabel = (c) => {
     const among = (c.splitAmong || []).filter(Boolean);
@@ -174,57 +197,75 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     return `${L.split.pick}: ${among.map(nameOf).join(', ')}`;
   };
   const statusOf = (p) => (p.skipped ? L.status[3] : p.done ? L.status[2] : L.status[0]);
-  const RATES = q(S.rates);
 
-  /** One cost line (estimate / actual / repayment) right under its plan item. Returns converted values. */
-  const costRow = (c) => {
+  /** One cost line. Returns its values in the trip currency for totals. */
+  const lineRow = ({ est, act }, kind = L.kinds.cost) => {
     const r = rows.length + 1;
-    const kind = c.type;
-    const among = (c.splitAmong || []).filter(Boolean);
-    const parts = among.length ? among : memberIds;
-    const people = peopleOf(c);
-    const amount = (Number(c.amount) || 0) * people; // whole-group amount in the original currency
-    const cur = c.currency || base;
-    const value = convOf(c);
-    const conv = `=${X('amount')}${r}*IFERROR(VLOOKUP(${X('cur')}${r},${RATES}!$A:$B,2,FALSE),0)`;
+    const main = act || est;
     const row = blank(SUB);
-    put(row, 'date', dateCell(c.date, SUB));
-    put(row, 'act', { value: `   ↳ ${c.title || ''}`, wrap: true, ...SUB });
-    put(row, 'type', { value: L.kinds[kind], ...SUB });
-    put(row, 'amount', { value: amount, type: Number, format: cur === 'VND' ? '#,##0' : '#,##0.00', ...SUB });
-    put(row, 'cur', { value: cur, ...SUB });
-    put(row, kind === 'estimate' ? 'est' : 'actual', fx(conv, value, money, SUB));
+    put(row, 'date', dateCell(act?.date || est?.date, SUB));
+    put(row, 'act', { value: `   ↳ ${main.title || ''}`, wrap: true, ...SUB });
+    put(row, 'type', { value: kind, ...SUB });
+    const estCur = est ? est.currency || base : '';
+    const actCur = act ? act.currency || base : '';
+    if (est) put(row, 'est', { value: totalOf(est), type: Number, format: fmtOf(estCur), ...SUB });
+    if (act) put(row, 'act$', { value: totalOf(act), type: Number, format: fmtOf(actCur), ...SUB });
+    if (multi) {
+      put(row, 'estCur', { value: estCur, ...SUB });
+      put(row, 'actCur', { value: actCur, ...SUB });
+    }
+    const estV = est ? convOf(est) : 0;
+    const finV = act ? convOf(act) : null;
+    const E = `${X('est')}${r}`;
+    const A = `${X('act$')}${r}`;
+    put(row, 'estBase', fx(`=IF(${E}="",0,${E}${rate(`${X('estCur')}${r}`)})`, estV, money, SUB));
+    put(row, 'final', fx(`=IF(${A}="","",${A}${rate(`${X('actCur')}${r}`)})`, finV ?? '', money, SUB));
+    put(row, 'diff', fx(`=IF(OR(${A}="",${E}=""),"",${X('final')}${r}-${X('estBase')}${r})`, act && est ? round2(finV - estV) : '', money, SUB));
     const shares = {};
     if (group) {
-      if (kind !== 'estimate') put(row, 'payer', { value: nameOf(c.paidBy), ...SUB });
-      if (kind === 'payment') put(row, 'payee', { value: nameOf(c.payTo), ...SUB });
-      else put(row, 'split', { value: splitLabel(c), ...SUB });
-      if (kind === 'actual')
+      if (act) put(row, 'payer', { value: nameOf(act.paidBy), ...SUB });
+      if (main.type === 'payment') put(row, 'payee', { value: nameOf(main.payTo), ...SUB });
+      else put(row, 'split', { value: splitLabel(main), ...SUB });
+      if (act && main.type !== 'payment') {
+        const among = (act.splitAmong || []).filter(Boolean);
+        const parts = among.length ? among : memberIds;
         memberIds.forEach((id) => {
           const inIt = !among.length || among.includes(id);
-          shares[id] = inIt ? round2(value / parts.length) : 0;
-          put(row, `share:${id}`, inIt ? fx(`=${X('actual')}${r}/${parts.length}`, shares[id], money, SUB) : { value: 0, type: Number, format: money, ...SUB });
+          shares[id] = inIt ? round2(finV / parts.length) : 0;
+          put(row, `share:${id}`, inIt ? fx(`=IF(${X('final')}${r}="",0,${X('final')}${r}/${parts.length})`, shares[id], money, SUB) : { value: 0, type: Number, format: money, ...SUB });
         });
+      }
     }
-    put(row, 'costType', { value: c.costType || '', ...SUB });
-    put(row, 'note', { value: [people > 1 ? `${c.amount} ${cur} ${L.perPerson(people)}` : '', c.note || ''].filter(Boolean).join(' · '), wrap: true, ...SUB });
+    put(row, 'costType', { value: main.costType || est?.costType || '', ...SUB });
+    const notes = [];
+    if (est && peopleOf(est) > 1) notes.push(`${est.amount} ${estCur} ${L.perPerson(peopleOf(est))}`);
+    if (act && peopleOf(act) > 1) notes.push(`${act.amount} ${actCur} ${L.perPerson(peopleOf(act))}`);
+    put(row, 'note', { value: [...notes, act?.note || '', est?.note || ''].filter(Boolean).join(' · '), wrap: true, ...SUB });
     rows.push(row);
-    return { kind, c, est: kind === 'estimate' ? value : 0, actual: kind === 'actual' ? value : 0, shares };
+    return { est: estV, fin: finV ?? 0, diff: act && est ? round2(finV - estV) : 0, shares };
   };
 
-  /** Totals of typed rows in a range (SUMIFS on the row type, so plan item rows never count twice) */
+  const sum = (lines, k) => round2(lines.reduce((s, x) => s + (x[k] || 0), 0));
+  const shareSum = (lines, id) => round2(lines.reduce((s, x) => s + (x.shares[id] || 0), 0));
+  /** Fill the money cells of a summary row (plan item, day, section or trip) from the cost lines in a range */
+  const fillTotals = (row, r, from, to, lines, style) => {
+    const rng = (k) => `${X(k)}${from}:${X(k)}${Math.max(to, from)}`;
+    const sumif = (k) => `=SUMIFS(${rng(k)},${rng('type')},${str(L.kinds.cost)})`;
+    put(row, 'est', fx(sumif('estBase'), sum(lines, 'est'), money, style));
+    put(row, 'act$', fx(sumif('final'), sum(lines, 'fin'), money, style));
+    if (multi) {
+      put(row, 'estCur', { value: base, ...style });
+      put(row, 'actCur', { value: base, ...style });
+    }
+    put(row, 'final', fx(`=${X('act$')}${r}`, sum(lines, 'fin'), money, style));
+    put(row, 'diff', fx(sumif('diff'), sum(lines, 'diff'), money, style));
+    if (group) memberIds.forEach((id) => put(row, `share:${id}`, fx(sumif(`share:${id}`), shareSum(lines, id), money, style)));
+  };
   const totalsRow = (label, from, to, lines, style) => {
     const r = rows.length + 1;
     const row = blank(style);
     put(row, 'act', { value: label, ...style });
-    const est = round2(lines.reduce((s, x) => s + x.est, 0));
-    const act = round2(lines.reduce((s, x) => s + x.actual, 0));
-    const rng = (k) => `${X(k)}${from}:${X(k)}${Math.max(to, from)}`;
-    const sumif = (k, kind) => `=SUMIFS(${rng(k)},${rng('type')},${str(L.kinds[kind])})`;
-    put(row, 'est', fx(sumif('est', 'estimate'), est, money, style));
-    put(row, 'actual', fx(sumif('actual', 'actual'), act, money, style));
-    put(row, 'diff', fx(`=${X('actual')}${r}-${X('est')}${r}`, round2(act - est), money, style));
-    if (group) memberIds.forEach((id) => put(row, `share:${id}`, fx(sumif(`share:${id}`, 'actual'), round2(lines.reduce((s, x) => s + (x.shares[id] || 0), 0)), money, style)));
+    fillTotals(row, r, from, to, lines, style);
     rows.push(row);
   };
   const sectionHead = (label, date) => {
@@ -233,8 +274,18 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     put(row, 'act', { value: label, ...DAY });
     rows.push(row);
   };
+  const allLines = [];
 
-  // ---------- Days (undated items first) ----------
+  // ---------- 1. General / pre-trip costs (not linked to a plan item) ----------
+  if (preLines.length) {
+    sectionHead(L.pre);
+    const from = rows.length + 1;
+    const lines = preLines.map((l) => lineRow(l));
+    totalsRow(L.sectionTotal, from, rows.length, lines, DAY);
+    allLines.push(...lines);
+  }
+
+  // ---------- 2. Plan items: undated first, then one block per day ----------
   const days = [];
   for (const p of sortedPlan) {
     const k = p.date || '';
@@ -242,7 +293,6 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     days[days.length - 1].items.push(p);
   }
   days.sort((x, y) => (x.date ? 1 : 0) - (y.date ? 1 : 0) || x.date.localeCompare(y.date));
-  const allLines = [];
   let dayNo = 0;
   for (const d of days) {
     sectionHead(d.date ? L.day(++dayNo) : L.undated, d.date);
@@ -261,34 +311,18 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
       if (url) put(row, 'maps', fx(`=HYPERLINK(${str(url)},${str(L.openMap)})`, L.openMap, undefined, { color: '#1155CC' }));
       put(row, 'note', { value: p.note || '', wrap: true });
       rows.push(row);
-      const lines = costsOfPlan.get(p.id).map(costRow);
+      const lines = linesOfPlan.get(p.id).map((l) => lineRow(l));
+      if (lines.length) fillTotals(row, ir, ir + 1, ir + lines.length, lines, ITEM); // the item adds up the lines right under it
       dayLines.push(...lines);
-      if (lines.length) {
-        // The plan item row adds up the cost lines right under it
-        const a = ir + 1;
-        const b = ir + lines.length;
-        const sum = (k, v) => fx(`=SUM(${X(k)}${a}:${X(k)}${b})`, v, money, ITEM);
-        const est = round2(lines.reduce((s, x) => s + x.est, 0));
-        const act = round2(lines.reduce((s, x) => s + x.actual, 0));
-        put(row, 'est', sum('est', est));
-        put(row, 'actual', sum('actual', act));
-        put(row, 'diff', fx(`=${X('actual')}${ir}-${X('est')}${ir}`, round2(act - est), money, ITEM));
-        if (group) memberIds.forEach((id) => put(row, `share:${id}`, sum(`share:${id}`, round2(lines.reduce((s, x) => s + (x.shares[id] || 0), 0)))));
-      }
     }
     totalsRow(d.date ? L.dayTotal : L.sectionTotal, from, rows.length, dayLines, DAY);
     allLines.push(...dayLines);
   }
-  if (unlinked.length) {
-    sectionHead(L.other);
-    const from = rows.length + 1;
-    const lines = unlinked.map(costRow);
-    totalsRow(L.sectionTotal, from, rows.length, lines, DAY);
-    allLines.push(...lines);
-  }
+
+  // ---------- 3. Repayments (not trip spending; used by Settle up) ----------
   if (payments.length) {
     sectionHead(L.repay);
-    payments.forEach(costRow);
+    payments.forEach((p) => lineRow({ act: p }, L.kinds.payment));
   }
   totalsRow(L.total, FIRST, rows.length, allLines, TOTAL);
 
@@ -298,6 +332,7 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     data: rows,
     columns: keys.map((k) => ({ width: k.startsWith('share:') ? 13 : widths[k] })),
     stickyRowsCount: 2,
+    hiddenColumns: [C.estBase],
   };
 
   // ---------- Settle up (groups) ----------
@@ -305,22 +340,22 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
   if (group) {
     const P = q(S.plan);
     const span = (k) => `${P}!$${X(k)}$${FIRST}:$${X(k)}$${last}`;
-    const typeIs = (kind) => `${span('type')},${str(L.kinds[kind])}`;
-    const sum = (list) => round2(list.reduce((s, c) => s + convOf(c), 0));
+    const typeIs = (kind) => `${span('type')},${str(kind)}`;
+    const sumC = (list) => round2(list.reduce((s, c) => s + convOf(c), 0));
     const sr = [L.settle.map((v) => ({ value: v, ...HEAD }))];
     memberIds.forEach((id) => {
       const r = sr.length + 1;
       const who = str(nameOf(id));
-      const paid = sum(actuals.filter((c) => c.paidBy === id));
-      const share = round2(allLines.reduce((s, x) => s + (x.shares[id] || 0), 0));
-      const sent = sum(payments.filter((c) => c.paidBy === id));
-      const got = sum(payments.filter((c) => c.payTo === id));
+      const paid = sumC(actuals.filter((c) => c.paidBy === id));
+      const share = shareSum(allLines, id);
+      const sent = sumC(payments.filter((c) => c.paidBy === id));
+      const got = sumC(payments.filter((c) => c.payTo === id));
       sr.push([
         { value: nameOf(id), fontWeight: 'bold' },
-        fx(`=SUMIFS(${span('actual')},${span('payer')},${who},${typeIs('actual')})`, paid, money),
-        fx(`=SUMIFS(${span(`share:${id}`)},${typeIs('actual')})`, share, money),
-        fx(`=SUMIFS(${span('actual')},${span('payer')},${who},${typeIs('payment')})`, sent, money),
-        fx(`=SUMIFS(${span('actual')},${span('payee')},${who},${typeIs('payment')})`, got, money),
+        fx(`=SUMIFS(${span('final')},${span('payer')},${who},${typeIs(L.kinds.cost)})`, paid, money),
+        fx(`=SUMIFS(${span(`share:${id}`)},${typeIs(L.kinds.cost)})`, share, money),
+        fx(`=SUMIFS(${span('final')},${span('payer')},${who},${typeIs(L.kinds.payment)})`, sent, money),
+        fx(`=SUMIFS(${span('final')},${span('payee')},${who},${typeIs(L.kinds.payment)})`, got, money),
         fx(`=B${r}-C${r}+D${r}-E${r}`, round2(paid - share + sent - got), money, { fontWeight: 'bold' }),
       ]);
     });
@@ -357,22 +392,18 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
   };
   const listRef = (i) => `${q(S.master)}!$${col(i + 1)}$2:$${col(i + 1)}$${lists[i].length + 1}`;
   const upTo = last + 200; // room for rows added later in Excel
+  const v = (k, i) => ({ sqref: `${X(k)}${FIRST}:${X(k)}${upTo}`, list: listRef(i) });
   planSheet.validations = [
-    { sqref: `${X('status')}${FIRST}:${X('status')}${upTo}`, list: listRef(0) },
-    { sqref: `${X('type')}${FIRST}:${X('type')}${upTo}`, list: listRef(1) },
-    { sqref: `${X('cur')}${FIRST}:${X('cur')}${upTo}`, list: listRef(4) },
-    { sqref: `${X('costType')}${FIRST}:${X('costType')}${upTo}`, list: listRef(3) },
-    ...(group
-      ? [
-          { sqref: `${X('payer')}${FIRST}:${X('payee')}${upTo}`, list: listRef(5) },
-          { sqref: `${X('split')}${FIRST}:${X('split')}${upTo}`, list: listRef(2) },
-        ]
-      : []),
+    v('status', 0),
+    v('type', 1),
+    v('costType', 3),
+    ...(multi ? [v('estCur', 4), v('actCur', 4)] : []),
+    ...(group ? [{ sqref: `${X('payer')}${FIRST}:${X('payee')}${upTo}`, list: listRef(5) }, v('split', 2)] : []),
   ];
 
   const sheets = [planSheet, settleSheet, ratesSheet, masterSheet].filter(Boolean);
   sheets.forEach((s) => (s.formulaValues = formulaValuesOf(s.data)));
-  return { sheets, columns: C, labels: L };
+  return { sheets, columns: C, labels: L, multi };
 }
 
 export const excelFileName = (trip) => `${(trip.name || 'trip').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'trip'}.xlsx`;

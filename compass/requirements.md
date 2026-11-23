@@ -32,6 +32,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-027 | Failing UI tests are logged as GitHub bug issues | — | Should | Done | TC-047 |
 | REQ-028 | Archive trips older than the retention period (Excel-only access) | — | Could | Draft | — |
 | REQ-029 | Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet | — | Must | Done | TC-046, TC-048 |
+| REQ-030 | Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side | — | Must | Done | TC-046, TC-049 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -320,6 +321,15 @@ As a trip member, I want the itinerary and its costs on the same sheet, with amo
 - Given costs not linked to a plan item or repayments · When I open the file · Then they appear in an Other costs section and a Repayments section; repayments are not counted as trip spending
 - Given I export a trip · When I look at the sheet tabs · Then there is no Places sheet and no separate Costs sheet; Settle up (groups), Rates and Master data stay
 - Given I open the file in a viewer that does not recalculate (Excel Protected View, previews) · When the sheet appears · Then all amounts and totals are already visible
+
+## REQ-030 — Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side
+
+As a trip member, I want the exported costs grouped by day, with costs not linked to any plan item at the top, and each estimate next to its actual cost, so that I can see what to pay before the trip and add up every column easily.
+
+- Given costs not linked to any plan item · When I export the trip to Excel · Then they are listed in a section at the top of the sheet, before the days
+- Given costs linked to plan items · When I export · Then they appear under their plan item inside that item's day, with item, day and trip totals
+- Given an estimate and its actual cost · When I export · Then they share one row with columns: estimated cost, estimated currency, actual cost, actual currency, final amount in the trip currency, difference
+- Given every cost of the trip is in the trip currency · When I export · Then the two currency columns are not shown
 
 ## REQ-101 — Sign in with Google
 

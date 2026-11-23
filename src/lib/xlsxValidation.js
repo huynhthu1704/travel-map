@@ -41,11 +41,20 @@ export function addFormulaValues(xml, values = {}) {
   });
 }
 
+/** Hide helper columns (1-based numbers) kept only for formulas */
+export function hideColumns(xml, cols = []) {
+  if (!cols.length) return xml;
+  return xml.replace(/<col min="(\d+)" max="(\d+)"([^>]*?)\/>/g, (m, min, max, rest) =>
+    cols.includes(Number(min)) && min === max && !/hidden=/.test(rest) ? `<col min="${min}" max="${max}"${rest} hidden="1"/>` : m,
+  );
+}
+
 export const dataValidationFeature = {
   files: {
     transform: {
       'xl/worksheets/sheet{id}.xml': {
-        transform: (content, sheetOptions) => insertDataValidations(addFormulaValues(content, sheetOptions?.formulaValues), sheetOptions?.validations),
+        transform: (content, sheetOptions) =>
+          insertDataValidations(hideColumns(addFormulaValues(content, sheetOptions?.formulaValues), sheetOptions?.hiddenColumns), sheetOptions?.validations),
       },
     },
   },

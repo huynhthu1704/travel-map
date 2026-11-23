@@ -1,27 +1,49 @@
 {
-  "version": 1,
-  "idea": {
-    "intent": "Tăng số người dùng hoàn thành checklist chuẩn bị chuyến đi bằng cách thêm nhanh các mục từ cẩm nang",
-    "problem": "Today customer cannot thêm các mục nằm trong cẩm nang vào trip's checklist easily; work is manual and not measurable.",
-    "users": [
-      "Customer",
-      "Admin"
-    ],
-    "outcomeMetric": "",
-    "scopeIn": [
-      "Core flow: Thêm các mục nằm trong cẩm nang vào trip's checklist"
-    ],
-    "scopeOut": [
-      "Native mobile apps",
-      "Payments (phase 2)"
-    ],
-    "risks": [
-      "Unclear success metric",
-      "Data privacy",
-      "Adoption by users"
-    ],
-    "stack": ""
-  },
+  "version": 2,
+  "stack": "React 18 + Vite, Firebase (Auth, Firestore) on the Spark plan, node:test unit tests, Playwright UI tests, GitHub Pages",
+  "features": [
+    {
+      "id": "F-001",
+      "name": "Increase the number of user by adding…",
+      "idea": {
+        "intent": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist",
+        "problem": "Today user cannot increase the number of user by adding some suggestion from 'Guides' into trip's checklist easily; work is manual and not measurable.",
+        "users": [
+          "user",
+          "Admin"
+        ],
+        "outcomeMetric": "",
+        "scopeIn": [
+          "Core flow: Increase the number of user by adding some suggestion from 'Guides' into trip's checklist"
+        ],
+        "scopeOut": [
+          "Native mobile apps",
+          "Payments (phase 2)"
+        ],
+        "risks": [
+          "Unclear success metric",
+          "Data privacy",
+          "Adoption by users"
+        ]
+      },
+      "createdAt": "2026-11-23T03:11:00.928Z"
+    },
+    {
+      "id": "F-002",
+      "name": "allow user to filter trip cost by…",
+      "idea": {
+        "intent": "allow user to filter trip cost by payment method (card, cash), cost shared a specific person, type of cost (accomdation, travel, foods & drinks, etc)",
+        "problem": "",
+        "users": [],
+        "outcomeMetric": "",
+        "scopeIn": [],
+        "scopeOut": [],
+        "risks": []
+      },
+      "createdAt": "2026-11-23T03:16:00.940Z"
+    }
+  ],
+  "decisions": [],
   "requirements": [
     {
       "id": "REQ-001",
@@ -32,31 +54,11 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "tripViewers",
       "ac": [
-        {
-          "given": "I own a trip with an accepted member",
-          "when": "I open Members & invites and set that member to View only",
-          "then": "the member is stored in trips.viewerIds and shows as 'View only' in the member list"
-        },
-        {
-          "given": "I am a view-only member of a trip",
-          "when": "I open the trip",
-          "then": "I see a view-only banner, and controls to add, edit, reorder, tick or delete plan items, costs and shared checklist items are hidden or disabled"
-        },
-        {
-          "given": "I am a view-only member",
-          "when": "I try to write plan items, costs, shared checklists or trip details (UI or API)",
-          "then": "Firestore security rules reject the write"
-        },
-        {
-          "given": "I am a view-only member",
-          "when": "I tap 'Copy this trip' and confirm",
-          "then": "a new trip owned by me is created with the plan, checklists and estimated costs I chose, and I can edit it"
-        },
-        {
-          "given": "I am the trip owner",
-          "when": "anyone tries to make me view-only",
-          "then": "I keep full edit rights"
-        }
+        "Given I own a trip with an accepted member\nWhen I open Members & invites and set that member to View only\nThen the member is stored in trips.viewerIds and shows as 'View only' in the member list",
+        "Given I am a view-only member of a trip\nWhen I open the trip\nThen I see a view-only banner, and controls to add, edit, reorder, tick or delete plan items, costs and shared checklist items are hidden or disabled",
+        "Given I am a view-only member\nWhen I try to write plan items, costs, shared checklists or trip details (UI or API)\nThen Firestore security rules reject the write",
+        "Given I am a view-only member\nWhen I tap 'Copy this trip' and confirm\nThen a new trip owned by me is created with the plan, checklists and estimated costs I chose, and I can edit it",
+        "Given I am the trip owner\nWhen anyone tries to make me view-only\nThen I keep full edit rights"
       ]
     },
     {
@@ -68,26 +70,10 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "costCompare",
       "ac": [
-        {
-          "given": "a trip has estimated costs and actual costs recorded from them",
-          "when": "I open the Costs tab",
-          "then": "a 'Estimated vs actual' card lists each estimate with its estimated amount, actual amount, and the difference marked over / under / on budget, with bars to compare"
-        },
-        {
-          "given": "an estimate has no actual cost linked yet",
-          "when": "I view the comparison",
-          "then": "it shows 'Not spent yet' and is counted in the 'not spent yet' note, not as a saving"
-        },
-        {
-          "given": "some actual costs are not linked to any estimate (or their estimate was deleted)",
-          "when": "I view the comparison",
-          "then": "they are listed under 'Not in the estimate' with their total, sorted by date"
-        },
-        {
-          "given": "the comparison is shown",
-          "when": "I look at the footer",
-          "then": "I see total estimated, total actual including extras, and the overall difference"
-        }
+        "Given a trip has estimated costs and actual costs recorded from them\nWhen I open the Costs tab\nThen a 'Estimated vs actual' card lists each estimate with its estimated amount, actual amount, and the difference marked over / under / on budget, with bars to compare",
+        "Given an estimate has no actual cost linked yet\nWhen I view the comparison\nThen it shows 'Not spent yet' and is counted in the 'not spent yet' note, not as a saving",
+        "Given some actual costs are not linked to any estimate (or their estimate was deleted)\nWhen I view the comparison\nThen they are listed under 'Not in the estimate' with their total, sorted by date",
+        "Given the comparison is shown\nWhen I look at the footer\nThen I see total estimated, total actual including extras, and the overall difference"
       ]
     },
     {
@@ -99,21 +85,9 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "costReorder",
       "ac": [
-        {
-          "given": "I can edit the trip",
-          "when": "I hold the ⠿ handle of a cost and drag it up or down (mouse or touch), or press ↑ / ↓ on the handle",
-          "then": "the cost moves to the new position and the new order is saved for everyone"
-        },
-        {
-          "given": "costs have never been reordered",
-          "when": "I open the Costs tab",
-          "then": "estimates keep the order they were added and actual costs are sorted by date"
-        },
-        {
-          "given": "I am a view-only member",
-          "when": "I open the Costs tab",
-          "then": "no drag handles are shown"
-        }
+        "Given I can edit the trip\nWhen I hold the ⠿ handle of a cost and drag it up or down (mouse or touch), or press ↑ / ↓ on the handle\nThen the cost moves to the new position and the new order is saved for everyone",
+        "Given costs have never been reordered\nWhen I open the Costs tab\nThen estimates keep the order they were added and actual costs are sorted by date",
+        "Given I am a view-only member\nWhen I open the Costs tab\nThen no drag handles are shown"
       ]
     },
     {
@@ -125,36 +99,12 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 (refines REQ-002)",
       "featureFlag": "costTable",
       "ac": [
-        {
-          "given": "I can edit a trip",
-          "when": "I tap 'Add a cost' and fill the estimate and/or the 'Already paid' part",
-          "then": "one estimate and/or one actual cost is saved; if both, the actual is linked to the estimate"
-        },
-        {
-          "given": "a cost item has an estimate only",
-          "when": "I tap 🧾 on its row and save the actual amount",
-          "then": "the actual is linked to that item and the row shows estimate, actual and difference"
-        },
-        {
-          "given": "an item has one or more actual payments",
-          "when": "I view the table",
-          "then": "the row shows the total actual, the difference (over in red, under in green) and each payment underneath with date, who paid and who shares it"
-        },
-        {
-          "given": "an actual cost is not linked to any estimate",
-          "when": "I view the table",
-          "then": "it appears as its own row tagged 'Unplanned' with no estimate and a + difference"
-        },
-        {
-          "given": "the table has rows",
-          "when": "I look at the last row",
-          "then": "I see total estimate, total actual and total difference, plus notes for unplanned and not-yet-spent amounts"
-        },
-        {
-          "given": "I am a view-only member",
-          "when": "I view the table",
-          "then": "I see all values but no add, edit, delete or drag controls"
-        }
+        "Given I can edit a trip\nWhen I tap 'Add a cost' and fill the estimate and/or the 'Already paid' part\nThen one estimate and/or one actual cost is saved; if both, the actual is linked to the estimate",
+        "Given a cost item has an estimate only\nWhen I tap 🧾 on its row and save the actual amount\nThen the actual is linked to that item and the row shows estimate, actual and difference",
+        "Given an item has one or more actual payments\nWhen I view the table\nThen the row shows the total actual, the difference (over in red, under in green) and each payment underneath with date, who paid and who shares it",
+        "Given an actual cost is not linked to any estimate\nWhen I view the table\nThen it appears as its own row tagged 'Unplanned' with no estimate and a + difference",
+        "Given the table has rows\nWhen I look at the last row\nThen I see total estimate, total actual and total difference, plus notes for unplanned and not-yet-spent amounts",
+        "Given I am a view-only member\nWhen I view the table\nThen I see all values but no add, edit, delete or drag controls"
       ]
     },
     {
@@ -166,26 +116,10 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "selectedPin",
       "ac": [
-        {
-          "given": "the map shows many pins",
-          "when": "I open a place (from the map, search, a list or a trip plan)",
-          "then": "its pin is larger, has a honey ring and a gently pulsing glow, and shows the place name in a label"
-        },
-        {
-          "given": "the selected place is a famous place inside a cluster",
-          "when": "I open it",
-          "then": "its highlighted pin is shown on its own and not hidden in the cluster"
-        },
-        {
-          "given": "a place is selected",
-          "when": "I close the place panel or open another place",
-          "then": "the highlight moves to the new place or disappears"
-        },
-        {
-          "given": "my device asks for reduced motion",
-          "when": "a place is selected",
-          "then": "the glow does not animate"
-        }
+        "Given the map shows many pins\nWhen I open a place (from the map, search, a list or a trip plan)\nThen its pin is larger, has a honey ring and a gently pulsing glow, and shows the place name in a label",
+        "Given the selected place is a famous place inside a cluster\nWhen I open it\nThen its highlighted pin is shown on its own and not hidden in the cluster",
+        "Given a place is selected\nWhen I close the place panel or open another place\nThen the highlight moves to the new place or disappears",
+        "Given my device asks for reduced motion\nWhen a place is selected\nThen the glow does not animate"
       ]
     },
     {
@@ -197,26 +131,10 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "costPickPeople",
       "ac": [
-        {
-          "given": "I add or edit an estimated cost",
-          "when": "I choose 'Pick people', select members and choose 'Total' or 'Per person'",
-          "then": "the estimate is saved with those members (splitAmong) and the hint shows the per-person share or the total for them"
-        },
-        {
-          "given": "'Pick people' is chosen",
-          "when": "no member is selected",
-          "then": "I cannot save and see 'Pick at least one person'"
-        },
-        {
-          "given": "an estimate applies to picked people",
-          "when": "I view the cost tables and the PDF",
-          "then": "its group total counts only the picked people, the label lists their names, and 'Estimated / person' shows the group average"
-        },
-        {
-          "given": "an estimate applies to picked people",
-          "when": "I record its actual cost (🧾 or 'Already paid')",
-          "then": "the actual form is pre-filled to split between the same people"
-        }
+        "Given I add or edit an estimated cost\nWhen I choose 'Pick people', select members and choose 'Total' or 'Per person'\nThen the estimate is saved with those members (splitAmong) and the hint shows the per-person share or the total for them",
+        "Given 'Pick people' is chosen\nWhen no member is selected\nThen I cannot save and see 'Pick at least one person'",
+        "Given an estimate applies to picked people\nWhen I view the cost tables and the PDF\nThen its group total counts only the picked people, the label lists their names, and 'Estimated / person' shows the group average",
+        "Given an estimate applies to picked people\nWhen I record its actual cost (🧾 or 'Already paid')\nThen the actual form is pre-filled to split between the same people"
       ]
     },
     {
@@ -228,26 +146,10 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "costReorder, costSort",
       "ac": [
-        {
-          "given": "I can edit a trip and the table is in group order",
-          "when": "I drag a row by ⠿ (mouse or touch) or tap ↑ / ↓",
-          "then": "the row moves, stays in its new place without jumping back, and the order is saved for the group in one write"
-        },
-        {
-          "given": "the cost table has several rows",
-          "when": "I choose Sort by date, amount, most over budget or name",
-          "then": "the table re-sorts on my device only, drag handles and ↑ ↓ are hidden, and a hint explains it"
-        },
-        {
-          "given": "I sorted the table by something other than group order",
-          "when": "I tap 'Save as group order'",
-          "then": "that order becomes the group order for everyone and the menu returns to 'Group order'"
-        },
-        {
-          "given": "I am a view-only member",
-          "when": "I open the table",
-          "then": "I can change my view sort but cannot reorder or save the group order"
-        }
+        "Given I can edit a trip and the table is in group order\nWhen I drag a row by ⠿ (mouse or touch) or tap ↑ / ↓\nThen the row moves, stays in its new place without jumping back, and the order is saved for the group in one write",
+        "Given the cost table has several rows\nWhen I choose Sort by date, amount, most over budget or name\nThen the table re-sorts on my device only, drag handles and ↑ ↓ are hidden, and a hint explains it",
+        "Given I sorted the table by something other than group order\nWhen I tap 'Save as group order'\nThen that order becomes the group order for everyone and the menu returns to 'Group order'",
+        "Given I am a view-only member\nWhen I open the table\nThen I can change my view sort but cannot reorder or save the group order"
       ]
     },
     {
@@ -258,26 +160,10 @@
       "status": "In build",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "I am on the Costs tab",
-          "when": "I tap Export PDF or Share PDF",
-          "then": "the PDF shows a single table with Item, Estimate, Actual and Difference, each item's payments listed under it, unplanned costs marked, and a totals row"
-        },
-        {
-          "given": "I reordered or sorted the table",
-          "when": "I export the PDF",
-          "then": "rows appear in the same order as on screen"
-        },
-        {
-          "given": "a cost was just added or edited",
-          "when": "I export the PDF",
-          "then": "the PDF includes the latest values"
-        },
-        {
-          "given": "a cost title contains arrows such as 'SGN → SIN'",
-          "when": "I export the costs PDF (or the plan PDF)",
-          "then": "the arrows appear in the PDF instead of disappearing"
-        }
+        "Given I am on the Costs tab\nWhen I tap Export PDF or Share PDF\nThen the PDF shows a single table with Item, Estimate, Actual and Difference, each item's payments listed under it, unplanned costs marked, and a totals row",
+        "Given I reordered or sorted the table\nWhen I export the PDF\nThen rows appear in the same order as on screen",
+        "Given a cost was just added or edited\nWhen I export the PDF\nThen the PDF includes the latest values",
+        "Given a cost title contains arrows such as 'SGN → SIN'\nWhen I export the costs PDF (or the plan PDF)\nThen the arrows appear in the PDF instead of disappearing"
       ]
     },
     {
@@ -288,16 +174,8 @@
       "status": "In build",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "some estimates have no actual cost yet",
-          "when": "I view the summary",
-          "then": "'Difference (spent items)' compares actual spend with the estimates of the items already paid plus unplanned costs, and the unspent estimates are shown separately as 'Estimated, not spent yet'"
-        },
-        {
-          "given": "the PDF is exported",
-          "when": "I read its summary and totals row",
-          "then": "they use the same numbers as the web"
-        }
+        "Given some estimates have no actual cost yet\nWhen I view the summary\nThen 'Difference (spent items)' compares actual spend with the estimates of the items already paid plus unplanned costs, and the unspent estimates are shown separately as 'Estimated, not spent yet'",
+        "Given the PDF is exported\nWhen I read its summary and totals row\nThen they use the same numbers as the web"
       ]
     },
     {
@@ -309,31 +187,11 @@
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "featureFlag": "tripPublicView",
       "ac": [
-        {
-          "given": "I own a trip",
-          "when": "I open Members & invites → Code / link and turn on 'Anyone with the link can view'",
-          "then": "the trip gets publicView and I can copy the view-only link"
-        },
-        {
-          "given": "the link is on",
-          "when": "someone who is not a member (or not signed in) opens it",
-          "then": "they see the trip header, Plan and shared Checklists (Costs only if 'Also show costs' is on) with a 'shared trip' banner, and no edit, member, invite, map, recap or Journey controls"
-        },
-        {
-          "given": "I view a shared trip by link",
-          "when": "I tap 'Copy this trip'",
-          "then": "I am asked to sign in if needed and then get my own editable copy"
-        },
-        {
-          "given": "the owner turns the link off",
-          "when": "someone opens the link",
-          "then": "they can no longer see the trip"
-        },
-        {
-          "given": "the link is on",
-          "when": "anyone tries to list trips, read the journey/photos, personal checklists, or write anything",
-          "then": "Firestore rules deny it"
-        }
+        "Given I own a trip\nWhen I open Members & invites → Code / link and turn on 'Anyone with the link can view'\nThen the trip gets publicView and I can copy the view-only link",
+        "Given the link is on\nWhen someone who is not a member (or not signed in) opens it\nThen they see the trip header, Plan and shared Checklists (Costs only if 'Also show costs' is on) with a 'shared trip' banner, and no edit, member, invite, map, recap or Journey controls",
+        "Given I view a shared trip by link\nWhen I tap 'Copy this trip'\nThen I am asked to sign in if needed and then get my own editable copy",
+        "Given the owner turns the link off\nWhen someone opens the link\nThen they can no longer see the trip",
+        "Given the link is on\nWhen anyone tries to list trips, read the journey/photos, personal checklists, or write anything\nThen Firestore rules deny it"
       ]
     },
     {
@@ -344,26 +202,10 @@
       "status": "In build",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 after the performance test",
       "ac": [
-        {
-          "given": "I open Trips, Guides, Explore, Memories or About",
-          "when": "the page loads",
-          "then": "the map code (Leaflet, MapLibre, country borders) is not downloaded"
-        },
-        {
-          "given": "my language is Vietnamese",
-          "when": "the site loads",
-          "then": "the English dictionary is not downloaded; switching to English downloads it first and then switches"
-        },
-        {
-          "given": "Explore or Memories has many photos",
-          "when": "I open it",
-          "then": "about 24 cards render first and more render as I scroll"
-        },
-        {
-          "given": "the mobile Lighthouse test (4G) is run on Trips, Guides, Explore and About",
-          "when": "compared with the baseline",
-          "then": "Largest Contentful Paint and Total Blocking Time are lower than before (baseline: LCP 6.5–7.1 s, TBT 0.6–1.2 s)"
-        }
+        "Given I open Trips, Guides, Explore, Memories or About\nWhen the page loads\nThen the map code (Leaflet, MapLibre, country borders) is not downloaded",
+        "Given my language is Vietnamese\nWhen the site loads\nThen the English dictionary is not downloaded; switching to English downloads it first and then switches",
+        "Given Explore or Memories has many photos\nWhen I open it\nThen about 24 cards render first and more render as I scroll",
+        "Given the mobile Lighthouse test (4G) is run on Trips, Guides, Explore and About\nWhen compared with the baseline\nThen Largest Contentful Paint and Total Blocking Time are lower than before (baseline: LCP 6.5–7.1 s, TBT 0.6–1.2 s)"
       ]
     },
     {
@@ -374,21 +216,9 @@
       "status": "In build",
       "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "a place was checked in for the trip and later deleted from the Plan",
-          "when": "I open the trip",
-          "then": "it no longer appears in Journey, the stop count or the trip recap"
-        },
-        {
-          "given": "I add that place to the plan again",
-          "when": "I open Journey",
-          "then": "it appears again"
-        },
-        {
-          "given": "I duplicate the trip",
-          "when": "the copy is created",
-          "then": "places deleted from the original plan are not copied"
-        }
+        "Given a place was checked in for the trip and later deleted from the Plan\nWhen I open the trip\nThen it no longer appears in Journey, the stop count or the trip recap",
+        "Given I add that place to the plan again\nWhen I open Journey\nThen it appears again",
+        "Given I duplicate the trip\nWhen the copy is created\nThen places deleted from the original plan are not copied"
       ]
     },
     {
@@ -399,16 +229,8 @@
       "status": "In build",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "I open the About page",
-          "when": "I scroll to 'And there's more'",
-          "then": "features appear under group headings, related features side by side, the most important first"
-        },
-        {
-          "given": "a new feature is not yet assigned to a group",
-          "when": "it is released",
-          "then": "it still appears, in the last group"
-        }
+        "Given I open the About page\nWhen I scroll to 'And there's more'\nThen features appear under group headings, related features side by side, the most important first",
+        "Given a new feature is not yet assigned to a group\nWhen it is released\nThen it still appears, in the last group"
       ]
     },
     {
@@ -419,21 +241,9 @@
       "status": "In build",
       "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "a trip has start and end dates",
-          "when": "anyone opens it",
-          "then": "the header shows e.g. '🌙 5 days 4 nights'"
-        },
-        {
-          "given": "I view a trip by its view-only link",
-          "when": "I look at the header",
-          "then": "I see '📍 N places' from the plan instead of '0 stops'"
-        },
-        {
-          "given": "I am a member",
-          "when": "I look at the header",
-          "then": "I still see the Journey stop count"
-        }
+        "Given a trip has start and end dates\nWhen anyone opens it\nThen the header shows e.g. '🌙 5 days 4 nights'",
+        "Given I view a trip by its view-only link\nWhen I look at the header\nThen I see '📍 N places' from the plan instead of '0 stops'",
+        "Given I am a member\nWhen I look at the header\nThen I still see the Journey stop count"
       ]
     },
     {
@@ -444,21 +254,9 @@
       "status": "Done",
       "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22 ('hãy làm luôn C và D')",
       "ac": [
-        {
-          "given": "I open any page",
-          "when": "the HTML arrives",
-          "then": "the boot screen paints without waiting for the main CSS file"
-        },
-        {
-          "given": "the main CSS has not finished loading",
-          "when": "the app is about to render",
-          "then": "it waits for the CSS (max 4s) so I never see an unstyled page"
-        },
-        {
-          "given": "I open a page such as Guides or About",
-          "when": "it loads",
-          "then": "only the shared CSS plus that page's CSS are downloaded, and the page looks the same as before"
-        }
+        "Given I open any page\nWhen the HTML arrives\nThen the boot screen paints without waiting for the main CSS file",
+        "Given the main CSS has not finished loading\nWhen the app is about to render\nThen it waits for the CSS (max 4s) so I never see an unstyled page",
+        "Given I open a page such as Guides or About\nWhen it loads\nThen only the shared CSS plus that page's CSS are downloaded, and the page looks the same as before"
       ]
     },
     {
@@ -469,21 +267,9 @@
       "status": "Done",
       "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "a place in the plan for 18/11 was ticked visited on 22/11",
-          "when": "I open the Journey",
-          "then": "it shows 18/11"
-        },
-        {
-          "given": "a check-in memory dated 17/11",
-          "when": "I open the Journey",
-          "then": "it shows 17/11"
-        },
-        {
-          "given": "stops with different dates",
-          "when": "I open the Journey",
-          "then": "they are ordered by the shown date, newest first"
-        }
+        "Given a place in the plan for 18/11 was ticked visited on 22/11\nWhen I open the Journey\nThen it shows 18/11",
+        "Given a check-in memory dated 17/11\nWhen I open the Journey\nThen it shows 17/11",
+        "Given stops with different dates\nWhen I open the Journey\nThen they are ordered by the shown date, newest first"
       ]
     },
     {
@@ -494,21 +280,9 @@
       "status": "Done",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "I edit a famous place such as Ha Long Bay",
-          "when": "I paste a Google Maps link and press Find",
-          "then": "the latitude and longitude fill in"
-        },
-        {
-          "given": "I save with new coordinates",
-          "when": "anyone opens the map",
-          "then": "the pin shows at the new place"
-        },
-        {
-          "given": "I reset the place's edits",
-          "when": "the map reloads",
-          "then": "the original location is used again"
-        }
+        "Given I edit a famous place such as Ha Long Bay\nWhen I paste a Google Maps link and press Find\nThen the latitude and longitude fill in",
+        "Given I save with new coordinates\nWhen anyone opens the map\nThen the pin shows at the new place",
+        "Given I reset the place's edits\nWhen the map reloads\nThen the original location is used again"
       ]
     },
     {
@@ -519,21 +293,9 @@
       "status": "Done",
       "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "a checklist item 'Mua eSIM'",
-          "when": "I tap ✏️, type 'Mua eSIM Singapore' and press Enter",
-          "then": "the item shows the new text for everyone and stays ticked if it was ticked"
-        },
-        {
-          "given": "I am editing an item",
-          "when": "I press Esc or clear the text",
-          "then": "nothing changes"
-        },
-        {
-          "given": "I am a view-only member",
-          "when": "I open a shared checklist",
-          "then": "I do not see ✏️"
-        }
+        "Given a checklist item 'Mua eSIM'\nWhen I tap ✏️, type 'Mua eSIM Singapore' and press Enter\nThen the item shows the new text for everyone and stays ticked if it was ticked",
+        "Given I am editing an item\nWhen I press Esc or clear the text\nThen nothing changes",
+        "Given I am a view-only member\nWhen I open a shared checklist\nThen I do not see ✏️"
       ]
     },
     {
@@ -544,21 +306,9 @@
       "status": "Done",
       "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "I checked in at Chinatown with date 10/11 but uploaded on 18/11",
-          "when": "I open the trip's Journey",
-          "then": "it shows 10/11"
-        },
-        {
-          "given": "I change a check-in's date to 11/11",
-          "when": "anyone in the trip opens the Journey",
-          "then": "it shows 11/11"
-        },
-        {
-          "given": "I move a check-in to another trip",
-          "when": "I open both Journeys",
-          "then": "it appears only in the new trip"
-        }
+        "Given I checked in at Chinatown with date 10/11 but uploaded on 18/11\nWhen I open the trip's Journey\nThen it shows 10/11",
+        "Given I change a check-in's date to 11/11\nWhen anyone in the trip opens the Journey\nThen it shows 11/11",
+        "Given I move a check-in to another trip\nWhen I open both Journeys\nThen it appears only in the new trip"
       ]
     },
     {
@@ -569,21 +319,9 @@
       "status": "Done",
       "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "an admin moved Ha Long Bay with a Google Maps link",
-          "when": "I open Ha Long Bay from the map, my visited places, a check-in or a trip plan",
-          "then": "the pin and the map zoom use the new location"
-        },
-        {
-          "given": "the same place",
-          "when": "I tap Directions",
-          "then": "Google / Apple Maps open with the new coordinates"
-        },
-        {
-          "given": "the admin resets the place",
-          "when": "the map refreshes",
-          "then": "the original location is used again"
-        }
+        "Given an admin moved Ha Long Bay with a Google Maps link\nWhen I open Ha Long Bay from the map, my visited places, a check-in or a trip plan\nThen the pin and the map zoom use the new location",
+        "Given the same place\nWhen I tap Directions\nThen Google / Apple Maps open with the new coordinates",
+        "Given the admin resets the place\nWhen the map refreshes\nThen the original location is used again"
       ]
     },
     {
@@ -594,21 +332,9 @@
       "status": "Done",
       "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
       "ac": [
-        {
-          "given": "an admin pasted the Google Maps link of Batu Caves, pressed Find place and saved",
-          "when": "a user taps Directions → Google Maps on Batu Caves (from the map, a saved place or a trip)",
-          "then": "Google Maps opens the Batu Caves page"
-        },
-        {
-          "given": "the admin clears the link box and saves",
-          "when": "a user taps Directions",
-          "then": "Google Maps opens with the coordinates as before"
-        },
-        {
-          "given": "a link that is not an https Google Maps link",
-          "when": "it is saved",
-          "then": "it is ignored"
-        }
+        "Given an admin pasted the Google Maps link of Batu Caves, pressed Find place and saved\nWhen a user taps Directions → Google Maps on Batu Caves (from the map, a saved place or a trip)\nThen Google Maps opens the Batu Caves page",
+        "Given the admin clears the link box and saves\nWhen a user taps Directions\nThen Google Maps opens with the coordinates as before",
+        "Given a link that is not an https Google Maps link\nWhen it is saved\nThen it is ignored"
       ]
     },
     {
@@ -619,16 +345,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I am signed out",
-          "when": "I tap Sign in with Google and accept",
-          "then": "I am signed in and my name and avatar show in the header"
-        },
-        {
-          "given": "the app has no Firebase config",
-          "when": "I open it",
-          "then": "it runs in demo mode with a simulated login"
-        }
+        "Given I am signed out\nWhen I tap Sign in with Google and accept\nThen I am signed in and my name and avatar show in the header",
+        "Given the app has no Firebase config\nWhen I open it\nThen it runs in demo mode with a simulated login"
       ]
     },
     {
@@ -639,16 +357,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I sign in for the first time",
-          "when": "the consent screen shows",
-          "then": "I cannot continue until I tick the agreement"
-        },
-        {
-          "given": "I am on any page",
-          "when": "I open Privacy Policy or Terms",
-          "then": "the legal page opens with tabs to switch"
-        }
+        "Given I sign in for the first time\nWhen the consent screen shows\nThen I cannot continue until I tick the agreement",
+        "Given I am on any page\nWhen I open Privacy Policy or Terms\nThen the legal page opens with tabs to switch"
       ]
     },
     {
@@ -659,16 +369,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I am signed in",
-          "when": "I choose Download my data",
-          "then": "I get a file with my places, check-ins and trips"
-        },
-        {
-          "given": "I choose Delete account and confirm",
-          "when": "the deletion finishes",
-          "then": "my account and content are removed and I am signed out"
-        }
+        "Given I am signed in\nWhen I choose Download my data\nThen I get a file with my places, check-ins and trips",
+        "Given I choose Delete account and confirm\nWhen the deletion finishes\nThen my account and content are removed and I am signed out"
       ]
     },
     {
@@ -679,16 +381,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I edit my profile",
-          "when": "I pick a username someone else has",
-          "then": "I am told it is taken"
-        },
-        {
-          "given": "I upload an avatar",
-          "when": "I save",
-          "then": "it shows as a circle everywhere"
-        }
+        "Given I edit my profile\nWhen I pick a username someone else has\nThen I am told it is taken",
+        "Given I upload an avatar\nWhen I save\nThen it shows as a circle everywhere"
       ]
     },
     {
@@ -699,16 +393,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open the app for the first time",
-          "when": "nothing is chosen",
-          "then": "the interface is in Vietnamese"
-        },
-        {
-          "given": "I tap the flag and pick English",
-          "when": "I reload",
-          "then": "the interface stays in English"
-        }
+        "Given I open the app for the first time\nWhen nothing is chosen\nThen the interface is in Vietnamese",
+        "Given I tap the flag and pick English\nWhen I reload\nThen the interface stays in English"
       ]
     },
     {
@@ -719,16 +405,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I use a phone",
-          "when": "I open the map",
-          "then": "the panel is a bottom sheet I can drag"
-        },
-        {
-          "given": "I pull down at the top of a page on a phone",
-          "when": "I release",
-          "then": "the page refreshes"
-        }
+        "Given I use a phone\nWhen I open the map\nThen the panel is a bottom sheet I can drag",
+        "Given I pull down at the top of a page on a phone\nWhen I release\nThen the page refreshes"
       ]
     },
     {
@@ -739,16 +417,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I have visited before",
-          "when": "I reopen the site",
-          "then": "it loads from cache almost at once"
-        },
-        {
-          "given": "a new version is deployed",
-          "when": "I have the old one open",
-          "then": "I see an 'update available' bar"
-        }
+        "Given I have visited before\nWhen I reopen the site\nThen it loads from cache almost at once",
+        "Given a new version is deployed\nWhen I have the old one open\nThen I see an 'update available' bar"
       ]
     },
     {
@@ -759,11 +429,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I am on a trip's Costs tab",
-          "when": "I reload",
-          "then": "the same trip and tab open"
-        }
+        "Given I am on a trip's Costs tab\nWhen I reload\nThen the same trip and tab open"
       ]
     },
     {
@@ -774,11 +440,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "someone shares beetheremap.com in a chat app",
-          "when": "the preview loads",
-          "then": "it shows the Bee There title, description and image"
-        }
+        "Given someone shares beetheremap.com in a chat app\nWhen the preview loads\nThen it shows the Bee There title, description and image"
       ]
     },
     {
@@ -789,11 +451,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open beetheremap.com",
-          "when": "the page loads",
-          "then": "it is served over HTTPS without warnings"
-        }
+        "Given I open beetheremap.com\nWhen the page loads\nThen it is served over HTTPS without warnings"
       ]
     },
     {
@@ -804,11 +462,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I have visited places in 3 countries",
-          "when": "I open the map",
-          "then": "those 3 countries are filled and each place has a pin"
-        }
+        "Given I have visited places in 3 countries\nWhen I open the map\nThen those 3 countries are filled and each place has a pin"
       ]
     },
     {
@@ -819,16 +473,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I click Malaysia",
-          "when": "the country opens",
-          "then": "I see its famous places on the map and in the panel"
-        },
-        {
-          "given": "I pick a city filter",
-          "when": "the list updates",
-          "then": "only places in that city show"
-        }
+        "Given I click Malaysia\nWhen the country opens\nThen I see its famous places on the map and in the panel",
+        "Given I pick a city filter\nWhen the list updates\nThen only places in that city show"
       ]
     },
     {
@@ -839,16 +485,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I paste a Google Maps link",
-          "when": "I confirm",
-          "then": "a pin is created at that place"
-        },
-        {
-          "given": "I tap the sea",
-          "when": "I try to pin it",
-          "then": "I am told to pick a place inside a country"
-        }
+        "Given I paste a Google Maps link\nWhen I confirm\nThen a pin is created at that place",
+        "Given I tap the sea\nWhen I try to pin it\nThen I am told to pick a place inside a country"
       ]
     },
     {
@@ -859,16 +497,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I mark a place visited with date 10/11",
-          "when": "I open Visited",
-          "then": "it shows under its country and city with that date"
-        },
-        {
-          "given": "I remove a wishlist place",
-          "when": "the list refreshes",
-          "then": "it is gone"
-        }
+        "Given I mark a place visited with date 10/11\nWhen I open Visited\nThen it shows under its country and city with that date",
+        "Given I remove a wishlist place\nWhen the list refreshes\nThen it is gone"
       ]
     },
     {
@@ -879,11 +509,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open a place",
-          "when": "I tap Directions on a phone",
-          "then": "I can choose Apple Maps or Google Maps"
-        }
+        "Given I open a place\nWhen I tap Directions on a phone\nThen I can choose Apple Maps or Google Maps"
       ]
     },
     {
@@ -894,11 +520,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open the home map",
-          "when": "the panel loads",
-          "then": "I see my stats and the most checked-in places"
-        }
+        "Given I open the home map\nWhen the panel loads\nThen I see my stats and the most checked-in places"
       ]
     },
     {
@@ -909,11 +531,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I tap 'View on map' on a trip",
-          "when": "the map opens",
-          "then": "only that trip's stops and numbered route show"
-        }
+        "Given I tap 'View on map' on a trip\nWhen the map opens\nThen only that trip's stops and numbered route show"
       ]
     },
     {
@@ -924,16 +542,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I check in with 3 photos and set Public",
-          "when": "I save",
-          "then": "the check-in appears in Memories and on Explore"
-        },
-        {
-          "given": "I am on a slow network",
-          "when": "I open a photo",
-          "then": "the medium-size version loads"
-        }
+        "Given I check in with 3 photos and set Public\nWhen I save\nThen the check-in appears in Memories and on Explore",
+        "Given I am on a slow network\nWhen I open a photo\nThen the medium-size version loads"
       ]
     },
     {
@@ -944,11 +554,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I delete my only check-in at a place",
-          "when": "the deletion finishes",
-          "then": "the trip's Journey no longer shows it"
-        }
+        "Given I delete my only check-in at a place\nWhen the deletion finishes\nThen the trip's Journey no longer shows it"
       ]
     },
     {
@@ -959,11 +565,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open Memories",
-          "when": "the page loads",
-          "then": "my check-ins are sorted newest first"
-        }
+        "Given I open Memories\nWhen the page loads\nThen my check-ins are sorted newest first"
       ]
     },
     {
@@ -974,11 +576,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I pick 2 photos, Polaroid and Story",
-          "when": "I export",
-          "then": "I get a 9:16 image I can save or share"
-        }
+        "Given I pick 2 photos, Polaroid and Story\nWhen I export\nThen I get a 9:16 image I can save or share"
       ]
     },
     {
@@ -989,11 +587,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open the year recap",
-          "when": "I choose a layout",
-          "then": "I can preview and save the image or video"
-        }
+        "Given I open the year recap\nWhen I choose a layout\nThen I can preview and save the image or video"
       ]
     },
     {
@@ -1004,11 +598,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open Explore and filter Singapore",
-          "when": "the page loads",
-          "then": "I see public check-ins from Singapore"
-        }
+        "Given I open Explore and filter Singapore\nWhen the page loads\nThen I see public check-ins from Singapore"
       ]
     },
     {
@@ -1019,11 +609,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I follow Thư",
-          "when": "Thư posts a public check-in",
-          "then": "it shows in my friends feed"
-        }
+        "Given I follow Thư\nWhen Thư posts a public check-in\nThen it shows in my friends feed"
       ]
     },
     {
@@ -1034,11 +620,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "someone invites me to a trip",
-          "when": "I open notifications",
-          "then": "I see the invite with Join and Decline"
-        }
+        "Given someone invites me to a trip\nWhen I open notifications\nThen I see the invite with Join and Decline"
       ]
     },
     {
@@ -1049,16 +631,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I create a trip with dates 10–14/11",
-          "when": "I open Trips",
-          "then": "it is listed by start date"
-        },
-        {
-          "given": "I am a member but not the owner",
-          "when": "I open the trip menu",
-          "then": "I cannot delete it"
-        }
+        "Given I create a trip with dates 10–14/11\nWhen I open Trips\nThen it is listed by start date",
+        "Given I am a member but not the owner\nWhen I open the trip menu\nThen I cannot delete it"
       ]
     },
     {
@@ -1069,16 +643,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I invite @thu",
-          "when": "Thư accepts",
-          "then": "Thư becomes a member and sees the trip"
-        },
-        {
-          "given": "someone is not a member",
-          "when": "they open the trip link",
-          "then": "they cannot see its content"
-        }
+        "Given I invite @thu\nWhen Thư accepts\nThen Thư becomes a member and sees the trip",
+        "Given someone is not a member\nWhen they open the trip link\nThen they cannot see its content"
       ]
     },
     {
@@ -1089,16 +655,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I add 3 places on 11/11 at different times",
-          "when": "I open the Plan",
-          "then": "they are sorted by time within the day"
-        },
-        {
-          "given": "I mark a place done",
-          "when": "the plan refreshes",
-          "then": "it shows as done and the place is marked visited"
-        }
+        "Given I add 3 places on 11/11 at different times\nWhen I open the Plan\nThen they are sorted by time within the day",
+        "Given I mark a place done\nWhen the plan refreshes\nThen it shows as done and the place is marked visited"
       ]
     },
     {
@@ -1109,11 +667,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I check in at a place and link the trip",
-          "when": "the trip's Journey refreshes",
-          "then": "the check-in is listed with its photos"
-        }
+        "Given I check in at a place and link the trip\nWhen the trip's Journey refreshes\nThen the check-in is listed with its photos"
       ]
     },
     {
@@ -1124,11 +678,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I paid 100 SGD for 2 people",
-          "when": "I open Costs",
-          "then": "each owes half converted with the trip rate and settle-up shows who pays whom"
-        }
+        "Given I paid 100 SGD for 2 people\nWhen I open Costs\nThen each owes half converted with the trip rate and settle-up shows who pays whom"
       ]
     },
     {
@@ -1139,11 +689,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "an item is 'each person'",
-          "when": "I tick it",
-          "then": "only my tick is recorded and the count shows ticks per member"
-        }
+        "Given an item is 'each person'\nWhen I tick it\nThen only my tick is recorded and the count shows ticks per member"
       ]
     },
     {
@@ -1154,11 +700,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I tap Export PDF on a plan",
-          "when": "the file is ready",
-          "then": "the PDF lists the days, times and places"
-        }
+        "Given I tap Export PDF on a plan\nWhen the file is ready\nThen the PDF lists the days, times and places"
       ]
     },
     {
@@ -1169,11 +711,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I duplicate a trip",
-          "when": "I open the copy",
-          "then": "it has the same plan and checklists but only me as member"
-        }
+        "Given I duplicate a trip\nWhen I open the copy\nThen it has the same plan and checklists but only me as member"
       ]
     },
     {
@@ -1184,11 +722,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open the Singapore guide",
-          "when": "the page loads",
-          "then": "I see sections incl. the SG Arrival Card link and tap-to-call emergency numbers"
-        }
+        "Given I open the Singapore guide\nWhen the page loads\nThen I see sections incl. the SG Arrival Card link and tap-to-call emergency numbers"
       ]
     },
     {
@@ -1199,11 +733,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "my device has no voice for Thai",
-          "when": "I tap 🔊",
-          "then": "Google Translate opens with the phrase"
-        }
+        "Given my device has no voice for Thai\nWhen I tap 🔊\nThen Google Translate opens with the phrase"
       ]
     },
     {
@@ -1214,11 +744,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I tap Add to trip on a guide place",
-          "when": "I pick my trip",
-          "then": "the place is added to the plan"
-        }
+        "Given I tap Add to trip on a guide place\nWhen I pick my trip\nThen the place is added to the plan"
       ]
     },
     {
@@ -1229,11 +755,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I filter Penang",
-          "when": "the food list updates",
-          "then": "only Penang dishes show"
-        }
+        "Given I filter Penang\nWhen the food list updates\nThen only Penang dishes show"
       ]
     },
     {
@@ -1244,11 +766,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I choose 4 days, 2 people, mid budget",
-          "when": "I tap Apply to trip",
-          "then": "the estimates are added to the trip's costs"
-        }
+        "Given I choose 4 days, 2 people, mid budget\nWhen I tap Apply to trip\nThen the estimates are added to the trip's costs"
       ]
     },
     {
@@ -1259,11 +777,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "staff add a link",
-          "when": "I open the guide",
-          "then": "the link shows and opens Google Maps"
-        }
+        "Given staff add a link\nWhen I open the guide\nThen the link shows and opens Google Maps"
       ]
     },
     {
@@ -1274,11 +788,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I vote Helpful on a tip",
-          "when": "the list refreshes",
-          "then": "its score goes up"
-        }
+        "Given I vote Helpful on a tip\nWhen the list refreshes\nThen its score goes up"
       ]
     },
     {
@@ -1289,11 +799,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open Gear and pick 'Beach'",
-          "when": "the list updates",
-          "then": "I see beach gear with shop links marked as affiliate"
-        }
+        "Given I open Gear and pick 'Beach'\nWhen the list updates\nThen I see beach gear with shop links marked as affiliate"
       ]
     },
     {
@@ -1304,11 +810,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "an admin releases a feature with a value text",
-          "when": "I open About",
-          "then": "the feature is listed"
-        }
+        "Given an admin releases a feature with a value text\nWhen I open About\nThen the feature is listed"
       ]
     },
     {
@@ -1319,16 +821,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I sign in for the first time",
-          "when": "the map loads",
-          "then": "the quick tour opens"
-        },
-        {
-          "given": "I finished the tour",
-          "when": "I sign in again",
-          "then": "it does not open by itself"
-        }
+        "Given I sign in for the first time\nWhen the map loads\nThen the quick tour opens",
+        "Given I finished the tour\nWhen I sign in again\nThen it does not open by itself"
       ]
     },
     {
@@ -1339,11 +833,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I pick an element and send a bug report",
-          "when": "an admin opens Feedback",
-          "then": "the report shows with my screenshot"
-        }
+        "Given I pick an element and send a bug report\nWhen an admin opens Feedback\nThen the report shows with my screenshot"
       ]
     },
     {
@@ -1354,11 +844,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I open What's new",
-          "when": "the page loads",
-          "then": "I see the latest release notes"
-        }
+        "Given I open What's new\nWhen the page loads\nThen I see the latest release notes"
       ]
     },
     {
@@ -1369,11 +855,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I close an announcement",
-          "when": "I reload",
-          "then": "it does not show again"
-        }
+        "Given I close an announcement\nWhen I reload\nThen it does not show again"
       ]
     },
     {
@@ -1384,11 +866,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "a user has the Editor role",
-          "when": "they open Admin",
-          "then": "they only see modules their role allows"
-        }
+        "Given a user has the Editor role\nWhen they open Admin\nThen they only see modules their role allows"
       ]
     },
     {
@@ -1399,16 +877,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "a flag is off",
-          "when": "a normal user opens the app",
-          "then": "the feature is hidden"
-        },
-        {
-          "given": "the admin releases it to everyone",
-          "when": "the user reloads",
-          "then": "the feature shows"
-        }
+        "Given a flag is off\nWhen a normal user opens the app\nThen the feature is hidden",
+        "Given the admin releases it to everyone\nWhen the user reloads\nThen the feature shows"
       ]
     },
     {
@@ -1419,11 +889,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "an admin hides a memory",
-          "when": "I open Logs",
-          "then": "the action is listed with who and when"
-        }
+        "Given an admin hides a memory\nWhen I open Logs\nThen the action is listed with who and when"
       ]
     },
     {
@@ -1434,11 +900,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "a check-in is reported",
-          "when": "a moderator hides it",
-          "then": "it disappears from Explore"
-        }
+        "Given a check-in is reported\nWhen a moderator hides it\nThen it disappears from Explore"
       ]
     },
     {
@@ -1449,11 +911,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "an admin hides a wrong place",
-          "when": "users open that country",
-          "then": "the place is not shown"
-        }
+        "Given an admin hides a wrong place\nWhen users open that country\nThen the place is not shown"
       ]
     },
     {
@@ -1464,11 +922,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "an editor changes a guide section",
-          "when": "users open the guide",
-          "then": "they see the new text"
-        }
+        "Given an editor changes a guide section\nWhen users open the guide\nThen they see the new text"
       ]
     },
     {
@@ -1479,11 +933,7 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        {
-          "given": "I send a notification to the Editor role",
-          "when": "I open the report",
-          "then": "I see who received and read it and can export it to Excel"
-        }
+        "Given I send a notification to the Editor role\nWhen I open the report\nThen I see who received and read it and can export it to Excel"
       ]
     },
     {
@@ -1494,22 +944,34 @@
       "status": "Done",
       "source": "Reported by the Product Owner (Christine) in chat on 2026-11-23 with iPhone screenshots",
       "ac": [
-        {
-          "given": "I am on a phone at step 5 'Save memories'",
-          "when": "the step opens",
-          "then": "the Add memory button is scrolled into view, highlighted and not covered by the card"
-        },
-        {
-          "given": "I am at step 8 'Send feedback'",
-          "when": "the step opens",
-          "then": "the Feedback tab is highlighted and the card sits above or below it"
-        },
-        {
-          "given": "the step highlights the whole map",
-          "when": "it opens",
-          "then": "the card stays at the bottom as before"
-        }
+        "Given I am on a phone at step 5 'Save memories'\nWhen the step opens\nThen the Add memory button is scrolled into view, highlighted and not covered by the card",
+        "Given I am at step 8 'Send feedback'\nWhen the step opens\nThen the Feedback tab is highlighted and the card sits above or below it",
+        "Given the step highlights the whole map\nWhen it opens\nThen the card stays at the bottom as before"
       ]
+    },
+    {
+      "id": "REQ-024",
+      "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist",
+      "priority": "Must",
+      "status": "In build",
+      "story": "As an user, I want to increase the number of user by adding some suggestion from 'Guides' into trip's checklist, so that I can get it done without back-and-forth messages.",
+      "ac": [
+        "Given I am an user\nWhen I increase the number of user by adding some suggestion from 'Guides' into trip's checklist with valid details and confirm\nThen the result is saved and I see a confirmation",
+        "Given a required field is empty or invalid\nWhen I confirm\nThen I see an error next to that field and nothing is saved"
+      ],
+      "featureId": "F-001"
+    },
+    {
+      "id": "REQ-025",
+      "title": "Accessibility and performance baseline",
+      "priority": "Should",
+      "status": "Approved",
+      "story": "As an user, I want every page to work with keyboard and screen readers and load quickly, so that everyone can use the product.",
+      "ac": [
+        "Given any page\nWhen I navigate with the keyboard only\nThen every action is reachable and has a visible focus state",
+        "Given a 4G connection\nWhen I open the home page\nThen it becomes interactive within 2.5 seconds (Lighthouse)"
+      ],
+      "featureId": "F-001"
     }
   ],
   "tests": [
@@ -2093,7 +1555,46 @@
       "type": "automated",
       "file": "tests/tourLayout.test.mjs",
       "status": "Passing"
+    },
+    {
+      "id": "TC-041",
+      "reqIds": [
+        "REQ-024"
+      ],
+      "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — happy path",
+      "gherkin": "Given I am an user\nWhen I increase the number of user by adding some suggestion from 'Guides' into trip's checklist with valid details and confirm\nThen the result is saved and I see a confirmation",
+      "type": "Automated",
+      "status": "Not run"
+    },
+    {
+      "id": "TC-042",
+      "reqIds": [
+        "REQ-024"
+      ],
+      "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — invalid input",
+      "gherkin": "Given a required field is empty or invalid\nWhen I confirm\nThen I see an error next to that field and nothing is saved",
+      "type": "Automated",
+      "status": "Not run"
+    },
+    {
+      "id": "TC-043",
+      "reqIds": [
+        "REQ-025"
+      ],
+      "title": "Accessibility and performance baseline — happy path",
+      "gherkin": "Given any page\nWhen I navigate with the keyboard only\nThen every action is reachable and has a visible focus state",
+      "type": "Automated",
+      "status": "Not run"
+    },
+    {
+      "id": "TC-044",
+      "reqIds": [
+        "REQ-025"
+      ],
+      "title": "Accessibility and performance baseline — invalid input",
+      "gherkin": "Given invalid input for Accessibility and performance baseline\nWhen I submit\nThen I see an error and nothing is saved",
+      "type": "Manual",
+      "status": "Not run"
     }
-  ],
-  "decisions": []
+  ]
 }

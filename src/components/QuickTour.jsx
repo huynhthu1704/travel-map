@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { mobileCardPlacement } from '../lib/tourLayout';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { TOUR_STEPS } from '../data/tour';
@@ -10,12 +11,51 @@ const SEEN_KEY = 'travel-map-tour-v1';
 const NEW_ACCOUNT_MS = 7 * 864e5;
 export const startQuickTour = () => window.dispatchEvent(new Event('tour:start'));
 
+/** Khung cuộn gần nhất chứa phần tử (VD danh sách trong bảng trượt trên điện thoại) */
+const scrollParents = (el) => {
+  const out = [];
+  for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+    const st = getComputedStyle(a);
+    if (/(hidden|auto|scroll|clip)/.test(st.overflow + st.overflowY + st.overflowX)) out.push(a);
+  }
+  return out;
+};
+/** Phần thực sự nhìn thấy của phần tử: cắt theo các khung cuộn chứa nó (null nếu bị che hẳn) */
+function visibleRect(el) {
+  const r = el.getBoundingClientRect();
+  let { top, left, right, bottom } = r;
+  for (const a of scrollParents(el)) {
+    const q = a.getBoundingClientRect();
+    top = Math.max(top, q.top);
+    left = Math.max(left, q.left);
+    right = Math.min(right, q.right);
+    bottom = Math.min(bottom, q.bottom);
+  }
+  return right - left < 4 || bottom - top < 4 ? null : { top, left, right, bottom, width: right - left, height: bottom - top };
+}
+/** REQ-023: cuộn phần tử cần chỉ vào vùng nhìn thấy của khung chứa nó (nút nằm dưới đáy bảng trượt) */
+function revealTarget(selector) {
+  if (!selector) return;
+  const el = [...document.querySelectorAll(selector)].find((x) => {
+    const st = getComputedStyle(x);
+    return x.getClientRects().length && st.visibility !== 'hidden' && st.display !== 'none';
+  });
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const clipped = scrollParents(el).some((a) => {
+    const q = a.getBoundingClientRect();
+    return r.top < q.top || r.bottom > q.bottom;
+  });
+  if (clipped) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+}
+
 /** Vùng hiển thị của các phần tử khớp selector (gộp lại nếu có nhiều phần tử đang hiện) */
 function findRect(selector) {
   if (!selector) return null;
   let box = null;
   document.querySelectorAll(selector).forEach((el) => {
-    const r = el.getBoundingClientRect();
+    const r = visibleRect(el);
+    if (!r) return;
     if (r.width < 4 || r.height < 4) return;
     const st = getComputedStyle(el);
     if (st.visibility === 'hidden' || st.display === 'none' || Number(st.opacity) === 0) return;
@@ -98,6 +138,10 @@ export default function QuickTour() {
     return () => clearTimeout(tm);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (open) revealTarget(s?.target);
+  }, [open, s]);
+
   // Theo dõi vị trí phần tử đang được làm nổi bật (trang có thể cuộn / đổi kích thước)
   useEffect(() => {
     if (!open) return undefined;
@@ -147,10 +191,7 @@ export default function QuickTour() {
   let cardStyle;
   if (!rect) cardStyle = mobile ? { left: 12, right: 12, top: '50%', transform: 'translateY(-50%)' } : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
   else if (mobile) {
-    const centerY = rect.top + rect.height / 2;
-    cardStyle = centerY < vh / 2 ? { left: 12, right: 12, bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))' } : { left: 12, right: 12, top: 76 };
-    // vùng nổi bật quá lớn (bản đồ): đặt thẻ ở đáy
-    if (rect.height > vh * 0.55) cardStyle = { left: 12, right: 12, bottom: 'calc(84px + env(safe-area-inset-bottom, 0px))' };
+    cardStyle = mobileCardPlacement(rect, vh);
   } else {
     const gap = 16;
     const { w, h } = cardSize;
@@ -178,6 +219,7 @@ export default function QuickTour() {
   }
 
   const hole = rect;
+  const { room: _room, ...cardCss } = cardStyle; // eslint-disable-line no-unused-vars
   return (
     <div className="tour fb-ignore" role="dialog" aria-modal="true" aria-label={L(s.title)}>
       {hole ? (
@@ -201,10 +243,10 @@ export default function QuickTour() {
         <div className="tour__dim" />
       )}
 
-      <div ref={cardRef} className={`tour__card ${mobile ? 'is-mobile' : ''}`} style={cardStyle} key={s.id}>
+      <div ref={cardRef} className={`tour__card ${mobile ? 'is-mobile' : ''}`} style={cardCss} key={s.id}>
         {s.demo === 'welcome' && <WelcomeDemo />}
         {s.demo === 'done' && <DoneDemo />}
-        {s.image && (
+        {s.image && !(mobile && rect && cardStyle.room < 460) && (
           <div className="tour__img">
             <img src={`${import.meta.env.BASE_URL}${s.image}`} alt="" loading="lazy" />
           </div>

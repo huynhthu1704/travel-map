@@ -7,6 +7,7 @@
     "compass/guardrails-lib.mjs",
     "compass/hooks/",
     ".claude/settings.json",
+    ".claude/settings.local.json",
     ".env",
     "CNAME"
   ],

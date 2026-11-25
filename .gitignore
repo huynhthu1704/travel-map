@@ -13,3 +13,5 @@ playwright-report
 e2e-results
 # REQ-036: local record of protected paths the Product Owner approved in chat
 .claude/approved-paths.local.json
+# REQ-050: personal Claude Code settings stay local (a committed copy could switch off the edit hook)
+.claude/settings.local.json

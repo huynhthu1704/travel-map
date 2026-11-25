@@ -3,8 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { checkChange, dependenciesChanged, loadGuardrails, APPROVAL_LABEL } from '../compass/guardrails-lib.mjs';
 import { decideEdit } from '../compass/guardrails-lib.mjs';
-import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, symlinkSync, mkdirSync, rmSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { cpSync, mkdtempSync, symlinkSync, mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -96,4 +96,39 @@ test('TC-068: the edit hook blocks the enforcement files until the Product Owner
     assert.equal(decide({ tool_input: { file_path: join(repo, p), new_string: 'x' } }, g).block, true, p);
     assert.equal(decide({ tool_input: { file_path: join(repo, p), new_string: 'x' } }, g, [p]).block, false, `${p} approved`);
   }
+});
+
+test('TC-068: CI runs main\'s copy of the check, so a PR that weakens the check still fails', (t) => {
+  const wf = readFileSync(join(repo, '.github/workflows/compass-ci.yml'), 'utf8');
+  const step = wf.split('- name: Guardrails check')[1].split('- name:')[0];
+  assert.match(step, /git worktree add --detach "\$RUNNER_TEMP\/guardrails-base" HEAD\^1/);
+  assert.match(step, /node "\$RUNNER_TEMP\/guardrails-base\/compass\/check-guardrails\.mjs"/);
+  assert.ok(wf.indexOf('- name: Guardrails check') < wf.indexOf('  e2e:'), 'the step stays in the "test" job');
+
+  // A throwaway repo: base commit = today's rules; PR commit = a check that never reports errors
+  const dir = mkdtempSync(join(tmpdir(), 'guard-ci '));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const git = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: dir, encoding: 'utf8' });
+  git('init', '-q');
+  cpSync(join(repo, 'compass'), join(dir, 'compass'), { recursive: true });
+  git('add', '-A');
+  git('commit', '-qm', 'base');
+  const lib = join(dir, 'compass/guardrails-lib.mjs');
+  writeFileSync(lib, readFileSync(lib, 'utf8').replace('export function checkChange(', 'export function checkChange() { return { errors: [], warnings: [] }; }\nfunction unused(') + '\n');
+  const g2 = JSON.parse(readFileSync(join(dir, 'compass/guardrails.json'), 'utf8'));
+  g2.protectedPaths = g2.protectedPaths.filter((p) => p.startsWith('.github'));
+  writeFileSync(join(dir, 'compass/guardrails.json'), JSON.stringify(g2));
+  git('commit', '-qam', 'weaken the check');
+  const base = join(dir, '..', `${dir.split('/').pop()}-base`);
+  t.after(() => rmSync(base, { recursive: true, force: true }));
+  git('worktree', 'add', '-q', '--detach', base, 'HEAD^1');
+  const event = join(dir, '..', `${dir.split('/').pop()}-event.json`);
+  t.after(() => rmSync(event, { force: true }));
+  writeFileSync(event, JSON.stringify({ pull_request: { labels: [], body: '## Plan\n- Files: a\n- Steps: b\n- Risks: c\n- Proof: d' } }));
+  const run = (script) => spawnSync(process.execPath, [script], { cwd: dir, env: { ...process.env, GITHUB_EVENT_PATH: event }, encoding: 'utf8' });
+  assert.equal(run(join(dir, 'compass/check-guardrails.mjs')).status, 0, 'the PR\'s own weakened copy would pass (the gap)');
+  const ci = run(join(base, 'compass/check-guardrails.mjs'));
+  assert.equal(ci.status, 1, 'main\'s copy fails the PR');
+  assert.match(ci.stdout, /compass\/guardrails-lib\.mjs is a protected path/);
+  assert.match(ci.stdout, /compass\/guardrails\.json is a protected path/);
 });

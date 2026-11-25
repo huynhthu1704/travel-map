@@ -155,6 +155,6 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Context.** The files that run the guardrails (check-guardrails.mjs, guardrails-lib.mjs, the edit hook and .claude/settings.json) were not protected, so a PR could weaken the checks without the Product Owner noticing (review of PR #74).
 
-**Decision.** The Product Owner asked to fix #75: these files are listed under protectedPaths in compass/guardrails.json, so changing them needs her approval and the human-approved label.
+**Decision.** The Product Owner asked to fix #75: these files (and .claude/settings.local.json) are listed under protectedPaths in compass/guardrails.json, so changing them needs her approval and the human-approved label. She also approved changing compass-ci.yml so CI runs main's copy of the check and its rules, not the PR's copy (independent review of PR #85).
 
-**Consequences.** Future fixes to the plan check or the edit hook wait for her decision. The edit hook only covers Edit/Write tools, not shell commands; CI remains the real gate.
+**Consequences.** Future fixes to the plan check or the edit hook wait for her decision, and a new rule only applies to PRs after it is merged. The edit hook only covers Edit/Write tools, not shell commands, and a PR can still change the workflow itself, so her review of protected-path PRs is the last gate.

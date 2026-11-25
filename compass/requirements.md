@@ -472,7 +472,8 @@ As the product owner, I want the files that enforce the guardrails to be protect
 
 Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
 
-- Given compass/guardrails.json lists compass/check-guardrails.mjs, compass/guardrails-lib.mjs, compass/hooks/ and .claude/settings.json under protectedPaths · When a PR changes one of them without the human-approved label · Then the Guardrails check fails
+- Given compass/guardrails.json lists compass/check-guardrails.mjs, compass/guardrails-lib.mjs, compass/hooks/, .claude/settings.json and .claude/settings.local.json under protectedPaths · When a PR changes one of them without the human-approved label · Then the Guardrails check fails
+- Given a PR that weakens compass/guardrails-lib.mjs or check-guardrails.mjs, or removes its own entries from protectedPaths · When CI runs the Guardrails check · Then the check and the rules from main (not the PR's copy) judge the change, so it still fails without the human-approved label
 
 ## REQ-051 — Harden merge-pr and the plan check
 

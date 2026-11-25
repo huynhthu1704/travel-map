@@ -1122,6 +1122,19 @@
         "Given the author agent\nWhen the PR is reviewed\nThen the author cannot approve its own PR"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #61): review by a subagent in the session; important findings block the merge."
+    },
+    {
+      "id": "REQ-036",
+      "title": "Enforce guardrails.json automatically (hooks + CI check)",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As the product owner, I want the rules in compass/guardrails.json (protected paths, forbidden paths, secret patterns, max 12 files per change) to be checked by a machine instead of relying on the agent remembering them, so that a rule cannot be broken by mistake.",
+      "ac": [
+        "Given an agent session in this repo\nWhen it tries to edit a protected path (e.g. .github/workflows/, CNAME)\nThen a Claude Code hook blocks the edit and says how to get approval",
+        "Given a pull request\nWhen it changes more than 12 files, touches a forbidden path or contains a secret pattern\nThen CI fails with a clear message",
+        "Given a protected path change, a deleted file or a dependency change approved by the Product Owner\nWhen the PR carries the human-approved label\nThen the CI check passes"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #60); workflow change approved in chat."
     }
   ],
   "tests": [
@@ -1887,6 +1900,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/reviewPolicy.test.mjs"
+    },
+    {
+      "id": "TC-059",
+      "title": "Guardrails: protected/forbidden paths, 12-file limit, deletions, dependency changes, secrets; edit hook decisions",
+      "reqIds": [
+        "REQ-036"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/guardrails.test.mjs"
     }
   ]
 }

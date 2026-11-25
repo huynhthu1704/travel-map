@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { testFirstProblems } from '../compass/test-first.mjs';
 import { mergeBlockers } from '../compass/merge-pr.mjs';
+import { loadGuardrails, checkChange } from '../compass/guardrails-lib.mjs';
 
 const testCommit = { sha: 'aaaaaaa1', files: [{ status: 'A', path: 'tests/bug54.test.mjs' }] };
 const fixCommit = { sha: 'bbbbbbb2', files: [{ status: 'M', path: 'src/lib/tour.js' }, { status: 'M', path: 'compass/spec.json' }] };
@@ -56,9 +57,16 @@ test('TC-069: merge-pr refuses a fix for a bug issue when the PR lacks the bug l
   assert.deepEqual(mergeBlockers({ ...base, labels: [] }), []);
 });
 
-test('TC-069: npm test runs the test-first check, and the skill describes the route', () => {
-  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.match(pkg.scripts.test, /node compass\/test-first\.mjs/);
+test('TC-069: CI runs main\'s copy of the test-first check, the check is a protected path, and the skill describes the route', () => {
+  const wf = readFileSync(new URL('../.github/workflows/compass-ci.yml', import.meta.url), 'utf8');
+  const step = (wf.split('- name: Test-first check')[1] || '').split('- name:')[0];
+  assert.match(step, /if: github\.event_name == 'pull_request'/);
+  assert.match(step, /git worktree add --detach "\$RUNNER_TEMP\/test-first-base" HEAD\^1/);
+  assert.match(step, /node "\$RUNNER_TEMP\/test-first-base\/compass\/test-first\.mjs"/);
+  const at = wf.indexOf('- name: Test-first check');
+  assert.ok(wf.indexOf('- name: Install') < at && at < wf.indexOf('  e2e:'), 'after Install (unit tests need node_modules), in the "test" job');
+  const g = loadGuardrails();
+  assert.match(checkChange([{ path: 'compass/test-first.mjs', status: 'M' }], g).errors[0] || '', /protected path/);
   const skill = readFileSync(new URL('../.claude/skills/deliver-change/SKILL.md', import.meta.url), 'utf8');
   assert.match(skill, /failing test/i);
   assert.match(skill, /compass\/test-first\.mjs/);

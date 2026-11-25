@@ -208,6 +208,18 @@
       "reqIds": [
         "REQ-050"
       ]
+    },
+    {
+      "id": "ADR-015",
+      "date": "2026-11-25",
+      "title": "The test-first check is protected and CI runs main's copy",
+      "status": "Accepted",
+      "context": "compass/test-first.mjs (REQ-043) was not a protected path and ran through npm test, so a bug-fix PR could weaken its own copy of the check (review of PR #86).",
+      "decision": "The Product Owner asked to protect the check like the guardrails check (REQ-050): compass/test-first.mjs is added to protectedPaths and compass-ci.yml runs main's copy (HEAD^1) in a \"Test-first check\" step instead of npm test. Because the session could not record her approval for the edit hook, she makes the two protected edits herself (option 2 in chat, 2026-11-25).",
+      "consequences": "Changes to the test-first rules need her approval and the human-approved label, and a new rule only applies to PRs after it is merged. Locally the check is run by hand: node compass/test-first.mjs origin/main --bug.",
+      "reqIds": [
+        "REQ-043"
+      ]
     }
   ],
   "requirements": [
@@ -1423,7 +1435,8 @@
         "Given a bug issue\nWhen the fix PR is opened (with the bug label)\nThen CI checks that its first commit only adds a test, that the unit test fails at that commit, and that later commits do not edit it",
         "Given a later commit edits that test\nWhen CI runs\nThen it fails unless the Product Owner approves (human-approved label)",
         "Given a PR that closes a bug issue but has no bug label\nWhen compass/merge-pr.mjs runs\nThen it refuses to merge",
-        "Given the test from the first commit hangs or cannot start\nWhen the test-first check runs it\nThen the check fails (a run stopped by the time limit does not count as a failing test)"
+        "Given the test from the first commit hangs or cannot start\nWhen the test-first check runs it\nThen the check fails (a run stopped by the time limit does not count as a failing test)",
+        "Given compass/test-first.mjs is listed under protectedPaths and CI runs main's copy of it (HEAD^1)\nWhen a bug-fix PR weakens its own copy of the check or the npm test script\nThen the change needs the human-approved label and the check from main still judges the PR"
       ],
       "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: feedback loop for self-verification); taken off hold by the Product Owner on 2026-11-25 (\"fix #67\", issue #67)."
     }
@@ -2285,7 +2298,7 @@
     },
     {
       "id": "TC-069",
-      "title": "Test-first check: the first commit only adds a test that fails before the fix, later commits do not edit it unless human-approved, merge-pr needs the bug label for bug issues; a test that times out does not count as failing",
+      "title": "Test-first check: the first commit only adds a test that fails before the fix, later commits do not edit it unless human-approved, merge-pr needs the bug label for bug issues; a test that times out does not count as failing; CI runs main's copy and the check is a protected path",
       "reqIds": [
         "REQ-043"
       ],

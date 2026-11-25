@@ -449,6 +449,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 - Given a later commit edits that test · When CI runs · Then it fails unless the Product Owner approves (human-approved label)
 - Given a PR that closes a bug issue but has no bug label · When compass/merge-pr.mjs runs · Then it refuses to merge
 - Given the test from the first commit hangs or cannot start · When the test-first check runs it · Then the check fails (a run stopped by the time limit does not count as a failing test)
+- Given compass/test-first.mjs is listed under protectedPaths and CI runs main's copy of it (HEAD^1) · When a bug-fix PR weakens its own copy of the check or the npm test script · Then the change needs the human-approved label and the check from main still judges the PR
 
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 

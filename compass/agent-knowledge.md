@@ -28,7 +28,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 
 ## 4. Requirements, bugs and traceability (GitHub)
 - **Intent first (REQ-038):** a new request becomes `intent/YYYY-MM-DD-topic.md` (template in `intent/README.md`); Christine approves it in chat; then REQs (with `"intent"` in spec.json) and issues are created. Required from REQ-051 on.
-- **Plan before code (REQ-039):** every PR that changes code has a `## Plan` (Files, Steps, Risks, Proof) in its body before coding starts; the CI guardrails check enforces it.
+- **Plan before code (REQ-039):** every PR that changes code (`src/`, `e2e/`, `tests/`, `compass/*.mjs`, `.claude/`, root config files) has a `## Plan` (Files, Steps, Risks, Proof) in its body before coding starts; the CI guardrails check enforces it.
 - **Every new requirement → a GitHub issue BEFORE work starts**, in English, label `requirement`, New-requirement template (story + Given/When/Then). Deferred ideas are logged too, with label `on-hold`.
 - Personal repo → no Issue Types; labels are used: `requirement`, `bug`, `e2e`, `on-hold`.
 - **Bugs:** Playwright failures on `main`/nightly open `[E2E] …` issues automatically (labels `bug`, `e2e`). Christine sends a bug id when she wants it fixed — don't fix bugs unasked; you may investigate and write the root cause on the issue.
@@ -69,6 +69,6 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 ## 9. Handy commands (GitHub via REST; GraphQL is not available)
 - Create PR: `gh api repos/huynhthu1704/travel-map/pulls -f title=… -f head=<branch> -f base=main -F body=@pr.md`
 - CI status: `gh api repos/huynhthu1704/travel-map/commits/<sha>/check-runs`
-- Merge: `MERGE_TRAILER="<attribution lines>" node compass/merge-pr.mjs <n>` (REQ-039) — refuses unless CI passed and the latest independent review says APPROVE; uses the PR's Plan as the squash-commit message and comments branch/PR/SHA on each `Closes #N` issue. `--dry-run` shows what it would do.
+- Merge: `MERGE_TRAILER="<attribution lines>" node compass/merge-pr.mjs <n>` (REQ-039) — refuses unless the `test` and `e2e` checks passed and the latest independent review by a trusted author says APPROVE with `Reviewed commit:` equal to the PR head (any push after the review needs a fresh review); uses the PR's Plan as the squash-commit message and comments branch/PR/SHA on each `Closes #N` issue. `--dry-run` shows what it would do.
 - Issue: `gh api repos/huynhthu1704/travel-map/issues --input issue.json`
 - Local UI tests with system Chrome: `PW_CHROME=/usr/bin/google-chrome npx playwright test`

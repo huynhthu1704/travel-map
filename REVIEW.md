@@ -32,6 +32,7 @@ The author agent never reviews or approves its own work.
 ```
 ## Independent review (Claude)
 Verdict: <APPROVE | CHANGES NEEDED>   ·   Important: <n>   ·   Nits: <n>
+Reviewed commit: <full SHA of the PR head you reviewed — `git rev-parse HEAD`>
 
 ### Important
 1. <file:line> — <what is wrong> → <what to do>
@@ -39,7 +40,8 @@ Verdict: <APPROVE | CHANGES NEEDED>   ·   Important: <n>   ·   Nits: <n>
 ### Nits
 - <file:line> — <suggestion>
 ```
-`CHANGES NEEDED` exactly when there is at least one important finding.
+`CHANGES NEEDED` exactly when there is at least one important finding. An APPROVE only covers the reviewed commit:
+any later push needs a fresh review before merging (`compass/merge-pr.mjs` enforces this, REQ-039).
 
 ## Merge rule (set by the Product Owner on 2026-11-25)
 - `APPROVE` + CI green → the PR is squash-merged automatically and the result is reported afterwards.

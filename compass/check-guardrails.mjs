@@ -16,11 +16,12 @@ const baseRef = pr ? 'HEAD^1' : null;
 const labels = (pr?.labels || []).map((l) => l.name);
 
 const g = loadGuardrails();
-const files = git('diff', '--name-status', '--no-renames', ...range)
-  .split('\n')
-  .filter(Boolean)
-  .map((line) => {
-    const [status, path] = line.split('\t');
+// -z: NUL-separated output, so no path is ever quoted (quotes, backslashes, tabs, newlines in names)
+const parts = git('diff', '--name-status', '--no-renames', '-z', ...range).split('\0').filter(Boolean);
+const pairs = [];
+for (let i = 0; i + 1 < parts.length; i += 2) pairs.push([parts[i], parts[i + 1]]);
+const files = pairs
+  .map(([status, path]) => {
     const addedText = status === 'D' ? '' : git('diff', '-U0', ...range, '--', path).split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).join('\n');
     const lines = status === 'D' || !existsSync(path) ? 0 : readFileSync(path, 'utf8').split('\n').length;
     return { path, status: status[0], addedText, lines };

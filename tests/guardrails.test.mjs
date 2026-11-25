@@ -2,7 +2,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { checkChange, dependenciesChanged, loadGuardrails, APPROVAL_LABEL } from '../compass/guardrails-lib.mjs';
-import { decide } from '../compass/hooks/guard-edit.mjs';
+import { decideEdit } from '../compass/guardrails-lib.mjs';
+import { spawnSync } from 'node:child_process';
+import { cpSync, mkdtempSync, symlinkSync, mkdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repo = fileURLToPath(new URL('..', import.meta.url));
+const decide = (input, guard, approved = [], root = repo) => decideEdit(input, guard, approved, root);
 
 const g = loadGuardrails();
 const f = (path, extra = {}) => ({ path, status: 'M', addedText: '', lines: 10, ...extra });
@@ -50,4 +58,22 @@ test('TC-059: the edit hook blocks protected paths until approved, and blocks se
   const spaced = '/home/u/My Projects/travel-map';
   assert.equal(decide(edit(`${spaced}/CNAME`), g, [], spaced).block, true);
   assert.equal(decide(edit(`${spaced}/src/a.js`), g, [], spaced).block, false);
+});
+
+test('TC-059: the hook script itself blocks through a folder with a space and through a symlink', () => {
+  const base = mkdtempSync(join(tmpdir(), 'guard '));
+  const real = join(base, 'real repo');
+  mkdirSync(real);
+  cpSync(join(repo, 'compass'), join(real, 'compass'), { recursive: true });
+  const link = join(base, 'link');
+  symlinkSync(real, link);
+  const run = (dirRoot, file, content = 'x') =>
+    spawnSync(process.execPath, [join(dirRoot, 'compass/hooks/guard-edit.mjs')], { input: JSON.stringify({ tool_name: 'Write', tool_input: { file_path: file, content } }) }).status;
+  assert.equal(run(link, join(link, 'CNAME')), 2);
+  assert.equal(run(link, join(real, 'CNAME')), 2);
+  assert.equal(run(real, join(link, 'CNAME')), 2);
+  assert.equal(run(link, join(link, 'src/a.js'), 'AKIA' + 'C'.repeat(16)), 2);
+  assert.equal(run(link, join(link, 'src/a.js')), 0);
+  const bad = spawnSync(process.execPath, [join(link, 'compass/hooks/guard-edit.mjs')], { input: '{not json' });
+  assert.equal(bad.status, 2, 'fails closed on unreadable input');
 });

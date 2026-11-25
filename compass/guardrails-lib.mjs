@@ -1,5 +1,6 @@
 // REQ-036: shared rules for compass/guardrails.json, used by the CI check and the Claude Code edit hook.
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 
 export const APPROVAL_LABEL = 'human-approved';
 
@@ -60,4 +61,45 @@ export function dependenciesChanged(beforeText, afterText) {
     }
   };
   return deps(beforeText) !== deps(afterText);
+}
+
+/** Real path of p even if it does not exist yet: resolve symlinks of the nearest existing ancestor. */
+export function realPathOf(p) {
+  let cur = resolve(p);
+  const rest = [];
+  while (!existsSync(cur) && dirname(cur) !== cur) {
+    rest.unshift(basename(cur));
+    cur = dirname(cur);
+  }
+  try {
+    cur = realpathSync(cur);
+  } catch {
+    /* keep the resolved path */
+  }
+  return rest.length ? join(cur, ...rest) : cur;
+}
+
+/**
+ * Decision of the Claude Code edit hook (REQ-036).
+ * input: PreToolUse JSON; repoRoot: real path of the repository; approvedPaths: repo-relative paths the PO approved.
+ */
+export function decideEdit(input, g, approvedPaths, repoRoot) {
+  const ti = (input && input.tool_input) || {};
+  const file = ti.file_path || ti.notebook_path;
+  if (!file) return { block: false };
+  const text = [ti.content, ti.new_string, ti.new_source, ...(ti.edits || []).map((e) => e.new_string)].filter(Boolean).join('\n');
+  const secrets = findSecrets(text, g);
+  // Compare real paths on both sides so symlinked folders, spaces and drive-letter case cannot hide the repo
+  const rel = relative(realPathOf(repoRoot), realPathOf(resolve(repoRoot, file)));
+  const path = rel.split('\\').join('/');
+  const inside = !!path && !path.startsWith('..') && !/^[a-zA-Z]:/.test(path);
+  if (inside && matchesAny(path, g.forbiddenPaths)) return { block: true, reason: `${path} is a forbidden path (compass/guardrails.json) and must never be written.` };
+  if (inside && matchesAny(path, g.protectedPaths) && !(approvedPaths || []).some((a) => a.toLowerCase() === path.toLowerCase()))
+    return {
+      block: true,
+      reason: `${path} is a protected path (compass/guardrails.json). Ask the Product Owner in chat for explicit approval first. After she approves, record it by adding "${path}" to the JSON array in .claude/approved-paths.local.json (git-ignored), then retry. The PR also needs the "${APPROVAL_LABEL}" label for CI.`,
+    };
+  // Secrets are blocked everywhere, also outside the repo
+  if (secrets.length) return { block: true, reason: `The new content for ${path} matches a secret pattern (${secrets.join(', ')}). Never commit secrets; use environment variables or GitHub secrets.` };
+  return { block: false };
 }

@@ -27,6 +27,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - Commit messages: English, start with the REQ id (bug fixes use the related REQ id, e.g. `REQ-143: fix … (#54)`).
 
 ## 4. Requirements, bugs and traceability (GitHub)
+- **Intent first (REQ-038):** a new request becomes `intent/YYYY-MM-DD-topic.md` (template in `intent/README.md`); Christine approves it in chat; then REQs (with `"intent"` in spec.json) and issues are created. Required from REQ-051 on.
 - **Every new requirement → a GitHub issue BEFORE work starts**, in English, label `requirement`, New-requirement template (story + Given/When/Then). Deferred ideas are logged too, with label `on-hold`.
 - Personal repo → no Issue Types; labels are used: `requirement`, `bug`, `e2e`, `on-hold`.
 - **Bugs:** Playwright failures on `main`/nightly open `[E2E] …` issues automatically (labels `bug`, `e2e`). Christine sends a bug id when she wants it fixed — don't fix bugs unasked; you may investigate and write the root cause on the issue.

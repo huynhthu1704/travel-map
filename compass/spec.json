@@ -1275,7 +1275,8 @@
         "Given the review has a finding marked important\nWhen CI is otherwise green\nThen the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it",
         "Given the author agent\nWhen the PR is reviewed\nThen the author cannot approve its own PR"
       ],
-      "source": "Requested by the Product Owner on 2026-11-25 (issue #61): review by a subagent in the session; important findings block the merge."
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #61): review by a subagent in the session; important findings block the merge.",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-036",
@@ -1288,7 +1289,8 @@
         "Given a pull request\nWhen it changes more than 12 files, touches a forbidden path or contains a secret pattern\nThen CI fails with a clear message",
         "Given a protected path change, a deleted file or a dependency change approved by the Product Owner\nWhen the PR carries the human-approved label\nThen the CI check passes"
       ],
-      "source": "Requested by the Product Owner on 2026-11-25 (issue #60); workflow change approved in chat."
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #60); workflow change approved in chat.",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-047",
@@ -1300,7 +1302,8 @@
         "Given spec.json changes\nWhen node compass/build-views.mjs runs\nThen requirements.md, tests.md and handover.md are regenerated from it",
         "Given handover.md lists different open requirements or counts than spec.json\nWhen CI runs the spec check\nThen CI fails and says how to regenerate it"
       ],
-      "source": "Requested by the Product Owner on 2026-11-25 (issue #71)."
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #71).",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-046",
@@ -1313,7 +1316,8 @@
         "Given existing decisions from November 2026\nWhen this requirement is done\nThen they are back-filled as ADRs",
         "Given an ADR without context, decision or consequences, with a duplicate id or an unknown requirement\nWhen CI runs the spec check\nThen it fails"
       ],
-      "source": "Requested by the Product Owner on 2026-11-25 (issue #70)."
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #70).",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-045",
@@ -1325,7 +1329,22 @@
         "Given the agent makes the same mistake twice\nWhen it is corrected\nThen the correction is added to CLAUDE.md in the same PR",
         "Given CLAUDE.md\nWhen it is reviewed\nThen it stays under one page and still loads the agent working knowledge"
       ],
-      "source": "Requested by the Product Owner on 2026-11-25 (issue #69)."
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #69).",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md"
+    },
+    {
+      "id": "REQ-038",
+      "title": "Capture intent in intent.md before writing requirements",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want each new request saved as a short intent file (what, why, constraints, success measure) that I approve, so that the reason behind a requirement is kept with the code, not lost in chat.",
+      "ac": [
+        "Given a new request in chat\nWhen the agent starts\nThen it writes intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements",
+        "Given an approved intent\nWhen requirements are created\nThen each requirement links back to its intent file and the intent lists them",
+        "Given a new requirement (REQ-051 or later) without an approved intent\nWhen CI runs the spec check\nThen it fails"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #62)."
     }
   ],
   "tests": [
@@ -2131,6 +2150,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/claudeMd.test.mjs"
+    },
+    {
+      "id": "TC-063",
+      "title": "Intent: template, back-filled intent, requirement links validated (missing, unapproved, unlisted, required from REQ-051)",
+      "reqIds": [
+        "REQ-038"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/intent.test.mjs"
     }
   ]
 }

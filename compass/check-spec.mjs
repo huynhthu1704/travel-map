@@ -1,5 +1,6 @@
 // Compass traceability check — run in CI. Exits 1 if the spec is inconsistent.
 import { readFileSync, existsSync } from 'node:fs';
+import { intentProblems } from './build-views.mjs';
 import { handoverProblems, decisionProblems } from './build-views.mjs';
 const spec = JSON.parse(readFileSync(new URL('./spec.json', import.meta.url), 'utf8'));
 const errors = [];
@@ -13,6 +14,8 @@ for (const t of spec.tests) {
   for (const id of t.reqIds) if (!reqIds.has(id)) errors.push(`${t.id} references unknown ${id}`);
 }
 // REQ-047: handover.md must match the spec (run `node compass/build-views.mjs` to regenerate)
+// REQ-038: requirements point to an Approved intent file (required from REQ-051 onward)
+for (const p of intentProblems(spec, (f) => (existsSync(new URL(`../${f}`, import.meta.url)) ? readFileSync(new URL(`../${f}`, import.meta.url), 'utf8') : null))) errors.push(`intent: ${p}`);
 // REQ-046: every ADR has id, date, title, status, context, decision, consequences and valid requirement links
 for (const p of decisionProblems(spec)) errors.push(`decisions: ${p}`);
 const handoverFile = new URL('./handover.md', import.meta.url);

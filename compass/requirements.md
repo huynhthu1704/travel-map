@@ -46,6 +46,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
+| REQ-051 | Harden merge-pr and the plan check | — | Could | Done | TC-067 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -463,6 +464,17 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 - Given spec.json changes · When node compass/build-views.mjs runs · Then requirements.md, tests.md and handover.md are regenerated from it
 - Given handover.md lists different open requirements or counts than spec.json · When CI runs the spec check · Then CI fails and says how to regenerate it
+
+## REQ-051 — Harden merge-pr and the plan check
+
+As the product owner, I want the merge script and the plan check to close the gaps found in the independent reviews of PR #80 and PR #83, so that the delivery rules cannot be bypassed by accident.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
+- Given a code PR whose Plan was removed or emptied after CI passed · When compass/merge-pr.mjs runs · Then it refuses to merge
+- Given the Product Owner accepted an important finding in chat · When the author wants to merge · Then REVIEW.md and agent-knowledge describe the documented route (a PR comment quoting her decision, then a fresh review listing the finding as accepted)
+- Given a Plan line whose value is only a placeholder (-, TBD, TODO, n/a) · When the guardrails check runs · Then it is treated as missing
+- Given a feature flag that is not in the legacy list · When the unit tests run · Then it must be default-off with a VI/EN value text, whatever its since date
 
 ## REQ-101 — Sign in with Google
 

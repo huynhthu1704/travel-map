@@ -48,3 +48,33 @@ test('TC-064: merge-pr refuses without green CI and a trusted APPROVE of the hea
   assert.match(commitMessage(good + '\n\n---\nfooter', 'Co-Authored-By: X'), /^Plan:\n- Files: src\/a\.js[\s\S]*Co-Authored-By: X$/);
   assert.doesNotMatch(commitMessage(good + '\n\n---\nfooter'), /footer/);
 });
+
+// TC-067 — hardening of merge-pr and the plan check (REQ-051)
+test('TC-067: placeholder values (-, TBD, TODO, n/a) do not fill a Plan line; real short values still do', () => {
+  const plan = (files, steps = 'one', risks = 'none', proof = 'TC-1') => `## Plan\n- Files: ${files}\n- Steps: ${steps}\n- Risks: ${risks}\n- Proof: ${proof}`;
+  for (const ph of ['-', '—', 'TBD', 'todo', 'n/a', 'N/A', '...', '**TBD**', '?']) {
+    assert.match(planProblems(plan(ph), [{ path: 'src/a.js' }])[0] || '', /Files/, `"${ph}" counts as missing`);
+  }
+  assert.match(planProblems(plan('a', 'TODO', 'n/a', '-'), [{ path: 'src/a.js' }])[0], /Steps, Risks, Proof/);
+  assert.deepEqual(planProblems(plan('src/a.js', 'one', 'none'), [{ path: 'src/a.js' }]), [], '"none" is a real answer');
+  assert.deepEqual(planProblems('## Plan\n- **Files:** - src/a.js\n- **Steps:** 1. edit\n- **Risks:** low\n- **Proof:** TC-1', [{ path: 'src/a.js' }]), []);
+});
+
+test('TC-067: merge-pr refuses a code PR whose Plan was removed or emptied after CI passed', () => {
+  const ok = [{ name: 'test', status: 'completed', conclusion: 'success' }, { name: 'e2e', status: 'completed', conclusion: 'success' }];
+  const head = 'abcdef1234567890abcdef1234567890abcdef12';
+  const comments = [{ body: `## Independent review (Claude)\nVerdict: APPROVE\nReviewed commit: ${head}`, created_at: 'x', author_association: 'OWNER' }];
+  const base = { checkRuns: ok, comments, labels: [], headSha: head, files: [{ filename: 'compass/merge-pr.mjs' }] };
+  assert.deepEqual(mergeBlockers({ ...base, body: good }), []);
+  assert.ok(mergeBlockers({ ...base, body: '## What\nx' }).some((b) => /plan:.*no "## Plan"/.test(b)), 'plan removed');
+  assert.ok(mergeBlockers({ ...base, body: '## Plan\n- Files: TBD\n- Steps: -\n- Risks: r\n- Proof: p' }).some((b) => /plan:.*Files, Steps/.test(b)), 'plan emptied');
+  assert.deepEqual(mergeBlockers({ ...base, files: [{ filename: 'README.md' }], body: '' }), [], 'docs-only PRs need no plan');
+});
+
+test('TC-067: REVIEW.md and agent-knowledge describe the route for a finding the Product Owner accepted', () => {
+  const review = readFileSync(new URL('../REVIEW.md', import.meta.url), 'utf8');
+  const knowledge = readFileSync(new URL('../compass/agent-knowledge.md', import.meta.url), 'utf8');
+  assert.match(review, /### Accepted by the Product Owner/);
+  assert.match(review, /quoting her decision[\s\S]*\*\*fresh\*\* review agent[\s\S]*APPROVE/);
+  assert.match(knowledge, /Accepted by the Product Owner/);
+});

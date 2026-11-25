@@ -70,6 +70,7 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-064 | Plan: required for code PRs, template, merge-pr refuses without green CI/APPROVE and keeps the plan in the commit | REQ-039 | automated | Passing | tests/plan.test.mjs |
 | TC-065 | Skills: four policy skills with valid frontmatter, use-when descriptions and an existing enforcing check | REQ-040 | automated | Passing | tests/skills.test.mjs |
 | TC-066 | Policy checks behind the skills: VI/EN keys and placeholders match; flags have VI/EN texts and new flags are default-off with a value | REQ-040 | automated | Passing | tests/skills.test.mjs |
+| TC-067 | Hardening: merge-pr re-checks the plan, placeholder plan values count as missing, accepted-finding route documented, new-flag rule for every non-legacy flag | REQ-051 | automated | Passing | tests/plan.test.mjs |
 | TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
 | TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
 | TC-103 | Automated UI tests: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | automated | Passing | e2e/checkins.spec.mjs |

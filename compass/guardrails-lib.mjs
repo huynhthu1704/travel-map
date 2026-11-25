@@ -107,6 +107,17 @@ export function decideEdit(input, g, approvedPaths, repoRoot) {
 // REQ-039: pull requests that change code must carry a plan in the PR body
 export const CODE_PATH = /^(src|e2e|tests)\/|^compass\/.*\.mjs$|^\.claude\/|^(index\.html|vite\.config\.js|playwright\.config\.mjs|firestore\.rules|firebase\.json)$/;
 const PLAN_FIELDS = ['Files', 'Steps', 'Risks', 'Proof'];
+// REQ-051: values that only hold a place ("-", "TBD", "TODO", "n/a", "...") do not fill a Plan line
+const PLACEHOLDER = /^(?:[-–—_.…?]+|tbd|tba|todo|n\/?a|xxx|fill ?in|later)\.?$/i;
+
+/** True when the plan has a line "<label>: <real value>" (bold labels and a "(n)" count allowed). */
+function hasPlanField(plan, label) {
+  const line = new RegExp(`^\\s*[-*]?\\s*\\**${label}\\**\\s*(?:\\([^)]*\\))?\\s*:\\**(.*)$`, 'gmi');
+  return [...plan.matchAll(line)].some((m) => {
+    const value = m[1].replace(/\*/g, '').trim();
+    return value !== '' && !PLACEHOLDER.test(value);
+  });
+}
 
 /** The text of the "## Plan" section of a PR body ('' when missing), without HTML comments. */
 export function extractPlan(body) {
@@ -122,6 +133,6 @@ export function planProblems(body, files) {
   if (!code.length) return [];
   const plan = extractPlan(body);
   if (!plan) return [`this PR changes code (${code[0].path}…) but its body has no "## Plan" section — add files, steps, risks and proof (see the PR template), then push or re-run the CI check.`];
-  const missing = PLAN_FIELDS.filter((k) => !new RegExp(`^\\s*[-*]?\\s*\\**${k}\\**\\s*(\\([^)]*\\))?\\s*:\\**[ \\t]*[^\\s*]`, 'mi').test(plan));
-  return missing.length ? [`the "## Plan" section needs a filled-in line for: ${missing.join(', ')}.`] : [];
+  const missing = PLAN_FIELDS.filter((k) => !hasPlanField(plan, k));
+  return missing.length ? [`the "## Plan" section needs a filled-in line for: ${missing.join(', ')} (placeholders such as "-", "TBD", "TODO" or "n/a" do not count).`] : [];
 }

@@ -61,7 +61,8 @@ test('TC-066: feature flags have VI/EN texts; new flags are default-off with a v
     for (const part of ['name', 'desc']) assert.ok(f[part]?.vi && f[part]?.en, `${f.key}: ${part} in vi and en`);
     // Flags without a date are only the legacy ones listed here; every new flag must carry since
     if (!f.since) assert.ok(LEGACY_FLAGS.includes(f.key), `${f.key}: new flags need a since date`);
-    if (!LEGACY_FLAGS.includes(f.key) && f.since >= '2026-11-20') {
+    // Every flag outside the legacy list, whatever its since date, so a backdated date cannot skip the rule (#81)
+    if (!LEGACY_FLAGS.includes(f.key)) {
       assert.equal(f.defaultOn, false, `${f.key}: new flags start off`);
       assert.ok(f.value?.vi && f.value?.en, `${f.key}: value text in vi and en`);
     }

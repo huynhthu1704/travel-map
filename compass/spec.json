@@ -1371,6 +1371,21 @@
         "Given a policy that must always hold\nWhen it is written as a skill\nThen it also has a hook or CI check behind it"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #64)."
+    },
+    {
+      "id": "REQ-051",
+      "title": "Harden merge-pr and the plan check",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want the merge script and the plan check to close the gaps found in the independent reviews of PR #80 and PR #83, so that the delivery rules cannot be bypassed by accident.",
+      "ac": [
+        "Given a code PR whose Plan was removed or emptied after CI passed\nWhen compass/merge-pr.mjs runs\nThen it refuses to merge",
+        "Given the Product Owner accepted an important finding in chat\nWhen the author wants to merge\nThen REVIEW.md and agent-knowledge describe the documented route (a PR comment quoting her decision, then a fresh review listing the finding as accepted)",
+        "Given a Plan line whose value is only a placeholder (-, TBD, TODO, n/a)\nWhen the guardrails check runs\nThen it is treated as missing",
+        "Given a feature flag that is not in the legacy list\nWhen the unit tests run\nThen it must be default-off with a VI/EN value text, whatever its since date"
+      ],
+      "source": "Follow-ups from the APPROVE reviews of PR #80 and PR #83; requested by the Product Owner on 2026-11-25 (issue #81)."
     }
   ],
   "tests": [
@@ -2216,6 +2231,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/skills.test.mjs"
+    },
+    {
+      "id": "TC-067",
+      "title": "Hardening: merge-pr re-checks the plan, placeholder plan values count as missing, accepted-finding route documented, new-flag rule for every non-legacy flag",
+      "reqIds": [
+        "REQ-051"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/plan.test.mjs"
     }
   ]
 }

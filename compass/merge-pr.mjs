@@ -1,14 +1,14 @@
 // REQ-039 (+ REQ-037): merge a pull request only when the delivery rules hold, and keep the plan in git history.
 // Usage: node compass/merge-pr.mjs <pr-number> [--dry-run]
 // Checks: the Compass CI jobs passed on the head commit · the latest independent review by a trusted author says
-// APPROVE for exactly that head commit · firestore.rules changes carry the human-approved label. Then squash-merges
+// APPROVE for exactly that head commit · a code PR still has a filled-in Plan (REQ-051) · firestore.rules changes carry the human-approved label. Then squash-merges
 // (pinned to the reviewed commit) with the PR's "## Plan" as the commit message and comments on each "Closes #N"
 // issue with the branch, PR and merge commit (traceability rule). Uses the REST API only (no GraphQL).
 import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { extractPlan, APPROVAL_LABEL } from './guardrails-lib.mjs';
+import { extractPlan, planProblems, APPROVAL_LABEL } from './guardrails-lib.mjs';
 
 export const REVIEW_HEADING = '## Independent review (Claude)';
 export const REQUIRED_CHECKS = ['test', 'e2e'];
@@ -33,7 +33,7 @@ export function latestReview(comments) {
 export const latestReviewVerdict = (comments) => latestReview(comments)?.verdict ?? null;
 
 /** Reasons the PR must not be merged yet (empty = OK). */
-export function mergeBlockers({ checkRuns, comments, files, labels, headSha }) {
+export function mergeBlockers({ checkRuns, comments, files, labels, headSha, body }) {
   const blockers = [];
   const runs = checkRuns || [];
   for (const name of REQUIRED_CHECKS) {
@@ -47,6 +47,8 @@ export function mergeBlockers({ checkRuns, comments, files, labels, headSha }) {
   if (!review) blockers.push('no independent review comment from a trusted reviewer yet (see REVIEW.md)');
   else if (review.verdict !== 'APPROVE') blockers.push(`the latest independent review says ${review.verdict || 'no verdict'} — fix and ask for a fresh review`);
   else if (!review.sha || !headSha || !headSha.startsWith(review.sha)) blockers.push(`the APPROVE review is for commit ${review.sha || '(none given)'}, but the PR head is ${headSha} — ask for a fresh review of the latest commit`);
+  // REQ-051: CI checked the plan when it ran; the body may have been edited since, so check it again now
+  for (const p of planProblems(body, (files || []).map((f) => ({ path: f.filename })))) blockers.push(`plan: ${p}`);
   if ((files || []).some((f) => f.filename === 'firestore.rules') && !(labels || []).includes(APPROVAL_LABEL)) blockers.push(`firestore.rules changed — the Product Owner decides (REVIEW.md); add "${APPROVAL_LABEL}" after she approves`);
   return blockers;
 }
@@ -89,6 +91,7 @@ if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.
       files: all(`repos/${repo}/pulls/${n}/files?per_page=100`),
       labels: pr.labels.map((l) => l.name),
       headSha: pr.head.sha,
+      body: pr.body,
     });
     if (blockers.length) {
       console.error(`Not merging PR #${n}:\n- ${blockers.join('\n- ')}`);

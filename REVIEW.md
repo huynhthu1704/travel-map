@@ -39,6 +39,9 @@ Reviewed commit: <full SHA of the PR head you reviewed — `git rev-parse HEAD`>
 
 ### Nits
 - <file:line> — <suggestion>
+
+### Accepted by the Product Owner   (only when she accepted a finding in chat)
+- <finding> — accepted on <date>: "<her words>" (see the PR comment)
 ```
 `CHANGES NEEDED` exactly when there is at least one important finding. An APPROVE only covers the reviewed commit:
 any later push needs a fresh review before merging (`compass/merge-pr.mjs` enforces this, REQ-039).
@@ -47,7 +50,12 @@ any later push needs a fresh review before merging (`compass/merge-pr.mjs` enfor
 - `APPROVE` + CI green → the PR is squash-merged automatically and the result is reported afterwards.
 - `CHANGES NEEDED` → **no merge**. The author fixes the findings, pushes, and asks for a **new** review
   (again a fresh reviewer). If important findings remain after the second fix, stop and ask the Product Owner.
-- The Product Owner may accept a finding explicitly in chat; the author records that in a PR comment before merging.
+- **Accepted finding (REQ-051):** the Product Owner may accept an important finding explicitly in chat. Route:
+  1. the author posts a PR comment quoting her decision (date and her words);
+  2. the author asks a **fresh** review agent for a new review of the head commit and gives it that comment;
+  3. the reviewer lists the finding under `### Accepted by the Product Owner` (not under Important, not in the count)
+     and says `APPROVE` if no other important finding remains.
+  `compass/merge-pr.mjs` only merges on that new APPROVE; nobody edits an old review or merges over `CHANGES NEEDED`.
 
 ## What a person still reviews
 The Product Owner decides — the review agent cannot approve — when a PR:

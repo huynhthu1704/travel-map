@@ -3,7 +3,7 @@
 // Locally: node compass/check-guardrails.mjs [baseRef]   (default origin/main)
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { loadGuardrails, checkChange, dependenciesChanged, APPROVAL_LABEL } from './guardrails-lib.mjs';
+import { loadGuardrails, checkChange, dependenciesChanged, planProblems, APPROVAL_LABEL } from './guardrails-lib.mjs';
 
 // quotePath=false keeps non-ASCII (e.g. Vietnamese) file names readable instead of quoted octal escapes
 const git = (...args) => execFileSync('git', ['-c', 'core.quotePath=false', ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -37,6 +37,8 @@ const show = (ref) => {
 const depsChanged = files.some((f) => f.path === 'package.json') && dependenciesChanged(show(baseRef || git('merge-base', process.argv[2] || 'origin/main', 'HEAD').trim()), show('HEAD'));
 
 const { errors, warnings } = checkChange(files, g, { labels, depsChanged });
+// REQ-039: a PR that changes code needs a plan (only checked in CI, where the PR body is known)
+if (pr) errors.push(...planProblems(pr.body, files));
 for (const w of warnings) console.log(`::warning::${w}`);
 if (errors.length) {
   for (const e of errors) console.log(`::error::${e}`);

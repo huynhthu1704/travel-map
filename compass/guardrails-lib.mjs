@@ -103,3 +103,25 @@ export function decideEdit(input, g, approvedPaths, repoRoot) {
   if (secrets.length) return { block: true, reason: `The new content for ${path} matches a secret pattern (${secrets.join(', ')}). Never commit secrets; use environment variables or GitHub secrets.` };
   return { block: false };
 }
+
+// REQ-039: pull requests that change code must carry a plan in the PR body
+export const CODE_PATH = /^(src|e2e|tests)\/|^compass\/.*\.mjs$|^\.claude\/|^(index\.html|vite\.config\.js|playwright\.config\.mjs|firestore\.rules|firebase\.json)$/;
+const PLAN_FIELDS = ['Files', 'Steps', 'Risks', 'Proof'];
+
+/** The text of the "## Plan" section of a PR body ('' when missing), without HTML comments. */
+export function extractPlan(body) {
+  const text = (body || '').replace(/\r\n/g, '\n').replace(/<!--[\s\S]*?-->/g, '');
+  // The section ends at the next "## " heading, a "---" rule (e.g. a footer) or the end of the body
+  const m = text.match(/^##\s+Plan\s*$([\s\S]*?)(?=^##\s|^-{3,}\s*$|(?![\s\S]))/m);
+  return m ? m[1].trim() : '';
+}
+
+/** Problems with the plan of a PR that changes the given files. */
+export function planProblems(body, files) {
+  const code = files.filter((f) => CODE_PATH.test(f.path));
+  if (!code.length) return [];
+  const plan = extractPlan(body);
+  if (!plan) return [`this PR changes code (${code[0].path}…) but its body has no "## Plan" section — add files, steps, risks and proof (see the PR template), then push or re-run the CI check.`];
+  const missing = PLAN_FIELDS.filter((k) => !new RegExp(`^\\s*[-*]?\\s*\\**${k}\\**\\s*(\\([^)]*\\))?\\s*:\\**[ \\t]*[^\\s*]`, 'mi').test(plan));
+  return missing.length ? [`the "## Plan" section needs a filled-in line for: ${missing.join(', ')}.`] : [];
+}

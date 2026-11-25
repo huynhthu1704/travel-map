@@ -1,7 +1,9 @@
 // REQ-047: regenerate the Markdown views of compass/spec.json (requirements.md, tests.md, handover.md).
 // Usage: node compass/build-views.mjs           → write the files
 //        node compass/build-views.mjs --check   → exit 1 if handover.md is stale (used by check-spec.mjs / CI)
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, realpathSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 const dir = new URL('./', import.meta.url);
@@ -17,10 +19,17 @@ export function openRequirements(spec) {
 }
 
 export function featureStage(spec, f) {
-  const reqs = spec.requirements.filter((r) => r.featureId === f.id);
+  // Draft requirements are not agreed yet, so a feature with only Drafts is still an Idea
+  const reqs = spec.requirements.filter((r) => r.featureId === f.id && r.status !== 'Draft');
   if (!reqs.length) return 'Idea';
   return reqs.every(isDone) ? 'Released' : 'Build';
 }
+
+export const openLine = (r) => `- **${r.id}** ${r.title} — ${r.status} (${r.priority})`;
+export const featureRow = (spec, f) => {
+  const open = openRequirements(spec).filter((r) => r.featureId === f.id).map((r) => r.id);
+  return `| ${f.id} ${f.name} | ${featureStage(spec, f)} | ${open.join(', ') || '—'} |`;
+};
 
 export function summaryLine(spec) {
   const open = openRequirements(spec).length;
@@ -39,10 +48,7 @@ export function renderHandover(spec, { lastRelease = 'none', date = new Date().t
     '## Where we are',
     '| Feature | Stage | Open requirements |',
     '|---|---|---|',
-    ...(spec.features || []).map((f) => {
-      const open = openRequirements(spec).filter((r) => r.featureId === f.id).map((r) => r.id);
-      return `| ${f.id} ${f.name} | ${featureStage(spec, f)} | ${open.join(', ') || '—'} |`;
-    }),
+    ...(spec.features || []).map((f) => featureRow(spec, f)),
     '',
     summaryLine(spec),
     `- **Requirements without tests:** ${noTests.join(', ') || 'none'}`,
@@ -60,7 +66,7 @@ export function renderHandover(spec, { lastRelease = 'none', date = new Date().t
     '| Ops | `compass-deploy.yml` deploys only after Compass CI is green on main, smoke-tests the live site and rolls back on failure. |',
     '',
     '## Open requirements',
-    ...openRequirements(spec).map((r) => `- **${r.id}** ${r.title} — ${r.status} (${r.priority})`),
+    ...openRequirements(spec).map(openLine),
     '',
   ];
   return L.join('\n');
@@ -111,6 +117,9 @@ export function handoverProblems(spec, text) {
   const open = new Set(openRequirements(spec).map((r) => r.id));
   for (const id of open) if (!listed.has(id)) problems.push(`${id} is open but not listed`);
   for (const id of listed) if (!open.has(id)) problems.push(`${id} is listed as open but is Done or unknown`);
+  // Status, title and priority of each open requirement, and the feature table, must match too
+  for (const r of openRequirements(spec)) if (listed.has(r.id) && !section.includes(openLine(r))) problems.push(`${r.id} line should be: ${openLine(r)}`);
+  for (const f of spec.features || []) if (!text.includes(featureRow(spec, f))) problems.push(`feature row should be: ${featureRow(spec, f)}`);
   return problems;
 }
 
@@ -122,10 +131,19 @@ function lastTag() {
   }
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname.endsWith(process.argv[1].split(/[\\/]/).pop())) {
+const real = (p) => {
+  try {
+    return realpathSync(p);
+  } catch {
+    return resolve(p);
+  }
+};
+// Run the CLI only when this file is the entry script (not when imported by check-spec or tests)
+if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.url))) {
   const spec = JSON.parse(read('spec.json'));
   if (process.argv.includes('--check')) {
-    const problems = handoverProblems(spec, read('handover.md'));
+    const text = read('handover.md');
+    const problems = text ? handoverProblems(spec, text) : ['compass/handover.md is missing'];
     if (problems.length) {
       console.error('compass/handover.md is stale — run `node compass/build-views.mjs`:\n- ' + problems.join('\n- '));
       process.exit(1);

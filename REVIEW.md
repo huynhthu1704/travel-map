@@ -55,5 +55,5 @@ The Product Owner decides — the review agent cannot approve — when a PR:
 
 ## Repeated findings
 Reviewers start fresh, so the **author agent** checks earlier `## Independent review (Claude)` comments and
-`compass/agent-knowledge.md` before fixing. If the same kind of important finding appears in two PRs, add the lesson to `compass/agent-knowledge.md`
-(loaded by `CLAUDE.md`) in the fixing PR so later sessions avoid it.
+`CLAUDE.md → Lessons learned` before fixing. If the same kind of important finding appears in two PRs,
+add a one-line lesson to `CLAUDE.md → Lessons learned` in the fixing PR so later sessions avoid it.

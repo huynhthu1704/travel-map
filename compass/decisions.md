@@ -18,6 +18,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-012 | 2026-11-25 | English for everything written in the repo and for replies to the Product Owner | Accepted | — |
 | ADR-013 | 2026-11-24 | Trip archiving is on hold | Accepted | REQ-028 |
 | ADR-014 | 2026-11-25 | Guardrail enforcement files are protected paths | Accepted | REQ-050 |
+| ADR-015 | 2026-11-25 | The test-first check is protected and CI runs main's copy | Accepted | REQ-043 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -158,3 +159,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** The Product Owner asked to fix #75: these files (and .claude/settings.local.json) are listed under protectedPaths in compass/guardrails.json, so changing them needs her approval and the human-approved label. She also approved changing compass-ci.yml so CI runs main's copy of the check and its rules, not the PR's copy (independent review of PR #85).
 
 **Consequences.** Future fixes to the plan check or the edit hook wait for her decision, and a new rule only applies to PRs after it is merged. The edit hook only covers Edit/Write tools, not shell commands, and a PR can still change the workflow itself, so her review of protected-path PRs is the last gate.
+
+## ADR-015 — The test-first check is protected and CI runs main's copy
+
+**Status:** Accepted · **Date:** 2026-11-25 · **Requirements:** REQ-043
+
+**Context.** compass/test-first.mjs (REQ-043) was not a protected path and ran through npm test, so a bug-fix PR could weaken its own copy of the check (review of PR #86).
+
+**Decision.** The Product Owner asked to protect the check like the guardrails check (REQ-050): compass/test-first.mjs is added to protectedPaths and compass-ci.yml runs main's copy (HEAD^1) in a "Test-first check" step instead of npm test. Because the session could not record her approval for the edit hook, she makes the two protected edits herself (option 2 in chat, 2026-11-25).
+
+**Consequences.** Changes to the test-first rules need her approval and the human-approved label, and a new rule only applies to PRs after it is merged. Locally the check is run by hand: node compass/test-first.mjs origin/main --bug.

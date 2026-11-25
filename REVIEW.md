@@ -24,7 +24,7 @@ The author agent never reviews or approves its own work.
    files growing past `maxLinesPerFile`).
 
 **Bug fixes (REQ-043):** a PR that closes a `bug` issue carries the `bug` label; its first commit only adds the failing
-test and later commits do not edit it (`compass/test-first.mjs` in `npm test` checks this and runs a unit test at the
+test and later commits do not edit it (`compass/test-first.mjs`, run by CI from main's copy, checks this and runs a unit test at the
 first commit). When the failing test is UI-only (`e2e/`), CI cannot run it there: the reviewer checks out the first
 commit, runs that test (`npx playwright test <file>`) and confirms it fails; a test that does not fail is an important finding.
 
@@ -64,7 +64,7 @@ any later push needs a fresh review before merging (`compass/merge-pr.mjs` enfor
 
 ## What a person still reviews
 The Product Owner decides — the review agent cannot approve — when a PR:
-- changes a protected path (`.github/workflows/`, `compass/guardrails.json`, the enforcement files (`compass/check-guardrails.mjs`, `compass/guardrails-lib.mjs`, `compass/hooks/`, `.claude/settings.json`, `.claude/settings.local.json`, REQ-050), `.env`, `CNAME`),
+- changes a protected path (`.github/workflows/`, `compass/guardrails.json`, the enforcement files (`compass/check-guardrails.mjs`, `compass/guardrails-lib.mjs`, `compass/hooks/`, `.claude/settings.json`, `.claude/settings.local.json`, REQ-050; `compass/test-first.mjs`, REQ-043), `.env`, `CNAME`),
 - changes `firestore.rules`, deletes files or adds/upgrades a dependency,
 - deletes or migrates user data, or changes costs, payments or sign-in.
 

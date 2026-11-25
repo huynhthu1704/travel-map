@@ -1,5 +1,6 @@
 // REQ-043: a bug fix starts with a commit that only adds a failing test; later commits must not edit that test.
-// CI (npm test, pull_request event): runs when the PR carries the "bug" label; otherwise it skips.
+// CI (step "Test-first check" in compass-ci.yml, pull_request event): runs main's copy of this file (HEAD^1), so a PR
+// cannot weaken the check that judges it; this file is a protected path. Runs when the PR carries the "bug" label; otherwise it skips.
 // Locally: node compass/test-first.mjs [baseRef] --bug   (default base origin/main)
 // Checks: ≥ 2 commits · the first commit only touches tests/ or e2e/ and adds or changes a test · later commits do
 // not touch those test files (unless the PR has the human-approved label) · the unit tests of the first commit

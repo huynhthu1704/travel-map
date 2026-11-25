@@ -1109,6 +1109,19 @@
         "Given the Compass portal regenerates compass/handover.md\nWhen that happens\nThen the agent knowledge is not overwritten"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #58)"
+    },
+    {
+      "id": "REQ-037",
+      "title": "Independent AI review of every pull request (REVIEW.md)",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As the product owner, I want every PR to be reviewed by a separate Claude review pass that did not write the code, so that bugs and spec mismatches are caught before auto-merge.",
+      "ac": [
+        "Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan)\nWhen a PR is opened\nThen a fresh review agent comments its findings on the PR",
+        "Given the review has a finding marked important\nWhen CI is otherwise green\nThen the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it",
+        "Given the author agent\nWhen the PR is reviewed\nThen the author cannot approve its own PR"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #61): review by a subagent in the session; important findings block the merge."
     }
   ],
   "tests": [
@@ -1864,6 +1877,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/agentKnowledge.test.mjs"
+    },
+    {
+      "id": "TC-058",
+      "title": "REVIEW.md: passes, severities, merge rule; linked from AGENTS.md, PR template and agent knowledge",
+      "reqIds": [
+        "REQ-037"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/reviewPolicy.test.mjs"
     }
   ]
 }

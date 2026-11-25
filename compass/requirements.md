@@ -37,6 +37,8 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-032 | Excel export: Google Maps column shows the URL | — | Should | Done | TC-050 |
 | REQ-033 | Set a due day for checklist items, picked from the trip days | — | Should | Done | TC-053, TC-054 |
 | REQ-034 | Safer release pipeline: deploy only after green CI, smoke test with rollback, library security audit | — | Should | Done | TC-055 |
+| REQ-035 | Keep the agent working knowledge in the repository | — | Should | Done | TC-057 |
+| REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -378,6 +380,14 @@ As the product owner, I want the working knowledge for AI agents stored in the r
 - Given a new Claude session starts in this repository · When it reads CLAUDE.md · Then compass/agent-knowledge.md is loaded automatically
 - Given compass/agent-knowledge.md · When the unit tests run · Then it contains the sections on working style, delivery contract, protected paths and open items, and no secrets or e-mail addresses
 - Given the Compass portal regenerates compass/handover.md · When that happens · Then the agent knowledge is not overwritten
+
+## REQ-037 — Independent AI review of every pull request (REVIEW.md)
+
+As the product owner, I want every PR to be reviewed by a separate Claude review pass that did not write the code, so that bugs and spec mismatches are caught before auto-merge.
+
+- Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan) · When a PR is opened · Then a fresh review agent comments its findings on the PR
+- Given the review has a finding marked important · When CI is otherwise green · Then the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it
+- Given the author agent · When the PR is reviewed · Then the author cannot approve its own PR
 
 ## REQ-101 — Sign in with Google
 

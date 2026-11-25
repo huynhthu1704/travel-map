@@ -60,6 +60,7 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-054 | UI: mark an item for Day 3, highlighted on that day, kept after reload, cleared | REQ-033 | automated | Passing | e2e/checkDue.spec.mjs |
 | TC-055 | Workflows: deploy gated on green CI, smoke test + rollback, npm audit | REQ-034 | automated | Passing | tests/cicd.test.mjs |
 | TC-056 | Bug #54: skipping the quick tour right after it opens keeps it closed | REQ-143 | automated | Passing | e2e/help.spec.mjs |
+| TC-057 | Agent knowledge file exists, is imported by CLAUDE.md and holds no secrets | REQ-035 | automated | Passing | tests/agentKnowledge.test.mjs |
 | TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
 | TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
 | TC-103 | Automated UI tests: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | automated | Passing | e2e/checkins.spec.mjs |

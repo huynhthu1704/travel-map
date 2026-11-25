@@ -1096,6 +1096,19 @@
         "Given I need to roll back by hand\nWhen I run Compass Deploy with a commit SHA\nThen that commit is deployed"
       ],
       "source": "Requested by the Product Owner on 2026-11-23 (issue #50)"
+    },
+    {
+      "id": "REQ-035",
+      "title": "Keep the agent working knowledge in the repository",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want the working knowledge for AI agents stored in the repository, so that every new Claude session follows it without me uploading it each time.",
+      "ac": [
+        "Given a new Claude session starts in this repository\nWhen it reads CLAUDE.md\nThen compass/agent-knowledge.md is loaded automatically",
+        "Given compass/agent-knowledge.md\nWhen the unit tests run\nThen it contains the sections on working style, delivery contract, protected paths and open items, and no secrets or e-mail addresses",
+        "Given the Compass portal regenerates compass/handover.md\nWhen that happens\nThen the agent knowledge is not overwritten"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #58)"
     }
   ],
   "tests": [
@@ -1841,6 +1854,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "e2e/help.spec.mjs"
+    },
+    {
+      "id": "TC-057",
+      "title": "Agent knowledge file exists, is imported by CLAUDE.md and holds no secrets",
+      "reqIds": [
+        "REQ-035"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/agentKnowledge.test.mjs"
     }
   ]
 }

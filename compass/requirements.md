@@ -40,6 +40,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-035 | Keep the agent working knowledge in the repository | — | Should | Done | TC-057 |
 | REQ-036 | Enforce guardrails.json automatically (hooks + CI check) | — | Must | Done | TC-059 |
 | REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |
+| REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
@@ -398,6 +399,14 @@ As the product owner, I want every PR to be reviewed by a separate Claude review
 - Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan) · When a PR is opened · Then a fresh review agent comments its findings on the PR
 - Given the review has a finding marked important · When CI is otherwise green · Then the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it
 - Given the author agent · When the PR is reviewed · Then the author cannot approve its own PR
+
+## REQ-046 — Record decisions as ADRs in compass/decisions.md
+
+As the product owner, I want important decisions recorded as ADRs, so that anyone can see why things are the way they are.
+
+- Given a decision is made in chat · When the work is merged · Then an ADR-xxx entry is added to compass/spec.json with context, decision and consequences, and decisions.md is regenerated
+- Given existing decisions from November 2026 · When this requirement is done · Then they are back-filled as ADRs
+- Given an ADR without context, decision or consequences, with a duplicate id or an unknown requirement · When CI runs the spec check · Then it fails
 
 ## REQ-047 — Keep compass/handover.md up to date automatically
 

@@ -64,6 +64,7 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-058 | REVIEW.md: passes, severities, merge rule; linked from AGENTS.md, PR template and agent knowledge | REQ-037 | automated | Passing | tests/reviewPolicy.test.mjs |
 | TC-059 | Guardrails: protected/forbidden paths, 12-file limit, deletions, dependency changes, secrets; edit hook decisions | REQ-036 | automated | Passing | tests/guardrails.test.mjs |
 | TC-060 | Handover: open requirements, counts and feature stage; stale handover detected; committed file is current | REQ-047 | automated | Passing | tests/handover.test.mjs |
+| TC-061 | ADRs: November decisions back-filled, validation of fields/ids/links, decisions.md generated | REQ-046 | automated | Passing | tests/decisions.test.mjs |
 | TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
 | TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
 | TC-103 | Automated UI tests: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | automated | Passing | e2e/checkins.spec.mjs |

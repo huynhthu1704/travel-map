@@ -15,6 +15,7 @@ Project: **travel-map** — Tăng số người dùng hoàn thành checklist chu
 4. **Pull request:** use the PR template; list REQ and TC ids; write `Closes #<issue>` for every issue it resolves so the PR (and its branch) shows under the issue's *Development* section; CI must be green (unit tests, UI tests and `node compass/check-spec.mjs`).
    **Independent review (REQ-037):** before merging, a fresh review agent that did not write the code reviews the PR as described in [`REVIEW.md`](REVIEW.md) and posts `## Independent review (Claude)`. `CHANGES NEEDED` (any *important* finding) blocks the merge until fixed and re-reviewed.
    After the merge, comment on each resolved issue with the branch, the PR and the merge commit so the work can be traced back.
+   **Decisions (REQ-046):** when the Product Owner decides something in chat (an approach, a trade-off, a scope cut, a rule), add an ADR to `compass/spec.json → decisions` in the same PR (status `Accepted`; use `Proposed` for an agent's interim choice she has not confirmed) and run `node compass/build-views.mjs`.
 5. **Release:** squash-merge to `main` → GitHub Pages deploys automatically; tag releases `vX.Y.Z`.
 
 ## Commands
@@ -22,7 +23,7 @@ Project: **travel-map** — Tăng số người dùng hoàn thành checklist chu
 npm test                      # unit tests (node --test, tests/)
 npm run test:e2e              # UI tests (Playwright, demo mode, e2e/)
 node compass/check-spec.mjs   # traceability check: every REQ has a TC, every TC points to a REQ; handover.md not stale
-node compass/build-views.mjs  # regenerate requirements.md, tests.md, handover.md after editing spec.json
+node compass/build-views.mjs  # regenerate requirements.md, tests.md, handover.md, decisions.md after editing spec.json
 ```
 
 ## Rules for AI agents

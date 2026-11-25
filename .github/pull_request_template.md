@@ -3,6 +3,14 @@
 Requirements: REQ-
 Test cases: TC-
 
+## Plan
+<!-- REQ-039: required when the PR changes code (src/, e2e/, tests/, compass/*.mjs). Write it before coding;
+     if it changes during the work, update it here — it becomes the squash-commit message on merge. -->
+- Files:
+- Steps:
+- Risks:
+- Proof (how we know it works):
+
 ## Checklist
 - [ ] Acceptance criteria met (Given/When/Then in compass/spec.json)
 - [ ] Tests added/updated and CI green

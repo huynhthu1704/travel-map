@@ -41,6 +41,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-036 | Enforce guardrails.json automatically (hooks + CI check) | — | Must | Done | TC-059 |
 | REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |
 | REQ-038 | Capture intent in intent.md before writing requirements | — | Should | Done | TC-063 |
+| REQ-039 | Write a plan before coding each requirement | — | Should | Done | TC-064 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
@@ -415,6 +416,15 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 - Given a new request in chat · When the agent starts · Then it writes intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements
 - Given an approved intent · When requirements are created · Then each requirement links back to its intent file and the intent lists them
 - Given a new requirement (REQ-051 or later) without an approved intent · When CI runs the spec check · Then it fails
+
+## REQ-039 — Write a plan before coding each requirement
+
+As the product owner, I want the agent to write a plan (files, order of work, risks, how it will prove it works) before changing code, so that I can see and redirect the approach early.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
+- Given an approved requirement · When work starts · Then the PR has a Plan section listing files, steps, risks and proof, and CI fails a PR that changes code without it
+- Given the plan changes during the work · When the PR is merged · Then the updated plan is committed with the code as the squash-commit message
 
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 

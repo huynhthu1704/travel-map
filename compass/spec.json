@@ -1345,6 +1345,19 @@
         "Given a new requirement (REQ-051 or later) without an approved intent\nWhen CI runs the spec check\nThen it fails"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #62)."
+    },
+    {
+      "id": "REQ-039",
+      "title": "Write a plan before coding each requirement",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want the agent to write a plan (files, order of work, risks, how it will prove it works) before changing code, so that I can see and redirect the approach early.",
+      "ac": [
+        "Given an approved requirement\nWhen work starts\nThen the PR has a Plan section listing files, steps, risks and proof, and CI fails a PR that changes code without it",
+        "Given the plan changes during the work\nWhen the PR is merged\nThen the updated plan is committed with the code as the squash-commit message"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #63)."
     }
   ],
   "tests": [
@@ -2160,6 +2173,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/intent.test.mjs"
+    },
+    {
+      "id": "TC-064",
+      "title": "Plan: required for code PRs, template, merge-pr refuses without green CI/APPROVE and keeps the plan in the commit",
+      "reqIds": [
+        "REQ-039"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/plan.test.mjs"
     }
   ]
 }

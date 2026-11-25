@@ -371,6 +371,14 @@ As the product owner, I want only tested code to reach beetheremap.com, and a br
 - Given CI runs · When a shipped library has a critical vulnerability · Then CI fails; the full audit report is shown in the run summary
 - Given I need to roll back by hand · When I run Compass Deploy with a commit SHA · Then that commit is deployed
 
+## REQ-035 — Keep the agent working knowledge in the repository
+
+As the product owner, I want the working knowledge for AI agents stored in the repository, so that every new Claude session follows it without me uploading it each time.
+
+- Given a new Claude session starts in this repository · When it reads CLAUDE.md · Then compass/agent-knowledge.md is loaded automatically
+- Given compass/agent-knowledge.md · When the unit tests run · Then it contains the sections on working style, delivery contract, protected paths and open items, and no secrets or e-mail addresses
+- Given the Compass portal regenerates compass/handover.md · When that happens · Then the agent knowledge is not overwritten
+
 ## REQ-101 — Sign in with Google
 
 [Baseline · Account & platform] Users sign in with their Google account; without Firebase config the app runs in demo mode with data in the browser.

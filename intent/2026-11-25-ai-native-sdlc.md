@@ -14,7 +14,7 @@ behind requirements and decisions lived only in chat; `handover.md` was out of d
 
 ## Constraints
 - No new paid services: the review runs as a subagent in the working session (no API key in CI).
-- Changes to `.github/workflows/` only within the scope approved in chat (#60 and #71).
+- Changes to `.github/workflows/` only within the scope approved in chat (approved for #60 and #71; in the end only #60 needed a workflow change).
 - ≤ 12 files per PR; English in the repo.
 
 ## Success measure

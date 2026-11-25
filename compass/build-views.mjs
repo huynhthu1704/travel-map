@@ -119,8 +119,13 @@ export function intentProblems(spec, readIntent) {
   const problems = [];
   for (const r of spec.requirements) {
     const n = num(r.id);
+    if (!/^REQ-\d+$/.test(r.id || '')) {
+      problems.push(`${r.id} is not a valid requirement id (REQ-<number>)`);
+      continue;
+    }
+    // Only the reconstructed baseline REQ-101…153 is exempt
     if (!r.intent) {
-      if (n >= INTENT_REQUIRED_FROM && n < 101) problems.push(`${r.id} has no intent (add "intent": "intent/<file>.md")`);
+      if (n >= INTENT_REQUIRED_FROM && !(n >= 101 && n <= 153)) problems.push(`${r.id} has no intent (add "intent": "intent/<file>.md")`);
       continue;
     }
     if (!/^intent\/[\w.-]+\.md$/.test(r.intent)) {
@@ -130,7 +135,7 @@ export function intentProblems(spec, readIntent) {
     const text = readIntent(r.intent);
     if (text == null) problems.push(`${r.id} points to missing ${r.intent}`);
     else if (!/^Status:\s*Approved\b/m.test(text)) problems.push(`${r.id} points to ${r.intent}, which is not Approved yet`);
-    else if (!text.includes(r.id)) problems.push(`${r.intent} does not list ${r.id} under Requirements`);
+    else if (!(text.split(/^## Requirements\s*$/m)[1] || '').split(/^## /m)[0].includes(r.id)) problems.push(`${r.intent} does not list ${r.id} under Requirements`);
   }
   return problems;
 }

@@ -13,6 +13,7 @@ Project: **travel-map** — Tăng số người dùng hoàn thành checklist chu
 2. **Requirement → Test:** add at least one test case that references the requirement id.
 3. **Code:** branch `compass/REQ-xxx-short-name`. Commit messages start with the requirement id, e.g. `REQ-004: add guest checkout`.
 4. **Pull request:** use the PR template; list REQ and TC ids; write `Closes #<issue>` for every issue it resolves so the PR (and its branch) shows under the issue's *Development* section; CI must be green (unit tests, UI tests and `node compass/check-spec.mjs`).
+   **Independent review (REQ-037):** before merging, a fresh review agent that did not write the code reviews the PR as described in [`REVIEW.md`](REVIEW.md) and posts `## Independent review (Claude)`. `CHANGES NEEDED` (any *important* finding) blocks the merge until fixed and re-reviewed.
    After the merge, comment on each resolved issue with the branch, the PR and the merge commit so the work can be traced back.
 5. **Release:** squash-merge to `main` → GitHub Pages deploys automatically; tag releases `vX.Y.Z`.
 

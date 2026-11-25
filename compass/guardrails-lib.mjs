@@ -7,8 +7,12 @@ export function loadGuardrails(root = new URL('..', import.meta.url)) {
   return JSON.parse(readFileSync(new URL('compass/guardrails.json', root), 'utf8'));
 }
 
-/** A rule ending with "/" matches everything under that folder; otherwise the exact path. */
-export const matchesRule = (path, rule) => (rule.endsWith('/') ? path.startsWith(rule) : path === rule);
+/** A rule ending with "/" matches everything under that folder; otherwise the exact path. Case-insensitive (macOS/Windows file systems). */
+export const matchesRule = (path, rule) => {
+  const p = path.toLowerCase();
+  const r = rule.toLowerCase();
+  return r.endsWith('/') ? p.startsWith(r) : p === r;
+};
 export const matchesAny = (path, rules = []) => rules.some((r) => matchesRule(path, r));
 
 /** Secret patterns found in a piece of text (returns the matching patterns, never the secret itself). */

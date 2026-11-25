@@ -19,6 +19,8 @@ test('TC-059: more than 12 files, deletions and dependency changes are caught', 
   assert.match(checkChange(many, g).errors[0], /13 files changed/);
   assert.equal(checkChange([f('src/old.js', { status: 'D' })], g).errors.length, 1);
   assert.equal(checkChange([f('package.json')], g, { depsChanged: true }).errors.length, 1);
+  assert.deepEqual(checkChange([f('src/old.js', { status: 'D' }), f('package.json')], g, { depsChanged: true, labels: [APPROVAL_LABEL] }).errors, []);
+  assert.equal(checkChange([f('cname')], g).errors.length, 1, 'matching is case-insensitive');
   assert.equal(dependenciesChanged('{"dependencies":{"a":"1"}}', '{"dependencies":{"a":"2"}}'), true);
   assert.equal(dependenciesChanged('{"version":"1","dependencies":{"a":"1"}}', '{"version":"2","dependencies":{"a":"1"}}'), false);
 });
@@ -43,4 +45,9 @@ test('TC-059: the edit hook blocks protected paths until approved, and blocks se
   assert.equal(decide(edit('src/a.js', 'AKIA' + 'B'.repeat(16)), g).block, true);
   assert.equal(decide(edit('src/a.js', 'ok'), g).block, false);
   assert.equal(decide(edit('/tmp/elsewhere.txt'), g).block, false);
+  assert.equal(decide(edit('/tmp/elsewhere.txt', 'AKIA' + 'B'.repeat(16)), g).block, true, 'secrets are blocked outside the repo too');
+  // A repo folder with a space in its path (review finding on PR #74)
+  const spaced = '/home/u/My Projects/travel-map';
+  assert.equal(decide(edit(`${spaced}/CNAME`), g, [], spaced).block, true);
+  assert.equal(decide(edit(`${spaced}/src/a.js`), g, [], spaced).block, false);
 });

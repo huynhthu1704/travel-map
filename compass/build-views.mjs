@@ -135,10 +135,11 @@ export function renderDecisions(spec) {
   const L = ['# Decisions (ADR log)', '', '_Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever a decision is made in chat (REQ-046)._', ''];
   if (!list.length) return [...L, '_No decisions recorded yet._', ''].join('\n');
   L.push('| ID | Date | Decision | Status | Requirements |', '|---|---|---|---|---|');
-  for (const a of list) L.push(`| ${a.id} | ${a.date} | ${a.title} | ${a.status} | ${(a.reqIds || []).join(', ') || '—'} |`);
+  const reqs = (a) => (Array.isArray(a.reqIds) ? a.reqIds : []);
+  for (const a of list) L.push(`| ${a.id} | ${a.date} | ${a.title} | ${a.status} | ${reqs(a).join(', ') || '—'} |`);
   L.push('');
   for (const a of list) {
-    L.push(`## ${a.id} — ${a.title}`, '', `**Status:** ${a.status} · **Date:** ${a.date}${a.reqIds?.length ? ` · **Requirements:** ${a.reqIds.join(', ')}` : ''}`, '');
+    L.push(`## ${a.id} — ${a.title}`, '', `**Status:** ${a.status} · **Date:** ${a.date}${reqs(a).length ? ` · **Requirements:** ${reqs(a).join(', ')}` : ''}`, '');
     L.push(`**Context.** ${a.context}`, '', `**Decision.** ${a.decision}`, '', `**Consequences.** ${a.consequences}`, '');
   }
   return L.join('\n');

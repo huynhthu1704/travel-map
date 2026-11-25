@@ -40,6 +40,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-035 | Keep the agent working knowledge in the repository | — | Should | Done | TC-057 |
 | REQ-036 | Enforce guardrails.json automatically (hooks + CI check) | — | Must | Done | TC-059 |
 | REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |
+| REQ-038 | Capture intent in intent.md before writing requirements | — | Should | Done | TC-063 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
@@ -389,6 +390,8 @@ As the product owner, I want the working knowledge for AI agents stored in the r
 
 As the product owner, I want the rules in compass/guardrails.json (protected paths, forbidden paths, secret patterns, max 12 files per change) to be checked by a machine instead of relying on the agent remembering them, so that a rule cannot be broken by mistake.
 
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
 - Given an agent session in this repo · When it tries to edit a protected path (e.g. .github/workflows/, CNAME) · Then a Claude Code hook blocks the edit and says how to get approval
 - Given a pull request · When it changes more than 12 files, touches a forbidden path or contains a secret pattern · Then CI fails with a clear message
 - Given a protected path change, a deleted file or a dependency change approved by the Product Owner · When the PR carries the human-approved label · Then the CI check passes
@@ -397,13 +400,27 @@ As the product owner, I want the rules in compass/guardrails.json (protected pat
 
 As the product owner, I want every PR to be reviewed by a separate Claude review pass that did not write the code, so that bugs and spec mismatches are caught before auto-merge.
 
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
 - Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan) · When a PR is opened · Then a fresh review agent comments its findings on the PR
 - Given the review has a finding marked important · When CI is otherwise green · Then the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it
 - Given the author agent · When the PR is reviewed · Then the author cannot approve its own PR
 
+## REQ-038 — Capture intent in intent.md before writing requirements
+
+As the product owner, I want each new request saved as a short intent file (what, why, constraints, success measure) that I approve, so that the reason behind a requirement is kept with the code, not lost in chat.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
+- Given a new request in chat · When the agent starts · Then it writes intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements
+- Given an approved intent · When requirements are created · Then each requirement links back to its intent file and the intent lists them
+- Given a new requirement (REQ-051 or later) without an approved intent · When CI runs the spec check · Then it fails
+
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 
 As the product owner, I want CLAUDE.md to keep commands, conventions and recurring mistakes in under a page, so that new sessions do not repeat known mistakes.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
 
 - Given the agent makes the same mistake twice · When it is corrected · Then the correction is added to CLAUDE.md in the same PR
 - Given CLAUDE.md · When it is reviewed · Then it stays under one page and still loads the agent working knowledge
@@ -412,6 +429,8 @@ As the product owner, I want CLAUDE.md to keep commands, conventions and recurri
 
 As the product owner, I want important decisions recorded as ADRs, so that anyone can see why things are the way they are.
 
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
 - Given a decision is made in chat · When the work is merged · Then an ADR-xxx entry is added to compass/spec.json with context, decision and consequences, and decisions.md is regenerated
 - Given existing decisions from November 2026 · When this requirement is done · Then they are back-filled as ADRs
 - Given an ADR without context, decision or consequences, with a duplicate id or an unknown requirement · When CI runs the spec check · Then it fails
@@ -419,6 +438,8 @@ As the product owner, I want important decisions recorded as ADRs, so that anyon
 ## REQ-047 — Keep compass/handover.md up to date automatically
 
 As the product owner, I want handover.md regenerated from spec.json and checked on every change, so that it never shows a stale status.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
 
 - Given spec.json changes · When node compass/build-views.mjs runs · Then requirements.md, tests.md and handover.md are regenerated from it
 - Given handover.md lists different open requirements or counts than spec.json · When CI runs the spec check · Then CI fails and says how to regenerate it

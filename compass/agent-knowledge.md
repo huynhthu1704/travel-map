@@ -29,6 +29,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 ## 4. Requirements, bugs and traceability (GitHub)
 - **Intent first (REQ-038):** a new request becomes `intent/YYYY-MM-DD-topic.md` (template in `intent/README.md`); Christine approves it in chat; then REQs (with `"intent"` in spec.json) and issues are created. Required from REQ-051 on.
 - **Plan before code (REQ-039):** every PR that changes code (`src/`, `e2e/`, `tests/`, `compass/*.mjs`, `.claude/`, root config files) has a `## Plan` (Files, Steps, Risks, Proof) in its body before coding starts; the CI guardrails check enforces it.
+- **Repo skills (REQ-040):** `.claude/skills/` holds `deliver-change` (the whole delivery checklist), `feature-flag`, `bilingual-strings` and `trip-excel-export`. Each names the check that enforces it (`tests/skills.test.mjs` etc.). When a recurring rule appears, add a skill and, if it must always hold, a test or CI check behind it.
 - **Every new requirement → a GitHub issue BEFORE work starts**, in English, label `requirement`, New-requirement template (story + Given/When/Then). Deferred ideas are logged too, with label `on-hold`.
 - Personal repo → no Issue Types; labels are used: `requirement`, `bug`, `e2e`, `on-hold`.
 - **Bugs:** Playwright failures on `main`/nightly open `[E2E] …` issues automatically (labels `bug`, `e2e`). Christine sends a bug id when she wants it fixed — don't fix bugs unasked; you may investigate and write the root cause on the issue.
@@ -60,7 +61,7 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 
 ## 8. Open items
 - **#56 / REQ-049** (on hold) — high npm audit findings: firebase → @grpc/grpc-js (Node-only, low real risk), Vite 5 dev-server issues (fix = Vite 8 major upgrade). Waiting for Christine's choice.
-- **AI-native SDLC follow-ups** (on hold, intent `intent/2026-11-25-ai-native-sdlc.md`): skills #64, agent evals #65, production monitoring #66, failing-test-first #67, weekly security scan #68, release tags #72, protect the enforcement files #75 (needs her approval: changes `guardrails.json`), merge-pr/plan hardening #81.
+- **AI-native SDLC follow-ups** (on hold, intent `intent/2026-11-25-ai-native-sdlc.md`): agent evals #65, production monitoring #66, failing-test-first #67, weekly security scan #68, release tags #72, protect the enforcement files #75 (needs her approval: changes `guardrails.json`), merge-pr/plan hardening #81.
 - **#39 / REQ-028** (on hold) — archive trips older than a retention period that admin can set; Christine is still thinking.
 - **#31 / REQ-024** — add suggestions from Guides into a trip's checklist (from the Compass portal, in build).
 - **#32 / REQ-025** — accessibility and performance baseline.

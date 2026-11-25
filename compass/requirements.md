@@ -448,6 +448,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 - Given a bug issue · When the fix PR is opened (with the bug label) · Then CI checks that its first commit only adds a test, that the unit test fails at that commit, and that later commits do not edit it
 - Given a later commit edits that test · When CI runs · Then it fails unless the Product Owner approves (human-approved label)
 - Given a PR that closes a bug issue but has no bug label · When compass/merge-pr.mjs runs · Then it refuses to merge
+- Given the test from the first commit hangs or cannot start · When the test-first check runs it · Then the check fails (a run stopped by the time limit does not count as a failing test)
 
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 

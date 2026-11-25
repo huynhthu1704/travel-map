@@ -66,7 +66,7 @@ test('TC-069: npm test runs the test-first check, and the skill describes the ro
 
 // End to end in a throwaway git repository: the script runs the first commit's test and expects it to fail
 const script = fileURLToPath(new URL('../compass/test-first.mjs', import.meta.url));
-function repo(commits) {
+function repo(commits, extraEnv = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'tf-repo-'));
   const env = { ...process.env, GITHUB_EVENT_PATH: '', GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.com', GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@example.com' };
   const git = (...a) => execFileSync('git', a, { cwd: dir, env, stdio: 'pipe' });
@@ -82,7 +82,7 @@ function repo(commits) {
     git('add', '.');
     git('commit', '-qm', 'step');
   }
-  const run = spawnSync(process.execPath, [script, 'base', '--bug'], { cwd: dir, env, encoding: 'utf8' });
+  const run = spawnSync(process.execPath, [script, 'base', '--bug'], { cwd: dir, env: { ...env, ...extraEnv }, encoding: 'utf8' });
   rmSync(dir, { recursive: true, force: true });
   return run;
 }
@@ -103,6 +103,13 @@ test('TC-069: end to end — a test that already passes before the fix, or a fix
   const r2 = repo([{ 'tests/add.test.mjs': failingTest }, { ...fix, 'tests/add.test.mjs': failingTest + '// tweak\n' }]);
   assert.equal(r2.status, 1);
   assert.match(r2.stdout, /changes the failing test/);
+});
+
+test('TC-069: end to end — a test that hangs until the time limit does not count as failing', () => {
+  const hanging = "import test from 'node:test';\ntest('hangs', () => new Promise(() => setInterval(() => {}, 1000)));\n";
+  const r = repo([{ 'tests/add.test.mjs': hanging }, fix], { TEST_FIRST_TIMEOUT_MS: '1500' });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /did not finish .*stopped after 1\.5 s/);
 });
 
 test('TC-069: outside a bug-fix PR the check skips', () => {

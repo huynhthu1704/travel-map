@@ -1,5 +1,6 @@
 // Compass traceability check — run in CI. Exits 1 if the spec is inconsistent.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
+import { handoverProblems } from './build-views.mjs';
 const spec = JSON.parse(readFileSync(new URL('./spec.json', import.meta.url), 'utf8'));
 const errors = [];
 const reqIds = new Set(spec.requirements.map((r) => r.id));
@@ -11,5 +12,9 @@ for (const t of spec.tests) {
   if (!t.reqIds.length) errors.push(`${t.id} does not reference a requirement`);
   for (const id of t.reqIds) if (!reqIds.has(id)) errors.push(`${t.id} references unknown ${id}`);
 }
+// REQ-047: handover.md must match the spec (run `node compass/build-views.mjs` to regenerate)
+const handoverFile = new URL('./handover.md', import.meta.url);
+if (!existsSync(handoverFile)) errors.push('handover.md is missing — run `node compass/build-views.mjs`');
+else for (const p of handoverProblems(spec, readFileSync(handoverFile, 'utf8'))) errors.push(`handover.md is stale (run \`node compass/build-views.mjs\`): ${p}`);
 if (errors.length) { console.error('Compass spec check failed:\n- ' + errors.join('\n- ')); process.exit(1); }
 console.log(`Compass spec OK: ${spec.requirements.length} requirements, ${spec.tests.length} tests`);

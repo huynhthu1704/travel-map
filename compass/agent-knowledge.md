@@ -17,7 +17,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - Design: honey-yellow design system (Figma). Bilingual UI: VI (default) + EN, strings in `src/i18n.jsx` and `src/i18n-en.js`.
 
 ## 3. Delivery contract (AGENTS.md / Compass)
-- Every change has a **REQ** (Given/When/Then acceptance criteria) and at least one **TC** in `compass/spec.json`; `node compass/check-spec.mjs` must pass. `compass/requirements.md` and `compass/tests.md` are generated views of the spec.
+- Every change has a **REQ** (Given/When/Then acceptance criteria) and at least one **TC** in `compass/spec.json`; `node compass/check-spec.mjs` must pass. `compass/requirements.md`, `compass/tests.md` and `compass/handover.md` are generated views of the spec: after editing `spec.json` run `node compass/build-views.mjs` (REQ-047); `check-spec` fails in CI when `handover.md` is stale (open requirements, their status, counts or feature rows differ). If a Compass portal push turns CI on main red for this reason (check-spec and also `npm test`, which compares requirements.md and tests.md with the generator), run `node compass/build-views.mjs` and merge the regenerated files in a small PR.
 - spec.json v2 (portal format): `features` (F-001…), requirements with `story`, `featureId`, `ac` as strings `"Given…\nWhen…\nThen…"`. Baseline of the existing product = REQ-101…153 (TC-101…).
 - Branch `compass/REQ-xxx-short-name`; **≤ 12 files per change**; CI green before merge (squash merge).
 - **Protected paths — never change without explicit approval:** `.github/workflows/`, `compass/guardrails.json`, `.env`, `CNAME`. Never commit secrets or `.env`.

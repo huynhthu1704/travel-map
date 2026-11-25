@@ -40,6 +40,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-035 | Keep the agent working knowledge in the repository | — | Should | Done | TC-057 |
 | REQ-036 | Enforce guardrails.json automatically (hooks + CI check) | — | Must | Done | TC-059 |
 | REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |
+| REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -397,6 +398,13 @@ As the product owner, I want every PR to be reviewed by a separate Claude review
 - Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan) · When a PR is opened · Then a fresh review agent comments its findings on the PR
 - Given the review has a finding marked important · When CI is otherwise green · Then the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it
 - Given the author agent · When the PR is reviewed · Then the author cannot approve its own PR
+
+## REQ-047 — Keep compass/handover.md up to date automatically
+
+As the product owner, I want handover.md regenerated from spec.json and checked on every change, so that it never shows a stale status.
+
+- Given spec.json changes · When node compass/build-views.mjs runs · Then requirements.md, tests.md and handover.md are regenerated from it
+- Given handover.md lists different open requirements or counts than spec.json · When CI runs the spec check · Then CI fails and says how to regenerate it
 
 ## REQ-101 — Sign in with Google
 

@@ -13,6 +13,7 @@ Source of truth: `AGENTS.md`, `REVIEW.md`, `compass/agent-knowledge.md`. This is
 3. **Spec:** add REQ (with `"intent"` from REQ-051) and ≥ 1 TC to `compass/spec.json`; if a decision was made in chat, add an ADR; run `node compass/build-views.mjs`.
 4. **Branch** from fresh `main`: `compass/REQ-xxx-short-name`; ≤ 12 files; never force push.
 5. **Plan** in the PR body before coding: `## Plan` with Files, Steps, Risks, Proof.
+5b. **Bug fix — failing test first (REQ-043):** the PR gets the label `bug`. Commit 1 only adds the failing test (`tests/` or `e2e/`) and nothing else; the fix comes in later commits, which must not edit that test (only with Christine's OK + `human-approved`). Check locally: `node compass/test-first.mjs origin/main --bug`.
 6. **Build + test:** `npm test`, `node compass/check-spec.mjs`, `node compass/check-guardrails.mjs origin/main`, UI tests for UI changes. Commit only after the checks pass (no `| grep` without `set -o pipefail`). Commits start with the REQ id, English, with the attribution trailer.
 7. **PR:** `Closes #N`. Protected paths, deleted files, new or upgraded dependencies and `firestore.rules` need Christine's decision first, then the label `human-approved` (REVIEW.md, CI guardrails check).
 8. **Independent review:** a fresh subagent reviews per `REVIEW.md` and posts `## Independent review (Claude)` with `Reviewed commit: <sha>`. CHANGES NEEDED → fix, new review. Any push after an APPROVE needs a new review.
@@ -20,4 +21,4 @@ Source of truth: `AGENTS.md`, `REVIEW.md`, `compass/agent-knowledge.md`. This is
 10. **Report** to Christine in plain English: what changed, which flag to switch on, anything she must decide.
 
 ## Enforced by
-- `compass/check-spec.mjs` (REQ/TC/ADR/intent/handover), `compass/check-guardrails.mjs` in CI (files, paths, secrets, plan), `compass/merge-pr.mjs` (CI + APPROVE for the head commit), `.claude/settings.json` edit hook.
+- `compass/check-spec.mjs` (REQ/TC/ADR/intent/handover), `compass/check-guardrails.mjs` in CI (files, paths, secrets, plan), `compass/merge-pr.mjs` (CI + APPROVE for the head commit, bug label on bug fixes), `compass/test-first.mjs` via `npm test` (failing test first on `bug` PRs), `.claude/settings.json` edit hook.

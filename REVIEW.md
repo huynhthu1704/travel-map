@@ -23,6 +23,11 @@ The author agent never reviews or approves its own work.
 5. **Maintainability** — only issues that will cause real trouble later (duplicated logic, dead code,
    files growing past `maxLinesPerFile`).
 
+**Bug fixes (REQ-043):** a PR that closes a `bug` issue carries the `bug` label; its first commit only adds the failing
+test and later commits do not edit it (`compass/test-first.mjs` in `npm test` checks this and runs a unit test at the
+first commit). When the failing test is UI-only (`e2e/`), CI cannot run it there: the reviewer checks out the first
+commit, runs that test (`npx playwright test <file>`) and confirms it fails; a test that does not fail is an important finding.
+
 ## Severity
 - **important** — must be fixed before merge: a bug users would hit, an acceptance criterion not met or not
   tested, a security/privacy risk, a guardrail broken.

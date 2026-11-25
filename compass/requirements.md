@@ -43,6 +43,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-038 | Capture intent in intent.md before writing requirements | — | Should | Done | TC-063 |
 | REQ-039 | Write a plan before coding each requirement | — | Should | Done | TC-064 |
 | REQ-040 | Turn project policies into repo skills | — | Should | Done | TC-065, TC-066 |
+| REQ-043 | Failing test committed before the fix for every bug | — | Could | Done | TC-069 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
@@ -437,6 +438,16 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 - Given a skill for a policy · When a session does work that matches it · Then the skill is loaded and followed
 - Given a policy that must always hold · When it is written as a skill · Then it also has a hook or CI check behind it
+
+## REQ-043 — Failing test committed before the fix for every bug
+
+As the product owner, I want bug fixes to start with a separate commit that adds a failing test, and the fix commit not to change that test, so that the fix provably addresses the reported bug.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
+- Given a bug issue · When the fix PR is opened (with the bug label) · Then CI checks that its first commit only adds a test, that the unit test fails at that commit, and that later commits do not edit it
+- Given a later commit edits that test · When CI runs · Then it fails unless the Product Owner approves (human-approved label)
+- Given a PR that closes a bug issue but has no bug label · When compass/merge-pr.mjs runs · Then it refuses to merge
 
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 

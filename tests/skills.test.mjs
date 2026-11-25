@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { FLAGS } from '../src/data/flags.js';
+import EN_DICT from '../src/i18n-en.js';
 
 const root = new URL('../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, root), 'utf8');
@@ -38,23 +39,29 @@ test('TC-065: every skill names the check that enforces it, and those files exis
 });
 
 // The checks behind the must-hold policies
-const dict = (src) => Object.fromEntries([...src.matchAll(/^\s*'([\w.-]+)':\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`[^`]*`)/gm)].map((m) => [m[1], m[2]]));
+// Keys may be written in single or double quotes (review finding on PR #83)
+const dict = (src) => Object.fromEntries([...src.matchAll(/^\s*(['"])([\w.-]+)\1:\s*('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`[^`]*`)/gm)].map((m) => [m[2], m[3]]));
 const vi = dict(read('src/i18n.jsx').split('export function loadLangDict')[0]);
 const en = dict(read('src/i18n-en.js'));
 const vars = (s) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]))].sort().join(',');
 
 test('TC-066: the Vietnamese and English dictionaries have the same keys and placeholders', () => {
-  assert.ok(Object.keys(vi).length > 1000);
+  // The parser must see every key, so no quoting style can slip past the check
+  assert.equal(Object.keys(en).length, Object.keys(EN_DICT).length, 'parser read every key of src/i18n-en.js');
   assert.deepEqual(Object.keys(vi).filter((k) => !(k in en)), [], 'keys missing in src/i18n-en.js');
   assert.deepEqual(Object.keys(en).filter((k) => !(k in vi)), [], 'keys missing in src/i18n.jsx');
   const mismatched = Object.keys(vi).filter((k) => vars(vi[k]) !== vars(en[k]));
   assert.deepEqual(mismatched, [], 'same {placeholders} in both languages');
 });
 
+const LEGACY_FLAGS = ['gear', 'guideLinks', 'guideFoodCities', 'guideCosts', 'guideToTrip', 'explore', 'trips', 'tripInvites', 'tripCosts', 'tripChecklist', 'tripPdf', 'tripDuplicate', 'recap', 'share', 'likes', 'follow', 'wikidata', 'popularPlaces', 'quickTour', 'feedback', 'sponsor', 'whatsNew', 'pullToRefresh', 'guide', 'tips'];
+
 test('TC-066: feature flags have VI/EN texts; new flags are default-off with a value text', () => {
   for (const f of FLAGS) {
     for (const part of ['name', 'desc']) assert.ok(f[part]?.vi && f[part]?.en, `${f.key}: ${part} in vi and en`);
-    if (f.since && f.since >= '2026-11-20') {
+    // Flags without a date are only the legacy ones listed here; every new flag must carry since
+    if (!f.since) assert.ok(LEGACY_FLAGS.includes(f.key), `${f.key}: new flags need a since date`);
+    if (!LEGACY_FLAGS.includes(f.key) && f.since >= '2026-11-20') {
       assert.equal(f.defaultOn, false, `${f.key}: new flags start off`);
       assert.ok(f.value?.vi && f.value?.en, `${f.key}: value text in vi and en`);
     }

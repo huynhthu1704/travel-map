@@ -59,7 +59,7 @@ any later push needs a fresh review before merging (`compass/merge-pr.mjs` enfor
 
 ## What a person still reviews
 The Product Owner decides — the review agent cannot approve — when a PR:
-- changes a protected path (`.github/workflows/`, `compass/guardrails.json`, `.env`, `CNAME`),
+- changes a protected path (`.github/workflows/`, `compass/guardrails.json`, the enforcement files (`compass/check-guardrails.mjs`, `compass/guardrails-lib.mjs`, `compass/hooks/`, `.claude/settings.json`, `.claude/settings.local.json`, REQ-050), `.env`, `CNAME`),
 - changes `firestore.rules`, deletes files or adds/upgrades a dependency,
 - deletes or migrates user data, or changes costs, payments or sign-in.
 

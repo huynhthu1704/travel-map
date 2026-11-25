@@ -23,7 +23,7 @@ traceable reasons (intent + ADRs).
 
 ## Out of scope
 On hold for now: agent evals (#65), production monitoring (#66), failing-test-first rule (#67),
-weekly security scan (#68), release tags (#72), protecting the enforcement files (#75).
+weekly security scan (#68), release tags (#72).
 
 ## Requirements
 - REQ-036 — Enforce guardrails.json automatically (#60)
@@ -34,4 +34,5 @@ weekly security scan (#68), release tags (#72), protecting the enforcement files
 - REQ-040 — Turn project policies into repo skills (#64) — taken off hold by the Product Owner on 2026-11-25 ("fix #64")
 - REQ-046 — Record decisions as ADRs (#70)
 - REQ-047 — Keep handover.md up to date automatically (#71)
+- REQ-050 — Protect the guardrail enforcement files themselves (#75) — taken off hold by the Product Owner on 2026-11-25 together with #81
 - REQ-051 — Harden merge-pr and the plan check (#81) — follow-up of the PR #80 and #83 reviews, taken off hold by the Product Owner on 2026-11-25 ("fix #75 and #81")

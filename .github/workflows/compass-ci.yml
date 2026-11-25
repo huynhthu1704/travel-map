@@ -24,9 +24,14 @@ jobs:
       - name: Spec traceability check
         run: node compass/check-spec.mjs
       # REQ-036: protected/forbidden paths, max files per change, secrets, dependency changes (compass/guardrails.json)
+      # REQ-050: run main's copy of the check and its rules (HEAD^1 = main in the PR merge commit) against the PR's
+      # change, so a PR that weakens the check or drops its own protected paths is still judged by main's rules.
+      # Keep this step in the "test" job: compass/merge-pr.mjs only counts the "test" and "e2e" checks.
       - name: Guardrails check
         if: github.event_name == 'pull_request'
-        run: node compass/check-guardrails.mjs
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/guardrails-base" HEAD^1
+          node "$RUNNER_TEMP/guardrails-base/compass/check-guardrails.mjs"
       - name: Install
         run: if [ -f package-lock.json ]; then npm ci; elif [ -f package.json ]; then npm install; fi
       # REQ-034: library security check. Critical issues in the libraries shipped to users block the build;

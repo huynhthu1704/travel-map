@@ -1314,6 +1314,18 @@
         "Given an ADR without context, decision or consequences, with a duplicate id or an unknown requirement\nWhen CI runs the spec check\nThen it fails"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #70)."
+    },
+    {
+      "id": "REQ-045",
+      "title": "CLAUDE.md as the project lessons-learned memory",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want CLAUDE.md to keep commands, conventions and recurring mistakes in under a page, so that new sessions do not repeat known mistakes.",
+      "ac": [
+        "Given the agent makes the same mistake twice\nWhen it is corrected\nThen the correction is added to CLAUDE.md in the same PR",
+        "Given CLAUDE.md\nWhen it is reviewed\nThen it stays under one page and still loads the agent working knowledge"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #69)."
     }
   ],
   "tests": [
@@ -2109,6 +2121,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/decisions.test.mjs"
+    },
+    {
+      "id": "TC-062",
+      "title": "CLAUDE.md: under one page, commands, lessons-learned section and rule, knowledge import",
+      "reqIds": [
+        "REQ-045"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/claudeMd.test.mjs"
     }
   ]
 }

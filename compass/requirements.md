@@ -40,6 +40,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-035 | Keep the agent working knowledge in the repository | — | Should | Done | TC-057 |
 | REQ-036 | Enforce guardrails.json automatically (hooks + CI check) | — | Must | Done | TC-059 |
 | REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |
+| REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
@@ -399,6 +400,13 @@ As the product owner, I want every PR to be reviewed by a separate Claude review
 - Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan) · When a PR is opened · Then a fresh review agent comments its findings on the PR
 - Given the review has a finding marked important · When CI is otherwise green · Then the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it
 - Given the author agent · When the PR is reviewed · Then the author cannot approve its own PR
+
+## REQ-045 — CLAUDE.md as the project lessons-learned memory
+
+As the product owner, I want CLAUDE.md to keep commands, conventions and recurring mistakes in under a page, so that new sessions do not repeat known mistakes.
+
+- Given the agent makes the same mistake twice · When it is corrected · Then the correction is added to CLAUDE.md in the same PR
+- Given CLAUDE.md · When it is reviewed · Then it stays under one page and still loads the agent working knowledge
 
 ## REQ-046 — Record decisions as ADRs in compass/decisions.md
 

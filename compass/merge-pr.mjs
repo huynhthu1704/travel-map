@@ -1,7 +1,7 @@
 // REQ-039 (+ REQ-037): merge a pull request only when the delivery rules hold, and keep the plan in git history.
 // Usage: node compass/merge-pr.mjs <pr-number> [--dry-run]
 // Checks: the Compass CI jobs passed on the head commit · the latest independent review by a trusted author says
-// APPROVE for exactly that head commit · a code PR still has a filled-in Plan (REQ-051) · firestore.rules changes carry the human-approved label. Then squash-merges
+// APPROVE for exactly that head commit · a code PR still has a filled-in Plan (REQ-051) · a fix for a bug issue carries the bug label (REQ-043) · firestore.rules changes carry the human-approved label. Then squash-merges
 // (pinned to the reviewed commit) with the PR's "## Plan" as the commit message and comments on each "Closes #N"
 // issue with the branch, PR and merge commit (traceability rule). Uses the REST API only (no GraphQL).
 import { execFileSync } from 'node:child_process';
@@ -33,7 +33,7 @@ export function latestReview(comments) {
 export const latestReviewVerdict = (comments) => latestReview(comments)?.verdict ?? null;
 
 /** Reasons the PR must not be merged yet (empty = OK). */
-export function mergeBlockers({ checkRuns, comments, files, labels, headSha, body }) {
+export function mergeBlockers({ checkRuns, comments, files, labels, headSha, body, bugIssues = [] }) {
   const blockers = [];
   const runs = checkRuns || [];
   for (const name of REQUIRED_CHECKS) {
@@ -49,6 +49,8 @@ export function mergeBlockers({ checkRuns, comments, files, labels, headSha, bod
   else if (!review.sha || !headSha || !headSha.startsWith(review.sha)) blockers.push(`the APPROVE review is for commit ${review.sha || '(none given)'}, but the PR head is ${headSha} — ask for a fresh review of the latest commit`);
   // REQ-051: CI checked the plan when it ran; the body may have been edited since, so check it again now
   for (const p of planProblems(body, (files || []).map((f) => ({ path: f.filename })))) blockers.push(`plan: ${p}`);
+  // REQ-043: a fix for a bug issue needs the bug label, so the CI test-first check (compass/test-first.mjs) ran on it
+  for (const i of bugIssues) if (!(labels || []).includes('bug')) blockers.push(`#${i} is a bug — add the "bug" label to the PR so CI checks that a failing test was committed first (REQ-043), then wait for CI`);
   if ((files || []).some((f) => f.filename === 'firestore.rules') && !(labels || []).includes(APPROVAL_LABEL)) blockers.push(`firestore.rules changed — the Product Owner decides (REVIEW.md); add "${APPROVAL_LABEL}" after she approves`);
   return blockers;
 }
@@ -85,6 +87,8 @@ if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.
       console.log(`PR #${n} is already merged.`);
       process.exit(0);
     }
+    const issues = parseCloses(pr.body);
+    const bugIssues = issues.filter((i) => api(`repos/${repo}/issues/${i}`).labels.some((l) => l.name === 'bug'));
     const blockers = mergeBlockers({
       checkRuns: all(`repos/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`, 'check_runs'),
       comments: all(`repos/${repo}/issues/${n}/comments?per_page=100`),
@@ -92,13 +96,13 @@ if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.
       labels: pr.labels.map((l) => l.name),
       headSha: pr.head.sha,
       body: pr.body,
+      bugIssues,
     });
     if (blockers.length) {
       console.error(`Not merging PR #${n}:\n- ${blockers.join('\n- ')}`);
       process.exit(1);
     }
     const message = commitMessage(pr.body, process.env.MERGE_TRAILER || '');
-    const issues = parseCloses(pr.body);
     if (dry) {
       console.log(`PR #${n} can be merged (head ${pr.head.sha}). Commit message:\n\n${message}\n\nWould comment on: ${issues.map((i) => `#${i}`).join(', ') || '—'}`);
       process.exit(0);

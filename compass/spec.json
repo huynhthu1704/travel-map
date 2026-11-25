@@ -1411,6 +1411,20 @@
         "Given a feature flag that is not in the legacy list\nWhen the unit tests run\nThen it must be default-off with a VI/EN value text, whatever its since date"
       ],
       "source": "Follow-ups from the APPROVE reviews of PR #80 and PR #83; requested by the Product Owner on 2026-11-25 (issue #81)."
+    },
+    {
+      "id": "REQ-043",
+      "title": "Failing test committed before the fix for every bug",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want bug fixes to start with a separate commit that adds a failing test, and the fix commit not to change that test, so that the fix provably addresses the reported bug.",
+      "ac": [
+        "Given a bug issue\nWhen the fix PR is opened (with the bug label)\nThen CI checks that its first commit only adds a test, that the unit test fails at that commit, and that later commits do not edit it",
+        "Given a later commit edits that test\nWhen CI runs\nThen it fails unless the Product Owner approves (human-approved label)",
+        "Given a PR that closes a bug issue but has no bug label\nWhen compass/merge-pr.mjs runs\nThen it refuses to merge"
+      ],
+      "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: feedback loop for self-verification); taken off hold by the Product Owner on 2026-11-25 (\"fix #67\", issue #67)."
     }
   ],
   "tests": [
@@ -2267,6 +2281,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/guardrails.test.mjs"
+    },
+    {
+      "id": "TC-069",
+      "title": "Test-first check: the first commit only adds a test that fails before the fix, later commits do not edit it unless human-approved, merge-pr needs the bug label for bug issues",
+      "reqIds": [
+        "REQ-043"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/testFirst.test.mjs"
     },
     {
       "id": "TC-067",

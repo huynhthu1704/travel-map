@@ -32,7 +32,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - **Repo skills (REQ-040):** `.claude/skills/` holds `deliver-change` (the whole delivery checklist), `feature-flag`, `bilingual-strings` and `trip-excel-export`. Each names the check that enforces it (`tests/skills.test.mjs` etc.). When a recurring rule appears, add a skill and, if it must always hold, a test or CI check behind it.
 - **Every new requirement → a GitHub issue BEFORE work starts**, in English, label `requirement`, New-requirement template (story + Given/When/Then). Deferred ideas are logged too, with label `on-hold`.
 - Personal repo → no Issue Types; labels are used: `requirement`, `bug`, `e2e`, `on-hold`.
-- **Bugs:** Playwright failures on `main`/nightly open `[E2E] …` issues automatically (labels `bug`, `e2e`). Christine sends a bug id when she wants it fixed — don't fix bugs unasked; you may investigate and write the root cause on the issue.
+- **Bugs:** Playwright failures on `main`/nightly open `[E2E] …` issues automatically (labels `bug`, `e2e`). Christine sends a bug id when she wants it fixed — don't fix bugs unasked; you may investigate and write the root cause on the issue. **Failing test first (REQ-043):** the fix PR gets the `bug` label; commit 1 only adds the failing test, later commits must not edit it (`compass/test-first.mjs`, run by `npm test`; `merge-pr` refuses a fix for a `bug` issue without the label).
 - **Linking:** PR body contains `Closes #N`; after merging, comment on the issue with the branch link, PR number and merge commit SHA (GraphQL/linked branches are not available).
 
 ## 5. Feature flags
@@ -61,7 +61,7 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 
 ## 8. Open items
 - **#56 / REQ-049** (on hold) — high npm audit findings: firebase → @grpc/grpc-js (Node-only, low real risk), Vite 5 dev-server issues (fix = Vite 8 major upgrade). Waiting for Christine's choice.
-- **AI-native SDLC follow-ups** (on hold, intent `intent/2026-11-25-ai-native-sdlc.md`): agent evals #65, production monitoring #66, failing-test-first #67, weekly security scan #68, release tags #72. Done: merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
+- **AI-native SDLC follow-ups** (on hold, intent `intent/2026-11-25-ai-native-sdlc.md`): agent evals #65, production monitoring #66, weekly security scan #68, release tags #72. Done: failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
 - **#39 / REQ-028** (on hold) — archive trips older than a retention period that admin can set; Christine is still thinking.
 - **#31 / REQ-024** — add suggestions from Guides into a trip's checklist (from the Compass portal, in build).
 - **#32 / REQ-025** — accessibility and performance baseline.

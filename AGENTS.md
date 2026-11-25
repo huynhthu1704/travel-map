@@ -27,7 +27,7 @@ node compass/check-spec.mjs   # traceability check: every REQ has a TC, every TC
 ## Rules for AI agents
 - Read `compass/spec.json` and `compass/handover.md` before changing anything.
 - Only implement requirements whose status is **Approved** or **In build**.
-- Never touch paths listed in `compass/guardrails.json → protectedPaths` without explicit human approval.
+- Never touch paths listed in `compass/guardrails.json → protectedPaths` without explicit human approval. This is enforced (REQ-036): a Claude Code hook (`.claude/settings.json` → `compass/hooks/guard-edit.mjs`) blocks such edits, and CI (`compass/check-guardrails.mjs`) fails a PR that breaks `guardrails.json` unless it has the `human-approved` label, which is added only after the Product Owner approves in chat.
 - Never commit secrets, tokens or `.env` files.
 - Keep changes small (≤ 12 files); add or update tests with every behaviour change.
 - Write code comments, commit messages and GitHub issues in English.

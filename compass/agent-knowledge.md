@@ -21,6 +21,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - spec.json v2 (portal format): `features` (F-001…), requirements with `story`, `featureId`, `ac` as strings `"Given…\nWhen…\nThen…"`. Baseline of the existing product = REQ-101…153 (TC-101…).
 - Branch `compass/REQ-xxx-short-name`; **≤ 12 files per change**; CI green before merge (squash merge).
 - **Protected paths — never change without explicit approval:** `.github/workflows/`, `compass/guardrails.json`, `.env`, `CNAME`. Never commit secrets or `.env`.
+- **Guardrails are enforced (REQ-036):** the edit hook blocks protected/forbidden paths and secrets (approval route: Christine approves in chat → add the path to `.claude/approved-paths.local.json`); the CI *Guardrails check* fails PRs over 12 files, with forbidden paths, secrets, or — without the `human-approved` label — protected paths, deletions or dependency changes.
 - **Never force push** (use a new branch name such as `-v2` instead). Deleting files needs Christine's OK.
 - The Compass portal sometimes commits straight to `main` and can overwrite `compass/spec.json` — merge by requirement id instead of taking one side.
 - Commit messages: English, start with the REQ id (bug fixes use the related REQ id, e.g. `REQ-143: fix … (#54)`).

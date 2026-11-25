@@ -1,6 +1,8 @@
 name: Compass CI
 on:
   pull_request:
+    # labeled/unlabeled: adding the human-approved label re-runs the guardrails check (REQ-036)
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main, master]
   # Nightly UI test run (03:00 Vietnam time) so regressions are logged as issues even without new commits
@@ -15,10 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: Spec traceability check
         run: node compass/check-spec.mjs
+      # REQ-036: protected/forbidden paths, max files per change, secrets, dependency changes (compass/guardrails.json)
+      - name: Guardrails check
+        if: github.event_name == 'pull_request'
+        run: node compass/check-guardrails.mjs
       - name: Install
         run: if [ -f package-lock.json ]; then npm ci; elif [ -f package.json ]; then npm install; fi
       # REQ-034: library security check. Critical issues in the libraries shipped to users block the build;

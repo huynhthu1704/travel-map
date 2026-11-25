@@ -6,7 +6,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 ## 1. People and how to work with Christine
 - Christine is the **product owner**, not an IT specialist. Explain in plain words, avoid jargon, give "how to check it yourself" steps when useful.
 - **Reply to her in English.** Everything written into the repo (code comments, commits, PRs, issues, spec) is in **English**.
-- She prefers to be told results after the fact: **auto-merge a PR as soon as CI is green and the independent review says APPROVE, then report** (standing instruction until she says otherwise). Review rules: `REVIEW.md` (REQ-037) — a fresh subagent reviews each PR; any *important* finding blocks the merge; fix, re-review, and ask her if it is still not clean after the second fix.
+- She prefers to be told results after the fact: **auto-merge a PR as soon as CI is green and the independent review says APPROVE, then report** (standing instruction until she says otherwise). Review rules: `REVIEW.md` (REQ-037) — a fresh subagent reviews each PR; any *important* finding blocks the merge, and PRs listed under *What a person still reviews* in REVIEW.md (protected paths, `firestore.rules`, deletes, dependencies, user data, costs/sign-in) wait for her decision; fix, re-review, and ask her if it is still not clean after the second fix.
 - Ask her before anything hard to undo: deleting files, changing CI/deploy workflows, protected paths, branch protection, new paid services.
 
 ## 2. The product

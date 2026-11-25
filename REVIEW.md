@@ -54,5 +54,6 @@ The Product Owner decides — the review agent cannot approve — when a PR:
 - deletes or migrates user data, or changes costs, payments or sign-in.
 
 ## Repeated findings
-If the same kind of important finding appears in two PRs, add the lesson to `compass/agent-knowledge.md`
+Reviewers start fresh, so the **author agent** checks earlier `## Independent review (Claude)` comments and
+`compass/agent-knowledge.md` before fixing. If the same kind of important finding appears in two PRs, add the lesson to `compass/agent-knowledge.md`
 (loaded by `CLAUDE.md`) in the fixing PR so later sessions avoid it.

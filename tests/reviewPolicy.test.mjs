@@ -21,6 +21,6 @@ test('TC-058: important findings block the merge and the author cannot approve i
 
 test('TC-058: the workflow, the PR template and the agent knowledge point to REVIEW.md', () => {
   assert.match(read('AGENTS.md'), /REVIEW\.md/);
-  assert.match(read('.github/pull_request_template.md'), /Independent review/);
+  assert.match(read('.github/pull_request_template.md'), /Independent review[\s\S]*REVIEW\.md/);
   assert.match(read('compass/agent-knowledge.md'), /REVIEW\.md/);
 });

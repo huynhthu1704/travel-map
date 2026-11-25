@@ -42,6 +42,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |
 | REQ-038 | Capture intent in intent.md before writing requirements | — | Should | Done | TC-063 |
 | REQ-039 | Write a plan before coding each requirement | — | Should | Done | TC-064 |
+| REQ-040 | Turn project policies into repo skills | — | Should | Done | TC-065, TC-066 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
@@ -425,6 +426,15 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 - Given an approved requirement · When work starts · Then the PR has a Plan section listing files, steps, risks and proof, and CI fails a PR that changes code without it
 - Given the plan changes during the work · When the PR is merged · Then the updated plan is committed with the code as the squash-commit message
+
+## REQ-040 — Turn project policies into repo skills
+
+As the product owner, I want recurring rules (feature flags, VI/EN strings, GitHub issue/PR linking, Excel export rules) packaged as skills in .claude/skills/, so that every session applies them the same way.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
+- Given a skill for a policy · When a session does work that matches it · Then the skill is loaded and followed
+- Given a policy that must always hold · When it is written as a skill · Then it also has a hook or CI check behind it
 
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 

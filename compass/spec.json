@@ -1358,6 +1358,19 @@
         "Given the plan changes during the work\nWhen the PR is merged\nThen the updated plan is committed with the code as the squash-commit message"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #63)."
+    },
+    {
+      "id": "REQ-040",
+      "title": "Turn project policies into repo skills",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want recurring rules (feature flags, VI/EN strings, GitHub issue/PR linking, Excel export rules) packaged as skills in .claude/skills/, so that every session applies them the same way.",
+      "ac": [
+        "Given a skill for a policy\nWhen a session does work that matches it\nThen the skill is loaded and followed",
+        "Given a policy that must always hold\nWhen it is written as a skill\nThen it also has a hook or CI check behind it"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #64)."
     }
   ],
   "tests": [
@@ -2183,6 +2196,26 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/plan.test.mjs"
+    },
+    {
+      "id": "TC-065",
+      "title": "Skills: four policy skills with valid frontmatter, use-when descriptions and an existing enforcing check",
+      "reqIds": [
+        "REQ-040"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/skills.test.mjs"
+    },
+    {
+      "id": "TC-066",
+      "title": "Policy checks behind the skills: VI/EN keys and placeholders match; flags have VI/EN texts and new flags are default-off with a value",
+      "reqIds": [
+        "REQ-040"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/skills.test.mjs"
     }
   ]
 }

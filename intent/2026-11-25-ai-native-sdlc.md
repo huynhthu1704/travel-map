@@ -22,7 +22,7 @@ Each of the seven requirements is merged with a test; every later PR has an inde
 traceable reasons (intent + ADRs).
 
 ## Out of scope
-On hold for now: skills (#64), agent evals (#65), production monitoring (#66), failing-test-first rule (#67),
+On hold for now: agent evals (#65), production monitoring (#66), failing-test-first rule (#67),
 weekly security scan (#68), release tags (#72), protecting the enforcement files (#75).
 
 ## Requirements
@@ -31,5 +31,6 @@ weekly security scan (#68), release tags (#72), protecting the enforcement files
 - REQ-038 — Capture intent before writing requirements (#62)
 - REQ-039 — Write a plan before coding each requirement (#63)
 - REQ-045 — CLAUDE.md as the lessons-learned memory (#69)
+- REQ-040 — Turn project policies into repo skills (#64) — taken off hold by the Product Owner on 2026-11-25 ("fix #64")
 - REQ-046 — Record decisions as ADRs (#70)
 - REQ-047 — Keep handover.md up to date automatically (#71)

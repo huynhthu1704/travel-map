@@ -11,9 +11,9 @@ test('TC-064: a PR that changes code needs a filled-in Plan; docs-only PRs do no
   assert.match(extractPlan(good), /^- Files: src\/a\.js/);
   assert.deepEqual(planProblems(good, [{ path: 'src/a.js' }]), []);
   assert.match(planProblems('## What\nx', [{ path: 'src/a.js' }])[0], /no "## Plan" section/);
-  assert.match(planProblems('## Plan\n<!-- hint -->\n- Files:\n- Risks:\n- Proof:', [{ path: 'compass/x.mjs' }])[0], /Files, Risks, Proof/);
+  assert.match(planProblems('## Plan\n<!-- hint -->\n- Files:\n- Steps:\n- Risks:\n- Proof:', [{ path: 'compass/x.mjs' }])[0], /Files, Steps, Risks, Proof/);
   assert.deepEqual(planProblems('', [{ path: 'README.md' }, { path: 'compass/spec.json' }]), []);
-  assert.deepEqual(planProblems('## Plan\n- **Files** (3): a\n- Risks: r\n- Proof: p', [{ path: 'e2e/x.spec.mjs' }]), []);
+  assert.deepEqual(planProblems('## Plan\n- **Files** (3): a\n- Steps: s\n- Risks: r\n- Proof: p', [{ path: 'e2e/x.spec.mjs' }]), []);
 });
 
 test('TC-064: the PR template asks for the plan', () => {

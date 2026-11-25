@@ -3,7 +3,7 @@
 // Locally: node compass/test-first.mjs [baseRef] --bug   (default base origin/main)
 // Checks: ≥ 2 commits · the first commit only touches tests/ or e2e/ and adds or changes a test · later commits do
 // not touch those test files (unless the PR has the human-approved label) · the unit tests of the first commit
-// fail at that commit (e2e-only tests cannot run in the test job: the independent reviewer checks those).
+// fail at that commit — a run that times out does not count (e2e-only tests cannot run in the test job: the independent reviewer checks those).
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -14,6 +14,8 @@ export const BUG_LABEL = 'bug';
 export const APPROVAL_LABEL = 'human-approved';
 export const TEST_PATH = /^(tests|e2e)\//;
 export const UNIT_TEST = /^tests\/[^/]+\.test\.mjs$/;
+// How long the first commit's test may run (TEST_FIRST_TIMEOUT_MS lets the unit test use a short limit)
+export const PROOF_TIMEOUT_MS = Number(process.env.TEST_FIRST_TIMEOUT_MS) || 300000;
 
 /**
  * Rules for the commits of a bug-fix PR, oldest first.
@@ -84,8 +86,10 @@ if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.
       // NODE_TEST_CONTEXT would make the child report to a parent test runner instead of setting its exit code
       const { NODE_TEST_CONTEXT, ...rest } = process.env;
       const env = { ...rest, GITHUB_EVENT_PATH: '' };
-      const run = spawnSync(process.execPath, ['--test', ...unitTests], { cwd: tree, env, encoding: 'utf8', timeout: 300000 });
-      if (run.status === 0) errors.push(`the test from the first commit passes without the fix (${unitTests.join(', ')}) — it does not reproduce the bug.`);
+      const run = spawnSync(process.execPath, ['--test', ...unitTests], { cwd: tree, env, encoding: 'utf8', timeout: PROOF_TIMEOUT_MS });
+      // A run that hangs (killed by the timeout) or cannot start proves nothing: only a finished, failing run counts
+      if (run.error || run.status === null) errors.push(`the test from the first commit did not finish (${unitTests.join(', ')}): ${run.error?.code === 'ETIMEDOUT' || run.signal ? `stopped after ${PROOF_TIMEOUT_MS / 1000} s` : run.error?.message || 'no exit code'} — a hanging test does not prove the bug; make it fail fast.`);
+      else if (run.status === 0) errors.push(`the test from the first commit passes without the fix (${unitTests.join(', ')}) — it does not reproduce the bug.`);
       else console.log(`Test-first proof: ${unitTests.join(', ')} fails at ${commits[0].sha.slice(0, 7)} (before the fix), as expected.`);
     } finally {
       try {

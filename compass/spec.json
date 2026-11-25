@@ -1135,6 +1135,18 @@
         "Given a protected path change, a deleted file or a dependency change approved by the Product Owner\nWhen the PR carries the human-approved label\nThen the CI check passes"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #60); workflow change approved in chat."
+    },
+    {
+      "id": "REQ-047",
+      "title": "Keep compass/handover.md up to date automatically",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want handover.md regenerated from spec.json and checked on every change, so that it never shows a stale status.",
+      "ac": [
+        "Given spec.json changes\nWhen node compass/build-views.mjs runs\nThen requirements.md, tests.md and handover.md are regenerated from it",
+        "Given handover.md lists different open requirements or counts than spec.json\nWhen CI runs the spec check\nThen CI fails and says how to regenerate it"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #71)."
     }
   ],
   "tests": [
@@ -1910,6 +1922,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/guardrails.test.mjs"
+    },
+    {
+      "id": "TC-060",
+      "title": "Handover: open requirements, counts and feature stage; stale handover detected; committed file is current",
+      "reqIds": [
+        "REQ-047"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/handover.test.mjs"
     }
   ]
 }

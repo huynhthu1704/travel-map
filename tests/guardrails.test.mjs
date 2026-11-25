@@ -78,3 +78,22 @@ test('TC-059: the hook script itself blocks through a folder with a space and th
   const bad = spawnSync(process.execPath, [join(link, 'compass/hooks/guard-edit.mjs')], { input: '{not json' });
   assert.equal(bad.status, 2, 'fails closed on unreadable input');
 });
+
+// TC-068 — the enforcement files are protected too (REQ-050)
+const ENFORCEMENT = ['compass/check-guardrails.mjs', 'compass/guardrails-lib.mjs', 'compass/hooks/guard-edit.mjs', '.claude/settings.json'];
+
+test('TC-068: changing an enforcement file fails the Guardrails check without the human-approved label', () => {
+  for (const p of ENFORCEMENT) {
+    assert.match(checkChange([f(p)], g).errors[0] || '', /protected path/, `${p} needs approval`);
+    assert.deepEqual(checkChange([f(p)], g, { labels: [APPROVAL_LABEL] }).errors, [], `${p} passes with approval`);
+  }
+  assert.equal(checkChange([f('compass/hooks/new-hook.mjs', { status: 'A' })], g).errors.length, 1, 'a new hook file is protected too');
+  assert.deepEqual(checkChange([f('compass/merge-pr.mjs'), f('.claude/skills/x/SKILL.md')], g).errors, [], 'other compass and .claude files stay open');
+});
+
+test('TC-068: the edit hook blocks the enforcement files until the Product Owner approves them', () => {
+  for (const p of ENFORCEMENT) {
+    assert.equal(decide({ tool_input: { file_path: join(repo, p), new_string: 'x' } }, g).block, true, p);
+    assert.equal(decide({ tool_input: { file_path: join(repo, p), new_string: 'x' } }, g, [p]).block, false, `${p} approved`);
+  }
+});

@@ -20,7 +20,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - Every change has a **REQ** (Given/When/Then acceptance criteria) and at least one **TC** in `compass/spec.json`; `node compass/check-spec.mjs` must pass. `compass/requirements.md`, `compass/tests.md`, `compass/handover.md` and `compass/decisions.md` are generated views of the spec: after editing `spec.json` run `node compass/build-views.mjs` (REQ-047); `check-spec` fails in CI when `handover.md` is stale (open requirements, their status, counts or feature rows differ). If a Compass portal push turns CI on main red for this reason (check-spec and also `npm test`, which compares requirements.md, tests.md and decisions.md with the generator), run `node compass/build-views.mjs` and merge the regenerated files in a small PR.
 - spec.json v2 (portal format): `features` (F-001…), requirements with `story`, `featureId`, `ac` as strings `"Given…\nWhen…\nThen…"`. Baseline of the existing product = REQ-101…153 (TC-101…).
 - Branch `compass/REQ-xxx-short-name`; **≤ 12 files per change**; CI green before merge (squash merge).
-- **Protected paths — never change without explicit approval:** `.github/workflows/`, `compass/guardrails.json`, `.env`, `CNAME`. Never commit secrets or `.env`.
+- **Protected paths — never change without explicit approval:** `.github/workflows/`, `compass/guardrails.json`, the enforcement files (`compass/check-guardrails.mjs`, `compass/guardrails-lib.mjs`, `compass/hooks/`, `.claude/settings.json`, REQ-050), `.env`, `CNAME`. Never commit secrets or `.env`.
 - **Guardrails are enforced (REQ-036):** the edit hook blocks protected/forbidden paths and secrets (approval route: Christine approves in chat → add the path to `.claude/approved-paths.local.json`); the CI *Guardrails check* fails PRs over 12 files, with forbidden paths, secrets, or — without the `human-approved` label — protected paths, deletions or dependency changes.
 - **Never force push** (use a new branch name such as `-v2` instead). Deleting files needs Christine's OK.
 - The Compass portal sometimes commits straight to `main` and can overwrite `compass/spec.json` — merge by requirement id instead of taking one side.
@@ -61,7 +61,7 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 
 ## 8. Open items
 - **#56 / REQ-049** (on hold) — high npm audit findings: firebase → @grpc/grpc-js (Node-only, low real risk), Vite 5 dev-server issues (fix = Vite 8 major upgrade). Waiting for Christine's choice.
-- **AI-native SDLC follow-ups** (on hold, intent `intent/2026-11-25-ai-native-sdlc.md`): agent evals #65, production monitoring #66, failing-test-first #67, weekly security scan #68, release tags #72, protect the enforcement files #75 (needs her approval: changes `guardrails.json`). Done: merge-pr/plan hardening #81 (REQ-051).
+- **AI-native SDLC follow-ups** (on hold, intent `intent/2026-11-25-ai-native-sdlc.md`): agent evals #65, production monitoring #66, failing-test-first #67, weekly security scan #68, release tags #72. Done: merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
 - **#39 / REQ-028** (on hold) — archive trips older than a retention period that admin can set; Christine is still thinking.
 - **#31 / REQ-024** — add suggestions from Guides into a trip's checklist (from the Compass portal, in build).
 - **#32 / REQ-025** — accessibility and performance baseline.

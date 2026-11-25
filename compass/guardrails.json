@@ -3,6 +3,10 @@
   "protectedPaths": [
     ".github/workflows/",
     "compass/guardrails.json",
+    "compass/check-guardrails.mjs",
+    "compass/guardrails-lib.mjs",
+    "compass/hooks/",
+    ".claude/settings.json",
     ".env",
     "CNAME"
   ],

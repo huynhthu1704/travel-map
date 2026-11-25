@@ -196,6 +196,18 @@
       "reqIds": [
         "REQ-028"
       ]
+    },
+    {
+      "id": "ADR-014",
+      "date": "2026-11-25",
+      "title": "Guardrail enforcement files are protected paths",
+      "status": "Accepted",
+      "context": "The files that run the guardrails (check-guardrails.mjs, guardrails-lib.mjs, the edit hook and .claude/settings.json) were not protected, so a PR could weaken the checks without the Product Owner noticing (review of PR #74).",
+      "decision": "The Product Owner asked to fix #75: these files are listed under protectedPaths in compass/guardrails.json, so changing them needs her approval and the human-approved label.",
+      "consequences": "Future fixes to the plan check or the edit hook wait for her decision. The edit hook only covers Edit/Write tools, not shell commands; CI remains the real gate.",
+      "reqIds": [
+        "REQ-050"
+      ]
     }
   ],
   "requirements": [
@@ -1373,6 +1385,18 @@
       "source": "Requested by the Product Owner on 2026-11-25 (issue #64)."
     },
     {
+      "id": "REQ-050",
+      "title": "Protect the guardrail enforcement files themselves",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want the files that enforce the guardrails to be protected paths too, so that a PR cannot quietly weaken the checks.",
+      "ac": [
+        "Given compass/guardrails.json lists compass/check-guardrails.mjs, compass/guardrails-lib.mjs, compass/hooks/ and .claude/settings.json under protectedPaths\nWhen a PR changes one of them without the human-approved label\nThen the Guardrails check fails"
+      ],
+      "source": "Found by the independent review of PR #74 (REQ-036); requested by the Product Owner on 2026-11-25 (issue #75)."
+    },
+    {
       "id": "REQ-051",
       "title": "Harden merge-pr and the plan check",
       "priority": "Could",
@@ -2226,11 +2250,22 @@
       "id": "TC-066",
       "title": "Policy checks behind the skills: VI/EN keys and placeholders match; flags have VI/EN texts and new flags are default-off with a value",
       "reqIds": [
-        "REQ-040"
+        "REQ-040",
+        "REQ-051"
       ],
       "type": "automated",
       "status": "Passing",
       "file": "tests/skills.test.mjs"
+    },
+    {
+      "id": "TC-068",
+      "title": "Enforcement files are protected: CI check fails without human-approved, the edit hook blocks them until approved",
+      "reqIds": [
+        "REQ-050"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/guardrails.test.mjs"
     },
     {
       "id": "TC-067",

@@ -17,6 +17,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-011 | 2026-11-25 | Guardrails are enforced by an edit hook and a CI check with a human-approved label | Accepted | REQ-036 |
 | ADR-012 | 2026-11-25 | English for everything written in the repo and for replies to the Product Owner | Accepted | — |
 | ADR-013 | 2026-11-24 | Trip archiving is on hold | Accepted | REQ-028 |
+| ADR-014 | 2026-11-25 | Guardrail enforcement files are protected paths | Accepted | REQ-050 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -147,3 +148,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** Do not build REQ-028 until the Product Owner resumes it (#39).
 
 **Consequences.** Old trips stay in Firestore and count towards Spark quotas.
+
+## ADR-014 — Guardrail enforcement files are protected paths
+
+**Status:** Accepted · **Date:** 2026-11-25 · **Requirements:** REQ-050
+
+**Context.** The files that run the guardrails (check-guardrails.mjs, guardrails-lib.mjs, the edit hook and .claude/settings.json) were not protected, so a PR could weaken the checks without the Product Owner noticing (review of PR #74).
+
+**Decision.** The Product Owner asked to fix #75: these files are listed under protectedPaths in compass/guardrails.json, so changing them needs her approval and the human-approved label.
+
+**Consequences.** Future fixes to the plan check or the edit hook wait for her decision. The edit hook only covers Edit/Write tools, not shell commands; CI remains the real gate.

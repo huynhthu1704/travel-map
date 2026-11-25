@@ -46,7 +46,8 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
-| REQ-051 | Harden merge-pr and the plan check | — | Could | Done | TC-067 |
+| REQ-050 | Protect the guardrail enforcement files themselves | — | Should | Done | TC-068 |
+| REQ-051 | Harden merge-pr and the plan check | — | Could | Done | TC-066, TC-067 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -464,6 +465,14 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 - Given spec.json changes · When node compass/build-views.mjs runs · Then requirements.md, tests.md and handover.md are regenerated from it
 - Given handover.md lists different open requirements or counts than spec.json · When CI runs the spec check · Then CI fails and says how to regenerate it
+
+## REQ-050 — Protect the guardrail enforcement files themselves
+
+As the product owner, I want the files that enforce the guardrails to be protected paths too, so that a PR cannot quietly weaken the checks.
+
+Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+
+- Given compass/guardrails.json lists compass/check-guardrails.mjs, compass/guardrails-lib.mjs, compass/hooks/ and .claude/settings.json under protectedPaths · When a PR changes one of them without the human-approved label · Then the Guardrails check fails
 
 ## REQ-051 — Harden merge-pr and the plan check
 

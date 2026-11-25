@@ -44,6 +44,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - **Compass Deploy** (`compass-deploy.yml`, REQ-034): runs only after Compass CI is green for a push to `main`, deploys that exact commit, smoke-tests the live site (title + new hashed script) and on failure redeploys the last good version and opens a `bug` issue. Manual rollback: Actions → Compass Deploy → Run workflow → commit SHA.
 
 ## 7. Noteworthy requirements and decisions
+Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json → decisions`, REQ-046). Add an ADR in the same PR whenever Christine decides something in chat.
 | Area | What was decided |
 |---|---|
 | Excel export (REQ-026/029/030/032) | One sheet "Lịch trình & chi phí": unlinked/pre-trip costs first, then each day with its plan items and their cost lines, day totals, repayments, trip total. Columns: estimate, [estimate currency], actual, [actual currency], final amount in VND, difference; currency columns only when the trip uses more than one currency. Other sheets: Chia tiền (groups), Tỉ giá, Master data (drop-down lists incl. cost types). Google Maps column shows the full URL. Formulas carry cached values so amounts show in Protected View. No new dependency (write-excel-file). |

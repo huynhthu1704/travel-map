@@ -43,7 +43,161 @@
       "createdAt": "2026-11-23T03:16:00.940Z"
     }
   ],
-  "decisions": [],
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "date": "2026-11-17",
+      "title": "Static site on GitHub Pages with Firebase on the free Spark plan",
+      "status": "Accepted",
+      "context": "Bee There must run at no monthly cost while the user base is small.",
+      "decision": "Host the React/Vite build on GitHub Pages (beetheremap.com) and use Firebase Auth + Firestore on the Spark plan. No server code or Cloud Functions.",
+      "consequences": "Features needing a server (push notifications, scheduled jobs) need another free option (e.g. Cloudflare Workers, still open). Spark quotas limit growth.",
+      "reqIds": []
+    },
+    {
+      "id": "ADR-002",
+      "date": "2026-11-19",
+      "title": "New user-facing features ship behind default-off feature flags",
+      "status": "Accepted",
+      "context": "New features should be tried by the owner before everyone sees them, and released features should be explained on the About page.",
+      "decision": "Every new user-facing feature gets a flag in src/data/flags.js with defaultOn: false and a one-line value text. The super admin always sees it; the Product Owner enables it in Admin → Tính năng.",
+      "consequences": "Merged code can be live but hidden; the Product Owner must switch flags on after review.",
+      "reqIds": [
+        "REQ-142"
+      ]
+    },
+    {
+      "id": "ADR-003",
+      "date": "2026-11-23",
+      "title": "GitHub issues are the tracker for requirements and bugs",
+      "status": "Accepted",
+      "context": "The Product Owner wants every request and bug traceable on GitHub; the repo is personal, so Issue Types are not available.",
+      "decision": "Log each new requirement as an English issue (label requirement, on-hold for deferred) before work starts; bugs use bug (+ e2e for automated). PRs say Closes #N and the issue gets a comment with branch, PR and merge commit.",
+      "consequences": "Every change is traceable from issue to commit; work starts slightly later because the issue comes first.",
+      "reqIds": [
+        "REQ-027"
+      ]
+    },
+    {
+      "id": "ADR-004",
+      "date": "2026-11-23",
+      "title": "Failing UI tests become bug issues; bugs are fixed when the Product Owner sends the id",
+      "status": "Accepted",
+      "context": "Playwright runs on every change and nightly; the Product Owner wants to choose which bugs to fix.",
+      "decision": "e2e/report-bugs.mjs opens or comments an [E2E] issue for each failing test on main/nightly and closes it when it passes again. Agents investigate but fix a bug only when the Product Owner sends its id.",
+      "consequences": "Bugs may stay open until prioritised; root causes are written on the issue meanwhile.",
+      "reqIds": [
+        "REQ-027"
+      ]
+    },
+    {
+      "id": "ADR-005",
+      "date": "2026-11-23",
+      "title": "Merge spec.json by requirement id when the Compass portal overwrites it",
+      "status": "Accepted",
+      "context": "A Compass portal commit replaced spec.json and dropped requirements written in the repo.",
+      "decision": "Merge both versions by requirement/test id (keep both, renumber clashes) instead of taking one side.",
+      "consequences": "Portal requirements were renumbered (REQ-001/002 → REQ-024/025).",
+      "reqIds": []
+    },
+    {
+      "id": "ADR-006",
+      "date": "2026-11-23",
+      "title": "Auto-merge pull requests when checks pass, report afterwards",
+      "status": "Accepted",
+      "context": "The Product Owner prefers results over approval requests for routine work.",
+      "decision": "Squash-merge a PR as soon as CI is green and report afterwards. Since 2026-11-25 the independent review must also say APPROVE (ADR-010), and items in REVIEW.md 'What a person still reviews' wait for her.",
+      "consequences": "Fast delivery; quality relies on CI, tests and the independent review.",
+      "reqIds": [
+        "REQ-037"
+      ]
+    },
+    {
+      "id": "ADR-007",
+      "date": "2026-11-23",
+      "title": "Deploy only after green CI, smoke-test the live site and roll back automatically; no branch protection",
+      "status": "Accepted",
+      "context": "Deploys ran in parallel with CI; the Compass portal pushes directly to main.",
+      "decision": "Compass Deploy runs after Compass CI succeeds on main, smoke-tests beetheremap.com and redeploys the last good version on failure. Branch protection is not enabled because it would block the portal.",
+      "consequences": "Broken code can still reach main (not production); CI on main is the gate for deploys.",
+      "reqIds": [
+        "REQ-034"
+      ]
+    },
+    {
+      "id": "ADR-008",
+      "date": "2026-11-23",
+      "title": "Library audit blocks only critical findings for now",
+      "status": "Proposed",
+      "context": "npm audit reports high findings in firebase (@grpc/grpc-js, Node-only) and dev-only Vite 5 issues; blocking on high would stop every deploy.",
+      "decision": "CI blocks critical findings in shipped libraries and reports the rest in the run summary until the Product Owner decides on #56 (REQ-049).",
+      "consequences": "High findings remain until #56 is decided.",
+      "reqIds": [
+        "REQ-034"
+      ]
+    },
+    {
+      "id": "ADR-009",
+      "date": "2026-11-23",
+      "title": "Excel export without new dependencies, itinerary and costs in one sheet",
+      "status": "Accepted",
+      "context": "The Product Owner wants a spreadsheet of the itinerary and costs that opens with visible amounts.",
+      "decision": "Use the existing write-excel-file library; one 'Lịch trình & chi phí' sheet grouped by day with unlinked costs first, plus Chia tiền, Tỉ giá and Master data sheets; formulas carry cached values.",
+      "consequences": "No new dependency; the XML helpers in src/lib/xlsxValidation.js must be maintained.",
+      "reqIds": [
+        "REQ-026",
+        "REQ-029",
+        "REQ-030",
+        "REQ-032"
+      ]
+    },
+    {
+      "id": "ADR-010",
+      "date": "2026-11-25",
+      "title": "Independent review of every PR by a fresh Claude subagent; important findings block the merge",
+      "status": "Accepted",
+      "context": "The same agent wrote and merged its own code (AI-native SDLC gap).",
+      "decision": "A fresh review agent reviews each PR per REVIEW.md inside the working session (no API key, no extra cost). CHANGES NEEDED blocks the merge; after a second fix with findings left, ask the Product Owner.",
+      "consequences": "Merges take longer; review is enforced by process, not by CI.",
+      "reqIds": [
+        "REQ-037"
+      ]
+    },
+    {
+      "id": "ADR-011",
+      "date": "2026-11-25",
+      "title": "Guardrails are enforced by an edit hook and a CI check with a human-approved label",
+      "status": "Accepted",
+      "context": "compass/guardrails.json was only text the agent had to remember.",
+      "decision": "A Claude Code PreToolUse hook blocks protected/forbidden paths and secrets; the CI Guardrails check fails PRs that break the rules unless the human-approved label is added after the Product Owner approves in chat.",
+      "consequences": "Protected-path PRs need a label; protecting the enforcement files themselves is open (#75).",
+      "reqIds": [
+        "REQ-036"
+      ]
+    },
+    {
+      "id": "ADR-012",
+      "date": "2026-11-25",
+      "title": "English for everything written in the repo and for replies to the Product Owner",
+      "status": "Accepted",
+      "context": "The Product Owner asked for English code comments and issues (2026-11-23) and English replies (2026-11-25).",
+      "decision": "Code comments, commits, PRs, issues, spec and replies are in English; the UI stays bilingual VI/EN.",
+      "consequences": "—",
+      "reqIds": []
+    },
+    {
+      "id": "ADR-013",
+      "date": "2026-11-24",
+      "title": "Trip archiving is on hold",
+      "status": "Accepted",
+      "context": "Archiving trips older than a retention period (REQ-028) was requested, then put on hold by the Product Owner to think further.",
+      "decision": "Do not build REQ-028 until the Product Owner resumes it (#39).",
+      "consequences": "Old trips stay in Firestore and count towards Spark quotas.",
+      "reqIds": [
+        "REQ-028"
+      ]
+    }
+  ],
   "requirements": [
     {
       "id": "REQ-001",
@@ -1147,6 +1301,19 @@
         "Given handover.md lists different open requirements or counts than spec.json\nWhen CI runs the spec check\nThen CI fails and says how to regenerate it"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #71)."
+    },
+    {
+      "id": "REQ-046",
+      "title": "Record decisions as ADRs in compass/decisions.md",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want important decisions recorded as ADRs, so that anyone can see why things are the way they are.",
+      "ac": [
+        "Given a decision is made in chat\nWhen the work is merged\nThen an ADR-xxx entry is added to compass/spec.json with context, decision and consequences, and decisions.md is regenerated",
+        "Given existing decisions from November 2026\nWhen this requirement is done\nThen they are back-filled as ADRs",
+        "Given an ADR without context, decision or consequences, with a duplicate id or an unknown requirement\nWhen CI runs the spec check\nThen it fails"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #70)."
     }
   ],
   "tests": [
@@ -1932,6 +2099,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/handover.test.mjs"
+    },
+    {
+      "id": "TC-061",
+      "title": "ADRs: November decisions back-filled, validation of fields/ids/links, decisions.md generated",
+      "reqIds": [
+        "REQ-046"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/decisions.test.mjs"
     }
   ]
 }

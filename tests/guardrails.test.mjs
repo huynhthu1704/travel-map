@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { checkChange, dependenciesChanged, loadGuardrails, APPROVAL_LABEL } from '../compass/guardrails-lib.mjs';
 import { decideEdit } from '../compass/guardrails-lib.mjs';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, symlinkSync, mkdirSync } from 'node:fs';
+import { cpSync, mkdtempSync, symlinkSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,8 +60,9 @@ test('TC-059: the edit hook blocks protected paths until approved, and blocks se
   assert.equal(decide(edit(`${spaced}/src/a.js`), g, [], spaced).block, false);
 });
 
-test('TC-059: the hook script itself blocks through a folder with a space and through a symlink', () => {
+test('TC-059: the hook script itself blocks through a folder with a space and through a symlink', (t) => {
   const base = mkdtempSync(join(tmpdir(), 'guard '));
+  t.after(() => rmSync(base, { recursive: true, force: true }));
   const real = join(base, 'real repo');
   mkdirSync(real);
   cpSync(join(repo, 'compass'), join(real, 'compass'), { recursive: true });

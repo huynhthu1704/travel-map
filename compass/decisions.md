@@ -4,7 +4,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 | ID | Date | Decision | Status | Requirements |
 |---|---|---|---|---|
-| ADR-001 | 2026-11-17 | Static site on GitHub Pages with Firebase on the free Spark plan | Accepted | — |
+| ADR-001 | 2026-11-25 | Static site on GitHub Pages with Firebase on the free Spark plan | Accepted | — |
 | ADR-002 | 2026-11-19 | New user-facing features ship behind default-off feature flags | Accepted | REQ-142 |
 | ADR-003 | 2026-11-23 | GitHub issues are the tracker for requirements and bugs | Accepted | REQ-027 |
 | ADR-004 | 2026-11-23 | Failing UI tests become bug issues; bugs are fixed when the Product Owner sends the id | Accepted | REQ-027 |
@@ -20,9 +20,9 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
-**Status:** Accepted · **Date:** 2026-11-17
+**Status:** Accepted · **Date:** 2026-11-25
 
-**Context.** Bee There must run at no monthly cost while the user base is small.
+**Context.** Bee There must run at no monthly cost while the user base is small. Decided before Compass was adopted; recorded in the November 2026 back-fill.
 
 **Decision.** Host the React/Vite build on GitHub Pages (beetheremap.com) and use Firebase Auth + Firestore on the Spark plan. No server code or Cloud Functions.
 
@@ -114,7 +114,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Context.** The same agent wrote and merged its own code (AI-native SDLC gap).
 
-**Decision.** A fresh review agent reviews each PR per REVIEW.md inside the working session (no API key, no extra cost). CHANGES NEEDED blocks the merge; after a second fix with findings left, ask the Product Owner.
+**Decision.** A fresh review agent reviews each PR per REVIEW.md inside the working session (the option the Product Owner chose on 2026-11-25: no API key or extra cost, unlike a GitHub Action). CHANGES NEEDED blocks the merge; after a second fix with findings left, ask the Product Owner.
 
 **Consequences.** Merges take longer; review is enforced by process, not by CI.
 

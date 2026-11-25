@@ -14,9 +14,10 @@ test('TC-061: the November 2026 decisions are back-filled and valid', () => {
 });
 
 test('TC-061: incomplete or broken ADRs are reported', () => {
-  const bad = { requirements: [{ id: 'REQ-1' }], decisions: [{ id: 'ADR-1', title: 'x', status: 'Maybe', reqIds: ['REQ-9'] }, { id: 'ADR-1' }] };
+  const bad = { requirements: [{ id: 'REQ-1' }], decisions: [{ id: 'ADR-1', title: 'x', status: 'Maybe', date: '25/11', reqIds: ['REQ-9'] }, { id: 'ADR-1' }, { id: 'ADR-002', reqIds: 'REQ-1' }, { title: 'no id' }] };
   const p = decisionProblems(bad).join('\n');
-  for (const s of ['has no context', 'should look like ADR-001', 'is used twice', 'status must be one of', 'unknown REQ-9']) assert.ok(p.includes(s), s);
+  for (const s of ['has no context', 'should look like ADR-001', 'is used twice', 'status must be one of', 'unknown REQ-9', 'date should be YYYY-MM-DD', 'reqIds should be a list', '(no id) has no id']) assert.ok(p.includes(s), s);
+  assert.doesNotThrow(() => renderDecisions(bad));
 });
 
 test('TC-061: decisions.md is generated from the spec and up to date', () => {

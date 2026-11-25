@@ -46,10 +46,10 @@
   "decisions": [
     {
       "id": "ADR-001",
-      "date": "2026-11-17",
+      "date": "2026-11-25",
       "title": "Static site on GitHub Pages with Firebase on the free Spark plan",
       "status": "Accepted",
-      "context": "Bee There must run at no monthly cost while the user base is small.",
+      "context": "Bee There must run at no monthly cost while the user base is small. Decided before Compass was adopted; recorded in the November 2026 back-fill.",
       "decision": "Host the React/Vite build on GitHub Pages (beetheremap.com) and use Firebase Auth + Firestore on the Spark plan. No server code or Cloud Functions.",
       "consequences": "Features needing a server (push notifications, scheduled jobs) need another free option (e.g. Cloudflare Workers, still open). Spark quotas limit growth.",
       "reqIds": []
@@ -157,7 +157,7 @@
       "title": "Independent review of every PR by a fresh Claude subagent; important findings block the merge",
       "status": "Accepted",
       "context": "The same agent wrote and merged its own code (AI-native SDLC gap).",
-      "decision": "A fresh review agent reviews each PR per REVIEW.md inside the working session (no API key, no extra cost). CHANGES NEEDED blocks the merge; after a second fix with findings left, ask the Product Owner.",
+      "decision": "A fresh review agent reviews each PR per REVIEW.md inside the working session (the option the Product Owner chose on 2026-11-25: no API key or extra cost, unlike a GitHub Action). CHANGES NEEDED blocks the merge; after a second fix with findings left, ask the Product Owner.",
       "consequences": "Merges take longer; review is enforced by process, not by CI.",
       "reqIds": [
         "REQ-037"

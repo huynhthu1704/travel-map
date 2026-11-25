@@ -1,4 +1,4 @@
-// REQ-047: regenerate the Markdown views of compass/spec.json (requirements.md, tests.md, handover.md).
+// REQ-047/046: regenerate the Markdown views of compass/spec.json (requirements.md, tests.md, handover.md, decisions.md).
 // Usage: node compass/build-views.mjs           → write the files
 //        node compass/build-views.mjs --check   → exit 1 if handover.md is stale (used by check-spec.mjs / CI)
 import { readFileSync, writeFileSync, existsSync, realpathSync } from 'node:fs';
@@ -119,16 +119,19 @@ export function decisionProblems(spec) {
   for (const a of spec.decisions || []) {
     for (const f of ADR_FIELDS) if (!a[f]) problems.push(`${a.id || '(no id)'} has no ${f}`);
     if (a.id && !/^ADR-\d{3}$/.test(a.id)) problems.push(`${a.id} should look like ADR-001`);
+    if (a.date && !/^\d{4}-\d{2}-\d{2}$/.test(a.date)) problems.push(`${a.id} date should be YYYY-MM-DD`);
+    if (a.reqIds !== undefined && !Array.isArray(a.reqIds)) problems.push(`${a.id} reqIds should be a list`);
     if (seen.has(a.id)) problems.push(`${a.id} is used twice`);
     seen.add(a.id);
     if (a.status && !ADR_STATUSES.includes(a.status)) problems.push(`${a.id} status must be one of ${ADR_STATUSES.join(', ')}`);
-    for (const id of a.reqIds || []) if (!reqIds.has(id)) problems.push(`${a.id} references unknown ${id}`);
+    for (const id of Array.isArray(a.reqIds) ? a.reqIds : []) if (!reqIds.has(id)) problems.push(`${a.id} references unknown ${id}`);
   }
   return problems;
 }
 
 export function renderDecisions(spec) {
-  const list = [...(spec.decisions || [])].sort(byId);
+  // Entries without a valid id are reported by decisionProblems; skip them here instead of crashing
+  const list = (spec.decisions || []).filter((a) => /^ADR-\d{3}$/.test(a.id || '')).sort(byId);
   const L = ['# Decisions (ADR log)', '', '_Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever a decision is made in chat (REQ-046)._', ''];
   if (!list.length) return [...L, '_No decisions recorded yet._', ''].join('\n');
   L.push('| ID | Date | Decision | Status | Requirements |', '|---|---|---|---|---|');

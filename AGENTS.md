@@ -23,7 +23,7 @@ Project: **travel-map** — Tăng số người dùng hoàn thành checklist chu
 npm test                      # unit tests (node --test, tests/)
 npm run test:e2e              # UI tests (Playwright, demo mode, e2e/)
 node compass/check-spec.mjs   # traceability check: every REQ has a TC, every TC points to a REQ; handover.md not stale
-node compass/build-views.mjs  # regenerate requirements.md, tests.md, handover.md after editing spec.json
+node compass/build-views.mjs  # regenerate requirements.md, tests.md, handover.md, decisions.md after editing spec.json
 ```
 
 ## Rules for AI agents

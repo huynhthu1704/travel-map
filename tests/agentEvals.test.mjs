@@ -43,18 +43,28 @@ test('TC-116: a weakened guardrail makes the suite fail (the pass rate drops)', 
   const run = runEvals(suite, weak, spec);
   assert.ok(run.rate < 100);
   const failed = run.results.filter((r) => !r.ok).map((r) => r.id);
-  for (const id of ['EV-006', 'EV-007', 'EV-008', 'EV-012']) assert.ok(failed.includes(id), `${id} catches the weaker rule`);
+  const active = new Set(activeCases(suite).map((c) => c.id));
+  for (const id of ['EV-006', 'EV-007', 'EV-008', 'EV-012'].filter((id) => active.has(id))) assert.ok(failed.includes(id), `${id} catches the weaker rule`);
   // Blocked for another reason than the case is about also counts as a failure
   const wrongReason = runCase({ id: 'X', check: 'edit-hook', input: { path: 'CNAME' }, expect: 'blocked', why: 'secret pattern' }, g, spec);
   assert.equal(wrongReason.ok, false);
 });
 
 test('TC-116: no case on main is removed or weakened unless the Product Owner retired it', (t) => {
+  const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   let mainText;
   try {
-    mainText = execFileSync('git', ['show', 'origin/main:compass/evals/cases.json'], { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    git('rev-parse', '--verify', 'origin/main');
   } catch {
-    t.skip('origin/main has no cases file yet (or is not fetched)');
+    // CI checks out the full history, so a missing origin/main there must not switch the guard off silently
+    assert.ok(!process.env.CI, 'origin/main is missing in CI — fetch it so the eval cases can be compared');
+    t.skip('origin/main is not fetched locally');
+    return;
+  }
+  try {
+    mainText = git('show', 'origin/main:compass/evals/cases.json');
+  } catch {
+    t.skip('origin/main has no cases file yet');
     return;
   }
   const here = new Map(suite.cases.map((c) => [c.id, c]));

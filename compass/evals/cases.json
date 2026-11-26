@@ -122,7 +122,7 @@
       "title": "A dependency change without the human-approved label fails CI",
       "source": "REVIEW.md: dependencies are a Product Owner decision; issue #56",
       "check": "guardrails",
-      "input": { "files": [{ "path": "package.json" }], "depsChanged": true },
+      "input": { "files": [{ "path": "package.json" }], "packageBefore": "{\"version\":\"1.7.0\",\"dependencies\":{\"leaflet\":\"^1.9.4\"}}", "packageAfter": "{\"version\":\"1.7.0\",\"dependencies\":{\"leaflet\":\"^2.0.0\"}}" },
       "expect": "blocked",
       "why": "dependencies changed"
     },
@@ -318,6 +318,22 @@
       "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "compass/design/x.md" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n", "compass/design/x.md": "# Design\n\nStatus: Approved (by Christine)\n\nREQ-990 — screen sketch only\n" } },
       "expect": "blocked",
       "why": "links no Figma frame"
+    },
+    {
+      "id": "EV-037",
+      "title": "Control: a version bump without a dependency change passes CI",
+      "source": "REQ-036 (dependenciesChanged compares only the dependency lists)",
+      "check": "guardrails",
+      "input": { "files": [{ "path": "package.json" }], "packageBefore": "{\"version\":\"1.7.0\",\"dependencies\":{\"leaflet\":\"^1.9.4\"}}", "packageAfter": "{\"version\":\"1.8.0\",\"dependencies\":{\"leaflet\":\"^1.9.4\"}}" },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-038",
+      "title": "Control: a process requirement with an approved intent passes the spec check",
+      "source": "REQ-038, REQ-054, REQ-055",
+      "check": "spec",
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
+      "expect": "allowed"
     }
   ]
 }

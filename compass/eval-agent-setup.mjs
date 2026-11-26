@@ -6,7 +6,7 @@
 import { appendFileSync, readFileSync, realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkChange, decideEdit, loadGuardrails, planProblems, realPathOf } from './guardrails-lib.mjs';
+import { checkChange, decideEdit, dependenciesChanged, loadGuardrails, planProblems, realPathOf } from './guardrails-lib.mjs';
 import { planFileProblems, planTextsFromPatches } from './plan-file.mjs';
 import { testFirstProblems } from './test-first.mjs';
 import { mergeBlockers, REVIEW_HEADING } from './merge-pr.mjs';
@@ -51,7 +51,8 @@ const reviewComment = ({ verdict = 'APPROVE', commit = HEAD, author = 'OWNER', a
 /** One adapter per check: input → list of blocking messages (empty = allowed). */
 const CHECKS = {
   'edit-hook': (input, g) => {
-    const r = decideEdit({ tool_name: 'Write', tool_input: { file_path: resolve(REPO, input.path), content: input.content || '' } }, g, input.approved || [], REPO);
+    // The path goes to the hook exactly as written (relative, ../, other case): resolving it is the hook's job
+    const r = decideEdit({ tool_name: 'Write', tool_input: { file_path: input.path, content: input.content || '' } }, g, input.approved || [], REPO);
     return r.block ? [r.reason] : [];
   },
   guardrails: (input, g) => {
@@ -59,7 +60,9 @@ const CHECKS = {
       ? Array.from({ length: input.fileCount }, (_, i) => ({ path: `src/f${i}.js` }))
       : input.files || [];
     const full = files.map((f) => ({ status: 'M', addedText: '', lines: 10, ...f }));
-    return checkChange(full, g, { labels: input.labels || [], depsChanged: !!input.depsChanged }).errors;
+    // packageBefore/packageAfter: package.json texts, judged by the real dependency detection
+    const depsChanged = input.packageBefore != null ? dependenciesChanged(input.packageBefore, input.packageAfter) : !!input.depsChanged;
+    return checkChange(full, g, { labels: input.labels || [], depsChanged }).errors;
   },
   'pr-plan': (input) => planProblems(input.body, (input.files || []).map((path) => ({ path }))),
   'plan-file': (input) => planFileProblems(input.files || [], input.planTexts || {}),

@@ -53,6 +53,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-053 | A plan file for every change that touches code | — | Should | Done | TC-110 |
 | REQ-054 | Revise the business need into a business intent | — | Should | Done | TC-111 |
 | REQ-055 | An approved design before any code | — | Should | Done | TC-112 |
+| REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -547,6 +548,19 @@ Design: none: process change, no UI
 - Given a requirement from REQ-052 on past Draft without "design" · When CI runs the spec check · Then it fails and asks for a design file or "none: <reason>"
 - Given a requirement In build or Done whose design file is not Approved · When CI runs the spec check · Then it fails
 - Given a design file that does not mention the requirement · When CI runs the spec check · Then it fails
+
+## REQ-057 — A Figma frame in every UI design, approved before code
+
+As the product owner, I want every requirement that changes the UI to come with a Figma design that I approve before coding, so that I judge the real look in our design system instead of a text description.
+
+Intent: [compass/intent/2026-11-26-figma-for-ui-designs.md](../compass/intent/2026-11-26-figma-for-ui-designs.md)
+
+Design: none: process change, no UI
+
+- Given a requirement from REQ-056 on, In build or Done, whose design is a file · When the design file links no frame of the project Figma file (designTool?node-id=…) · Then node compass/check-spec.mjs fails and asks for the Figma frame
+- Given a requirement with "design": "none: <reason>" (no UI) · When CI runs the spec check · Then no Figma link is required
+- Given requirements before REQ-056 and the REQ-101…153 baseline · When CI runs the spec check · Then they are exempt
+- Given an agent starts a design · When it reads the design template and its working knowledge · Then it draws the frames in the Bee There Figma file (designTool in spec.json) and links them before asking for approval
 
 ## REQ-101 — Sign in with Google
 

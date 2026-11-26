@@ -146,6 +146,13 @@ export function intentProblems(spec, readIntent) {
 
 // REQ-055: from this requirement number on (below the REQ-101 baseline) a design is required before code
 export const DESIGN_REQUIRED_FROM = 52;
+/** REQ-057: from this requirement on, a UI design file must link at least one Figma frame */
+export const FIGMA_REQUIRED_FROM = 56;
+/** a frame link in the project's Figma file (spec.designTool); any Figma file when designTool is not set */
+const figmaFrame = (text, designTool) => {
+  const key = /figma\.com\/design\/([0-9A-Za-z]{22,128})/.exec(designTool || '')?.[1] || '[0-9A-Za-z]{22,128}';
+  return new RegExp(`https://(www\\.)?figma\\.com/design/${key}[^\\s)]*[?&]node-id=\\d+-\\d+`).test(text);
+};
 /**
  * Problems with requirement → design links. A requirement has "design": "compass/design/<file>.md" or
  * "design": "none: <reason>" (no UI). In build / Done needs an Approved design file that lists the requirement.
@@ -168,6 +175,7 @@ export function designProblems(spec, readDesign) {
     // whole id only: REQ-100 must not match inside REQ-1000
     else if (!new RegExp(`\\b${r.id}(?!\\d)`).test(text)) problems.push(`${r.design} does not mention ${r.id}`);
     else if ((r.status === 'In build' || r.status === 'Done') && !/^Status:\s*Approved\b/m.test(text)) problems.push(`${r.id} is ${r.status} but ${r.design} is not Approved — no code before the design is approved`);
+    else if (n >= FIGMA_REQUIRED_FROM && !isBaseline(n) && (r.status === 'In build' || r.status === 'Done') && !figmaFrame(text, spec.designTool)) problems.push(`${r.id} is ${r.status} but ${r.design} links no Figma frame of ${spec.designTool || 'the project Figma file'} (…?node-id=…) — draw it in Figma and get it approved (REQ-057)`);
   }
   return problems;
 }

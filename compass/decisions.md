@@ -19,6 +19,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-013 | 2026-11-24 | Trip archiving is on hold | Accepted | REQ-028 |
 | ADR-014 | 2026-11-25 | Guardrail enforcement files are protected paths | Accepted | REQ-050 |
 | ADR-015 | 2026-11-26 | Need → intent → requirements → design → plan → code | Accepted | REQ-052, REQ-053, REQ-054, REQ-055 |
+| ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -169,3 +170,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** Every new change goes business need → approved business intent → approved requirements → approved design → plan file → code. Intents and REVIEW.md live in compass/; designs in compass/design/; plans in compass/plans/. check-spec enforces the intent need section and the design gate from REQ-052; merge-pr enforces the plan file.
 
 **Consequences.** The CI guardrails check still reads the PR body Plan: moving it to plan files changes protected paths (check-guardrails.mjs, guardrails-lib.mjs) and needs the Product Owner's explicit approval and the human-approved label. Changes without UI state "design": "none: <reason>".
+
+## ADR-016 — Every UI design is drawn in Figma and approved from the Figma frame
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-057
+
+**Context.** Reviewing the REQ-056 design (text only), the Product Owner asked for a corresponding Figma design and for this to be part of every requirement that changes the UI.
+
+**Decision.** From REQ-056 on, a requirement with UI has a design file that links at least one frame in the Bee There Figma file (designTool in spec.json); check-spec fails without it once the requirement is In build or Done. Requirements without UI keep "design": "none: <reason>".
+
+**Consequences.** Sessions need the Figma connector to design; without it the requirement waits in Draft. Designs live on the Figma page "📐 Feature designs".

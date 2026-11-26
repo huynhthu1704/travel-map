@@ -260,6 +260,18 @@
       "reqIds": [
         "REQ-058"
       ]
+    },
+    {
+      "id": "ADR-019",
+      "date": "2026-11-26",
+      "title": "Weekly security scan with npm audit and CodeQL, dismissal by a reason comment",
+      "status": "Accepted",
+      "context": "Only npm audit ran in CI, and only on pushes (#56); nothing scanned our own code or looked for new advisories between releases (#68).",
+      "decision": "A new workflow compass-security.yml runs every Monday 08:00 Vietnam time (and on demand): CodeQL (security-extended, free for public repos) and npm audit. compass/security-scan.mjs opens one bug + security + severity:<level> issue per finding and closes it when the finding is gone. A finding is dismissed by closing its issue as \"not planned\" with a comment that starts with \"Dismissed:\"; without it the scan reopens the issue. The Product Owner approved the new protected workflow and both choices in chat.",
+      "consequences": "The first run opens issues for the known #56 findings, which can be dismissed with a reason or fixed. If GitHub code scanning default setup is turned on, the CodeQL upload fails and only the library scan reports until it is turned off.",
+      "reqIds": [
+        "REQ-044"
+      ]
     }
   ],
   "requirements": [
@@ -1587,6 +1599,21 @@
         "Given a manual deploy or rollback with a commit SHA\nWhen it runs\nThen that commit is deployed even if it is not the head of main"
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat after the REQ-056 release was overwritten by an older deploy (issue #106)"
+    },
+    {
+      "id": "REQ-044",
+      "title": "Weekly security scan of the code and libraries",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "design": "none: scheduled CI job, no UI",
+      "story": "As the product owner, I want a scheduled weekly security scan of the code and dependencies with findings logged as issues, so that vulnerabilities are found between releases.",
+      "ac": [
+        "Given the weekly schedule\nWhen the scan finds an issue\nThen a `bug` issue with severity is opened",
+        "Given a finding is dismissed\nWhen it is closed\nThen a reason is recorded",
+        "Given a finding that has an open issue\nWhen a later scan no longer finds it\nThen the issue is closed with a comment"
+      ],
+      "source": "Issue #68 (gap analysis vs the AI-native SDLC playbook, 2026-11-25); taken off hold by the Product Owner on 2026-11-26 (\"fix #68\"), who chose npm audit + CodeQL and dismissal by a reason comment"
     }
   ],
   "tests": [
@@ -2543,6 +2570,26 @@
       "type": "automated",
       "status": "Passing",
       "file": "e2e/checkTicks.spec.mjs"
+    },
+    {
+      "id": "TC-117",
+      "title": "Security scan: npm audit and CodeQL findings become bug issues with severity; gone findings close their issue; a failed source closes nothing",
+      "reqIds": [
+        "REQ-044"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/security-scan.test.mjs"
+    },
+    {
+      "id": "TC-118",
+      "title": "Security scan: a closed finding stays closed only with a \"Dismissed:\" reason (else reopened); weekly + manual schedule with least-privilege permissions",
+      "reqIds": [
+        "REQ-044"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/security-scan.test.mjs"
     }
   ]
 }

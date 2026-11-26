@@ -44,6 +44,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-039 | Write a plan before coding each requirement | — | Should | Done | TC-064 |
 | REQ-040 | Turn project policies into repo skills | — | Should | Done | TC-065, TC-066 |
 | REQ-043 | Failing test committed before the fix for every bug | — | Could | Done | TC-069 |
+| REQ-044 | Weekly security scan of the code and libraries | — | Could | Done | TC-117, TC-118 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
@@ -456,6 +457,18 @@ Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-
 - Given a later commit edits that test · When CI runs · Then it fails unless the Product Owner approves (human-approved label)
 - Given a PR that closes a bug issue but has no bug label · When compass/merge-pr.mjs runs · Then it refuses to merge
 - Given the test from the first commit hangs or cannot start · When the test-first check runs it · Then the check fails (a run stopped by the time limit does not count as a failing test)
+
+## REQ-044 — Weekly security scan of the code and libraries
+
+As the product owner, I want a scheduled weekly security scan of the code and dependencies with findings logged as issues, so that vulnerabilities are found between releases.
+
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
+
+Design: none: scheduled CI job, no UI
+
+- Given the weekly schedule · When the scan finds an issue · Then a `bug` issue with severity is opened
+- Given a finding is dismissed · When it is closed · Then a reason is recorded
+- Given a finding that has an open issue · When a later scan no longer finds it · Then the issue is closed with a comment
 
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 

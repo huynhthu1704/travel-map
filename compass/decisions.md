@@ -1,5 +1,226 @@
 # Decisions (ADR log)
 
-When the Product Owner decides an approach, a trade-off, a scope cut or a rule, add an ADR to `compass/spec.json → decisions` in the same PR.
+_Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever a decision is made in chat (REQ-046)._
 
-_No decisions recorded yet._
+| ID | Date | Decision | Status | Requirements |
+|---|---|---|---|---|
+| ADR-001 | 2026-11-25 | Static site on GitHub Pages with Firebase on the free Spark plan | Accepted | — |
+| ADR-002 | 2026-11-19 | New user-facing features ship behind default-off feature flags | Accepted | REQ-142 |
+| ADR-003 | 2026-11-23 | GitHub issues are the tracker for requirements and bugs | Accepted | REQ-027 |
+| ADR-004 | 2026-11-23 | Failing UI tests become bug issues; bugs are fixed when the Product Owner sends the id | Accepted | REQ-027 |
+| ADR-005 | 2026-11-23 | Merge spec.json by requirement id when the Compass portal overwrites it | Accepted | — |
+| ADR-006 | 2026-11-23 | Auto-merge pull requests when checks pass, report afterwards | Accepted | REQ-037 |
+| ADR-007 | 2026-11-23 | Deploy only after green CI, smoke-test the live site and roll back automatically; no branch protection | Accepted | REQ-034 |
+| ADR-008 | 2026-11-23 | Library audit blocks only critical findings for now | Proposed | REQ-034 |
+| ADR-009 | 2026-11-23 | Excel export without new dependencies, itinerary and costs in one sheet | Accepted | REQ-026, REQ-029, REQ-030, REQ-032 |
+| ADR-010 | 2026-11-25 | Independent review of every PR by a fresh Claude subagent; important findings block the merge | Accepted | REQ-037 |
+| ADR-011 | 2026-11-25 | Guardrails are enforced by an edit hook and a CI check with a human-approved label | Accepted | REQ-036 |
+| ADR-012 | 2026-11-25 | English for everything written in the repo and for replies to the Product Owner | Accepted | — |
+| ADR-013 | 2026-11-24 | Trip archiving is on hold | Accepted | REQ-028 |
+| ADR-014 | 2026-11-25 | Guardrail enforcement files are protected paths | Accepted | REQ-050 |
+| ADR-015 | 2026-11-26 | Need → intent → requirements → design → plan → code | Accepted | REQ-052, REQ-053, REQ-054, REQ-055 |
+| ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
+| ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
+| ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
+| ADR-019 | 2026-11-26 | Weekly security scan with npm audit and CodeQL, dismissal by a reason comment | Accepted | REQ-044 |
+| ADR-020 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
+
+## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
+
+**Status:** Accepted · **Date:** 2026-11-25
+
+**Context.** Bee There must run at no monthly cost while the user base is small. Decided before Compass was adopted; recorded in the November 2026 back-fill.
+
+**Decision.** Host the React/Vite build on GitHub Pages (beetheremap.com) and use Firebase Auth + Firestore on the Spark plan. No server code or Cloud Functions.
+
+**Consequences.** Features needing a server (push notifications, scheduled jobs) need another free option (e.g. Cloudflare Workers, still open). Spark quotas limit growth.
+
+## ADR-002 — New user-facing features ship behind default-off feature flags
+
+**Status:** Accepted · **Date:** 2026-11-19 · **Requirements:** REQ-142
+
+**Context.** New features should be tried by the owner before everyone sees them, and released features should be explained on the About page.
+
+**Decision.** Every new user-facing feature gets a flag in src/data/flags.js with defaultOn: false and a one-line value text. The super admin always sees it; the Product Owner enables it in Admin → Tính năng.
+
+**Consequences.** Merged code can be live but hidden; the Product Owner must switch flags on after review.
+
+## ADR-003 — GitHub issues are the tracker for requirements and bugs
+
+**Status:** Accepted · **Date:** 2026-11-23 · **Requirements:** REQ-027
+
+**Context.** The Product Owner wants every request and bug traceable on GitHub; the repo is personal, so Issue Types are not available.
+
+**Decision.** Log each new requirement as an English issue (label requirement, on-hold for deferred) before work starts; bugs use bug (+ e2e for automated). PRs say Closes #N and the issue gets a comment with branch, PR and merge commit.
+
+**Consequences.** Every change is traceable from issue to commit; work starts slightly later because the issue comes first.
+
+## ADR-004 — Failing UI tests become bug issues; bugs are fixed when the Product Owner sends the id
+
+**Status:** Accepted · **Date:** 2026-11-23 · **Requirements:** REQ-027
+
+**Context.** Playwright runs on every change and nightly; the Product Owner wants to choose which bugs to fix.
+
+**Decision.** e2e/report-bugs.mjs opens or comments an [E2E] issue for each failing test on main/nightly and closes it when it passes again. Agents investigate but fix a bug only when the Product Owner sends its id.
+
+**Consequences.** Bugs may stay open until prioritised; root causes are written on the issue meanwhile.
+
+## ADR-005 — Merge spec.json by requirement id when the Compass portal overwrites it
+
+**Status:** Accepted · **Date:** 2026-11-23
+
+**Context.** A Compass portal commit replaced spec.json and dropped requirements written in the repo.
+
+**Decision.** Merge both versions by requirement/test id (keep both, renumber clashes) instead of taking one side.
+
+**Consequences.** Portal requirements were renumbered (REQ-001/002 → REQ-024/025).
+
+## ADR-006 — Auto-merge pull requests when checks pass, report afterwards
+
+**Status:** Accepted · **Date:** 2026-11-23 · **Requirements:** REQ-037
+
+**Context.** The Product Owner prefers results over approval requests for routine work.
+
+**Decision.** Squash-merge a PR as soon as CI is green and report afterwards. Since 2026-11-25 the independent review must also say APPROVE (ADR-010), and items in REVIEW.md 'What a person still reviews' wait for her.
+
+**Consequences.** Fast delivery; quality relies on CI, tests and the independent review.
+
+## ADR-007 — Deploy only after green CI, smoke-test the live site and roll back automatically; no branch protection
+
+**Status:** Accepted · **Date:** 2026-11-23 · **Requirements:** REQ-034
+
+**Context.** Deploys ran in parallel with CI; the Compass portal pushes directly to main.
+
+**Decision.** Compass Deploy runs after Compass CI succeeds on main, smoke-tests beetheremap.com and redeploys the last good version on failure. Branch protection is not enabled because it would block the portal.
+
+**Consequences.** Broken code can still reach main (not production); CI on main is the gate for deploys.
+
+## ADR-008 — Library audit blocks only critical findings for now
+
+**Status:** Proposed · **Date:** 2026-11-23 · **Requirements:** REQ-034
+
+**Context.** npm audit reports high findings in firebase (@grpc/grpc-js, Node-only) and dev-only Vite 5 issues; blocking on high would stop every deploy.
+
+**Decision.** CI blocks critical findings in shipped libraries and reports the rest in the run summary until the Product Owner decides on #56 (REQ-049).
+
+**Consequences.** High findings remain until #56 is decided.
+
+## ADR-009 — Excel export without new dependencies, itinerary and costs in one sheet
+
+**Status:** Accepted · **Date:** 2026-11-23 · **Requirements:** REQ-026, REQ-029, REQ-030, REQ-032
+
+**Context.** The Product Owner wants a spreadsheet of the itinerary and costs that opens with visible amounts.
+
+**Decision.** Use the existing write-excel-file library; one 'Lịch trình & chi phí' sheet grouped by day with unlinked costs first, plus Chia tiền, Tỉ giá and Master data sheets; formulas carry cached values.
+
+**Consequences.** No new dependency; the XML helpers in src/lib/xlsxValidation.js must be maintained.
+
+## ADR-010 — Independent review of every PR by a fresh Claude subagent; important findings block the merge
+
+**Status:** Accepted · **Date:** 2026-11-25 · **Requirements:** REQ-037
+
+**Context.** The same agent wrote and merged its own code (AI-native SDLC gap).
+
+**Decision.** A fresh review agent reviews each PR per REVIEW.md inside the working session (the option the Product Owner chose on 2026-11-25: no API key or extra cost, unlike a GitHub Action). CHANGES NEEDED blocks the merge; after a second fix with findings left, ask the Product Owner.
+
+**Consequences.** Merges take longer; review is enforced by process, not by CI.
+
+## ADR-011 — Guardrails are enforced by an edit hook and a CI check with a human-approved label
+
+**Status:** Accepted · **Date:** 2026-11-25 · **Requirements:** REQ-036
+
+**Context.** compass/guardrails.json was only text the agent had to remember.
+
+**Decision.** A Claude Code PreToolUse hook blocks protected/forbidden paths and secrets; the CI Guardrails check fails PRs that break the rules unless the human-approved label is added after the Product Owner approves in chat.
+
+**Consequences.** Protected-path PRs need a label; protecting the enforcement files themselves is open (#75).
+
+## ADR-012 — English for everything written in the repo and for replies to the Product Owner
+
+**Status:** Accepted · **Date:** 2026-11-25
+
+**Context.** The Product Owner asked for English code comments and issues (2026-11-23) and English replies (2026-11-25).
+
+**Decision.** Code comments, commits, PRs, issues, spec and replies are in English; the UI stays bilingual VI/EN.
+
+**Consequences.** —
+
+## ADR-013 — Trip archiving is on hold
+
+**Status:** Accepted · **Date:** 2026-11-24 · **Requirements:** REQ-028
+
+**Context.** Archiving trips older than a retention period (REQ-028) was requested, then put on hold by the Product Owner to think further.
+
+**Decision.** Do not build REQ-028 until the Product Owner resumes it (#39).
+
+**Consequences.** Old trips stay in Firestore and count towards Spark quotas.
+
+## ADR-014 — Guardrail enforcement files are protected paths
+
+**Status:** Accepted · **Date:** 2026-11-25 · **Requirements:** REQ-050
+
+**Context.** The files that run the guardrails (check-guardrails.mjs, guardrails-lib.mjs, the edit hook and .claude/settings.json) were not protected, so a PR could weaken the checks without the Product Owner noticing (review of PR #74).
+
+**Decision.** The Product Owner asked to fix #75: these files (and .claude/settings.local.json) are listed under protectedPaths in compass/guardrails.json, so changing them needs her approval and the human-approved label. She also approved changing compass-ci.yml so CI runs main's copy of the check and its rules, not the PR's copy (independent review of PR #85).
+
+**Consequences.** Future fixes to the plan check or the edit hook wait for her decision, and a new rule only applies to PRs after it is merged. The edit hook only covers Edit/Write tools, not shell commands, and a PR can still change the workflow itself, so her review of protected-path PRs is the last gate.
+
+## ADR-015 — Need → intent → requirements → design → plan → code
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-052, REQ-053, REQ-054, REQ-055
+
+**Context.** The Product Owner asked to bring the AI-native SDLC into the Compass portal, to move intent and review into compass/, to add an approved design step after requirements (one design tool per project, e.g. Figma) and to keep a plan.md for every change.
+
+**Decision.** Every new change goes business need → approved business intent → approved requirements → approved design → plan file → code. Intents and REVIEW.md live in compass/; designs in compass/design/; plans in compass/plans/. check-spec enforces the intent need section and the design gate from REQ-052; merge-pr enforces the plan file.
+
+**Consequences.** The CI guardrails check still reads the PR body Plan: moving it to plan files changes protected paths (check-guardrails.mjs, guardrails-lib.mjs) and needs the Product Owner's explicit approval and the human-approved label. Changes without UI state "design": "none: <reason>".
+
+## ADR-016 — Every UI design is drawn in Figma and approved from the Figma frame
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-057
+
+**Context.** Reviewing the REQ-056 design (text only), the Product Owner asked for a corresponding Figma design and for this to be part of every requirement that changes the UI.
+
+**Decision.** From REQ-056 on, a requirement with UI has a design file that links at least one frame in the Bee There Figma file (designTool in spec.json); check-spec fails without it once the requirement is In build or Done. Requirements without UI keep "design": "none: <reason>".
+
+**Consequences.** Sessions need the Figma connector to design; without it the requirement stays Approved, not In build. Designs live on the Figma page "📐 Feature designs".
+
+## ADR-017 — Checklist in the Excel export ships with the tripExcel flag
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-056
+
+**Context.** The Product Owner asked to export the trip checklist into the same Excel file as a separate sheet; asked whether it needs its own feature flag.
+
+**Decision.** No separate feature flag: the Checklist sheet is part of the trip Excel export and is released with the existing tripExcel flag. Only shared checklists and the exporting user's own personal checklists are exported.
+
+**Consequences.** Everyone who already has tripExcel gets the Checklist sheet right after the merge.
+
+## ADR-018 — Automatic deploys publish only the newest commit of main
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-058
+
+**Context.** On 2026-11-26 the Compass CI runs of two merges finished in reverse order; the deploy of the older commit 8654aa5 ran last and replaced the REQ-056 release on beetheremap.com.
+
+**Decision.** Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.
+
+**Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.
+
+## ADR-019 — Weekly security scan with npm audit and CodeQL, dismissal by a reason comment
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-044
+
+**Context.** Only npm audit ran in CI, and only on pushes (#56); nothing scanned our own code or looked for new advisories between releases (#68).
+
+**Decision.** A new workflow compass-security.yml runs every Monday 08:00 Vietnam time (and on demand): CodeQL (security-extended, free for public repos) and npm audit. compass/security-scan.mjs opens one bug + security + severity:<level> issue per finding and closes it when the finding is gone. A finding is dismissed by closing its issue as "not planned" with a comment that starts with "Dismissed:"; without it the scan reopens the issue. The Product Owner approved the new protected workflow and both choices in chat.
+
+**Consequences.** The first run opens issues for the known #56 findings, which can be dismissed with a reason or fixed. If GitHub code scanning default setup is turned on, the CodeQL upload fails and only the library scan reports until it is turned off.
+
+## ADR-020 — Agent evals start with a free replay of past mistakes
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-041
+
+**Context.** Issue #65 asked for 20–50 past tasks re-run automatically when the agent configuration changes. Re-running them with Claude needs an Anthropic API key as a GitHub secret and a CI workflow change, and costs roughly $15–60 per run (estimate).
+
+**Decision.** The Product Owner chose the free version first (2026-11-26): past mistakes and review findings are replayed against the real Compass checks (edit hook, CI guardrails, plan, test-first, merge-pr, spec checks) inside npm test. No API key, no paid service, no workflow change.
+
+**Consequences.** The suite proves the rules and checks still catch past mistakes; it does not measure how well Claude itself follows them. A paid version that re-runs real tasks with Claude needs a new decision (API key, cost, workflow change).

@@ -54,6 +54,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-054 | Revise the business need into a business intent | — | Should | Done | TC-111 |
 | REQ-055 | An approved design before any code | — | Should | Done | TC-112 |
 | REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Approved | TC-114 |
+| REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -562,6 +563,19 @@ Design: [compass/design/2026-11-26-checklist-in-excel.md](../compass/design/2026
 - Given an "everyone ticks" item ticked by 2 of 4 members · When I export · Then its Done cell shows 2/4 and Ticked by lists those 2 names
 - Given a trip without checklist items · When I export · Then the file has no Checklist sheet and the other sheets are unchanged
 - Given I export in English · When I open the Checklist sheet · Then its headers and values are in English
+
+## REQ-057 — A Figma frame in every UI design, approved before code
+
+As the product owner, I want every requirement that changes the UI to come with a Figma design that I approve before coding, so that I judge the real look in our design system instead of a text description.
+
+Intent: [compass/intent/2026-11-26-figma-for-ui-designs.md](../compass/intent/2026-11-26-figma-for-ui-designs.md)
+
+Design: none: process change, no UI
+
+- Given a requirement from REQ-056 on, In build or Done, whose design is a file · When the design file links no frame of the project Figma file (designTool?node-id=…) · Then node compass/check-spec.mjs fails and asks for the Figma frame
+- Given a requirement with "design": "none: <reason>" (no UI) · When CI runs the spec check · Then no Figma link is required
+- Given requirements before REQ-056 and the REQ-101…153 baseline · When CI runs the spec check · Then they are exempt
+- Given an agent starts a design · When it reads the design template and its working knowledge · Then it draws the frames in the Bee There Figma file (designTool in spec.json) and links them before asking for approval
 
 ## REQ-101 — Sign in with Google
 

@@ -226,12 +226,12 @@
       ]
     },
     {
-      "id": "ADR-017",
+      "id": "ADR-016",
       "date": "2026-11-26",
       "title": "Every UI design is drawn in Figma and approved from the Figma frame",
       "status": "Accepted",
       "context": "Reviewing the REQ-056 design (text only), the Product Owner asked for a corresponding Figma design and for this to be part of every requirement that changes the UI.",
-      "decision": "From REQ-056 on, a requirement with UI has a design file that links at least one frame in the Bee There Figma file (designTool in spec.json); check-spec fails without it once the requirement is past Draft. Requirements without UI keep \"design\": \"none: <reason>\".",
+      "decision": "From REQ-056 on, a requirement with UI has a design file that links at least one frame in the Bee There Figma file (designTool in spec.json); check-spec fails without it once the requirement is In build or Done. Requirements without UI keep \"design\": \"none: <reason>\".",
       "consequences": "Sessions need the Figma connector to design; without it the requirement waits in Draft. Designs live on the Figma page \"📐 Feature designs\".",
       "reqIds": [
         "REQ-057"
@@ -1522,7 +1522,7 @@
       "design": "none: process change, no UI",
       "story": "As the product owner, I want every requirement that changes the UI to come with a Figma design that I approve before coding, so that I judge the real look in our design system instead of a text description.",
       "ac": [
-        "Given a requirement from REQ-056 on, past Draft, whose design is a file\nWhen the design file has no Figma frame link (figma.com/design/<file>?node-id=…)\nThen node compass/check-spec.mjs fails and asks for the Figma frame",
+        "Given a requirement from REQ-056 on, In build or Done, whose design is a file\nWhen the design file links no frame of the project Figma file (designTool?node-id=…)\nThen node compass/check-spec.mjs fails and asks for the Figma frame",
         "Given a requirement with \"design\": \"none: <reason>\" (no UI)\nWhen CI runs the spec check\nThen no Figma link is required",
         "Given requirements before REQ-056 and the REQ-101…153 baseline\nWhen CI runs the spec check\nThen they are exempt",
         "Given an agent starts a design\nWhen it reads the design template and its working knowledge\nThen it draws the frames in the Bee There Figma file (designTool in spec.json) and links them before asking for approval"

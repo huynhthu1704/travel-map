@@ -17,9 +17,10 @@ that agents and reviewers can read it without opening the tool.
    each listing the REQ ids it delivers, its elements and its states (empty, loading, error, success).
 2. Draw it in the design tool and paste each frame link. Show it to the Product Owner.
    **From REQ-056 on (REQ-057), a design with UI must link at least one Figma frame** of the Bee There Figma file
-   (`https://www.figma.com/design/<file>?node-id=…`, page "📐 Feature designs"); `check-spec` fails without it once
-   the requirement is past Draft. A session without the Figma connector asks the Product Owner to connect it
-   (claude.ai → Connectors) and keeps the requirement in Draft.
+   (`compass/spec.json → designTool`, page "📐 Feature designs": `<designTool>?node-id=…`); `check-spec` fails
+   when such a requirement is In build or Done without one, and frames of other Figma files do not count. A session
+   without the Figma connector asks the Product Owner to connect it (claude.ai → Connectors); the requirement stays
+   Approved, not In build, until the design is drawn and approved.
 3. The Product Owner approves → `Status: Approved (by <name>, <date>)`. **Only then may code start**:
    `node compass/check-spec.mjs` fails when a requirement is In build or Done while its design is not Approved,
    and when a requirement from **REQ-052** on (below the REQ-101 baseline) has no `design` at all.

@@ -557,7 +557,7 @@ Intent: [compass/intent/2026-11-26-figma-for-ui-designs.md](../compass/intent/20
 
 Design: none: process change, no UI
 
-- Given a requirement from REQ-056 on, past Draft, whose design is a file · When the design file has no Figma frame link (figma.com/design/<file>?node-id=…) · Then node compass/check-spec.mjs fails and asks for the Figma frame
+- Given a requirement from REQ-056 on, In build or Done, whose design is a file · When the design file links no frame of the project Figma file (designTool?node-id=…) · Then node compass/check-spec.mjs fails and asks for the Figma frame
 - Given a requirement with "design": "none: <reason>" (no UI) · When CI runs the spec check · Then no Figma link is required
 - Given requirements before REQ-056 and the REQ-101…153 baseline · When CI runs the spec check · Then they are exempt
 - Given an agent starts a design · When it reads the design template and its working knowledge · Then it draws the frames in the Bee There Figma file (designTool in spec.json) and links them before asking for approval

@@ -49,10 +49,10 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
 | REQ-050 | Protect the guardrail enforcement files themselves | — | Should | Done | TC-068 |
 | REQ-051 | Harden merge-pr and the plan check | — | Could | Done | TC-066, TC-067 |
-| REQ-052 | Keep intents and the review policy inside compass/ | — | Should | Draft | TC-109 |
-| REQ-053 | A plan file for every change that touches code | — | Should | Draft | TC-110 |
-| REQ-054 | Revise the business need into a business intent | — | Should | Draft | TC-111 |
-| REQ-055 | An approved design before any code | — | Should | Draft | TC-112 |
+| REQ-052 | Keep intents and the review policy inside compass/ | — | Should | In build | TC-109 |
+| REQ-053 | A plan file for every change that touches code | — | Should | In build | TC-110 |
+| REQ-054 | Revise the business need into a business intent | — | Should | In build | TC-111 |
+| REQ-055 | An approved design before any code | — | Should | In build | TC-112 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |

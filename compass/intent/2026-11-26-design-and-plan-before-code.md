@@ -1,6 +1,6 @@
 # Intent: An approved design and a written plan before any code
 
-Status: Draft
+Status: Approved
 Requested: 2026-11-26 by the Product Owner, in chat — while bringing the AI-native SDLC into the Compass portal.
 
 ## Business need

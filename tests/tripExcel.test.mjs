@@ -149,3 +149,16 @@ test('TC-114: English labels; no Checklist sheet without items or without my lis
   assert.deepEqual(names({ checklists: [{ ...checklists[3] }], uid: 'u1' }), ['Lịch trình & chi phí', 'Chia tiền', 'Tỉ giá', 'Master data']);
   assert.deepEqual(names({ checklists: [{ id: 'e', scope: 'shared', items: [] }] }), ['Lịch trình & chi phí', 'Chia tiền', 'Tỉ giá', 'Master data']);
 });
+
+// TC-114 — bug #104: only ticks of current trip members count
+test('TC-114 (#104): "everyone ticks" ignores ticks of people who left the trip', () => {
+  const two = { ...ctrip, memberIds: ['u1', 'u2'] };
+  const lists = [{ id: 'k', title: 'Đồ', phase: 'before', scope: 'shared', items: [{ id: 'b', text: 'Sạc', scope: 'personal', doneMap: { u1: 'Lan', u9: 'Cựu thành viên', u2: 'Thư' } }] }];
+  const d = buildTripWorkbook(two, plan, costs, { checklists: lists, uid: 'u1' }).sheets[1].data.map((r) => r.map(text));
+  assert.deepEqual(d[2].slice(4, 6), ['2/2', 'Lan, Thư']);
+  assert.equal(d.at(-1)[0], 'Đã xong: 1/1');
+  lists[0].items[0].doneMap = { u1: 'Lan', u9: 'Cựu thành viên' };
+  const d2 = buildTripWorkbook(two, plan, costs, { checklists: lists, uid: 'u1' }).sheets[1].data.map((r) => r.map(text));
+  assert.deepEqual(d2[2].slice(4, 6), ['1/2', 'Lan']);
+  assert.equal(d2.at(-1)[0], 'Đã xong: 0/1');
+});

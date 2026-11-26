@@ -445,8 +445,9 @@ export function TripPlan({ trip }) {
       const memberIds = trip.memberIds || [];
       const conv = makeToBase(trip.currency || 'VND', trip.rates || {});
       const { transfers } = settle(costs, memberIds, trip.currency || 'VND', conv);
-      const { exportTripExcel } = await import('../lib/tripExcel.js');
-      const r = await exportTripExcel(trip, list, costs, { lang: getLang(), transfers, placeName: pName });
+      const { exportTripExcel, checklistsForExport } = await import('../lib/tripExcel.js');
+      const checklists = await checklistsForExport(api, trip.id, user?.uid);
+      const r = await exportTripExcel(trip, list, costs, { lang: getLang(), transfers, placeName: pName, checklists, uid: user?.uid });
       if (r === 'downloaded') notify(t('excel.downloaded'));
     } catch (e) {
       notify(t('excel.error', { msg: e.message }), 'error');

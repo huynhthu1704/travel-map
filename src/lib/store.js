@@ -523,6 +523,17 @@ const firebaseBackend = {
     const u2 = uid ? onSnapshot(query(col, where('ownerUid', '==', uid)), (s) => ((mine = map(s)), emit()), () => emit()) : () => {};
     return () => (u1(), u2());
   },
+  /** REQ-056: the same lists, read once (Excel export) */
+  async getChecklists(tripId, uid) {
+    const col = collection(db, 'trips', tripId, 'checklists');
+    const map = (s) => (s ? s.docs.map((d) => ({ id: d.id, tripId, ...d.data() })) : []);
+    const [shared, mine] = await Promise.all([
+      getDocs(query(col, where('scope', '==', 'shared'))),
+      uid ? getDocs(query(col, where('ownerUid', '==', uid))).catch(() => null) : null,
+    ]);
+    const all = [...map(shared), ...map(mine).filter((x) => x.scope !== 'shared')];
+    return all.sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt));
+  },
   addChecklist(user, tripId, { title, phase, scope, items }) {
     return addDoc(collection(db, 'trips', tripId, 'checklists'), {
       title, phase, scope, ownerUid: scope === 'personal' ? user.uid : null, items, createdBy: user.uid, createdByName: user.name, createdAt: now(),
@@ -850,6 +861,9 @@ const localBackend = {
   async deleteCost(tripId, id) {
     state.costs[tripId] = (state.costs?.[tripId] || []).filter((x) => x.id !== id);
     save();
+  },
+  async getChecklists(tripId) {
+    return ((state.checklists ||= {})[tripId] || []).map((x) => ({ ...x, tripId }));
   },
   watchChecklists(tripId, cb) {
     return sub(() => cb(((state.checklists ||= {})[tripId] || []).map((x) => ({ ...x, tripId }))));

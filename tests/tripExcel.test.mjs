@@ -92,3 +92,60 @@ test('TC-050: the Google Maps cell holds the full URL as a clickable link', () =
   const data = gm.sheets[0].data;
   assert.equal(data[find(data, 'Chinatown')][gm.columns.maps - 1].cached, 'https://maps.app.goo.gl/x');
 });
+
+// TC-114 — the trip checklist as its own sheet (REQ-056)
+const ctrip = { ...trip, name: 'SG & MY', startDate: '2026-12-10', endDate: '2026-12-14', memberIds: ['u1', 'u2', 'u3', 'u4'] };
+const checklists = [
+  { id: 'r', title: 'Việc trước khi về', phase: 'return', scope: 'shared', items: [{ id: 'r1', text: 'Trả phòng', due: '2026-12-14' }] },
+  {
+    id: 'k', title: 'Đồ cần mang', phase: 'before', scope: 'shared',
+    items: [
+      { id: 'a', text: 'Hộ chiếu', done: true, doneBy: 'Lan', due: 'before' },
+      { id: 'b', text: 'Sạc dự phòng', scope: 'personal', doneMap: { u1: 'Lan', u2: 'Thư' }, due: '2026-12-10' },
+      { id: 'c', text: 'Đổi tiền SGD', scope: 'me', ownerUid: 'u3', ownerName: 'An', due: '2026-11-20' },
+      { id: 'd', text: 'Bảo hiểm', due: '2026-11-26' },
+    ],
+  },
+  { id: 'm', title: 'Của tôi', phase: 'before', scope: 'personal', ownerUid: 'u1', items: [{ id: 'm1', text: 'Thuốc', done: true, doneBy: 'Lan' }] },
+  { id: 'x', title: 'Của Thư', phase: 'before', scope: 'personal', ownerUid: 'u2', items: [{ id: 'x1', text: 'BÍ MẬT' }] },
+];
+const sheetOf = (opts) => buildTripWorkbook(ctrip, plan, costs, { checklists, uid: 'u1', today: '2026-11-26', ...opts }).sheets;
+
+test('TC-114: a Checklist sheet right after the itinerary, one row per visible item, before-the-trip lists first', () => {
+  const sheets = sheetOf();
+  assert.deepEqual(sheets.map((s) => s.sheet), ['Lịch trình & chi phí', 'Checklist', 'Chia tiền', 'Tỉ giá', 'Master data']);
+  const d = sheets[1].data.map((r) => r.map(text));
+  assert.equal(d[0][0], 'CHECKLIST | SG & MY');
+  assert.deepEqual(d[1], ['Checklist', 'Khi nào', 'Việc cần làm', 'Ai lo', 'Xong', 'Người tick', 'Ngày cần làm']);
+  assert.deepEqual(d.slice(2, -1).map((r) => r[2]), ['Hộ chiếu', 'Sạc dự phòng', 'Đổi tiền SGD', 'Bảo hiểm', 'Thuốc', 'Trả phòng']);
+  assert.deepEqual(d[2], ['Đồ cần mang', 'Trước khi đi', 'Hộ chiếu', 'Cả nhóm', '✓', 'Lan', 'Trước chuyến đi']);
+  assert.deepEqual(d[3].slice(3), ['Mỗi người tự tick', '2/4', 'Lan, Thư', 'Ngày 1 · 10/12'], 'everyone ticks: ticked / members');
+  assert.deepEqual(d[4].slice(3), ['Chỉ An', '', '', '20/11/2026']);
+  assert.deepEqual(d[6].slice(0, 4), ['Của tôi (cá nhân)', 'Trước khi đi', 'Thuốc', 'Cá nhân']);
+  assert.deepEqual(d[7].slice(0, 2), ['Việc trước khi về', 'Trước khi về']);
+  assert.equal(d.at(-1)[0], 'Đã xong: 2/6');
+  assert.ok(!JSON.stringify(d).includes('BÍ MẬT'), "another member's personal list is never exported");
+  assert.equal(sheets[1].stickyRowsCount, 2);
+});
+
+test('TC-114: overdue items are red, items due today yellow, done items plain', () => {
+  const data = sheetOf()[1].data;
+  const fill = (i) => data[i][0].backgroundColor;
+  assert.equal(fill(4), '#FDE2DC');
+  assert.equal(fill(5), '#FFF3B0');
+  assert.equal(fill(2), undefined);
+  assert.equal(fill(7), undefined, 'not due yet');
+});
+
+test('TC-114: English labels; no Checklist sheet without items or without my lists', () => {
+  const en = sheetOf({ lang: 'en' })[1].data.map((r) => r.map(text));
+  assert.deepEqual(en[1], ['List', 'When', 'Item', 'For', 'Done', 'Ticked by', 'Due day']);
+  assert.deepEqual(en[3].slice(1, 4), ['Before the trip', 'Sạc dự phòng', 'Everyone ticks']);
+  assert.equal(en[2][6], 'Before the trip');
+  assert.equal(en[3][6], 'Day 1 · 10/12');
+  assert.equal(en.at(-1)[0], 'Done: 2/6');
+  const names = (opts) => buildTripWorkbook(ctrip, plan, costs, opts).sheets.map((s) => s.sheet);
+  assert.deepEqual(names({}), ['Lịch trình & chi phí', 'Chia tiền', 'Tỉ giá', 'Master data'], 'existing sheets unchanged');
+  assert.deepEqual(names({ checklists: [{ ...checklists[3] }], uid: 'u1' }), ['Lịch trình & chi phí', 'Chia tiền', 'Tỉ giá', 'Master data']);
+  assert.deepEqual(names({ checklists: [{ id: 'e', scope: 'shared', items: [] }] }), ['Lịch trình & chi phí', 'Chia tiền', 'Tỉ giá', 'Master data']);
+});

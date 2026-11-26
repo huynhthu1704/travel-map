@@ -11,6 +11,7 @@ Project: **travel-map** — Tăng số người dùng hoàn thành checklist chu
 ## Workflow (every change)
 0. **Business need → intent (REQ-038, REQ-054):** write `intent/YYYY-MM-DD-topic.md` from the template in [`intent/README.md`](intent/README.md): keep the Product Owner's words under `## Business need` and revise them into a measurable business intent under `## What we want`. Get her approval in chat before creating requirements.
 1. **Idea → Requirement:** a change starts from a requirement in `compass/spec.json` with Given/When/Then acceptance criteria, and a GitHub issue (label `requirement`, written in English, using the *New requirement* template). Bugs come in as issues labelled `bug` (UI-test failures are opened automatically by `e2e/report-bugs.mjs`).
+1b. **Requirements → Design (REQ-055):** once the requirements are approved, draft the design in `compass/design/YYYY-MM-DD-topic.md` from [`compass/design/README.md`](compass/design/README.md) (screens ↔ REQ ids, drawn in the project's design tool, e.g. Figma) and link it from each requirement (`"design"` in spec.json; `"none: <reason>"` when there is no UI). **No code before the Product Owner approves the design** — `check-spec` fails a requirement In build whose design is not Approved (required from REQ-052).
 2. **Requirement → Test:** add at least one test case that references the requirement id.
 2b. **Plan (REQ-039, REQ-053):** before changing code, write `compass/plans/<REQ-ids>-<short-name>.md` from [`compass/plans/README.md`](compass/plans/README.md) (Files, Steps, Risks, Proof) and commit it first; the PR body's `## Plan` links it and keeps the four short lines the CI check reads. `compass/merge-pr.mjs` refuses a code PR without a complete plan file. Update the plan if the approach changes.
 3. **Code:** branch `compass/REQ-xxx-short-name`. Commit messages start with the requirement id, e.g. `REQ-004: add guest checkout`.
@@ -24,7 +25,7 @@ Project: **travel-map** — Tăng số người dùng hoàn thành checklist chu
 ```bash
 npm test                      # unit tests (node --test, tests/)
 npm run test:e2e              # UI tests (Playwright, demo mode, e2e/)
-node compass/check-spec.mjs   # traceability check: every REQ has a TC, every TC points to a REQ; handover.md not stale
+node compass/check-spec.mjs   # traceability check: every REQ has a TC, every TC points to a REQ; intent, design gate; handover.md not stale
 node compass/plan-file.mjs    # plan file check (REQ-053), run before pushing a code change
 node compass/build-views.mjs  # regenerate requirements.md, tests.md, handover.md, decisions.md after editing spec.json
 ```

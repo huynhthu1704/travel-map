@@ -11,7 +11,8 @@
  *  trips/{id}/stops/{stopId}     { place{},kind:'place'|'memory'|'wishlist',photos[],caption,byUid,byName,createdAt }
  *  trips/{id}/plan/{itemId}      { place{},date?,time?,note,order,done,doneBy,doneAt,addedBy,addedByName,createdAt }
  *  trips/{id}/costs/{id}         { type:'estimate'|'actual'|'payment',title,amount,per?:'group'|'person',paidBy?,splitAmong?[uid],planItemId?,date?,note?,createdBy,createdAt }
- *  trips/{id}/checklists/{id}    { title,phase:'before'|'return',scope:'shared'|'personal',ownerUid?,items[{id,text,done,doneBy}],createdBy,createdAt }
+ *  trips/{id}/checklists/{id}    { title,phase:'before'|'return',scope:'shared'|'personal',ownerUid?,createdBy,createdAt,
+ *                                  items[{id,text,done,doneBy,scope?:'shared'|'personal'(everyone ticks)|'me',doneMap?{uid:name},ownerUid?,ownerName?,due?}] }
  */
 import {
   collection, doc, getDoc, setDoc, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, getDocs, limit,

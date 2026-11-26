@@ -29,6 +29,8 @@ flag (Product Owner's decision, ADR-017). Built by the pure `buildTripWorkbook()
 - Order: "Before the trip" lists first, then "Before returning"; lists in creation order; items in the order shown in the app.
 - Last row: `Đã xong / Done: 5/12` (done items / all items; an "Everyone ticks" item counts as done when every member ticked).
 - Items not done that are overdue / due today on the export day get the same red / yellow fill as in the app (REQ-033).
+  The file is shared by the group, so an "Everyone ticks" item stays red / yellow until every current member ticked it
+  (in the app each member sees their own tick).
 - Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=21-5 (REQ-056 · Excel export — Checklist sheet (VI))
 - States: trip without checklist items → no Checklist sheet, the rest of the file unchanged. Error → the existing
   Excel error message.

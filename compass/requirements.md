@@ -564,7 +564,7 @@ Design: [compass/design/2026-11-26-checklist-in-excel.md](../compass/design/2026
 - Given a trip without checklist items · When I export · Then the file has no Checklist sheet and the other sheets are unchanged
 - Given I export in English · When I open the Checklist sheet · Then its headers and values are in English
 - Given a trip with "before the trip" and "before returning" checklists · When I export · Then the Checklist sheet comes right after the itinerary sheet, "before the trip" lists first, items in the app's order, and its last row shows done items / all items
-- Given an item that is not done and is overdue or due today on the export day · When I export · Then its row is red (overdue) or yellow (due today), as in the app
+- Given an item that is not done and is overdue or due today on the export day · When I export · Then its row is red (overdue) or yellow (due today), as in the app (an "everyone ticks" item until every current member ticked it)
 
 ## REQ-057 — A Figma frame in every UI design, approved before code
 

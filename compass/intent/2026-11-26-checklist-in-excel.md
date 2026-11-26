@@ -17,10 +17,10 @@ People prepare a trip from the Excel file (costs, itinerary) but the to-do list 
 between the two or copy the list by hand.
 
 ## Constraints
-- Same Excel file and the same Excel buttons (trip plan and costs pages); one new sheet "Checklist" (VI and EN names).
+- Same Excel file and the same Excel buttons (trip plan and costs pages); one new sheet named "Checklist" in both languages.
 - Privacy: only what the user can already see — shared checklists plus the user's own personal checklists; never other
   members' personal lists.
-- No new dependency (write-excel-file), free Firebase Spark plan, behind a default-off feature flag.
+- No new dependency (write-excel-file), free Firebase Spark plan. No new feature flag: ships with the existing `tripExcel` flag (ADR-017, decided 2026-11-26).
 - The existing sheets do not change.
 
 ## Success measure

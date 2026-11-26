@@ -1556,7 +1556,7 @@
         "Given a trip without checklist items\nWhen I export\nThen the file has no Checklist sheet and the other sheets are unchanged",
         "Given I export in English\nWhen I open the Checklist sheet\nThen its headers and values are in English",
         "Given a trip with \"before the trip\" and \"before returning\" checklists\nWhen I export\nThen the Checklist sheet comes right after the itinerary sheet, \"before the trip\" lists first, items in the app's order, and its last row shows done items / all items",
-        "Given an item that is not done and is overdue or due today on the export day\nWhen I export\nThen its row is red (overdue) or yellow (due today), as in the app"
+        "Given an item that is not done and is overdue or due today on the export day\nWhen I export\nThen its row is red (overdue) or yellow (due today), as in the app (an \"everyone ticks\" item until every current member ticked it)"
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat (issue #99)"
     }

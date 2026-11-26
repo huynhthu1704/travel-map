@@ -427,7 +427,7 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     ...(group ? [{ sqref: `${X('payer')}${FIRST}:${X('payee')}${upTo}`, list: listRef(5) }, v('split', 2)] : []),
   ];
 
-  const checkSheet = buildChecklistSheet(trip, opts, L.check, memberIds.length);
+  const checkSheet = buildChecklistSheet(trip, opts, L.check, memberIds);
   const sheets = [planSheet, checkSheet, settleSheet, ratesSheet, masterSheet].filter(Boolean);
   sheets.forEach((s) => (s.formulaValues = formulaValuesOf(s.data)));
   return { sheets, columns: C, labels: L, multi };
@@ -442,11 +442,12 @@ const localToday = () => {
 const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 /**
- * REQ-056: the trip's checklists as one sheet — one row per item, "before the trip" lists first.
+ * REQ-056: the trip's checklists as one sheet — one row per item, "before the trip" lists first. An "everyone ticks"
+ * item is done (and no longer red / yellow) when every current member ticked it.
  * Only shared lists and the exporting user's own personal lists (other members' lists never leave the app).
  * Returns null when there is nothing to show.
  */
-export function buildChecklistSheet(trip, opts, K, members = 1) {
+export function buildChecklistSheet(trip, opts, K, memberIds = []) {
   const visible = (opts.checklists || []).filter((l) => l && (l.scope === 'shared' || (opts.uid && l.ownerUid === opts.uid)));
   const lists = [...visible.filter((l) => l.phase !== 'return'), ...visible.filter((l) => l.phase === 'return')];
   const today = opts.today || localToday();
@@ -457,14 +458,16 @@ export function buildChecklistSheet(trip, opts, K, members = 1) {
     const day = days.find((x) => x.date === due);
     return day ? K.day(day.day, ddmm(due)) : `${ddmm(due)}/${due.slice(0, 4)}`;
   };
-  const n = Math.max(1, members);
+  const n = Math.max(1, memberIds.length);
+  // bug #104: only ticks of current members count (all ticks when the trip has no member list)
+  const isMember = (uid) => !memberIds.length || memberIds.includes(uid);
   const rows = [];
   let done = 0;
   lists.forEach((l) => {
     const shared = l.scope === 'shared';
     (l.items || []).forEach((it) => {
       const each = shared && it.scope === 'personal';
-      const ticked = each ? Object.values(it.doneMap || {}).filter(Boolean) : [];
+      const ticked = each ? Object.entries(it.doneMap || {}).filter(([uid, name]) => name && isMember(uid)).map(([, name]) => name) : [];
       const isDone = each ? ticked.length >= n : !!it.done;
       if (isDone) done++;
       const who = !shared ? K.who.personal : each ? K.who.each : it.scope === 'me' ? K.who.only(it.ownerName || '') : K.who.group;

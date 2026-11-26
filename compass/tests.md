@@ -86,4 +86,4 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-111 | New intents keep the business need | REQ-054 | automated | Passing | tests/intent.test.mjs |
 | TC-112 | Design gate: missing design, unapproved design for In build, design not mentioning the requirement | REQ-055 | automated | Passing | tests/design.test.mjs |
 | TC-113 | Design check: UI designs from REQ-056 on need a Figma frame link; template, skill and agent knowledge say so | REQ-057 | automated | Passing | tests/design.test.mjs |
-| TC-114 | Excel Checklist sheet: rows, order, per-person progress, privacy filter, no sheet when empty, EN labels | REQ-056 | automated | Planned | tests/tripExcel.test.mjs |
+| TC-114 | Excel Checklist sheet: position, rows and order, per-person progress, privacy filter, colours, total, EN labels, no sheet when empty | REQ-056 | automated | Passing | tests/tripExcel.test.mjs |

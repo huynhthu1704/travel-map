@@ -847,8 +847,9 @@ export default function TripCosts({ trip }) {
   const doExcel = async () => {
     setExcelBusy(true);
     try {
-      const { exportTripExcel } = await import('../lib/tripExcel.js');
-      const r = await exportTripExcel(trip, plan, costs || [], { lang: getLang(), transfers, placeName: pName });
+      const { exportTripExcel, checklistsForExport } = await import('../lib/tripExcel.js');
+      const checklists = await checklistsForExport(api, trip.id, user?.uid);
+      const r = await exportTripExcel(trip, plan, costs || [], { lang: getLang(), transfers, placeName: pName, checklists, uid: user?.uid });
       if (r === 'downloaded') notify(t('excel.downloaded'));
     } catch (e) {
       notify(t('excel.error', { msg: e.message }), 'error');

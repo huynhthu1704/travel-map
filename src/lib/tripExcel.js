@@ -7,7 +7,8 @@
  *                  viewers that do not recalculate (Excel Protected View, previews, phones)
  *   hiddenColumns  [n] — helper columns kept for the formulas but hidden from view
  *
- * Sheets: Itinerary & costs · Settle up (groups only) · Rates · Master data.
+ * Sheets: Itinerary & costs · Checklist (REQ-056, when the trip has checklist items) · Settle up (groups only) · Rates ·
+ * Master data.
  * Layout of the first sheet (top to bottom): costs not linked to any plan item (usually pre-trip), plan items
  * without a date, then one block per day; each plan item is followed by its cost lines. A cost line holds an
  * estimate and its actual side by side: estimated cost, [currency], actual cost, [currency], final amount in the
@@ -15,6 +16,7 @@
  */
 
 import { COST_TYPES, costTypeLabel } from '../data/costTypes.js';
+import { tripDays, dueStatus } from './checklist.js';
 
 const LABELS = {
   vi: {
@@ -45,6 +47,17 @@ const LABELS = {
     rates: ['Tiền tệ', (b) => `1 đơn vị = ? ${b}`],
     ratesNote: (b) => `Số tiền ở sheet Lịch trình & chi phí được quy đổi về ${b} theo bảng này — sửa tỉ giá, cả file tự tính lại.`,
     master: ['Trạng thái', 'Loại dòng', 'Cách tính tiền', 'Loại chi phí', 'Tiền tệ', 'Thành viên'],
+    check: {
+      sheet: 'Checklist',
+      title: (t) => `CHECKLIST | ${t}`,
+      cols: ['Checklist', 'Khi nào', 'Việc cần làm', 'Ai lo', 'Xong', 'Người tick', 'Ngày cần làm'],
+      personalList: (n) => `${n} (cá nhân)`,
+      phase: { before: 'Trước khi đi', return: 'Trước khi về' },
+      who: { group: 'Cả nhóm', each: 'Mỗi người tự tick', only: (n) => `Chỉ ${n}`, personal: 'Cá nhân' },
+      dueBefore: 'Trước chuyến đi',
+      day: (n, d) => `Ngày ${n} · ${d}`,
+      done: (a, b) => `Đã xong: ${a}/${b}`,
+    },
   },
   en: {
     sheets: { plan: 'Itinerary & costs', settle: 'Settle up', rates: 'Rates', master: 'Master data' },
@@ -74,6 +87,17 @@ const LABELS = {
     rates: ['Currency', (b) => `1 unit = ? ${b}`],
     ratesNote: (b) => `Amounts on the Itinerary & costs sheet are converted to ${b} with this table — change a rate and the whole file recalculates.`,
     master: ['Status', 'Row type', 'Split', 'Cost type', 'Currency', 'Member'],
+    check: {
+      sheet: 'Checklist',
+      title: (t) => `CHECKLIST | ${t}`,
+      cols: ['List', 'When', 'Item', 'For', 'Done', 'Ticked by', 'Due day'],
+      personalList: (n) => `${n} (personal)`,
+      phase: { before: 'Before the trip', return: 'Before returning' },
+      who: { group: 'Group', each: 'Everyone ticks', only: (n) => `Only ${n}`, personal: 'Personal' },
+      dueBefore: 'Before the trip',
+      day: (n, d) => `Day ${n} · ${d}`,
+      done: (a, b) => `Done: ${a}/${b}`,
+    },
   },
 };
 
@@ -119,7 +143,9 @@ export function formulaValuesOf(data) {
  * @param trip   { name, currency, rates, memberIds, members }
  * @param plan   plan items (removed ones already filtered out)
  * @param costs  estimates / actuals / repayments
- * @param opts   { lang, transfers: [{from, to, amount}] (uids), placeName(place) }
+ * @param opts   { lang, transfers: [{from, to, amount}] (uids), placeName(place),
+ *                 checklists (REQ-056), uid (the exporting user: only shared lists and their own are exported),
+ *                 today (YYYY-MM-DD, for the overdue / due-today colours) }
  */
 export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
   const lang = LABELS[opts.lang] ? opts.lang : 'vi';
@@ -401,9 +427,82 @@ export function buildTripWorkbook(trip, plan = [], costs = [], opts = {}) {
     ...(group ? [{ sqref: `${X('payer')}${FIRST}:${X('payee')}${upTo}`, list: listRef(5) }, v('split', 2)] : []),
   ];
 
-  const sheets = [planSheet, settleSheet, ratesSheet, masterSheet].filter(Boolean);
+  const checkSheet = buildChecklistSheet(trip, opts, L.check, memberIds.length);
+  const sheets = [planSheet, checkSheet, settleSheet, ratesSheet, masterSheet].filter(Boolean);
   sheets.forEach((s) => (s.formulaValues = formulaValuesOf(s.data)));
   return { sheets, columns: C, labels: L, multi };
+}
+
+const OVERDUE = '#FDE2DC';
+const DUE_TODAY = '#FFF3B0';
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+
+/**
+ * REQ-056: the trip's checklists as one sheet — one row per item, "before the trip" lists first.
+ * Only shared lists and the exporting user's own personal lists (other members' lists never leave the app).
+ * Returns null when there is nothing to show.
+ */
+export function buildChecklistSheet(trip, opts, K, members = 1) {
+  const visible = (opts.checklists || []).filter((l) => l && (l.scope === 'shared' || (opts.uid && l.ownerUid === opts.uid)));
+  const lists = [...visible.filter((l) => l.phase !== 'return'), ...visible.filter((l) => l.phase === 'return')];
+  const today = opts.today || localToday();
+  const days = tripDays(trip.startDate, trip.endDate);
+  const dueText = (due) => {
+    if (!due) return '';
+    if (due === 'before') return K.dueBefore;
+    const day = days.find((x) => x.date === due);
+    return day ? K.day(day.day, ddmm(due)) : `${ddmm(due)}/${due.slice(0, 4)}`;
+  };
+  const n = Math.max(1, members);
+  const rows = [];
+  let done = 0;
+  lists.forEach((l) => {
+    const shared = l.scope === 'shared';
+    (l.items || []).forEach((it) => {
+      const each = shared && it.scope === 'personal';
+      const ticked = each ? Object.values(it.doneMap || {}).filter(Boolean) : [];
+      const isDone = each ? ticked.length >= n : !!it.done;
+      if (isDone) done++;
+      const who = !shared ? K.who.personal : each ? K.who.each : it.scope === 'me' ? K.who.only(it.ownerName || '') : K.who.group;
+      const status = dueStatus(it.due, isDone, today, trip.startDate);
+      const fill = status === 'overdue' ? { backgroundColor: OVERDUE } : status === 'today' ? { backgroundColor: DUE_TODAY } : {};
+      const cells = [
+        shared ? l.title || '' : K.personalList(l.title || ''),
+        K.phase[l.phase === 'return' ? 'return' : 'before'],
+        it.text || '',
+        who,
+        each ? `${ticked.length}/${n}` : isDone ? '✓' : '',
+        each ? ticked.join(', ') : isDone ? it.doneBy || '' : '',
+        dueText(it.due),
+      ];
+      rows.push(cells.map((value, i) => ({ value, ...fill, ...(i === 4 ? { align: 'center' } : {}) })));
+    });
+  });
+  if (!rows.length) return null;
+  return {
+    sheet: K.sheet,
+    data: [
+      [{ value: K.title(trip.name || ''), fontWeight: 'bold', fontSize: 12 }],
+      K.cols.map((value) => ({ value, ...HEAD })),
+      ...rows,
+      [{ value: K.done(done, rows.length), ...TOTAL }, ...K.cols.slice(1).map(() => ({ value: '', ...TOTAL }))],
+    ],
+    columns: [{ width: 24 }, { width: 16 }, { width: 36 }, { width: 22 }, { width: 8 }, { width: 22 }, { width: 18 }],
+    stickyRowsCount: 2,
+  };
+}
+
+/** REQ-056: read the trip's checklists once for the export; a failed read means no Checklist sheet, not an error */
+export async function checklistsForExport(api, tripId, uid) {
+  try {
+    return (await api.getChecklists?.(tripId, uid)) || [];
+  } catch {
+    return [];
+  }
 }
 
 export const excelFileName = (trip) => `${(trip.name || 'trip').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || 'trip'}.xlsx`;

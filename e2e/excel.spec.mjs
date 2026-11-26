@@ -8,13 +8,13 @@ const sheetsIn = (path) => {
   return [...new Set(raw.match(/xl\/worksheets\/sheet\d+\.xml/g))].length;
 };
 
-test('REQ-029: Export Excel on the Costs tab downloads a four-sheet workbook with amounts filled in', async ({ page }) => {
+test('REQ-029 / REQ-056: Export Excel on the Costs tab downloads the workbook with its Checklist sheet and amounts filled in', async ({ page }) => {
   await openApp(page, '#/trips/t1?tab=costs', { flags: { tripExcel: true } });
   await page.evaluate(() => { navigator.canShare = () => false; });
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: /Xuất Excel/ }).click()]);
   expect(dl.suggestedFilename()).toBe('Singapore-Malaysia.xlsx');
   const path = await dl.path();
-  expect(sheetsIn(path)).toBe(4); // itinerary & costs, settle-up, rates, master data
+  expect(sheetsIn(path)).toBe(5); // itinerary & costs, checklist (REQ-056), settle-up, rates, master data
   // Formula results are stored in the file (visible without recalculation)
   expect(readFileSync(path).length).toBeGreaterThan(5000);
 });

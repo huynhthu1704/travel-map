@@ -1545,7 +1545,7 @@
       "id": "REQ-056",
       "title": "Export the trip checklist to the same Excel file as a separate sheet",
       "priority": "Should",
-      "status": "Approved",
+      "status": "Done",
       "intent": "compass/intent/2026-11-26-checklist-in-excel.md",
       "design": "compass/design/2026-11-26-checklist-in-excel.md",
       "story": "As a trip member, I want the trip checklist in the Excel export as its own sheet so that I can see, print and share the to-dos together with the itinerary and costs.",
@@ -1554,7 +1554,9 @@
         "Given another member has a personal checklist\nWhen I export the trip\nThen the Checklist sheet shows the shared checklists and my own personal checklists only",
         "Given an \"everyone ticks\" item ticked by 2 of 4 members\nWhen I export\nThen its Done cell shows 2/4 and Ticked by lists those 2 names",
         "Given a trip without checklist items\nWhen I export\nThen the file has no Checklist sheet and the other sheets are unchanged",
-        "Given I export in English\nWhen I open the Checklist sheet\nThen its headers and values are in English"
+        "Given I export in English\nWhen I open the Checklist sheet\nThen its headers and values are in English",
+        "Given a trip with \"before the trip\" and \"before returning\" checklists\nWhen I export\nThen the Checklist sheet comes right after the itinerary sheet, \"before the trip\" lists first, items in the app's order, and its last row shows done items / all items",
+        "Given an item that is not done and is overdue or due today on the export day\nWhen I export\nThen its row is red (overdue) or yellow (due today), as in the app"
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat (issue #99)"
     }
@@ -2486,12 +2488,12 @@
     },
     {
       "id": "TC-114",
-      "title": "Excel Checklist sheet: rows, order, per-person progress, privacy filter, no sheet when empty, EN labels",
+      "title": "Excel Checklist sheet: position, rows and order, per-person progress, privacy filter, colours, total, EN labels, no sheet when empty",
       "reqIds": [
         "REQ-056"
       ],
       "type": "automated",
-      "status": "Planned",
+      "status": "Passing",
       "file": "tests/tripExcel.test.mjs"
     }
   ]

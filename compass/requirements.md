@@ -53,7 +53,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-053 | A plan file for every change that touches code | — | Should | Done | TC-110 |
 | REQ-054 | Revise the business need into a business intent | — | Should | Done | TC-111 |
 | REQ-055 | An approved design before any code | — | Should | Done | TC-112 |
-| REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Approved | TC-114 |
+| REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Done | TC-114 |
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
@@ -563,6 +563,8 @@ Design: [compass/design/2026-11-26-checklist-in-excel.md](../compass/design/2026
 - Given an "everyone ticks" item ticked by 2 of 4 members · When I export · Then its Done cell shows 2/4 and Ticked by lists those 2 names
 - Given a trip without checklist items · When I export · Then the file has no Checklist sheet and the other sheets are unchanged
 - Given I export in English · When I open the Checklist sheet · Then its headers and values are in English
+- Given a trip with "before the trip" and "before returning" checklists · When I export · Then the Checklist sheet comes right after the itinerary sheet, "before the trip" lists first, items in the app's order, and its last row shows done items / all items
+- Given an item that is not done and is overdue or due today on the export day · When I export · Then its row is red (overdue) or yellow (due today), as in the app
 
 ## REQ-057 — A Figma frame in every UI design, approved before code
 

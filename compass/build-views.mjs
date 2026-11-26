@@ -155,7 +155,7 @@ export function designProblems(spec, readDesign) {
   for (const r of spec.requirements) {
     const n = num(r.id);
     if (!r.design) {
-      if (n >= DESIGN_REQUIRED_FROM && !(n >= 101 && n <= 153) && r.status !== 'Draft') problems.push(`${r.id} has no design (add "design": "compass/design/<file>.md", or "none: <reason>" when it has no UI)`);
+      if (n >= DESIGN_REQUIRED_FROM && !isBaseline(n) && r.status !== 'Draft') problems.push(`${r.id} has no design (add "design": "compass/design/<file>.md", or "none: <reason>" when it has no UI)`);
       continue;
     }
     if (/^none:\s*\S/i.test(r.design)) continue;
@@ -165,7 +165,8 @@ export function designProblems(spec, readDesign) {
     }
     const text = readDesign(r.design);
     if (text == null) problems.push(`${r.id} points to missing ${r.design}`);
-    else if (!text.includes(r.id)) problems.push(`${r.design} does not mention ${r.id}`);
+    // whole id only: REQ-100 must not match inside REQ-1000
+    else if (!new RegExp(`\\b${r.id}(?!\\d)`).test(text)) problems.push(`${r.design} does not mention ${r.id}`);
     else if ((r.status === 'In build' || r.status === 'Done') && !/^Status:\s*Approved\b/m.test(text)) problems.push(`${r.id} is ${r.status} but ${r.design} is not Approved — no code before the design is approved`);
   }
   return problems;

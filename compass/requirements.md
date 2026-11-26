@@ -53,7 +53,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-053 | A plan file for every change that touches code | — | Should | Done | TC-110 |
 | REQ-054 | Revise the business need into a business intent | — | Should | Done | TC-111 |
 | REQ-055 | An approved design before any code | — | Should | Done | TC-112 |
-| REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Draft | TC-070 |
+| REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Approved | TC-114 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |

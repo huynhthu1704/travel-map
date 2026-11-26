@@ -225,7 +225,7 @@
       ]
     },
     {
-      "id": "ADR-016",
+      "id": "ADR-017",
       "date": "2026-11-26",
       "title": "Checklist in the Excel export ships with the tripExcel flag",
       "status": "Accepted",
@@ -1516,7 +1516,7 @@
       "id": "REQ-056",
       "title": "Export the trip checklist to the same Excel file as a separate sheet",
       "priority": "Should",
-      "status": "Draft",
+      "status": "Approved",
       "intent": "compass/intent/2026-11-26-checklist-in-excel.md",
       "design": "compass/design/2026-11-26-checklist-in-excel.md",
       "story": "As a trip member, I want the trip checklist in the Excel export as its own sheet so that I can see, print and share the to-dos together with the itinerary and costs.",
@@ -2446,7 +2446,7 @@
       "file": "tests/design.test.mjs"
     },
     {
-      "id": "TC-070",
+      "id": "TC-114",
       "title": "Excel Checklist sheet: rows, order, per-person progress, privacy filter, no sheet when empty, EN labels",
       "reqIds": [
         "REQ-056"

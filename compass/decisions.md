@@ -19,7 +19,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-013 | 2026-11-24 | Trip archiving is on hold | Accepted | REQ-028 |
 | ADR-014 | 2026-11-25 | Guardrail enforcement files are protected paths | Accepted | REQ-050 |
 | ADR-015 | 2026-11-26 | Need → intent → requirements → design → plan → code | Accepted | REQ-052, REQ-053, REQ-054, REQ-055 |
-| ADR-016 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
+| ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -171,7 +171,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Consequences.** The CI guardrails check still reads the PR body Plan: moving it to plan files changes protected paths (check-guardrails.mjs, guardrails-lib.mjs) and needs the Product Owner's explicit approval and the human-approved label. Changes without UI state "design": "none: <reason>".
 
-## ADR-016 — Checklist in the Excel export ships with the tripExcel flag
+## ADR-017 — Checklist in the Excel export ships with the tripExcel flag
 
 **Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-056
 

@@ -1,6 +1,6 @@
 # Design: Checklist sheet in the trip Excel export
 
-Status: Draft
+Status: Approved (by Christine, 2026-11-26)
 Requirements: REQ-056
 Design tool: Figma — Bee There file, page "📐 Feature designs" (https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=21-5)
 
@@ -8,7 +8,7 @@ Design tool: Figma — Bee There file, page "📐 Feature designs" (https://www.
 No new button or screen. The existing **📊 Export Excel** button (Plan and Costs tabs, flag `tripExcel`) downloads the
 same workbook with one more sheet, **"Checklist"** (same name in VI and EN), placed right after "Lịch trình & chi phí" /
 "Itinerary & costs". Same font (Arial 10), header style and sticky header row as the other sheets. No new feature
-flag (Product Owner's decision, ADR-016). Built by the pure `buildTripWorkbook()` so it is unit-tested.
+flag (Product Owner's decision, ADR-017). Built by the pure `buildTripWorkbook()` so it is unit-tested.
 
 ## Screens
 ### SCR-1 · Checklist sheet — REQ-056

@@ -73,7 +73,6 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-067 | Hardening: merge-pr re-checks the plan, placeholder plan values count as missing, accepted-finding route documented, new-flag rule for every non-legacy flag | REQ-051 | automated | Passing | tests/plan.test.mjs |
 | TC-068 | Enforcement files are protected: CI check fails without human-approved, the edit hook blocks them until approved, and CI runs main's copy of the check so a weakened check in the PR does not pass | REQ-050 | automated | Passing | tests/guardrails.test.mjs |
 | TC-069 | Test-first check: the first commit only adds a test that fails before the fix, later commits do not edit it unless human-approved, merge-pr needs the bug label for bug issues; a test that times out does not count as failing | REQ-043 | automated | Passing | tests/testFirst.test.mjs |
-| TC-070 | Excel Checklist sheet: rows, order, per-person progress, privacy filter, no sheet when empty, EN labels | REQ-056 | automated | Planned | tests/tripExcel.test.mjs |
 | TC-101 | Automated UI tests: Account & platform | REQ-101, REQ-102, REQ-103, REQ-104, REQ-105, REQ-106, REQ-107, REQ-108, REQ-109, REQ-110 | automated | Passing | e2e/account.spec.mjs |
 | TC-102 | Automated UI tests: Map & places | REQ-111, REQ-112, REQ-113, REQ-114, REQ-115, REQ-116, REQ-117 | automated | Passing | e2e/map.spec.mjs |
 | TC-103 | Automated UI tests: Check-ins & memories | REQ-118, REQ-119, REQ-120, REQ-121, REQ-122 | automated | Passing | e2e/checkins.spec.mjs |
@@ -86,3 +85,4 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-110 | Plan file required for code changes; empty sections and placeholders rejected | REQ-053 | automated | Passing | tests/plan.test.mjs |
 | TC-111 | New intents keep the business need | REQ-054 | automated | Passing | tests/intent.test.mjs |
 | TC-112 | Design gate: missing design, unapproved design for In build, design not mentioning the requirement | REQ-055 | automated | Passing | tests/design.test.mjs |
+| TC-114 | Excel Checklist sheet: rows, order, per-person progress, privacy filter, no sheet when empty, EN labels | REQ-056 | automated | Planned | tests/tripExcel.test.mjs |

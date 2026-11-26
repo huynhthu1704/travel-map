@@ -89,3 +89,5 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-114 | Excel Checklist sheet: position, rows and order, per-person progress, privacy filter, colours, total, EN labels, no sheet when empty | REQ-056 | automated | Passing | tests/tripExcel.test.mjs |
 | TC-115 | Deploy workflow: automatic runs skip a commit that is not the head of main (build, deploy, smoke test); manual runs never skip | REQ-058 | automated | Passing | tests/cicd.test.mjs |
 | TC-116 | UI: an "everyone ticks" item counts only current trip members (bug #108) | REQ-131 | automated | Passing | e2e/checkTicks.spec.mjs |
+| TC-116 | Push switch: on registers the device, off unregisters it, unsupported/blocked browsers see the how-to text, hidden when the pushNotif flag is off | REQ-059 | automated | Not run | e2e/push.spec.mjs |
+| TC-117 | Push sender: each notification kind and admin broadcast becomes a push in the recipient language; expired subscriptions are removed; a Worker failure never blocks the in-app notification | REQ-060 | automated | Not run | tests/push.test.mjs |

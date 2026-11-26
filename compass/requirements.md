@@ -56,6 +56,8 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Done | TC-114 |
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-058 | Automatic deploys publish only the newest commit of main | — | Must | Done | TC-115 |
+| REQ-059 | Turn push notifications on or off | — | Should | Draft | TC-116 |
+| REQ-060 | Every in-app notification is also sent as a push message | — | Should | Draft | TC-117 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -591,6 +593,29 @@ Design: none: CI workflow, no UI
 - Given two commits pushed to main whose Compass CI runs finish in reverse order · When the deploy for the older commit starts after the newer one · Then it is skipped with a notice and nothing older is published
 - Given an automatic deploy whose commit is the current head of main · When it runs · Then it builds, deploys and smoke-tests that commit as before
 - Given a manual deploy or rollback with a commit SHA · When it runs · Then that commit is deployed even if it is not the head of main
+
+## REQ-059 — Turn push notifications on or off
+
+As a signed-in user, I want to turn push notifications on or off for this device, so that I get my Bee There notifications even when the app is closed, and only if I want them.
+
+Intent: [compass/intent/2026-11-26-push-notifications.md](../compass/intent/2026-11-26-push-notifications.md)
+
+- Given the pushNotif flag is on for me and my browser supports push · When I open Notifications, tap "Turn on push notifications" and allow it in the browser prompt · Then this device is registered and the switch shows On
+- Given push is on for this device · When I turn the switch off · Then the device is unregistered and no more push messages arrive on it
+- Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications · When I open Notifications · Then I see a short VI/EN explanation of how to enable it instead of the switch
+- Given the pushNotif flag is off for me · When I open Notifications · Then I see no push option
+
+## REQ-060 — Every in-app notification is also sent as a push message
+
+As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.
+
+Intent: [compass/intent/2026-11-26-push-notifications.md](../compass/intent/2026-11-26-push-notifications.md)
+
+- Given I have push on · When someone creates a notification for me (trip invite, invite accepted/declined, follow, like, comment, hidden memory) · Then I get a push message within 1 minute with its title and text in my language
+- Given an admin sends a notification to everyone, a role or chosen users · When it is sent · Then each recipient with push on gets the push message
+- Given I tap the push message · When the app opens · Then it shows the Notifications panel
+- Given a device that unregistered or whose push subscription expired · When a push is sent · Then it is skipped and its registration is removed
+- Given the Cloudflare Worker is down · When a notification is created · Then the in-app notification is still saved and shown as today
 
 ## REQ-101 — Sign in with Google
 

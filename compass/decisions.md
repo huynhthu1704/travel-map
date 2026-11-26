@@ -22,6 +22,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 | ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 | ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
+| ADR-019 | 2026-11-26 | Push notifications are sent by a free Cloudflare Worker | Accepted | REQ-059, REQ-060 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -202,3 +203,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.
 
 **Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.
+
+## ADR-019 — Push notifications are sent by a free Cloudflare Worker
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-059, REQ-060
+
+**Context.** Push messages need a server; Bee There runs on GitHub Pages and the free Firebase Spark plan without Cloud Functions (ADR-001 left this open).
+
+**Decision.** The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.
+
+**Consequences.** A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+).

@@ -260,6 +260,19 @@
       "reqIds": [
         "REQ-058"
       ]
+    },
+    {
+      "id": "ADR-019",
+      "date": "2026-11-26",
+      "title": "Push notifications are sent by a free Cloudflare Worker",
+      "status": "Accepted",
+      "context": "Push messages need a server; Bee There runs on GitHub Pages and the free Firebase Spark plan without Cloud Functions (ADR-001 left this open).",
+      "decision": "The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.",
+      "consequences": "A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+).",
+      "reqIds": [
+        "REQ-059",
+        "REQ-060"
+      ]
     }
   ],
   "requirements": [
@@ -1587,6 +1600,37 @@
         "Given a manual deploy or rollback with a commit SHA\nWhen it runs\nThen that commit is deployed even if it is not the head of main"
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat after the REQ-056 release was overwritten by an older deploy (issue #106)"
+    },
+    {
+      "id": "REQ-059",
+      "title": "Turn push notifications on or off",
+      "priority": "Should",
+      "status": "Draft",
+      "intent": "compass/intent/2026-11-26-push-notifications.md",
+      "story": "As a signed-in user, I want to turn push notifications on or off for this device, so that I get my Bee There notifications even when the app is closed, and only if I want them.",
+      "ac": [
+        "Given the pushNotif flag is on for me and my browser supports push\nWhen I open Notifications, tap \"Turn on push notifications\" and allow it in the browser prompt\nThen this device is registered and the switch shows On",
+        "Given push is on for this device\nWhen I turn the switch off\nThen the device is unregistered and no more push messages arrive on it",
+        "Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications\nWhen I open Notifications\nThen I see a short VI/EN explanation of how to enable it instead of the switch",
+        "Given the pushNotif flag is off for me\nWhen I open Notifications\nThen I see no push option"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #112"
+    },
+    {
+      "id": "REQ-060",
+      "title": "Every in-app notification is also sent as a push message",
+      "priority": "Should",
+      "status": "Draft",
+      "intent": "compass/intent/2026-11-26-push-notifications.md",
+      "story": "As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.",
+      "ac": [
+        "Given I have push on\nWhen someone creates a notification for me (trip invite, invite accepted/declined, follow, like, comment, hidden memory)\nThen I get a push message within 1 minute with its title and text in my language",
+        "Given an admin sends a notification to everyone, a role or chosen users\nWhen it is sent\nThen each recipient with push on gets the push message",
+        "Given I tap the push message\nWhen the app opens\nThen it shows the Notifications panel",
+        "Given a device that unregistered or whose push subscription expired\nWhen a push is sent\nThen it is skipped and its registration is removed",
+        "Given the Cloudflare Worker is down\nWhen a notification is created\nThen the in-app notification is still saved and shown as today"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #113"
     }
   ],
   "tests": [
@@ -2543,6 +2587,26 @@
       "type": "automated",
       "status": "Passing",
       "file": "e2e/checkTicks.spec.mjs"
+    },
+    {
+      "id": "TC-116",
+      "title": "Push switch: on registers the device, off unregisters it, unsupported/blocked browsers see the how-to text, hidden when the pushNotif flag is off",
+      "reqIds": [
+        "REQ-059"
+      ],
+      "type": "automated",
+      "status": "Not run",
+      "file": "e2e/push.spec.mjs"
+    },
+    {
+      "id": "TC-117",
+      "title": "Push sender: each notification kind and admin broadcast becomes a push in the recipient language; expired subscriptions are removed; a Worker failure never blocks the in-app notification",
+      "reqIds": [
+        "REQ-060"
+      ],
+      "type": "automated",
+      "status": "Not run",
+      "file": "tests/push.test.mjs"
     }
   ]
 }

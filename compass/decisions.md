@@ -22,6 +22,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 | ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 | ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
+| ADR-019 | 2026-11-26 | Weekly security scan with npm audit and CodeQL, dismissal by a reason comment | Accepted | REQ-044 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -202,3 +203,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.
 
 **Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.
+
+## ADR-019 — Weekly security scan with npm audit and CodeQL, dismissal by a reason comment
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-044
+
+**Context.** Only npm audit ran in CI, and only on pushes (#56); nothing scanned our own code or looked for new advisories between releases (#68).
+
+**Decision.** A new workflow compass-security.yml runs every Monday 08:00 Vietnam time (and on demand): CodeQL (security-extended, free for public repos) and npm audit. compass/security-scan.mjs opens one bug + security + severity:<level> issue per finding and closes it when the finding is gone. A finding is dismissed by closing its issue as "not planned" with a comment that starts with "Dismissed:"; without it the scan reopens the issue. The Product Owner approved the new protected workflow and both choices in chat.
+
+**Consequences.** The first run opens issues for the known #56 findings, which can be dismissed with a reason or fixed. If GitHub code scanning default setup is turned on, the CodeQL upload fails and only the library scan reports until it is turned off.

@@ -1,0 +1,53 @@
+# REQ-044: weekly security scan of the code (CodeQL) and the libraries (npm audit).
+# Each finding becomes a GitHub issue (labels: bug, security, severity:<level>); a finding that is gone closes its
+# issue. Dismiss a finding by closing its issue as "not planned" with a comment that starts with "Dismissed:".
+name: Compass Security Scan
+
+on:
+  schedule:
+    - cron: '0 1 * * 1' # Mondays 01:00 UTC = 08:00 Vietnam time
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compass-security
+  cancel-in-progress: false
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: compass-security-scan
+
+  report:
+    needs: codeql
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      security-events: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Log findings as GitHub issues
+        run: node compass/security-scan.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CODEQL_OK: ${{ needs.codeql.result == 'success' }}

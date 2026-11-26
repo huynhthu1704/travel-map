@@ -41,6 +41,20 @@
         "risks": []
       },
       "createdAt": "2026-11-23T03:16:00.940Z"
+    },
+    {
+      "id": "F-003",
+      "name": "Allow the trip owner add placeholder team…",
+      "idea": {
+        "intent": "Allow the trip owner add placeholder team member. Once the team member registers account, the trip owner can link the placeholder member with the registered member",
+        "problem": "",
+        "users": [],
+        "outcomeMetric": "",
+        "scopeIn": [],
+        "scopeOut": [],
+        "risks": []
+      },
+      "createdAt": "2026-11-26T16:38:36.540Z"
     }
   ],
   "requirements": [

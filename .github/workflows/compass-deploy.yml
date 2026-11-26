@@ -3,6 +3,8 @@ name: Compass Deploy
 run-name: Deploy ${{ inputs.ref || github.event.workflow_run.head_sha || github.sha }}
 # REQ-034: deploy only a commit whose Compass CI run is green, check the live site afterwards,
 # and roll back to the last good version when that check fails.
+# REQ-058: an automatic deploy publishes only the newest commit of main — CI runs can finish out of order, and the
+# deploy of an older commit must not replace a newer site (its own deploy publishes the newest commit).
 on:
   # Runs after Compass CI finishes on main (push only, not the nightly run)
   workflow_run:
@@ -35,37 +37,54 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.ref.outputs.sha }}
+      skip: ${{ steps.ref.outputs.skip }}
       entry: ${{ steps.entry.outputs.entry }}
     steps:
       - id: ref
         name: Pick the commit to deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            sha="${{ github.event.workflow_run.head_sha }}"
+            # REQ-058: skip when main has moved on; the newer commit's own deploy publishes it
+            head=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+            if [ "$sha" != "$head" ]; then
+              echo "::notice::Skipped: ${sha:0:7} is not the newest commit of main (${head:0:7}); its own deploy publishes the newest version."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+            fi
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
           else
             echo "sha=${{ inputs.ref || github.sha }}" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/checkout@v4
+      - if: steps.ref.outputs.skip != 'true'
+        uses: actions/checkout@v4
         with:
           ref: ${{ steps.ref.outputs.sha }}
-      - uses: actions/setup-node@v4
+      - if: steps.ref.outputs.skip != 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Build site
+        if: steps.ref.outputs.skip != 'true'
         run: |
           npm ci
           npm run build
       # The main script file name has a content hash; the smoke test checks the live site serves this exact file
       - id: entry
         name: Note the built entry script
+        if: steps.ref.outputs.skip != 'true'
         run: echo "entry=$(grep -oE '/assets/index-[^"]+\.js' dist/index.html | head -1)" >> "$GITHUB_OUTPUT"
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - if: steps.ref.outputs.skip != 'true'
+        uses: actions/configure-pages@v5
+      - if: steps.ref.outputs.skip != 'true'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
     needs: build
+    if: needs.build.outputs.skip != 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -76,6 +95,7 @@ jobs:
 
   smoke-test:
     needs: [build, deploy]
+    if: needs.build.outputs.skip != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Check the live site

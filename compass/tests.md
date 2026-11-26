@@ -89,4 +89,6 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-114 | Excel Checklist sheet: position, rows and order, per-person progress, privacy filter, colours, total, EN labels, no sheet when empty | REQ-056 | automated | Passing | tests/tripExcel.test.mjs |
 | TC-115 | Deploy workflow: automatic runs skip a commit that is not the head of main (build, deploy, smoke test); manual runs never skip | REQ-058 | automated | Passing | tests/cicd.test.mjs |
 | TC-116 | UI: an "everyone ticks" item counts only current trip members (bug #108) | REQ-131 | automated | Passing | e2e/checkTicks.spec.mjs |
+| TC-117 | Security scan: npm audit and CodeQL findings become bug issues with severity; gone findings close their issue; a failed source closes nothing | REQ-044 | automated | Passing | tests/security-scan.test.mjs |
+| TC-118 | Security scan: a closed finding stays closed only with a "Dismissed:" reason (else reopened); weekly + manual schedule with least-privilege permissions | REQ-044 | automated | Passing | tests/security-scan.test.mjs |
 | TC-120 | Agent setup evals: all active cases pass with the pass rate reported, 20–50 well-formed cases, a weakened guardrail drops the pass rate, cases on main cannot be removed or weakened without a retired note | REQ-041 | automated | Passing | tests/agentEvals.test.mjs |

@@ -47,6 +47,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - Unit tests: `npm test` (node:test, `tests/*.test.mjs`).
 - UI tests: Playwright, `npm run test:e2e` (`e2e/*.spec.mjs`, projects `desktop` and `phone`). `e2e/fixtures.mjs` seeds demo data (trips t1 Singapore & Malaysia, t2 Kyoto, t3 Bali with code BALI2027), blocks external requests, auto-accepts confirm dialogs; helper `openApp(page, path, {flags, role, lang, tour, newUser, …})`.
 - **Compass CI** (`compass-ci.yml`): spec check, `npm audit` (fails only on *critical* in shipped libraries; full report in run summary), unit tests, build, Playwright; nightly run 03:00 VN time; Playwright report kept as a run artifact (Actions → run → Summary → Artifacts).
+- **Compass Security Scan** (`compass-security.yml`, REQ-044): Mondays 08:00 VN time and on demand — CodeQL + `npm audit`; `compass/security-scan.mjs` opens one issue per finding (labels `bug`, `security`, `severity:<level>`) and closes it when the finding is gone. Dismiss a finding: close its issue as *not planned* with a comment starting `Dismissed:` + reason; otherwise the scan reopens it. Like other bugs, fix only when Christine sends the issue id.
 - **Compass Deploy** (`compass-deploy.yml`, REQ-034): runs only after Compass CI is green for a push to `main`, deploys that exact commit, smoke-tests the live site (title + new hashed script) and on failure redeploys the last good version and opens a `bug` issue. Automatic deploys skip any commit that is not the newest commit of `main` (REQ-058, after CI runs finished out of order on 2026-11-26); manual deploys/rollbacks are never skipped. Manual rollback: Actions → Compass Deploy → Run workflow → commit SHA.
 
 ## 7. Noteworthy requirements and decisions
@@ -64,7 +65,7 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 
 ## 8. Open items
 - **#56 / REQ-049** (on hold) — high npm audit findings: firebase → @grpc/grpc-js (Node-only, low real risk), Vite 5 dev-server issues (fix = Vite 8 major upgrade). Waiting for Christine's choice.
-- **AI-native SDLC follow-ups** (on hold, intent `compass/intent/2026-11-25-ai-native-sdlc.md`): production monitoring #66, weekly security scan #68, release tags #72. A paid version of the agent evals (Claude re-runs past tasks; needs an API key, ~$15–60 per run) is not decided (ADR-020). Done: agent evals free version #65 (REQ-041), failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
+- **AI-native SDLC follow-ups** (on hold, intent `compass/intent/2026-11-25-ai-native-sdlc.md`): production monitoring #66, release tags #72. A paid version of the agent evals (Claude re-runs past tasks; needs an API key, ~$15–60 per run) is not decided (ADR-020). Done: agent evals free version #65 (REQ-041), weekly security scan #68 (REQ-044), failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
 - **#39 / REQ-028** (on hold) — archive trips older than a retention period that admin can set; Christine is still thinking.
 - **#31 / REQ-024** — add suggestions from Guides into a trip's checklist (from the Compass portal, in build).
 - **#32 / REQ-025** — accessibility and performance baseline.

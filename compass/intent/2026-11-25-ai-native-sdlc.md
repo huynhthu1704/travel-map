@@ -22,7 +22,7 @@ Each of the seven requirements is merged with a test; every later PR has an inde
 traceable reasons (intent + ADRs).
 
 ## Out of scope
-On hold for now: agent evals (#65), production monitoring (#66), release tags (#72).
+On hold for now: production monitoring (#66), release tags (#72).
 
 ## Requirements
 - REQ-036 — Enforce guardrails.json automatically (#60)
@@ -37,3 +37,4 @@ On hold for now: agent evals (#65), production monitoring (#66), release tags (#
 - REQ-051 — Harden merge-pr and the plan check (#81) — follow-up of the PR #80 and #83 reviews, taken off hold by the Product Owner on 2026-11-25 ("fix #75 and #81")
 - REQ-043 — Failing test committed before the fix for every bug (#67) — taken off hold by the Product Owner on 2026-11-25 ("fix #67")
 - REQ-044 — Weekly security scan of the code and libraries (#68) — taken off hold by the Product Owner on 2026-11-26 ("fix #68"); she chose npm audit + CodeQL and dismissal by a `Dismissed:` reason comment
+- REQ-041 — Evals for the agent setup (#65) — taken off hold by the Product Owner on 2026-11-26 ("fix #65"), free version without an API key (ADR-020)

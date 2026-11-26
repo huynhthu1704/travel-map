@@ -272,6 +272,18 @@
       "reqIds": [
         "REQ-044"
       ]
+    },
+    {
+      "id": "ADR-020",
+      "date": "2026-11-26",
+      "title": "Agent evals start with a free replay of past mistakes",
+      "status": "Accepted",
+      "context": "Issue #65 asked for 20–50 past tasks re-run automatically when the agent configuration changes. Re-running them with Claude needs an Anthropic API key as a GitHub secret and a CI workflow change, and costs roughly $15–60 per run (estimate).",
+      "decision": "The Product Owner chose the free version first (2026-11-26): past mistakes and review findings are replayed against the real Compass checks (edit hook, CI guardrails, plan, test-first, merge-pr, spec checks) inside npm test. No API key, no paid service, no workflow change.",
+      "consequences": "The suite proves the rules and checks still catch past mistakes; it does not measure how well Claude itself follows them. A paid version that re-runs real tasks with Claude needs a new decision (API key, cost, workflow change).",
+      "reqIds": [
+        "REQ-041"
+      ]
     }
   ],
   "requirements": [
@@ -1493,6 +1505,22 @@
       "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: feedback loop for self-verification); taken off hold by the Product Owner on 2026-11-25 (\"fix #67\", issue #67)."
     },
     {
+      "id": "REQ-041",
+      "title": "Evals for the agent setup",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want a suite of 20–50 past mistakes and review findings replayed automatically against the agent rules, hooks and checks, so that I know the agent setup did not get weaker after a rule change.",
+      "ac": [
+        "Given an eval suite of past mistakes and review findings (compass/evals/cases.json)\nWhen a pull request changes anything (including AGENTS.md, CLAUDE.md, skills or hooks) or the nightly CI run starts\nThen the suite runs in npm test and reports the pass rate in the test output and the CI run summary",
+        "Given a change that makes a past mistake pass again (the pass rate drops below 100 %)\nWhen CI runs\nThen the test job fails, so compass/merge-pr.mjs does not merge it",
+        "Given a pull request that removes an eval case or changes its expected outcome\nWhen CI runs\nThen it fails unless the case is marked retired with the Product Owner's approval, which compass/REVIEW.md routes to her",
+        "Given the free version chosen by the Product Owner\nWhen the suite runs\nThen it needs no API key, no paid service and no workflow change"
+      ],
+      "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: continuous evals in CI), issue #65; taken off hold by the Product Owner on 2026-11-26 (\"fix #65\") with the free version (no API key)."
+    },
+    {
       "id": "REQ-052",
       "title": "Keep intents and the review policy inside compass/",
       "priority": "Should",
@@ -2590,6 +2618,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/security-scan.test.mjs"
+    },
+    {
+      "id": "TC-120",
+      "title": "Agent setup evals: all active cases pass with the pass rate reported, 20–50 well-formed cases, a weakened guardrail drops the pass rate, cases on main cannot be removed or weakened without a retired note",
+      "reqIds": [
+        "REQ-041"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/agentEvals.test.mjs"
     }
   ]
 }

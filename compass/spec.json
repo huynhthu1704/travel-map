@@ -907,7 +907,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        "Given an item is 'each person'\nWhen I tick it\nThen only my tick is recorded and the count shows ticks per member"
+        "Given an item is 'each person'\nWhen I tick it\nThen only my tick is recorded and the count shows ticks per member",
+        "Given an \"each person\" item ticked by someone who has since left the trip\nWhen I open the checklist\nThen that tick is not counted or named (bug #108)"
       ]
     },
     {
@@ -2532,6 +2533,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/cicd.test.mjs"
+    },
+    {
+      "id": "TC-116",
+      "title": "UI: an \"everyone ticks\" item counts only current trip members (bug #108)",
+      "reqIds": [
+        "REQ-131"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkTicks.spec.mjs"
     }
   ]
 }

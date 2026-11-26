@@ -86,7 +86,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-128 | Day-by-day plan | — | Must | Done | TC-105 |
 | REQ-129 | Journey | — | Must | Done | TC-105 |
 | REQ-130 | Costs and settle-up | — | Must | Done | TC-105 |
-| REQ-131 | Checklists | — | Must | Done | TC-105 |
+| REQ-131 | Checklists | — | Must | Done | TC-105, TC-116 |
 | REQ-132 | Plan PDF export | — | Should | Done | TC-105 |
 | REQ-133 | Duplicate a trip | — | Should | Done | TC-105 |
 | REQ-134 | Country guides | — | Must | Done | TC-106 |
@@ -791,6 +791,7 @@ Design: none: CI workflow, no UI
 [Baseline · Trips] Shared and personal checklists; items can be for the group, for each person, or 'only me'; drag to reorder. Feature flag: tripChecklist.
 
 - Given an item is 'each person' · When I tick it · Then only my tick is recorded and the count shows ticks per member
+- Given an "each person" item ticked by someone who has since left the trip · When I open the checklist · Then that tick is not counted or named (bug #108)
 
 ## REQ-132 — Plan PDF export
 

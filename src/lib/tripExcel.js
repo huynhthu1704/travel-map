@@ -16,7 +16,7 @@
  */
 
 import { COST_TYPES, costTypeLabel } from '../data/costTypes.js';
-import { tripDays, dueStatus } from './checklist.js';
+import { tripDays, dueStatus, memberTicks } from './checklist.js';
 
 const LABELS = {
   vi: {
@@ -459,15 +459,13 @@ export function buildChecklistSheet(trip, opts, K, memberIds = []) {
     return day ? K.day(day.day, ddmm(due)) : `${ddmm(due)}/${due.slice(0, 4)}`;
   };
   const n = Math.max(1, memberIds.length);
-  // bug #104: only ticks of current members count (all ticks when the trip has no member list)
-  const isMember = (uid) => !memberIds.length || memberIds.includes(uid);
   const rows = [];
   let done = 0;
   lists.forEach((l) => {
     const shared = l.scope === 'shared';
     (l.items || []).forEach((it) => {
       const each = shared && it.scope === 'personal';
-      const ticked = each ? Object.entries(it.doneMap || {}).filter(([uid, name]) => name && isMember(uid)).map(([, name]) => name) : [];
+      const ticked = each ? memberTicks(it.doneMap, memberIds) : []; // bug #104: current members only
       const isDone = each ? ticked.length >= n : !!it.done;
       if (isDone) done++;
       const who = !shared ? K.who.personal : each ? K.who.each : it.scope === 'me' ? K.who.only(it.ownerName || '') : K.who.group;

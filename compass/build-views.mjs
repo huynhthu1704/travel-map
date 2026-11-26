@@ -146,6 +146,9 @@ export function intentProblems(spec, readIntent) {
 
 // REQ-055: from this requirement number on (below the REQ-101 baseline) a design is required before code
 export const DESIGN_REQUIRED_FROM = 52;
+/** REQ-057: from this requirement on, a UI design file must link at least one Figma frame */
+export const FIGMA_REQUIRED_FROM = 56;
+const FIGMA_FRAME = /https:\/\/(www\.)?figma\.com\/design\/[0-9A-Za-z]{22,128}[^\s)]*[?&]node-id=\d+-\d+/;
 /**
  * Problems with requirement → design links. A requirement has "design": "compass/design/<file>.md" or
  * "design": "none: <reason>" (no UI). In build / Done needs an Approved design file that lists the requirement.
@@ -168,6 +171,7 @@ export function designProblems(spec, readDesign) {
     // whole id only: REQ-100 must not match inside REQ-1000
     else if (!new RegExp(`\\b${r.id}(?!\\d)`).test(text)) problems.push(`${r.design} does not mention ${r.id}`);
     else if ((r.status === 'In build' || r.status === 'Done') && !/^Status:\s*Approved\b/m.test(text)) problems.push(`${r.id} is ${r.status} but ${r.design} is not Approved — no code before the design is approved`);
+    else if (n >= FIGMA_REQUIRED_FROM && !isBaseline(n) && r.status !== 'Draft' && !FIGMA_FRAME.test(text)) problems.push(`${r.design} has no Figma frame link (https://www.figma.com/design/<file>?node-id=…) — draw ${r.id} in Figma for approval (REQ-057)`);
   }
   return problems;
 }

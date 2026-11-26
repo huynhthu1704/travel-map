@@ -1,6 +1,6 @@
 # Intent: A Figma design for every UI change, approved before code
 
-Status: Draft
+Status: Approved (by Christine, 2026-11-26)
 Requested: 2026-11-26 by Christine, in chat (while reviewing the design of REQ-056)
 
 ## What we want
@@ -33,4 +33,4 @@ figma.com frame link; every design approved after this change shows its Figma fr
 - Figma for spreadsheets/PDF layouts beyond a picture of the sheet (they get one frame showing the layout).
 
 ## Requirements
-<filled after approval>
+- REQ-057 — A Figma frame in every UI design, approved before code (#100)

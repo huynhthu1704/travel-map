@@ -112,6 +112,9 @@ export function renderTests(spec) {
 export const ADR_FIELDS = ['id', 'date', 'title', 'status', 'context', 'decision', 'consequences'];
 export const ADR_STATUSES = ['Proposed', 'Accepted', 'Superseded', 'Rejected'];
 
+// The reconstructed baseline of the existing product (REQ-101…153) is exempt from the newer process checks
+export const isBaseline = (n) => n >= 101 && n <= 153;
+
 // REQ-038: from this requirement number on (below the REQ-101 baseline) an intent file is required
 export const INTENT_REQUIRED_FROM = 51;
 /** Problems with requirement → intent links. readIntent(path) returns the file text or null when missing. */
@@ -125,7 +128,7 @@ export function intentProblems(spec, readIntent) {
     }
     // Only the reconstructed baseline REQ-101…153 is exempt
     if (!r.intent) {
-      if (n >= INTENT_REQUIRED_FROM && !(n >= 101 && n <= 153)) problems.push(`${r.id} has no intent (add "intent": "intent/<file>.md")`);
+      if (n >= INTENT_REQUIRED_FROM && !isBaseline(n)) problems.push(`${r.id} has no intent (add "intent": "intent/<file>.md")`);
       continue;
     }
     if (!/^intent\/[\w.-]+\.md$/.test(r.intent)) {
@@ -147,7 +150,7 @@ export function needProblems(spec, readIntent) {
   const seen = new Set();
   for (const r of spec.requirements) {
     const n = num(r.id);
-    if (!r.intent || n < NEED_REQUIRED_FROM || (n >= 101 && n <= 153) || seen.has(r.intent)) continue;
+    if (!r.intent || n < NEED_REQUIRED_FROM || isBaseline(n) || seen.has(r.intent)) continue;
     seen.add(r.intent);
     const text = readIntent(r.intent);
     if (text != null && !/^## Business need\s*$/m.test(text)) problems.push(`${r.intent} has no "## Business need" section (the Product Owner's words, revised into the business intent under "## What we want")`);

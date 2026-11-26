@@ -55,6 +55,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-055 | An approved design before any code | — | Should | Done | TC-112 |
 | REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Done | TC-114 |
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
+| REQ-058 | Automatic deploys publish only the newest commit of main | — | Must | Done | TC-115 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -578,6 +579,18 @@ Design: none: process change, no UI
 - Given a requirement with "design": "none: <reason>" (no UI) · When CI runs the spec check · Then no Figma link is required
 - Given requirements before REQ-056 and the REQ-101…153 baseline · When CI runs the spec check · Then they are exempt
 - Given an agent starts a design · When it reads the design template and its working knowledge · Then it draws the frames in the Bee There Figma file (designTool in spec.json) and links them before asking for approval
+
+## REQ-058 — Automatic deploys publish only the newest commit of main
+
+As the product owner, I want the live site to always show the newest merged version, so that a feature that was merged and deployed is never replaced by an older version.
+
+Intent: [compass/intent/2026-11-26-deploy-newest-only.md](../compass/intent/2026-11-26-deploy-newest-only.md)
+
+Design: none: CI workflow, no UI
+
+- Given two commits pushed to main whose Compass CI runs finish in reverse order · When the deploy for the older commit starts after the newer one · Then it is skipped with a notice and nothing older is published
+- Given an automatic deploy whose commit is the current head of main · When it runs · Then it builds, deploys and smoke-tests that commit as before
+- Given a manual deploy or rollback with a commit SHA · When it runs · Then that commit is deployed even if it is not the head of main
 
 ## REQ-101 — Sign in with Google
 

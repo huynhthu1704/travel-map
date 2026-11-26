@@ -21,6 +21,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-015 | 2026-11-26 | Need → intent → requirements → design → plan → code | Accepted | REQ-052, REQ-053, REQ-054, REQ-055 |
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 | ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
+| ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -191,3 +192,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** No separate feature flag: the Checklist sheet is part of the trip Excel export and is released with the existing tripExcel flag. Only shared checklists and the exporting user's own personal checklists are exported.
 
 **Consequences.** Everyone who already has tripExcel gets the Checklist sheet right after the merge.
+
+## ADR-018 — Automatic deploys publish only the newest commit of main
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-058
+
+**Context.** On 2026-11-26 the Compass CI runs of two merges finished in reverse order; the deploy of the older commit 8654aa5 ran last and replaced the REQ-056 release on beetheremap.com.
+
+**Decision.** Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.
+
+**Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.

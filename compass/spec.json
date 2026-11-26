@@ -248,6 +248,18 @@
       "reqIds": [
         "REQ-056"
       ]
+    },
+    {
+      "id": "ADR-018",
+      "date": "2026-11-26",
+      "title": "Automatic deploys publish only the newest commit of main",
+      "status": "Accepted",
+      "context": "On 2026-11-26 the Compass CI runs of two merges finished in reverse order; the deploy of the older commit 8654aa5 ran last and replaced the REQ-056 release on beetheremap.com.",
+      "decision": "Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.",
+      "consequences": "If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.",
+      "reqIds": [
+        "REQ-058"
+      ]
     }
   ],
   "requirements": [
@@ -1559,6 +1571,21 @@
         "Given an item that is not done and is overdue or due today on the export day\nWhen I export\nThen its row is red (overdue) or yellow (due today), as in the app (an \"everyone ticks\" item until every current member ticked it)"
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat (issue #99)"
+    },
+    {
+      "id": "REQ-058",
+      "title": "Automatic deploys publish only the newest commit of main",
+      "priority": "Must",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-deploy-newest-only.md",
+      "design": "none: CI workflow, no UI",
+      "story": "As the product owner, I want the live site to always show the newest merged version, so that a feature that was merged and deployed is never replaced by an older version.",
+      "ac": [
+        "Given two commits pushed to main whose Compass CI runs finish in reverse order\nWhen the deploy for the older commit starts after the newer one\nThen it is skipped with a notice and nothing older is published",
+        "Given an automatic deploy whose commit is the current head of main\nWhen it runs\nThen it builds, deploys and smoke-tests that commit as before",
+        "Given a manual deploy or rollback with a commit SHA\nWhen it runs\nThen that commit is deployed even if it is not the head of main"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat after the REQ-056 release was overwritten by an older deploy (issue #106)"
     }
   ],
   "tests": [
@@ -2495,6 +2522,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-115",
+      "title": "Deploy workflow: automatic runs skip a commit that is not the head of main (build, deploy, smoke test); manual runs never skip",
+      "reqIds": [
+        "REQ-058"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/cicd.test.mjs"
     }
   ]
 }

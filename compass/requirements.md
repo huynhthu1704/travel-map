@@ -43,7 +43,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-038 | Capture intent in intent.md before writing requirements | — | Should | Done | TC-063 |
 | REQ-039 | Write a plan before coding each requirement | — | Should | Done | TC-064 |
 | REQ-040 | Turn project policies into repo skills | — | Should | Done | TC-065, TC-066 |
-| REQ-041 | Evals for the agent setup | — | Could | Done | TC-116 |
+| REQ-041 | Evals for the agent setup | — | Could | Done | TC-120 |
 | REQ-043 | Failing test committed before the fix for every bug | — | Could | Done | TC-069 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
@@ -87,7 +87,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-128 | Day-by-day plan | — | Must | Done | TC-105 |
 | REQ-129 | Journey | — | Must | Done | TC-105 |
 | REQ-130 | Costs and settle-up | — | Must | Done | TC-105 |
-| REQ-131 | Checklists | — | Must | Done | TC-105 |
+| REQ-131 | Checklists | — | Must | Done | TC-105, TC-116 |
 | REQ-132 | Plan PDF export | — | Should | Done | TC-105 |
 | REQ-133 | Duplicate a trip | — | Should | Done | TC-105 |
 | REQ-134 | Country guides | — | Must | Done | TC-106 |
@@ -805,6 +805,7 @@ Design: none: CI workflow, no UI
 [Baseline · Trips] Shared and personal checklists; items can be for the group, for each person, or 'only me'; drag to reorder. Feature flag: tripChecklist.
 
 - Given an item is 'each person' · When I tick it · Then only my tick is recorded and the count shows ticks per member
+- Given an "each person" item ticked by someone who has since left the trip · When I open the checklist · Then that tick is not counted or named (bug #108)
 
 ## REQ-132 — Plan PDF export
 

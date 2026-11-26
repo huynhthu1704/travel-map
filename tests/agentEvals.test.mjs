@@ -1,4 +1,4 @@
-// TC-116 — agent setup evals: past mistakes stay blocked after rule changes (REQ-041)
+// TC-120 — agent setup evals: past mistakes stay blocked after rule changes (REQ-041)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -13,7 +13,7 @@ const repo = fileURLToPath(new URL('..', import.meta.url));
 const suite = loadCases();
 const spec = JSON.parse(readFileSync(new URL('../compass/spec.json', import.meta.url), 'utf8'));
 
-test('TC-116: every active eval case behaves as expected and the pass rate is reported', () => {
+test('TC-120: every active eval case behaves as expected and the pass rate is reported', () => {
   const run = runEvals();
   console.log(summaryLine(run));
   writeRunSummary(run); // shows the pass rate in the CI run summary
@@ -22,7 +22,7 @@ test('TC-116: every active eval case behaves as expected and the pass rate is re
   assert.equal(run.rate, 100);
 });
 
-test('TC-116: the suite holds 20–50 well-formed cases with unique ids', () => {
+test('TC-120: the suite holds 20–50 well-formed cases with unique ids', () => {
   const active = activeCases(suite);
   assert.ok(active.length >= suite.minActiveCases && suite.minActiveCases >= 20, `${active.length} active cases, need at least 20`);
   assert.ok(suite.cases.length <= 50, 'keep the suite at 50 cases or fewer');
@@ -37,7 +37,7 @@ test('TC-116: the suite holds 20–50 well-formed cases with unique ids', () => 
   assert.deepEqual(findSecrets(readFileSync(new URL('../compass/evals/cases.json', import.meta.url), 'utf8'), loadGuardrails()), [], 'the cases file holds placeholders, never secret-looking text');
 });
 
-test('TC-116: a weakened guardrail makes the suite fail (the pass rate drops)', () => {
+test('TC-120: a weakened guardrail makes the suite fail (the pass rate drops)', () => {
   const g = loadGuardrails();
   const weak = { ...g, protectedPaths: g.protectedPaths.filter((p) => p !== 'CNAME'), maxFilesPerChange: 50 };
   const run = runEvals(suite, weak, spec);
@@ -50,7 +50,7 @@ test('TC-116: a weakened guardrail makes the suite fail (the pass rate drops)', 
   assert.equal(wrongReason.ok, false);
 });
 
-test('TC-116: no case on main is removed or weakened unless the Product Owner retired it', (t) => {
+test('TC-120: no case on main is removed or weakened unless the Product Owner retired it', (t) => {
   const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   let mainText;
   try {
@@ -80,7 +80,7 @@ test('TC-116: no case on main is removed or weakened unless the Product Owner re
   assert.ok(activeCases(suite).length >= JSON.parse(mainText).minActiveCases, 'minActiveCases cannot shrink below main');
 });
 
-test('TC-116: the run summary file gets the pass rate', () => {
+test('TC-120: the run summary file gets the pass rate', () => {
   const dir = mkdtempSync(join(tmpdir(), 'evals-'));
   try {
     const file = join(dir, 'summary.md');

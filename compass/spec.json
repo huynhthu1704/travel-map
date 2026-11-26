@@ -262,7 +262,7 @@
       ]
     },
     {
-      "id": "ADR-019",
+      "id": "ADR-020",
       "date": "2026-11-26",
       "title": "Agent evals start with a free replay of past mistakes",
       "status": "Accepted",
@@ -919,7 +919,8 @@
       "status": "Done",
       "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
       "ac": [
-        "Given an item is 'each person'\nWhen I tick it\nThen only my tick is recorded and the count shows ticks per member"
+        "Given an item is 'each person'\nWhen I tick it\nThen only my tick is recorded and the count shows ticks per member",
+        "Given an \"each person\" item ticked by someone who has since left the trip\nWhen I open the checklist\nThen that tick is not counted or named (bug #108)"
       ]
     },
     {
@@ -2563,6 +2564,16 @@
     },
     {
       "id": "TC-116",
+      "title": "UI: an \"everyone ticks\" item counts only current trip members (bug #108)",
+      "reqIds": [
+        "REQ-131"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkTicks.spec.mjs"
+    },
+    {
+      "id": "TC-120",
       "title": "Agent setup evals: all active cases pass with the pass rate reported, 20–50 well-formed cases, a weakened guardrail drops the pass rate, cases on main cannot be removed or weakened without a retired note",
       "reqIds": [
         "REQ-041"

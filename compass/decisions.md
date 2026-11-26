@@ -22,7 +22,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 | ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 | ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
-| ADR-019 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
+| ADR-020 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -204,7 +204,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.
 
-## ADR-019 — Agent evals start with a free replay of past mistakes
+## ADR-020 — Agent evals start with a free replay of past mistakes
 
 **Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-041
 

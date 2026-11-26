@@ -1,6 +1,6 @@
 // REQ-041: agent setup evals (free version). Replays past mistakes and review findings (compass/evals/cases.json)
 // against the real Compass checks — the edit hook, the CI guardrails check, the PR plan, the plan file, test-first,
-// merge-pr and the spec checks — and reports the pass rate. Runs in `npm test` (TC-116), so on every pull request
+// merge-pr and the spec checks — and reports the pass rate. Runs in `npm test` (TC-120), so on every pull request
 // (including changes to AGENTS.md, CLAUDE.md, skills or hooks) and in the nightly CI run.
 // Usage: node compass/eval-agent-setup.mjs   (exits 1 when any active case fails)
 import { appendFileSync, readFileSync, realpathSync } from 'node:fs';

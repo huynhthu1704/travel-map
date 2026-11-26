@@ -64,7 +64,7 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 
 ## 8. Open items
 - **#56 / REQ-049** (on hold) — high npm audit findings: firebase → @grpc/grpc-js (Node-only, low real risk), Vite 5 dev-server issues (fix = Vite 8 major upgrade). Waiting for Christine's choice.
-- **AI-native SDLC follow-ups** (on hold, intent `compass/intent/2026-11-25-ai-native-sdlc.md`): production monitoring #66, weekly security scan #68, release tags #72. A paid version of the agent evals (Claude re-runs past tasks; needs an API key, ~$15–60 per run) is not decided (ADR-019). Done: agent evals free version #65 (REQ-041), failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
+- **AI-native SDLC follow-ups** (on hold, intent `compass/intent/2026-11-25-ai-native-sdlc.md`): production monitoring #66, weekly security scan #68, release tags #72. A paid version of the agent evals (Claude re-runs past tasks; needs an API key, ~$15–60 per run) is not decided (ADR-020). Done: agent evals free version #65 (REQ-041), failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
 - **#39 / REQ-028** (on hold) — archive trips older than a retention period that admin can set; Christine is still thinking.
 - **#31 / REQ-024** — add suggestions from Guides into a trip's checklist (from the Compass portal, in build).
 - **#32 / REQ-025** — accessibility and performance baseline.

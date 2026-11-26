@@ -37,4 +37,4 @@ weekly security scan (#68), release tags (#72).
 - REQ-050 — Protect the guardrail enforcement files themselves (#75) — taken off hold by the Product Owner on 2026-11-25 together with #81
 - REQ-051 — Harden merge-pr and the plan check (#81) — follow-up of the PR #80 and #83 reviews, taken off hold by the Product Owner on 2026-11-25 ("fix #75 and #81")
 - REQ-043 — Failing test committed before the fix for every bug (#67) — taken off hold by the Product Owner on 2026-11-25 ("fix #67")
-- REQ-041 — Evals for the agent setup (#65) — taken off hold by the Product Owner on 2026-11-26 ("fix #65"), free version without an API key (ADR-019)
+- REQ-041 — Evals for the agent setup (#65) — taken off hold by the Product Owner on 2026-11-26 ("fix #65"), free version without an API key (ADR-020)

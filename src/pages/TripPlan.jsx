@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { renameCheckItem, CHECK_ITEM_MAX, tripDays, setItemDue, dueStatus, dueDayNumber } from '../lib/checklist';
+import { renameCheckItem, CHECK_ITEM_MAX, tripDays, setItemDue, dueStatus, dueDayNumber, memberTicks } from '../lib/checklist';
 import { useTripReadOnly } from '../lib/tripAccess';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
@@ -778,7 +778,7 @@ function Checklist({ list, trip }) {
           <ul className={`check-items ${drag ? 'is-sorting' : ''}`} ref={ulRef}>
             {items.map((it) => {
               const pp = perPerson(it);
-              const names = Object.values(it.doneMap || {});
+              const names = memberTicks(it.doneMap, trip.memberIds); // #108: current members only
               return (
                 <li key={it.id} data-id={it.id} className={`${isDone(it) ? 'is-done' : ''} ${drag?.id === it.id ? 'is-dragging' : ''}`}>
                   {!locked && (

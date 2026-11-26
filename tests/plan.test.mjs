@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { extractPlan, planProblems } from '../compass/guardrails-lib.mjs';
+import { planFileProblems, planTextsFromPatches, missingSections } from '../compass/plan-file.mjs';
 import { parseCloses, latestReviewVerdict, mergeBlockers, commitMessage } from '../compass/merge-pr.mjs';
 
 const good = '## What\nx\n\n## Plan\n- Files: src/a.js\n- Steps: one\n- Risks: none\n- Proof: TC-1\n\n## Checklist\n- [ ] y';
@@ -64,7 +65,9 @@ test('TC-067: merge-pr refuses a code PR whose Plan was removed or emptied after
   const ok = [{ name: 'test', status: 'completed', conclusion: 'success' }, { name: 'e2e', status: 'completed', conclusion: 'success' }];
   const head = 'abcdef1234567890abcdef1234567890abcdef12';
   const comments = [{ body: `## Independent review (Claude)\nVerdict: APPROVE\nReviewed commit: ${head}`, created_at: 'x', author_association: 'OWNER' }];
-  const base = { checkRuns: ok, comments, labels: [], headSha: head, files: [{ filename: 'compass/merge-pr.mjs' }] };
+  // REQ-053: a code PR also carries a complete plan file
+  const planFile = { filename: 'compass/plans/REQ-1-x.md', status: 'added', patch: ['## Files', '- a', '## Steps', '- b', '## Risks', '- c', '## Proof', '- d'].map((l) => `+${l}`).join('\n') };
+  const base = { checkRuns: ok, comments, labels: [], headSha: head, files: [{ filename: 'compass/merge-pr.mjs' }, planFile] };
   assert.deepEqual(mergeBlockers({ ...base, body: good }), []);
   assert.ok(mergeBlockers({ ...base, body: '## What\nx' }).some((b) => /plan:.*no "## Plan"/.test(b)), 'plan removed');
   assert.ok(mergeBlockers({ ...base, body: '## Plan\n- Files: TBD\n- Steps: -\n- Risks: r\n- Proof: p' }).some((b) => /plan:.*Files, Steps/.test(b)), 'plan emptied');
@@ -78,3 +81,28 @@ test('TC-067: REVIEW.md and agent-knowledge describe the route for a finding the
   assert.match(review, /quoting her decision[\s\S]*\*\*fresh\*\* review agent[\s\S]*APPROVE/);
   assert.match(knowledge, /Accepted by the Product Owner/);
 });
+
+// TC-110 — a plan file for every change that touches code (REQ-053)
+const goodFile = '# Plan\n## Files\n- src/a.js — add\n## Steps\n1. edit\n## Risks\n- none\n## Proof\n- TC-1';
+test('TC-110: a code change needs a complete plan file', () => {
+  const code = [{ path: 'src/a.js', status: 'M' }];
+  assert.match(planFileProblems(code, {})[0], /no plan file/);
+  assert.deepEqual(planFileProblems(code, { 'compass/plans/REQ-1-a.md': goodFile }), []);
+  assert.match(planFileProblems(code, { 'compass/plans/REQ-1-a.md': '## Files\n- TBD\n## Steps\n-\n## Risks\nn/a\n## Proof\n- TC-1' })[0], /Files, Steps, Risks/);
+  assert.match(planFileProblems(code, { 'compass/plans/README.md': goodFile })[0], /no plan file/, 'the README is not a plan');
+  assert.deepEqual(planFileProblems([{ path: 'README.md', status: 'M' }], {}), [], 'docs need no plan file');
+  assert.deepEqual(missingSections('<!-- ## Files\nx -->'), ['Files', 'Steps', 'Risks', 'Proof']);
+  const texts = planTextsFromPatches([{ filename: 'compass/plans/REQ-1-a.md', status: 'added', patch: goodFile.split('\n').map((l) => `+${l}`).join('\n') }]);
+  assert.deepEqual(Object.keys(texts), ['compass/plans/REQ-1-a.md']);
+  assert.deepEqual(missingSections(texts['compass/plans/REQ-1-a.md']), []);
+});
+
+test('TC-110: merge-pr refuses a code PR without a plan file and names the file in the commit message', () => {
+  const base = { checkRuns: [{ name: 'test', status: 'completed', conclusion: 'success' }, { name: 'e2e', status: 'completed', conclusion: 'success' }], comments: [], labels: [], headSha: 'abc', body: '## Plan\n- Files: a\n- Steps: b\n- Risks: c\n- Proof: d' };
+  const noPlan = mergeBlockers({ ...base, files: [{ filename: 'src/a.js', status: 'modified' }] });
+  assert.ok(noPlan.some((b) => /plan file:.*no plan file/.test(b)), noPlan.join('\n'));
+  const withPlan = mergeBlockers({ ...base, files: [{ filename: 'src/a.js', status: 'modified' }, { filename: 'compass/plans/REQ-1-a.md', status: 'added', patch: goodFile.split('\n').map((l) => `+${l}`).join('\n') }] });
+  assert.ok(!withPlan.some((b) => /plan file/.test(b)), withPlan.join('\n'));
+  assert.match(commitMessage(base.body, '', ['compass/plans/REQ-1-a.md']), /Plan file: compass\/plans\/REQ-1-a\.md/);
+});
+

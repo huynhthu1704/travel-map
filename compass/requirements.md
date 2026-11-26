@@ -49,6 +49,10 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
 | REQ-050 | Protect the guardrail enforcement files themselves | — | Should | Done | TC-068 |
 | REQ-051 | Harden merge-pr and the plan check | — | Could | Done | TC-066, TC-067 |
+| REQ-052 | Keep intents and the review policy inside compass/ | — | Should | Draft | TC-109 |
+| REQ-053 | A plan file for every change that touches code | — | Should | Draft | TC-110 |
+| REQ-054 | Revise the business need into a business intent | — | Should | Draft | TC-111 |
+| REQ-055 | An approved design before any code | — | Should | Draft | TC-112 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -497,6 +501,44 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 - Given the Product Owner accepted an important finding in chat · When the author wants to merge · Then REVIEW.md and agent-knowledge describe the documented route (a PR comment quoting her decision, then a fresh review listing the finding as accepted)
 - Given a Plan line whose value is only a placeholder (-, TBD, TODO, n/a) · When the guardrails check runs · Then it is treated as missing
 - Given a feature flag that is not in the legacy list · When the unit tests run · Then it must be default-off with a VI/EN value text, whatever its since date
+
+## REQ-052 — Keep intents and the review policy inside compass/
+
+As the product owner, I want the intent files and the review policy to live in the compass/ folder with the rest of the delivery files, so that the process is in one place and matches the Compass portal.
+
+Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+
+- Given the repository · When I open compass/ · Then I find intent/ (template and intents) and REVIEW.md there, and no intent/ folder or REVIEW.md at the root
+- Given a requirement with an intent · When CI runs the spec check · Then the intent path must look like compass/intent/<file>.md
+
+## REQ-053 — A plan file for every change that touches code
+
+As the product owner, I want each change that touches code to carry a written plan file (files, steps, risks, proof) committed before the code, so that the plan stays in the repo next to the code it explains.
+
+Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+
+- Given a PR that changes code without a compass/plans/*.md file · When compass/merge-pr.mjs runs · Then it refuses to merge
+- Given a plan file whose Files, Steps, Risks or Proof section is empty or only a placeholder · When the plan check runs · Then it names the missing sections
+- Given a PR that changes no code · When the plan check runs · Then no plan file is needed
+
+## REQ-054 — Revise the business need into a business intent
+
+As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
+
+Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+
+- Given an intent for REQ-052 or later · When CI runs the spec check · Then it fails if the intent has no "## Business need" section
+- Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who, what changes, baseline → target and by when
+
+## REQ-055 — An approved design before any code
+
+As the product owner, I want the design of approved requirements drafted and approved by me before coding starts, so that code is built to a screen we agreed on.
+
+Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+
+- Given a requirement from REQ-052 on past Draft without "design" · When CI runs the spec check · Then it fails and asks for a design file or "none: <reason>"
+- Given a requirement In build or Done whose design file is not Approved · When CI runs the spec check · Then it fails
+- Given a design file that does not mention the requirement · When CI runs the spec check · Then it fails
 
 ## REQ-101 — Sign in with Google
 

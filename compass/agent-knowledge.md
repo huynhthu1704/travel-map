@@ -28,7 +28,8 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 
 ## 4. Requirements, bugs and traceability (GitHub)
 - **Intent first (REQ-038):** a new request becomes `intent/YYYY-MM-DD-topic.md` (template in `intent/README.md`); Christine approves it in chat; then REQs (with `"intent"` in spec.json) and issues are created. Required from REQ-051 on.
-- **Plan before code (REQ-039):** every PR that changes code (`src/`, `e2e/`, `tests/`, `compass/*.mjs`, `.claude/`, root config files) has a `## Plan` (Files, Steps, Risks, Proof) in its body before coding starts; the CI guardrails check enforces it.
+- **Business need → intent (REQ-054):** her words go under `## Business need`; the agent revises them into a measurable business intent (`## What we want`). Required for intents of REQ-052 on.
+- **Plan before code (REQ-039, REQ-053):** every PR that changes code (`src/`, `e2e/`, `tests/`, `compass/*.mjs`, `.claude/`, root config files) adds `compass/plans/<REQ-ids>-<name>.md` (Files, Steps, Risks, Proof) as its first commit and keeps a short `## Plan` in the body that links it; the CI guardrails check reads the body, merge-pr checks the file.
 - **Repo skills (REQ-040):** `.claude/skills/` holds `deliver-change` (the whole delivery checklist), `feature-flag`, `bilingual-strings` and `trip-excel-export`. Each names the check that enforces it (`tests/skills.test.mjs` etc.). When a recurring rule appears, add a skill and, if it must always hold, a test or CI check behind it.
 - **Every new requirement → a GitHub issue BEFORE work starts**, in English, label `requirement`, New-requirement template (story + Given/When/Then). Deferred ideas are logged too, with label `on-hold`.
 - Personal repo → no Issue Types; labels are used: `requirement`, `bug`, `e2e`, `on-hold`.

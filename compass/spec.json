@@ -2403,7 +2403,7 @@
         "REQ-054"
       ],
       "type": "automated",
-      "status": "Not run",
+      "status": "Passing",
       "file": "tests/intent.test.mjs"
     },
     {

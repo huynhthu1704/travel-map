@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { intentProblems } from '../compass/build-views.mjs';
+import { intentProblems, needProblems } from '../compass/build-views.mjs';
 
 const root = new URL('../', import.meta.url);
 const spec = JSON.parse(readFileSync(new URL('compass/spec.json', root), 'utf8'));
@@ -14,7 +14,7 @@ test('TC-063: the intent template and the back-filled intent exist; linked requi
   assert.deepEqual(intentProblems(spec, readRepo), []);
   assert.equal(spec.requirements.find((r) => r.id === 'REQ-037').intent, 'intent/2026-11-25-ai-native-sdlc.md');
   const agents = readRepo('AGENTS.md');
-  assert.match(agents, /0\. \*\*Intent \(REQ-038\):\*\*/);
+  assert.match(agents, /0\. \*\*Business need → intent \(REQ-038, REQ-054\):\*\*/);
   assert.match(agents, /intent\/README\.md/);
 });
 
@@ -49,3 +49,14 @@ test('TC-063: missing, unapproved or unlisted intents and new requirements witho
   assert.match(p, /REQ-51a is not a valid requirement id/);
   assert.match(p, /does not list REQ-056/, 'the id must be under ## Requirements');
 });
+
+// TC-111 — new intents keep the business need (REQ-054)
+test('TC-111: intents of new requirements keep the business need', () => {
+  const spec = { requirements: [{ id: 'REQ-052', intent: 'intent/x.md' }, { id: 'REQ-030', intent: 'intent/old.md' }] };
+  const files = { 'intent/x.md': 'Status: Draft\n## What we want\nmore', 'intent/old.md': 'Status: Approved' };
+  assert.match(needProblems(spec, (f) => files[f] ?? null)[0], /x\.md has no "## Business need"/);
+  files['intent/x.md'] += '\n## Business need\nwords';
+  assert.deepEqual(needProblems(spec, (f) => files[f] ?? null), []);
+  assert.match(readRepo('intent/README.md'), /## Business need/);
+});
+

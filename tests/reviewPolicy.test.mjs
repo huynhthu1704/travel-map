@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
-const review = read('REVIEW.md');
+const review = read('compass/REVIEW.md');
 
 test('TC-058: REVIEW.md defines the review passes, severities and comment format', () => {
   for (const pass of ['Correctness', 'Requirement match', 'Security and privacy', 'Compass contract']) assert.match(review, new RegExp(pass));
@@ -23,4 +23,11 @@ test('TC-058: the workflow, the PR template and the agent knowledge point to REV
   assert.match(read('AGENTS.md'), /REVIEW\.md/);
   assert.match(read('.github/pull_request_template.md'), /Independent review[\s\S]*REVIEW\.md/);
   assert.match(read('compass/agent-knowledge.md'), /REVIEW\.md/);
+});
+
+// TC-109 — the review policy lives in compass/ (REQ-052)
+test('TC-109: REVIEW.md lives in compass/ and the docs link it there', () => {
+  assert.throws(() => read('REVIEW.md'), 'no REVIEW.md at the root');
+  for (const f of ['AGENTS.md', 'CLAUDE.md', 'compass/agent-knowledge.md', '.github/pull_request_template.md']) assert.match(read(f), /compass\/REVIEW\.md/, f);
+  assert.match(read('AGENTS.md'), /compass\/intent\/README\.md/);
 });

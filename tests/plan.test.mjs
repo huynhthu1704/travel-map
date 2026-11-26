@@ -4,7 +4,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { extractPlan, planProblems } from '../compass/guardrails-lib.mjs';
 import { planFileProblems, planTextsFromPatches, missingSections } from '../compass/plan-file.mjs';
-import { parseCloses, latestReviewVerdict, mergeBlockers, commitMessage } from '../compass/merge-pr.mjs';
+import { parseCloses, latestReviewVerdict, mergeBlockers, commitMessage, contentsPath } from '../compass/merge-pr.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, symlinkSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const good = '## What\nx\n\n## Plan\n- Files: src/a.js\n- Steps: one\n- Risks: none\n- Proof: TC-1\n\n## Checklist\n- [ ] y';
 
@@ -112,3 +117,22 @@ test('TC-110: merge-pr refuses a code PR without a plan file and names the file 
   assert.ok(!mergeBlockers({ ...base, files: code, planTexts: { 'compass/plans/REQ-1-a.md': goodFile } }).some((b) => /plan file/.test(b)), 'the full text passes');
 });
 
+
+// TC-110 (follow-up of the #89 review) — merge-pr fetches plan files whose names need URL encoding
+test('TC-110: plan file paths are URL-encoded when merge-pr fetches them', () => {
+  assert.equal(contentsPath('o/r', 'compass/plans/REQ-1 a#b?.md', 'abc'), 'repos/o/r/contents/compass/plans/REQ-1%20a%23b%3F.md?ref=abc');
+  assert.equal(contentsPath('o/r', 'compass/plans/REQ-1-a.md', 'abc'), 'repos/o/r/contents/compass/plans/REQ-1-a.md?ref=abc');
+});
+
+// TC-110 (follow-up of the #89 review) — the local plan check also runs when started through a symlink
+test('TC-110: plan-file.mjs runs its check when started through a symlink', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'plan-link-'));
+  try {
+    const link = join(dir, 'plan-file.mjs');
+    symlinkSync(fileURLToPath(new URL('../compass/plan-file.mjs', import.meta.url)), link);
+    const out = execFileSync(process.execPath, [link, 'HEAD'], { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8' });
+    assert.match(out, /Plan OK/, 'the check ran and printed its result');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

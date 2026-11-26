@@ -59,6 +59,9 @@ export function mergeBlockers({ checkRuns, comments, files, labels, headSha, bod
   return blockers;
 }
 
+/** REST path of a file's contents at a commit; each path segment is URL-encoded (spaces, #, ? in file names). */
+export const contentsPath = (repo, path, ref) => `repos/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(ref)}`;
+
 /** Squash-commit message: the plan, so it is kept in git history with the code. */
 export function commitMessage(prBody, trailer = '', planFiles = []) {
   const plan = extractPlan(prBody);
@@ -97,7 +100,7 @@ if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.
     const bugIssues = issues.filter((i) => api(`repos/${repo}/issues/${i}`).labels.some((l) => l.name === 'bug'));
     const files = all(`repos/${repo}/pulls/${n}/files?per_page=100`);
     // Full text of each plan file at the head commit, so a PR that edits a few lines of an existing plan is judged on the whole plan
-    const planTexts = Object.fromEntries(files.filter((f) => f.status !== 'removed' && isPlanFile(f.filename)).map((f) => [f.filename, Buffer.from(api(`repos/${repo}/contents/${f.filename}?ref=${pr.head.sha}`).content, 'base64').toString('utf8')]));
+    const planTexts = Object.fromEntries(files.filter((f) => f.status !== 'removed' && isPlanFile(f.filename)).map((f) => [f.filename, Buffer.from(api(contentsPath(repo, f.filename, pr.head.sha)).content, 'base64').toString('utf8')]));
     const blockers = mergeBlockers({
       checkRuns: all(`repos/${repo}/commits/${pr.head.sha}/check-runs?per_page=100`, 'check_runs'),
       comments: all(`repos/${repo}/issues/${n}/comments?per_page=100`),

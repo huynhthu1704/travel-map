@@ -113,6 +113,9 @@ export function renderTests(spec) {
 export const ADR_FIELDS = ['id', 'date', 'title', 'status', 'context', 'decision', 'consequences'];
 export const ADR_STATUSES = ['Proposed', 'Accepted', 'Superseded', 'Rejected'];
 
+// The reconstructed baseline of the existing product (REQ-101…153) is exempt from the newer process checks
+export const isBaseline = (n) => n >= 101 && n <= 153;
+
 // REQ-038: from this requirement number on (below the REQ-101 baseline) an intent file is required
 export const INTENT_REQUIRED_FROM = 51;
 /** Problems with requirement → intent links. readIntent(path) returns the file text or null when missing. */
@@ -126,7 +129,7 @@ export function intentProblems(spec, readIntent) {
     }
     // Only the reconstructed baseline REQ-101…153 is exempt
     if (!r.intent) {
-      if (n >= INTENT_REQUIRED_FROM && !(n >= 101 && n <= 153)) problems.push(`${r.id} has no intent (add "intent": "compass/intent/<file>.md")`);
+      if (n >= INTENT_REQUIRED_FROM && !isBaseline(n)) problems.push(`${r.id} has no intent (add "intent": "compass/intent/<file>.md")`);
       continue;
     }
     if (!/^compass\/intent\/[\w.-]+\.md$/.test(r.intent)) {
@@ -152,7 +155,7 @@ export function designProblems(spec, readDesign) {
   for (const r of spec.requirements) {
     const n = num(r.id);
     if (!r.design) {
-      if (n >= DESIGN_REQUIRED_FROM && !(n >= 101 && n <= 153) && r.status !== 'Draft') problems.push(`${r.id} has no design (add "design": "compass/design/<file>.md", or "none: <reason>" when it has no UI)`);
+      if (n >= DESIGN_REQUIRED_FROM && !isBaseline(n) && r.status !== 'Draft') problems.push(`${r.id} has no design (add "design": "compass/design/<file>.md", or "none: <reason>" when it has no UI)`);
       continue;
     }
     if (/^none:\s*\S/i.test(r.design)) continue;
@@ -162,7 +165,8 @@ export function designProblems(spec, readDesign) {
     }
     const text = readDesign(r.design);
     if (text == null) problems.push(`${r.id} points to missing ${r.design}`);
-    else if (!text.includes(r.id)) problems.push(`${r.design} does not mention ${r.id}`);
+    // whole id only: REQ-100 must not match inside REQ-1000
+    else if (!new RegExp(`\\b${r.id}(?!\\d)`).test(text)) problems.push(`${r.design} does not mention ${r.id}`);
     else if ((r.status === 'In build' || r.status === 'Done') && !/^Status:\s*Approved\b/m.test(text)) problems.push(`${r.id} is ${r.status} but ${r.design} is not Approved — no code before the design is approved`);
   }
   return problems;
@@ -175,7 +179,7 @@ export function needProblems(spec, readIntent) {
   const seen = new Set();
   for (const r of spec.requirements) {
     const n = num(r.id);
-    if (!r.intent || n < NEED_REQUIRED_FROM || (n >= 101 && n <= 153) || seen.has(r.intent)) continue;
+    if (!r.intent || n < NEED_REQUIRED_FROM || isBaseline(n) || seen.has(r.intent)) continue;
     seen.add(r.intent);
     const text = readIntent(r.intent);
     if (text != null && !/^## Business need\s*$/m.test(text)) problems.push(`${r.intent} has no "## Business need" section (the Product Owner's words, revised into the business intent under "## What we want")`);

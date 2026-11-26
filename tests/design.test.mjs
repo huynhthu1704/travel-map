@@ -15,6 +15,7 @@ test('TC-112: no code before an approved design', () => {
   assert.deepEqual(check([{ id: 'REQ-060', status: 'Approved', design: 'compass/design/d.md' }]), []);
   assert.match(check([{ id: 'REQ-060', status: 'In build', design: 'compass/design/d.md' }])[0], /not Approved — no code/);
   assert.match(check([{ id: 'REQ-061', status: 'Approved', design: 'compass/design/d.md' }])[0], /does not mention REQ-061/);
+  assert.match(check([{ id: 'REQ-06', status: 'Approved', design: 'compass/design/d.md' }])[0] || '', /does not mention REQ-06/, 'a longer id does not count');
   assert.match(check([{ id: 'REQ-060', status: 'Approved', design: 'compass/design/none.md' }])[0], /missing/);
   assert.deepEqual(check([{ id: 'REQ-060', status: 'Done', design: 'none: CI script only' }]), []);
   files['compass/design/d.md'] = 'Status: Approved (by PO, 2026-11-26)\nRequirements: REQ-060';

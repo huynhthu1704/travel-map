@@ -104,5 +104,11 @@ test('TC-110: merge-pr refuses a code PR without a plan file and names the file 
   const withPlan = mergeBlockers({ ...base, files: [{ filename: 'src/a.js', status: 'modified' }, { filename: 'compass/plans/REQ-1-a.md', status: 'added', patch: goodFile.split('\n').map((l) => `+${l}`).join('\n') }] });
   assert.ok(!withPlan.some((b) => /plan file/.test(b)), withPlan.join('\n'));
   assert.match(commitMessage(base.body, '', ['compass/plans/REQ-1-a.md']), /Plan file: compass\/plans\/REQ-1-a\.md/);
+  assert.doesNotMatch(commitMessage('## Plan\nPlan file: compass/plans/REQ-1-a.md\n- Files: a', '', ['compass/plans/REQ-1-a.md']), /\n\nPlan file:/, 'no second line when the body links the plan');
+  // A PR that edits a few lines of an existing plan is judged on the plan's full text at the head commit
+  const edited = { filename: 'compass/plans/REQ-1-a.md', status: 'modified', patch: '@@ -3 +3 @@\n-1. edit\n+1. edit and test' };
+  const code = [{ filename: 'src/a.js', status: 'modified' }, edited];
+  assert.ok(mergeBlockers({ ...base, files: code }).some((b) => /plan file:.*Files, Steps, Risks, Proof/.test(b)), 'patch alone is incomplete');
+  assert.ok(!mergeBlockers({ ...base, files: code, planTexts: { 'compass/plans/REQ-1-a.md': goodFile } }).some((b) => /plan file/.test(b)), 'the full text passes');
 });
 

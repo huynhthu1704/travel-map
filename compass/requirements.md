@@ -421,7 +421,7 @@ As the product owner, I want each new request saved as a short intent file (what
 
 Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
-- Given a new request in chat · When the agent starts · Then it writes intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements
+- Given a new request in chat · When the agent starts · Then it writes compass/intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements
 - Given an approved intent · When requirements are created · Then each requirement links back to its intent file and the intent lists them
 - Given a new requirement (REQ-051 or later) without an approved intent · When CI runs the spec check · Then it fails
 

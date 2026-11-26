@@ -56,7 +56,10 @@ export function codeqlFindings(alerts) {
     });
 }
 
-export const isDismissed = (issue) => issue.state === 'closed' && issue.state_reason === 'not_planned' && (issue.comments_list || []).some((c) => DISMISS.test(c.body || ''));
+// Only people with write access count: the repo is public, so anyone can comment.
+export const TRUSTED = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+export const isDismissed = (issue) => issue.state === 'closed' && issue.state_reason === 'not_planned' &&
+  (issue.comments_list || []).some((c) => DISMISS.test(c.body || '') && TRUSTED.includes(c.author_association));
 
 /**
  * findings: current findings; issues: existing security issues (closed ones with comments_list);
@@ -83,7 +86,7 @@ export function planActions(findings, issues, sources) {
     else actions.push({
       type: 'reopen', issue, finding: f,
       why: issue.state_reason === 'not_planned'
-        ? 'it was closed as "not planned" without a reason. To dismiss it, close it as "not planned" and add a comment that starts with `Dismissed:` and says why'
+        ? 'it was closed as "not planned" without a reason from someone with write access. To dismiss it, close it as "not planned" and add a comment that starts with `Dismissed:` and says why'
         : 'the scan still finds it',
     });
   }
@@ -165,7 +168,7 @@ async function main() {
       await api(`/issues/${n}/comments`, { method: 'POST', body: JSON.stringify({ body: `Reopened by the weekly security scan: ${a.why}. ${runUrl}` }) });
     }
     if (a.type === 'close') {
-      await api(`/issues/${n}/comments`, { method: 'POST', body: JSON.stringify({ body: `✅ The weekly security scan no longer finds this. Closing. ${runUrl}` }) });
+      await api(`/issues/${n}/comments`, { method: 'POST', body: JSON.stringify({ body: `✅ The weekly security scan no longer finds this (fixed, or for code findings possibly dismissed on GitHub's code scanning page). Closing. ${runUrl}` }) });
       await api(`/issues/${n}`, { method: 'PATCH', body: JSON.stringify({ state: 'closed', state_reason: 'completed' }) });
     }
   }

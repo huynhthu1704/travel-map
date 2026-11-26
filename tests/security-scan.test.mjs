@@ -50,6 +50,8 @@ test('TC-117: new findings open a bug issue with severity; a gone finding closes
   assert.match(issueBody(findings[0], 'RUN'), /security-finding: npm:@grpc\/grpc-js[\s\S]*\*\*Severity:\*\* high/);
   const script = readFileSync(new URL('../compass/security-scan.mjs', import.meta.url), 'utf8');
   assert.match(script, /labels: \['bug', 'security', `severity:\$\{a\.finding\.severity\}`\]/);
+  const close = script.slice(script.indexOf("a.type === 'close'"));
+  assert.match(close, /\/comments`[\s\S]*no longer finds this[\s\S]*state: 'closed'/, 'a gone finding is closed with a comment');
 });
 
 test('TC-117: a changed severity relabels; a source that failed never closes its issues', () => {
@@ -62,7 +64,7 @@ test('TC-117: a changed severity relabels; a source that failed never closes its
 test('TC-118: a closed finding stays closed only when dismissed as "not planned" with a "Dismissed:" reason', () => {
   const f = codeqlFindings(alerts);
   const closed = (extra) => issue(6, 'codeql:7', { state: 'closed', ...extra });
-  const reason = { state_reason: 'not_planned', comments_list: [{ body: 'Dismissed: only reachable in the admin page, input is escaped' }] };
+  const reason = { state_reason: 'not_planned', comments_list: [{ body: 'Dismissed: only reachable in the admin page, input is escaped', author_association: 'OWNER' }] };
   assert.ok(isDismissed(closed(reason)));
   assert.deepEqual(planActions(f, [closed(reason)], ['codeql']).map((a) => a.type), ['keep-dismissed']);
   const noReason = planActions(f, [closed({ state_reason: 'not_planned', comments_list: [{ body: 'not a problem' }] })], ['codeql']);
@@ -70,7 +72,9 @@ test('TC-118: a closed finding stays closed only when dismissed as "not planned"
   assert.match(noReason[0].why, /without a reason[\s\S]*Dismissed:/);
   const fixedButBack = planActions(f, [closed({ state_reason: 'completed', comments_list: [] })], ['codeql']);
   assert.equal(fixedButBack[0].type, 'reopen');
-  assert.ok(!isDismissed(closed({ state_reason: 'not_planned', comments_list: [{ body: 'Dismissed:' }] })), 'an empty reason does not count');
+  assert.ok(!isDismissed(closed({ state_reason: 'not_planned', comments_list: [{ body: 'Dismissed:', author_association: 'OWNER' }] })), 'an empty reason does not count');
+  assert.ok(!isDismissed(closed({ state_reason: 'not_planned', comments_list: [{ body: 'Dismissed: trust me', author_association: 'NONE' }] })),
+    'a reason from someone without write access does not count (public repo)');
 });
 
 test('TC-118: the scan runs weekly and on demand with least-privilege permissions', () => {

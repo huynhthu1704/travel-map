@@ -1,6 +1,6 @@
 # Intent: Trip checklist in the Excel export
 
-Status: Draft
+Status: Approved (by Christine, 2026-11-26)
 Requested: 2026-11-26 by Christine, in chat
 
 ## What we want
@@ -34,4 +34,4 @@ is left out when the trip has no checklist items.
 - Editing the checklist through the Excel file (ticking in Excel does not sync back).
 
 ## Requirements
-<filled after approval>
+- REQ-056 — Export the trip checklist to the same Excel file as a separate sheet (#99)

@@ -20,6 +20,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-014 | 2026-11-25 | Guardrail enforcement files are protected paths | Accepted | REQ-050 |
 | ADR-015 | 2026-11-26 | Need → intent → requirements → design → plan → code | Accepted | REQ-052, REQ-053, REQ-054, REQ-055 |
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
+| ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -179,4 +180,14 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Decision.** From REQ-056 on, a requirement with UI has a design file that links at least one frame in the Bee There Figma file (designTool in spec.json); check-spec fails without it once the requirement is In build or Done. Requirements without UI keep "design": "none: <reason>".
 
-**Consequences.** Sessions need the Figma connector to design; without it the requirement waits in Draft. Designs live on the Figma page "📐 Feature designs".
+**Consequences.** Sessions need the Figma connector to design; without it the requirement stays Approved, not In build. Designs live on the Figma page "📐 Feature designs".
+
+## ADR-017 — Checklist in the Excel export ships with the tripExcel flag
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-056
+
+**Context.** The Product Owner asked to export the trip checklist into the same Excel file as a separate sheet; asked whether it needs its own feature flag.
+
+**Decision.** No separate feature flag: the Checklist sheet is part of the trip Excel export and is released with the existing tripExcel flag. Only shared checklists and the exporting user's own personal checklists are exported.
+
+**Consequences.** Everyone who already has tripExcel gets the Checklist sheet right after the merge.

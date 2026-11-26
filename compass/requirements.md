@@ -53,6 +53,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-053 | A plan file for every change that touches code | — | Should | Done | TC-110 |
 | REQ-054 | Revise the business need into a business intent | — | Should | Done | TC-111 |
 | REQ-055 | An approved design before any code | — | Should | Done | TC-112 |
+| REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Approved | TC-114 |
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
@@ -548,6 +549,20 @@ Design: none: process change, no UI
 - Given a requirement from REQ-052 on past Draft without "design" · When CI runs the spec check · Then it fails and asks for a design file or "none: <reason>"
 - Given a requirement In build or Done whose design file is not Approved · When CI runs the spec check · Then it fails
 - Given a design file that does not mention the requirement · When CI runs the spec check · Then it fails
+
+## REQ-056 — Export the trip checklist to the same Excel file as a separate sheet
+
+As a trip member, I want the trip checklist in the Excel export as its own sheet so that I can see, print and share the to-dos together with the itinerary and costs.
+
+Intent: [compass/intent/2026-11-26-checklist-in-excel.md](../compass/intent/2026-11-26-checklist-in-excel.md)
+
+Design: [compass/design/2026-11-26-checklist-in-excel.md](../compass/design/2026-11-26-checklist-in-excel.md)
+
+- Given a trip with checklist items · When I tap Export Excel on the Plan or Costs tab · Then the downloaded file has a Checklist sheet with one row per item: list, when (before the trip / before returning), item, for whom, done, ticked by and due day
+- Given another member has a personal checklist · When I export the trip · Then the Checklist sheet shows the shared checklists and my own personal checklists only
+- Given an "everyone ticks" item ticked by 2 of 4 members · When I export · Then its Done cell shows 2/4 and Ticked by lists those 2 names
+- Given a trip without checklist items · When I export · Then the file has no Checklist sheet and the other sheets are unchanged
+- Given I export in English · When I open the Checklist sheet · Then its headers and values are in English
 
 ## REQ-057 — A Figma frame in every UI design, approved before code
 

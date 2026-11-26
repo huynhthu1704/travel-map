@@ -18,7 +18,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-012 | 2026-11-25 | English for everything written in the repo and for replies to the Product Owner | Accepted | — |
 | ADR-013 | 2026-11-24 | Trip archiving is on hold | Accepted | REQ-028 |
 | ADR-014 | 2026-11-25 | Guardrail enforcement files are protected paths | Accepted | REQ-050 |
-| ADR-015 | 2026-11-26 | Need → intent → requirements → design → plan → code | Proposed | REQ-052, REQ-053, REQ-054, REQ-055 |
+| ADR-015 | 2026-11-26 | Need → intent → requirements → design → plan → code | Accepted | REQ-052, REQ-053, REQ-054, REQ-055 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -162,7 +162,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 ## ADR-015 — Need → intent → requirements → design → plan → code
 
-**Status:** Proposed · **Date:** 2026-11-26 · **Requirements:** REQ-052, REQ-053, REQ-054, REQ-055
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-052, REQ-053, REQ-054, REQ-055
 
 **Context.** The Product Owner asked to bring the AI-native SDLC into the Compass portal, to move intent and review into compass/, to add an approved design step after requirements (one design tool per project, e.g. Figma) and to keep a plan.md for every change.
 

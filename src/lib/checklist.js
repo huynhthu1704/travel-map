@@ -51,3 +51,14 @@ export const dueDayNumber = (due, start, end) => {
   const days = tripDays(start, end);
   return days.find((x) => x.date === due)?.day || 0;
 };
+
+/**
+ * Bug #108 / #104: names of the people who ticked an "everyone ticks" item, counting only current trip members
+ * (a tick stays stored when someone leaves the trip). With no member list every tick counts.
+ */
+export function memberTicks(doneMap, memberIds = []) {
+  const ids = memberIds || [];
+  return Object.entries(doneMap || {})
+    .filter(([uid, name]) => name && (!ids.length || ids.includes(uid)))
+    .map(([, name]) => name);
+}

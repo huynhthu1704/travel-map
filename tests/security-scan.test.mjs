@@ -1,4 +1,4 @@
-// TC-116, TC-117 — weekly security scan of the code and libraries (REQ-044)
+// TC-117, TC-118 — weekly security scan of the code and libraries (REQ-044)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -24,7 +24,7 @@ const alerts = [
 ];
 const issue = (number, key, extra = {}) => ({ number, state: 'open', body: `${marker(key)}\nbody`, labels: [{ name: 'security' }, { name: 'severity:high' }], ...extra });
 
-test('TC-116: npm audit → one finding per library with its own advisory, with severity and fix', () => {
+test('TC-117: npm audit → one finding per library with its own advisory, with severity and fix', () => {
   const f = npmFindings(audit);
   assert.deepEqual(f.map((x) => [x.key, x.severity]), [['npm:@grpc/grpc-js', 'high'], ['npm:vite', 'moderate']]);
   assert.match(f[1].details, /upgrade vite to 8\.0\.0 \(major upgrade\)/);
@@ -32,7 +32,7 @@ test('TC-116: npm audit → one finding per library with its own advisory, with 
   assert.throws(() => npmFindings({ error: { summary: 'network' } }), /network/, 'a broken audit fails the run');
 });
 
-test('TC-116: open CodeQL alerts → findings with severity and location', () => {
+test('TC-117: open CodeQL alerts → findings with severity and location', () => {
   const f = codeqlFindings(alerts);
   assert.equal(f.length, 1);
   assert.equal(f[0].key, 'codeql:7');
@@ -40,7 +40,7 @@ test('TC-116: open CodeQL alerts → findings with severity and location', () =>
   assert.match(f[0].title, /Cross-site scripting in src\/App\.jsx:12 \(moderate\)/);
 });
 
-test('TC-116: new findings open a bug issue with severity; a gone finding closes its issue; no duplicates', () => {
+test('TC-117: new findings open a bug issue with severity; a gone finding closes its issue; no duplicates', () => {
   const findings = [...npmFindings(audit), ...codeqlFindings(alerts)];
   const issues = [issue(1, 'npm:@grpc/grpc-js'), issue(2, 'npm:old-lib'), issue(3, 'codeql:3')];
   const acts = planActions(findings, issues, ['npm', 'codeql']);
@@ -52,14 +52,14 @@ test('TC-116: new findings open a bug issue with severity; a gone finding closes
   assert.match(script, /labels: \['bug', 'security', `severity:\$\{a\.finding\.severity\}`\]/);
 });
 
-test('TC-116: a changed severity relabels; a source that failed never closes its issues', () => {
+test('TC-117: a changed severity relabels; a source that failed never closes its issues', () => {
   const vite = npmFindings(audit).filter((f) => f.key === 'npm:vite');
   assert.deepEqual(planActions(vite, [issue(4, 'npm:vite')], ['npm']).map((a) => a.type), ['relabel']);
   assert.deepEqual(planActions(vite, [issue(4, 'npm:vite'), issue(5, 'codeql:9')], ['npm']).map((a) => a.type), ['relabel'],
     'CodeQL was not read → codeql:9 stays open');
 });
 
-test('TC-117: a closed finding stays closed only when dismissed as "not planned" with a "Dismissed:" reason', () => {
+test('TC-118: a closed finding stays closed only when dismissed as "not planned" with a "Dismissed:" reason', () => {
   const f = codeqlFindings(alerts);
   const closed = (extra) => issue(6, 'codeql:7', { state: 'closed', ...extra });
   const reason = { state_reason: 'not_planned', comments_list: [{ body: 'Dismissed: only reachable in the admin page, input is escaped' }] };
@@ -73,7 +73,7 @@ test('TC-117: a closed finding stays closed only when dismissed as "not planned"
   assert.ok(!isDismissed(closed({ state_reason: 'not_planned', comments_list: [{ body: 'Dismissed:' }] })), 'an empty reason does not count');
 });
 
-test('TC-117: the scan runs weekly and on demand with least-privilege permissions', () => {
+test('TC-118: the scan runs weekly and on demand with least-privilege permissions', () => {
   assert.match(wf, /schedule:\s*\n\s*- cron: '0 1 \* \* 1'/);
   assert.match(wf, /workflow_dispatch:/);
   assert.match(wf, /github\/codeql-action\/analyze@v4/);

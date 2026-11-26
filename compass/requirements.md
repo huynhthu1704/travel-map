@@ -43,6 +43,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-038 | Capture intent in intent.md before writing requirements | — | Should | Done | TC-063 |
 | REQ-039 | Write a plan before coding each requirement | — | Should | Done | TC-064 |
 | REQ-040 | Turn project policies into repo skills | — | Should | Done | TC-065, TC-066 |
+| REQ-041 | Evals for the agent setup | — | Could | Done | TC-116 |
 | REQ-043 | Failing test committed before the fix for every bug | — | Could | Done | TC-069 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
@@ -445,6 +446,19 @@ Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-
 
 - Given a skill for a policy · When a session does work that matches it · Then the skill is loaded and followed
 - Given a policy that must always hold · When it is written as a skill · Then it also has a hook or CI check behind it
+
+## REQ-041 — Evals for the agent setup
+
+As the product owner, I want a suite of 20–50 past mistakes and review findings replayed automatically against the agent rules, hooks and checks, so that I know the agent setup did not get weaker after a rule change.
+
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
+
+Design: none: process change, no UI
+
+- Given an eval suite of past mistakes and review findings (compass/evals/cases.json) · When a pull request changes anything (including AGENTS.md, CLAUDE.md, skills or hooks) or the nightly CI run starts · Then the suite runs in npm test and reports the pass rate in the test output and the CI run summary
+- Given a change that makes a past mistake pass again (the pass rate drops below 100 %) · When CI runs · Then the test job fails, so compass/merge-pr.mjs does not merge it
+- Given a pull request that removes an eval case or changes its expected outcome · When CI runs · Then it fails unless the case is marked retired with the Product Owner's approval, which compass/REVIEW.md routes to her
+- Given the free version chosen by the Product Owner · When the suite runs · Then it needs no API key, no paid service and no workflow change
 
 ## REQ-043 — Failing test committed before the fix for every bug
 

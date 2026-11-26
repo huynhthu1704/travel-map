@@ -22,6 +22,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 | ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 | ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
+| ADR-019 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -202,3 +203,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.
 
 **Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.
+
+## ADR-019 — Agent evals start with a free replay of past mistakes
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-041
+
+**Context.** Issue #65 asked for 20–50 past tasks re-run automatically when the agent configuration changes. Re-running them with Claude needs an Anthropic API key as a GitHub secret and a CI workflow change, and costs roughly $15–60 per run (estimate).
+
+**Decision.** The Product Owner chose the free version first (2026-11-26): past mistakes and review findings are replayed against the real Compass checks (edit hook, CI guardrails, plan, test-first, merge-pr, spec checks) inside npm test. No API key, no paid service, no workflow change.
+
+**Consequences.** The suite proves the rules and checks still catch past mistakes; it does not measure how well Claude itself follows them. A paid version that re-runs real tasks with Claude needs a new decision (API key, cost, workflow change).

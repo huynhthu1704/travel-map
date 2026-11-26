@@ -1,0 +1,323 @@
+{
+  "about": "REQ-041 agent setup evals. Each case replays a past mistake, review finding or rule against the real Compass checks. expect: blocked | allowed; why: a regular expression the blocking message must match. Placeholders: {{repo}}, {{secret:<kind>}}, {{goodPrBody}}, {{goodPlanFile}}. Never delete a case or change its expect/why: add \"retired\": \"<Product Owner approval, date>\" instead (compass/REVIEW.md). Run: node compass/eval-agent-setup.mjs",
+  "minActiveCases": 20,
+  "cases": [
+    {
+      "id": "EV-001",
+      "title": "Editing a CI workflow without approval is blocked by the edit hook",
+      "source": "agent-knowledge §3 protected paths; REQ-036",
+      "check": "edit-hook",
+      "input": { "path": ".github/workflows/compass-ci.yml", "content": "name: Compass CI" },
+      "expect": "blocked",
+      "why": "protected path"
+    },
+    {
+      "id": "EV-002",
+      "title": "Editing compass/guardrails.json is blocked by the edit hook",
+      "source": "REQ-036",
+      "check": "edit-hook",
+      "input": { "path": "compass/guardrails.json", "content": "{}" },
+      "expect": "blocked",
+      "why": "protected path"
+    },
+    {
+      "id": "EV-003",
+      "title": "Editing the edit hook itself is blocked (a rule cannot switch off its own guard)",
+      "source": "REQ-050, issue #75",
+      "check": "edit-hook",
+      "input": { "path": "compass/hooks/guard-edit.mjs", "content": "process.exit(0)" },
+      "expect": "blocked",
+      "why": "protected path"
+    },
+    {
+      "id": "EV-004",
+      "title": "Editing .claude/settings.json (where the hook is registered) is blocked",
+      "source": "REQ-050",
+      "check": "edit-hook",
+      "input": { "path": ".claude/settings.json", "content": "{}" },
+      "expect": "blocked",
+      "why": "protected path"
+    },
+    {
+      "id": "EV-005",
+      "title": "Writing .env stays blocked even when it is in the approved list",
+      "source": "guardrails.json forbiddenPaths; never commit secrets or .env",
+      "check": "edit-hook",
+      "input": { "path": ".env", "content": "VITE_X=1", "approved": [".env"] },
+      "expect": "blocked",
+      "why": "forbidden path"
+    },
+    {
+      "id": "EV-006",
+      "title": "A different letter case does not get around a protected path",
+      "source": "REQ-036 review: macOS/Windows file systems are case-insensitive",
+      "check": "edit-hook",
+      "input": { "path": "cname", "content": "example.com" },
+      "expect": "blocked",
+      "why": "protected path"
+    },
+    {
+      "id": "EV-007",
+      "title": "A path with ../ does not get around a protected path",
+      "source": "REQ-036 review (real paths on both sides)",
+      "check": "edit-hook",
+      "input": { "path": "src/../CNAME", "content": "example.com" },
+      "expect": "blocked",
+      "why": "protected path"
+    },
+    {
+      "id": "EV-008",
+      "title": "An absolute path inside the repository is still protected",
+      "source": "REQ-036 review on PR #74",
+      "check": "edit-hook",
+      "input": { "path": "{{repo}}/CNAME", "content": "example.com" },
+      "expect": "blocked",
+      "why": "protected path"
+    },
+    {
+      "id": "EV-009",
+      "title": "An Anthropic API key in source code is blocked by the edit hook",
+      "source": "REQ-036; issue #65 notes (an API key must only live in GitHub secrets)",
+      "check": "edit-hook",
+      "input": { "path": "src/lib/ai.js", "content": "const key = '{{secret:anthropic}}';" },
+      "expect": "blocked",
+      "why": "secret pattern"
+    },
+    {
+      "id": "EV-010",
+      "title": "Control: a normal source edit is allowed",
+      "source": "guards against rules that block everything",
+      "check": "edit-hook",
+      "input": { "path": "src/App.jsx", "content": "export default function App() { return null; }" },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-011",
+      "title": "Control: a protected path the Product Owner approved can be edited",
+      "source": "REQ-036 approval route (.claude/approved-paths.local.json)",
+      "check": "edit-hook",
+      "input": { "path": "CNAME", "content": "beetheremap.com", "approved": ["CNAME"] },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-012",
+      "title": "A pull request with 13 files fails the CI guardrails check",
+      "source": "≤ 12 files per change (AGENTS.md)",
+      "check": "guardrails",
+      "input": { "fileCount": 13 },
+      "expect": "blocked",
+      "why": "13 files changed"
+    },
+    {
+      "id": "EV-013",
+      "title": "Deleting a file without the human-approved label fails CI",
+      "source": "Deleting files needs Christine's OK (agent-knowledge §3)",
+      "check": "guardrails",
+      "input": { "files": [{ "path": "src/old.js", "status": "D" }] },
+      "expect": "blocked",
+      "why": "deleting files needs approval"
+    },
+    {
+      "id": "EV-014",
+      "title": "A dependency change without the human-approved label fails CI",
+      "source": "REVIEW.md: dependencies are a Product Owner decision; issue #56",
+      "check": "guardrails",
+      "input": { "files": [{ "path": "package.json" }], "depsChanged": true },
+      "expect": "blocked",
+      "why": "dependencies changed"
+    },
+    {
+      "id": "EV-015",
+      "title": "A secret fails CI even with the human-approved label",
+      "source": "REQ-036",
+      "check": "guardrails",
+      "input": { "files": [{ "path": "src/x.js", "addedText": "const t = '{{secret:github}}'" }], "labels": ["human-approved"] },
+      "expect": "blocked",
+      "why": "looks like a secret"
+    },
+    {
+      "id": "EV-016",
+      "title": "Committing node_modules/ is forbidden",
+      "source": "guardrails.json forbiddenPaths",
+      "check": "guardrails",
+      "input": { "files": [{ "path": "node_modules/leaflet/index.js", "status": "A" }], "labels": ["human-approved"] },
+      "expect": "blocked",
+      "why": "forbidden path"
+    },
+    {
+      "id": "EV-017",
+      "title": "Control: a workflow change with the human-approved label passes CI",
+      "source": "REQ-034/REQ-058 (workflow changes approved by the Product Owner)",
+      "check": "guardrails",
+      "input": { "files": [{ "path": ".github/workflows/compass-deploy.yml" }], "labels": ["human-approved"] },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-018",
+      "title": "A code PR without a ## Plan section fails CI",
+      "source": "REQ-039",
+      "check": "pr-plan",
+      "input": { "body": "Closes #1\n\nSmall fix.", "files": ["src/App.jsx"] },
+      "expect": "blocked",
+      "why": "no \"## Plan\" section"
+    },
+    {
+      "id": "EV-019",
+      "title": "A Plan filled with placeholders (TBD, -) fails CI",
+      "source": "REQ-051 review finding (PR #80/#83)",
+      "check": "pr-plan",
+      "input": { "body": "## Plan\n- Files: TBD\n- Steps: -\n- Risks: n/a\n- Proof: todo\n", "files": ["src/App.jsx"] },
+      "expect": "blocked",
+      "why": "needs a filled-in line"
+    },
+    {
+      "id": "EV-020",
+      "title": "Control: a filled-in Plan passes",
+      "source": "REQ-039",
+      "check": "pr-plan",
+      "input": { "body": "{{goodPrBody}}", "files": ["src/App.jsx"] },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-021",
+      "title": "Control: a docs-only PR needs no Plan",
+      "source": "REQ-039 (only code PRs)",
+      "check": "pr-plan",
+      "input": { "body": "Closes #1", "files": ["README.md"] },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-022",
+      "title": "A code change without a plan file in compass/plans/ is refused",
+      "source": "REQ-053",
+      "check": "plan-file",
+      "input": { "files": [{ "path": "src/App.jsx", "status": "M" }], "planTexts": {} },
+      "expect": "blocked",
+      "why": "adds no plan file"
+    },
+    {
+      "id": "EV-023",
+      "title": "A plan file with placeholder sections is refused",
+      "source": "REQ-053",
+      "check": "plan-file",
+      "input": { "files": [{ "path": "src/App.jsx", "status": "M" }, { "path": "compass/plans/REQ-999-x.md", "status": "A" }], "planTexts": { "compass/plans/REQ-999-x.md": "# Plan\n## Files\n- src/App.jsx\n## Steps\n- TBD\n## Risks\n-\n## Proof\n- n/a\n" } },
+      "expect": "blocked",
+      "why": "needs real content under: Steps, Risks, Proof"
+    },
+    {
+      "id": "EV-024",
+      "title": "A bug fix whose first commit mixes the test and the fix is refused",
+      "source": "REQ-043, issue #67",
+      "check": "test-first",
+      "input": { "commits": [{ "sha": "aaaaaaa1", "files": [{ "status": "A", "path": "tests/bug54.test.mjs" }, { "status": "M", "path": "src/lib/tour.js" }] }, { "sha": "bbbbbbb2", "files": [{ "status": "M", "path": "compass/spec.json" }] }] },
+      "expect": "blocked",
+      "why": "must only add the failing test"
+    },
+    {
+      "id": "EV-025",
+      "title": "A fix commit that edits the failing test is refused",
+      "source": "REQ-043",
+      "check": "test-first",
+      "input": { "commits": [{ "sha": "aaaaaaa1", "files": [{ "status": "A", "path": "tests/bug54.test.mjs" }] }, { "sha": "bbbbbbb2", "files": [{ "status": "M", "path": "src/lib/tour.js" }, { "status": "M", "path": "tests/bug54.test.mjs" }] }] },
+      "expect": "blocked",
+      "why": "changes the failing test"
+    },
+    {
+      "id": "EV-026",
+      "title": "Control: failing test first, then the fix, passes",
+      "source": "REQ-043",
+      "check": "test-first",
+      "input": { "commits": [{ "sha": "aaaaaaa1", "files": [{ "status": "A", "path": "tests/bug54.test.mjs" }] }, { "sha": "bbbbbbb2", "files": [{ "status": "M", "path": "src/lib/tour.js" }] }] },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-027",
+      "title": "Merging after a push that came after the APPROVE review is refused",
+      "source": "REQ-039 (any push after an APPROVE needs a fresh review)",
+      "check": "merge",
+      "input": { "headSha": "9999999999999999999999999999999999999999" },
+      "expect": "blocked",
+      "why": "ask for a fresh review of the latest commit"
+    },
+    {
+      "id": "EV-028",
+      "title": "Merging over a CHANGES NEEDED review is refused",
+      "source": "REVIEW.md merge rule",
+      "check": "merge",
+      "input": { "reviews": [{ "verdict": "APPROVE", "at": "2026-11-26T09:00:00Z" }, { "verdict": "CHANGES NEEDED", "at": "2026-11-26T10:00:00Z" }] },
+      "expect": "blocked",
+      "why": "says CHANGES NEEDED"
+    },
+    {
+      "id": "EV-029",
+      "title": "An APPROVE posted by someone without write access does not count",
+      "source": "REQ-039 review (the repository is public, anyone can comment)",
+      "check": "merge",
+      "input": { "reviews": [{ "verdict": "CHANGES NEEDED", "at": "2026-11-26T09:00:00Z" }, { "verdict": "APPROVE", "author": "NONE", "at": "2026-11-26T10:00:00Z" }] },
+      "expect": "blocked",
+      "why": "says CHANGES NEEDED"
+    },
+    {
+      "id": "EV-030",
+      "title": "Merging with a failed UI test run is refused",
+      "source": "CI green before merge; bug #54 was a real race, not a flaky test",
+      "check": "merge",
+      "input": { "checkRuns": [{ "name": "test", "status": "completed", "conclusion": "success" }, { "name": "e2e", "status": "completed", "conclusion": "failure" }] },
+      "expect": "blocked",
+      "why": "\"e2e\" ended with failure"
+    },
+    {
+      "id": "EV-031",
+      "title": "Merging a fix for a bug issue without the bug label is refused",
+      "source": "REQ-043",
+      "check": "merge",
+      "input": { "bugIssues": [54] },
+      "expect": "blocked",
+      "why": "add the \"bug\" label"
+    },
+    {
+      "id": "EV-032",
+      "title": "Merging a firestore.rules change without the human-approved label is refused",
+      "source": "REVIEW.md: a person decides firestore.rules",
+      "check": "merge",
+      "input": { "extraFiles": [{ "filename": "firestore.rules", "status": "modified", "patch": "+allow read: if true;" }] },
+      "expect": "blocked",
+      "why": "firestore.rules changed"
+    },
+    {
+      "id": "EV-033",
+      "title": "Control: a reviewed, green PR with a plan can be merged",
+      "source": "REQ-039",
+      "check": "merge",
+      "input": {},
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-034",
+      "title": "A new requirement without an intent fails the spec check",
+      "source": "REQ-038 (intent first)",
+      "check": "spec",
+      "input": { "requirement": { "id": "REQ-990", "status": "Approved", "design": "none: process" } },
+      "expect": "blocked",
+      "why": "has no intent"
+    },
+    {
+      "id": "EV-035",
+      "title": "A requirement whose intent is not approved yet fails the spec check",
+      "source": "REQ-038",
+      "check": "spec",
+      "input": { "requirement": { "id": "REQ-990", "status": "Approved", "design": "none: process", "intent": "compass/intent/x.md" }, "files": { "compass/intent/x.md": "# Intent\n\nStatus: Draft\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
+      "expect": "blocked",
+      "why": "not Approved yet"
+    },
+    {
+      "id": "EV-036",
+      "title": "A UI requirement in build without an approved Figma frame fails the spec check",
+      "source": "REQ-055, REQ-057 (Figma for every UI change)",
+      "check": "spec",
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "compass/design/x.md" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n", "compass/design/x.md": "# Design\n\nStatus: Approved (by Christine)\n\nREQ-990 — screen sketch only\n" } },
+      "expect": "blocked",
+      "why": "links no Figma frame"
+    }
+  ]
+}

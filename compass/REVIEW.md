@@ -66,7 +66,9 @@ any later push needs a fresh review before merging (`compass/merge-pr.mjs` enfor
 The Product Owner decides — the review agent cannot approve — when a PR:
 - changes a protected path (`.github/workflows/`, `compass/guardrails.json`, the enforcement files (`compass/check-guardrails.mjs`, `compass/guardrails-lib.mjs`, `compass/hooks/`, `.claude/settings.json`, `.claude/settings.local.json`, REQ-050), `.env`, `CNAME`),
 - changes `firestore.rules`, deletes files or adds/upgrades a dependency,
-- deletes or migrates user data, or changes costs, payments or sign-in.
+- deletes or migrates user data, or changes costs, payments or sign-in,
+- retires an agent eval case or changes what a case expects (`compass/evals/cases.json`, REQ-041) — failing evals
+  are fixed in the rules or checks, not by weakening the suite.
 
 ## Repeated findings
 Reviewers start fresh, so the **author agent** checks earlier `## Independent review (Claude)` comments and

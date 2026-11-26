@@ -3,6 +3,7 @@
 //   node compass/plan-file.mjs [baseRef]        (default origin/main)
 // (The CI guardrails check keeps checking the PR body "## Plan" until the Product Owner approves changing it.)
 import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CODE_PATH } from './guardrails-lib.mjs';
 
@@ -40,7 +41,16 @@ export function planTextsFromPatches(files) {
     .map((f) => [f.filename, f.patch.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1)).join('\n')]));
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+const real = (p) => {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+};
+
+// Compare real paths, so running the script through a symlink still runs the check (CLAUDE.md: paths in Node scripts)
+if (process.argv[1] && real(process.argv[1]) === real(fileURLToPath(import.meta.url))) {
   // Run from the repository root (paths in the diff are root-relative) and judge the committed plan (HEAD), not the working tree
   const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
   const git = (...a) => execFileSync('git', ['-c', 'core.quotePath=false', ...a], { encoding: 'utf8', cwd: root, maxBuffer: 64 * 1024 * 1024 });

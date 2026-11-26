@@ -21,4 +21,4 @@ Design: none: process change, no UI · PR 5 of 5 (on top of the intent move)
 
 ## Proof
 - `npm test`: TC-058, TC-067 and TC-109 read compass/REVIEW.md; the root file is gone.
-- `node compass/check-spec.mjs` passes once the intent is approved (handover regenerated).
+- `node compass/check-spec.mjs` passes (handover regenerated).

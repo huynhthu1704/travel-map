@@ -61,7 +61,7 @@ export function renderHandover(spec, { lastRelease = 'none', date = new Date().t
     '| Product Owner | Approve Draft requirements and intents; decide what is switched on in Admin → Tính năng; answer items on hold. |',
     '| Business Analyst | Refine requirements in `compass/spec.json` (or the portal); every requirement needs Given/When/Then AC and a GitHub issue. |',
     '| QA | Every requirement has a test case; automate under `tests/` (unit) and `e2e/` (Playwright). |',
-    '| Developer / agent | Take an Approved or In build requirement; branch `compass/REQ-xxx-short-name`; follow AGENTS.md and REVIEW.md. |',
+    '| Developer / agent | Take an Approved or In build requirement; branch `compass/REQ-xxx-short-name`; follow AGENTS.md and compass/REVIEW.md. |',
     '| Delivery Manager | Track open PRs, CI and the independent review; plan the next release tag. |',
     '| Ops | `compass-deploy.yml` deploys only after Compass CI is green on main, smoke-tests the live site and rolls back on failure. |',
     '',

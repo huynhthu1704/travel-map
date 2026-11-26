@@ -1,4 +1,4 @@
-# REVIEW.md — independent review of every pull request (REQ-037)
+# compass/REVIEW.md — independent review of every pull request (REQ-037)
 
 Every pull request is reviewed **before it is merged** by a Claude review pass that **did not write the code**.
 The author agent never reviews or approves its own work.

@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Follow **AGENTS.md** — it is the contract for every agent working in this repo. Every PR also gets an
-independent review per **REVIEW.md**. Key files: `compass/spec.json`, `compass/handover.md`, `compass/guardrails.json`, `compass/decisions.md`.
+independent review per **compass/REVIEW.md**. Key files: `compass/spec.json`, `compass/handover.md`, `compass/guardrails.json`, `compass/decisions.md`.
 
 ## Commands (each exits non-zero on failure)
 - `npm test` — unit tests · `npm run test:e2e` — Playwright UI tests (locally: `PW_CHROME=/usr/bin/google-chrome npx playwright test`)

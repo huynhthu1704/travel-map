@@ -2,10 +2,13 @@
 <!-- Which requirement does this deliver? -->
 Requirements: REQ-
 Test cases: TC-
+Intent: compass/intent/
+Design: compass/design/   (or none: <reason>)
 
 ## Plan
-<!-- REQ-039: required when the PR changes code (src/, e2e/, tests/, compass/*.mjs). Write it before coding;
-     if it changes during the work, update it here — it becomes the squash-commit message on merge. -->
+<!-- REQ-039/053: required when the PR changes code (src/, e2e/, tests/, compass/*.mjs). Write the plan file
+     compass/plans/<REQ-ids>-<name>.md first and link it; keep these four lines filled in (the CI check reads them). -->
+Plan file: compass/plans/
 - Files:
 - Steps:
 - Risks:
@@ -18,7 +21,7 @@ Test cases: TC-
 - [ ] No secrets, no protected paths changed (see compass/guardrails.json)
 
 ## Independent review
-- [ ] `## Independent review (Claude)` comment posted by a fresh reviewer (see REVIEW.md); verdict APPROVE
+- [ ] `## Independent review (Claude)` comment posted by a fresh reviewer (see compass/REVIEW.md); verdict APPROVE
 
 ## Sign-off
 - [ ] PO / BA — behaviour matches the requirement

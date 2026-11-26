@@ -6,7 +6,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 ## 1. People and how to work with Christine
 - Christine is the **product owner**, not an IT specialist. Explain in plain words, avoid jargon, give "how to check it yourself" steps when useful.
 - **Reply to her in English.** Everything written into the repo (code comments, commits, PRs, issues, spec) is in **English**.
-- She prefers to be told results after the fact: **auto-merge a PR as soon as CI is green and the independent review says APPROVE (merge with `node compass/merge-pr.mjs <n>`), then report** (standing instruction until she says otherwise). Review rules: `REVIEW.md` (REQ-037) — a fresh subagent reviews each PR; any *important* finding blocks the merge, and PRs listed under *What a person still reviews* in REVIEW.md (protected paths, `firestore.rules`, deletes, dependencies, user data, costs/sign-in) wait for her decision; fix, re-review, and ask her if it is still not clean after the second fix. If she accepts a finding in chat: quote her decision in a PR comment, then a fresh review lists it under *Accepted by the Product Owner* and can APPROVE (REVIEW.md, REQ-051).
+- She prefers to be told results after the fact: **auto-merge a PR as soon as CI is green and the independent review says APPROVE (merge with `node compass/merge-pr.mjs <n>`), then report** (standing instruction until she says otherwise). Review rules: `compass/REVIEW.md` (REQ-037) — a fresh subagent reviews each PR; any *important* finding blocks the merge, and PRs listed under *What a person still reviews* in compass/REVIEW.md (protected paths, `firestore.rules`, deletes, dependencies, user data, costs/sign-in) wait for her decision; fix, re-review, and ask her if it is still not clean after the second fix. If she accepts a finding in chat: quote her decision in a PR comment, then a fresh review lists it under *Accepted by the Product Owner* and can APPROVE (compass/REVIEW.md, REQ-051).
 - Ask her before anything hard to undo: deleting files, changing CI/deploy workflows, protected paths, branch protection, new paid services.
 
 ## 2. The product
@@ -27,7 +27,7 @@ Loaded automatically through `CLAUDE.md` (REQ-035). Keep it up to date: when a s
 - Commit messages: English, start with the REQ id (bug fixes use the related REQ id, e.g. `REQ-143: fix … (#54)`).
 
 ## 4. Requirements, bugs and traceability (GitHub)
-- **Intent first (REQ-038):** a new request becomes `intent/YYYY-MM-DD-topic.md` (template in `intent/README.md`); Christine approves it in chat; then REQs (with `"intent"` in spec.json) and issues are created. Required from REQ-051 on.
+- **Intent first (REQ-038):** a new request becomes `compass/intent/YYYY-MM-DD-topic.md` (template in `compass/intent/README.md`); Christine approves it in chat; then REQs (with `"intent"` in spec.json) and issues are created. Required from REQ-051 on.
 - **Business need → intent (REQ-054):** her words go under `## Business need`; the agent revises them into a measurable business intent (`## What we want`). Required for intents of REQ-052 on.
 - **Design before code (REQ-055):** after the requirements are approved, draft `compass/design/YYYY-MM-DD-topic.md` (screens ↔ REQ ids, Figma frame links) and get her approval before coding; each REQ has `"design"` (or `"none: <reason>"`). Required from REQ-052.
 - **Plan before code (REQ-039, REQ-053):** every PR that changes code (`src/`, `e2e/`, `tests/`, `compass/*.mjs`, `.claude/`, root config files) adds `compass/plans/<REQ-ids>-<name>.md` (Files, Steps, Risks, Proof) as its first commit and keeps a short `## Plan` in the body that links it; the CI guardrails check reads the body, merge-pr checks the file.
@@ -63,7 +63,7 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 
 ## 8. Open items
 - **#56 / REQ-049** (on hold) — high npm audit findings: firebase → @grpc/grpc-js (Node-only, low real risk), Vite 5 dev-server issues (fix = Vite 8 major upgrade). Waiting for Christine's choice.
-- **AI-native SDLC follow-ups** (on hold, intent `intent/2026-11-25-ai-native-sdlc.md`): agent evals #65, production monitoring #66, weekly security scan #68, release tags #72. Done: failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
+- **AI-native SDLC follow-ups** (on hold, intent `compass/intent/2026-11-25-ai-native-sdlc.md`): agent evals #65, production monitoring #66, weekly security scan #68, release tags #72. Done: failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
 - **#39 / REQ-028** (on hold) — archive trips older than a retention period that admin can set; Christine is still thinking.
 - **#31 / REQ-024** — add suggestions from Guides into a trip's checklist (from the Compass portal, in build).
 - **#32 / REQ-025** — accessibility and performance baseline.

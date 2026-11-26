@@ -75,7 +75,7 @@ test('TC-067: merge-pr refuses a code PR whose Plan was removed or emptied after
 });
 
 test('TC-067: REVIEW.md and agent-knowledge describe the route for a finding the Product Owner accepted', () => {
-  const review = readFileSync(new URL('../REVIEW.md', import.meta.url), 'utf8');
+  const review = readFileSync(new URL('../compass/REVIEW.md', import.meta.url), 'utf8');
   const knowledge = readFileSync(new URL('../compass/agent-knowledge.md', import.meta.url), 'utf8');
   assert.match(review, /### Accepted by the Product Owner/);
   assert.match(review, /quoting her decision[\s\S]*\*\*fresh\*\* review agent[\s\S]*APPROVE/);

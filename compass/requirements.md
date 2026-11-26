@@ -399,7 +399,7 @@ As the product owner, I want the working knowledge for AI agents stored in the r
 
 As the product owner, I want the rules in compass/guardrails.json (protected paths, forbidden paths, secret patterns, max 12 files per change) to be checked by a machine instead of relying on the agent remembering them, so that a rule cannot be broken by mistake.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given an agent session in this repo · When it tries to edit a protected path (e.g. .github/workflows/, CNAME) · Then a Claude Code hook blocks the edit and says how to get approval
 - Given a pull request · When it changes more than 12 files, touches a forbidden path or contains a secret pattern · Then CI fails with a clear message
@@ -409,7 +409,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want every PR to be reviewed by a separate Claude review pass that did not write the code, so that bugs and spec mismatches are caught before auto-merge.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan) · When a PR is opened · Then a fresh review agent comments its findings on the PR
 - Given the review has a finding marked important · When CI is otherwise green · Then the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it
@@ -419,7 +419,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want each new request saved as a short intent file (what, why, constraints, success measure) that I approve, so that the reason behind a requirement is kept with the code, not lost in chat.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given a new request in chat · When the agent starts · Then it writes intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements
 - Given an approved intent · When requirements are created · Then each requirement links back to its intent file and the intent lists them
@@ -429,7 +429,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want the agent to write a plan (files, order of work, risks, how it will prove it works) before changing code, so that I can see and redirect the approach early.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given an approved requirement · When work starts · Then the PR has a Plan section listing files, steps, risks and proof, and CI fails a PR that changes code without it
 - Given the plan changes during the work · When the PR is merged · Then the updated plan is committed with the code as the squash-commit message
@@ -438,7 +438,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want recurring rules (feature flags, VI/EN strings, GitHub issue/PR linking, Excel export rules) packaged as skills in .claude/skills/, so that every session applies them the same way.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given a skill for a policy · When a session does work that matches it · Then the skill is loaded and followed
 - Given a policy that must always hold · When it is written as a skill · Then it also has a hook or CI check behind it
@@ -447,7 +447,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want bug fixes to start with a separate commit that adds a failing test, and the fix commit not to change that test, so that the fix provably addresses the reported bug.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given a bug issue · When the fix PR is opened (with the bug label) · Then CI checks that its first commit only adds a test, that the unit test fails at that commit, and that later commits do not edit it
 - Given a later commit edits that test · When CI runs · Then it fails unless the Product Owner approves (human-approved label)
@@ -458,7 +458,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want CLAUDE.md to keep commands, conventions and recurring mistakes in under a page, so that new sessions do not repeat known mistakes.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given the agent makes the same mistake twice · When it is corrected · Then the correction is added to CLAUDE.md in the same PR
 - Given CLAUDE.md · When it is reviewed · Then it stays under one page and still loads the agent working knowledge
@@ -467,7 +467,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want important decisions recorded as ADRs, so that anyone can see why things are the way they are.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given a decision is made in chat · When the work is merged · Then an ADR-xxx entry is added to compass/spec.json with context, decision and consequences, and decisions.md is regenerated
 - Given existing decisions from November 2026 · When this requirement is done · Then they are back-filled as ADRs
@@ -477,7 +477,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want handover.md regenerated from spec.json and checked on every change, so that it never shows a stale status.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given spec.json changes · When node compass/build-views.mjs runs · Then requirements.md, tests.md and handover.md are regenerated from it
 - Given handover.md lists different open requirements or counts than spec.json · When CI runs the spec check · Then CI fails and says how to regenerate it
@@ -486,7 +486,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want the files that enforce the guardrails to be protected paths too, so that a PR cannot quietly weaken the checks.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given compass/guardrails.json lists compass/check-guardrails.mjs, compass/guardrails-lib.mjs, compass/hooks/, .claude/settings.json and .claude/settings.local.json under protectedPaths · When a PR changes one of them without the human-approved label · Then the Guardrails check fails
 - Given a PR that weakens compass/guardrails-lib.mjs or check-guardrails.mjs, or removes its own entries from protectedPaths · When CI runs the Guardrails check · Then the check and the rules from main (not the PR's copy) judge the change, so it still fails without the human-approved label
@@ -495,7 +495,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want the merge script and the plan check to close the gaps found in the independent reviews of PR #80 and PR #83, so that the delivery rules cannot be bypassed by accident.
 
-Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdlc.md)
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
 
 - Given a code PR whose Plan was removed or emptied after CI passed · When compass/merge-pr.mjs runs · Then it refuses to merge
 - Given the Product Owner accepted an important finding in chat · When the author wants to merge · Then REVIEW.md and agent-knowledge describe the documented route (a PR comment quoting her decision, then a fresh review listing the finding as accepted)
@@ -506,7 +506,7 @@ Intent: [intent/2026-11-25-ai-native-sdlc.md](../intent/2026-11-25-ai-native-sdl
 
 As the product owner, I want the intent files and the review policy to live in the compass/ folder with the rest of the delivery files, so that the process is in one place and matches the Compass portal.
 
-Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+Intent: [compass/intent/2026-11-26-design-and-plan-before-code.md](../compass/intent/2026-11-26-design-and-plan-before-code.md)
 
 Design: none: process change, no UI
 
@@ -517,7 +517,7 @@ Design: none: process change, no UI
 
 As the product owner, I want each change that touches code to carry a written plan file (files, steps, risks, proof) committed before the code, so that the plan stays in the repo next to the code it explains.
 
-Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+Intent: [compass/intent/2026-11-26-design-and-plan-before-code.md](../compass/intent/2026-11-26-design-and-plan-before-code.md)
 
 Design: none: process change, no UI
 
@@ -529,7 +529,7 @@ Design: none: process change, no UI
 
 As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
 
-Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+Intent: [compass/intent/2026-11-26-design-and-plan-before-code.md](../compass/intent/2026-11-26-design-and-plan-before-code.md)
 
 Design: none: process change, no UI
 
@@ -540,7 +540,7 @@ Design: none: process change, no UI
 
 As the product owner, I want the design of approved requirements drafted and approved by me before coding starts, so that code is built to a screen we agreed on.
 
-Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+Intent: [compass/intent/2026-11-26-design-and-plan-before-code.md](../compass/intent/2026-11-26-design-and-plan-before-code.md)
 
 Design: none: process change, no UI
 

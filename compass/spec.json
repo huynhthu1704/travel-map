@@ -1303,7 +1303,7 @@
         "Given the author agent\nWhen the PR is reviewed\nThen the author cannot approve its own PR"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #61): review by a subagent in the session; important findings block the merge.",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md"
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-036",
@@ -1317,7 +1317,7 @@
         "Given a protected path change, a deleted file or a dependency change approved by the Product Owner\nWhen the PR carries the human-approved label\nThen the CI check passes"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #60); workflow change approved in chat.",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md"
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-047",
@@ -1330,7 +1330,7 @@
         "Given handover.md lists different open requirements or counts than spec.json\nWhen CI runs the spec check\nThen CI fails and says how to regenerate it"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #71).",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md"
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-046",
@@ -1344,7 +1344,7 @@
         "Given an ADR without context, decision or consequences, with a duplicate id or an unknown requirement\nWhen CI runs the spec check\nThen it fails"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #70).",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md"
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-045",
@@ -1357,14 +1357,14 @@
         "Given CLAUDE.md\nWhen it is reviewed\nThen it stays under one page and still loads the agent working knowledge"
       ],
       "source": "Requested by the Product Owner on 2026-11-25 (issue #69).",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md"
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
     },
     {
       "id": "REQ-038",
       "title": "Capture intent in intent.md before writing requirements",
       "priority": "Should",
       "status": "Done",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
       "story": "As the product owner, I want each new request saved as a short intent file (what, why, constraints, success measure) that I approve, so that the reason behind a requirement is kept with the code, not lost in chat.",
       "ac": [
         "Given a new request in chat\nWhen the agent starts\nThen it writes intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements",
@@ -1378,7 +1378,7 @@
       "title": "Write a plan before coding each requirement",
       "priority": "Should",
       "status": "Done",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
       "story": "As the product owner, I want the agent to write a plan (files, order of work, risks, how it will prove it works) before changing code, so that I can see and redirect the approach early.",
       "ac": [
         "Given an approved requirement\nWhen work starts\nThen the PR has a Plan section listing files, steps, risks and proof, and CI fails a PR that changes code without it",
@@ -1391,7 +1391,7 @@
       "title": "Turn project policies into repo skills",
       "priority": "Should",
       "status": "Done",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
       "story": "As the product owner, I want recurring rules (feature flags, VI/EN strings, GitHub issue/PR linking, Excel export rules) packaged as skills in .claude/skills/, so that every session applies them the same way.",
       "ac": [
         "Given a skill for a policy\nWhen a session does work that matches it\nThen the skill is loaded and followed",
@@ -1404,7 +1404,7 @@
       "title": "Protect the guardrail enforcement files themselves",
       "priority": "Should",
       "status": "Done",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
       "story": "As the product owner, I want the files that enforce the guardrails to be protected paths too, so that a PR cannot quietly weaken the checks.",
       "ac": [
         "Given compass/guardrails.json lists compass/check-guardrails.mjs, compass/guardrails-lib.mjs, compass/hooks/, .claude/settings.json and .claude/settings.local.json under protectedPaths\nWhen a PR changes one of them without the human-approved label\nThen the Guardrails check fails",
@@ -1417,7 +1417,7 @@
       "title": "Harden merge-pr and the plan check",
       "priority": "Could",
       "status": "Done",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
       "story": "As the product owner, I want the merge script and the plan check to close the gaps found in the independent reviews of PR #80 and PR #83, so that the delivery rules cannot be bypassed by accident.",
       "ac": [
         "Given a code PR whose Plan was removed or emptied after CI passed\nWhen compass/merge-pr.mjs runs\nThen it refuses to merge",
@@ -1432,7 +1432,7 @@
       "title": "Failing test committed before the fix for every bug",
       "priority": "Could",
       "status": "Done",
-      "intent": "intent/2026-11-25-ai-native-sdlc.md",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
       "story": "As the product owner, I want bug fixes to start with a separate commit that adds a failing test, and the fix commit not to change that test, so that the fix provably addresses the reported bug.",
       "ac": [
         "Given a bug issue\nWhen the fix PR is opened (with the bug label)\nThen CI checks that its first commit only adds a test, that the unit test fails at that commit, and that later commits do not edit it",
@@ -1447,7 +1447,7 @@
       "title": "Keep intents and the review policy inside compass/",
       "priority": "Should",
       "status": "Draft",
-      "intent": "intent/2026-11-26-design-and-plan-before-code.md",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
       "design": "none: process change, no UI",
       "story": "As the product owner, I want the intent files and the review policy to live in the compass/ folder with the rest of the delivery files, so that the process is in one place and matches the Compass portal.",
       "ac": [
@@ -1461,7 +1461,7 @@
       "title": "A plan file for every change that touches code",
       "priority": "Should",
       "status": "Draft",
-      "intent": "intent/2026-11-26-design-and-plan-before-code.md",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
       "design": "none: process change, no UI",
       "story": "As the product owner, I want each change that touches code to carry a written plan file (files, steps, risks, proof) committed before the code, so that the plan stays in the repo next to the code it explains.",
       "ac": [
@@ -1476,7 +1476,7 @@
       "title": "Revise the business need into a business intent",
       "priority": "Should",
       "status": "Draft",
-      "intent": "intent/2026-11-26-design-and-plan-before-code.md",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
       "design": "none: process change, no UI",
       "story": "As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.",
       "ac": [
@@ -1490,7 +1490,7 @@
       "title": "An approved design before any code",
       "priority": "Should",
       "status": "Draft",
-      "intent": "intent/2026-11-26-design-and-plan-before-code.md",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
       "design": "none: process change, no UI",
       "story": "As the product owner, I want the design of approved requirements drafted and approved by me before coding starts, so that code is built to a screen we agreed on.",
       "ac": [
@@ -2383,7 +2383,7 @@
         "REQ-052"
       ],
       "type": "automated",
-      "status": "Not run",
+      "status": "Passing",
       "file": "tests/intent.test.mjs"
     },
     {

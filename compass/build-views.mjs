@@ -126,11 +126,11 @@ export function intentProblems(spec, readIntent) {
     }
     // Only the reconstructed baseline REQ-101…153 is exempt
     if (!r.intent) {
-      if (n >= INTENT_REQUIRED_FROM && !(n >= 101 && n <= 153)) problems.push(`${r.id} has no intent (add "intent": "intent/<file>.md")`);
+      if (n >= INTENT_REQUIRED_FROM && !(n >= 101 && n <= 153)) problems.push(`${r.id} has no intent (add "intent": "compass/intent/<file>.md")`);
       continue;
     }
-    if (!/^intent\/[\w.-]+\.md$/.test(r.intent)) {
-      problems.push(`${r.id} intent should look like intent/<file>.md`);
+    if (!/^compass\/intent\/[\w.-]+\.md$/.test(r.intent)) {
+      problems.push(`${r.id} intent should look like compass/intent/<file>.md`);
       continue;
     }
     const text = readIntent(r.intent);

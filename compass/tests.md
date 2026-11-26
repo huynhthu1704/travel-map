@@ -81,7 +81,7 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-106 | Automated UI tests: Guides, tips & gear | REQ-134, REQ-135, REQ-136, REQ-137, REQ-138, REQ-139, REQ-140, REQ-141 | automated | Passing | e2e/guides.spec.mjs |
 | TC-107 | Automated UI tests: Help & onboarding | REQ-142, REQ-143, REQ-144, REQ-145, REQ-146 | automated | Passing | e2e/help.spec.mjs |
 | TC-108 | Automated UI tests: Admin | REQ-147, REQ-148, REQ-149, REQ-150, REQ-151, REQ-152, REQ-153 | automated | Passing | e2e/admin.spec.mjs |
-| TC-109 | Intent and review files are under compass/; old root paths are gone | REQ-052 | automated | Not run | tests/intent.test.mjs |
+| TC-109 | Intent and review files are under compass/; old root paths are gone | REQ-052 | automated | Passing | tests/intent.test.mjs |
 | TC-110 | Plan file required for code changes; empty sections and placeholders rejected | REQ-053 | automated | Passing | tests/plan.test.mjs |
 | TC-111 | New intents keep the business need | REQ-054 | automated | Passing | tests/intent.test.mjs |
 | TC-112 | Design gate: missing design, unapproved design for In build, design not mentioning the requirement | REQ-055 | automated | Passing | tests/design.test.mjs |

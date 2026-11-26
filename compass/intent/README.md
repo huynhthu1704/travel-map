@@ -9,11 +9,12 @@ measurable outcome — who, what changes, baseline → target, by when — not t
 the wording of the need.
 
 ## Flow
-1. A new request arrives in chat → the agent writes `intent/YYYY-MM-DD-short-topic.md` from the template below
+1. A new request arrives in chat → the agent writes `compass/intent/YYYY-MM-DD-short-topic.md` from the template below
    (`Status: Draft`) and shows it to the Product Owner.
 2. The Product Owner approves (or corrects) it in chat → the agent sets `Status: Approved (by Christine, <date>)`.
-3. Only then are requirements (REQ-xxx) and their GitHub issues created. Each requirement gets
-   `"intent": "intent/<file>.md"` in `compass/spec.json`, and the intent lists its requirements.
+3. Only then are requirements (REQ-xxx) and their GitHub issues created; once they are approved, the design follows
+   (`compass/design/README.md`, REQ-055) and must be approved before any code. Each requirement gets
+   `"intent": "compass/intent/<file>.md"` in `compass/spec.json`, and the intent lists its requirements.
 
 `node compass/check-spec.mjs` fails when a requirement points to a missing intent or to one that is not Approved,
 and when a requirement from **REQ-051** onward (below the REQ-101 baseline) has no intent.

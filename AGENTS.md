@@ -9,7 +9,7 @@ Project: **travel-map** — Tăng số người dùng hoàn thành checklist chu
 - `compass/guardrails.json` — rules you must follow.
 
 ## Workflow (every change)
-0. **Intent (REQ-038):** write `intent/YYYY-MM-DD-topic.md` from the template in [`intent/README.md`](intent/README.md) and get the Product Owner's approval in chat before creating requirements.
+0. **Business need → intent (REQ-038, REQ-054):** write `intent/YYYY-MM-DD-topic.md` from the template in [`intent/README.md`](intent/README.md): keep the Product Owner's words under `## Business need` and revise them into a measurable business intent under `## What we want`. Get her approval in chat before creating requirements.
 1. **Idea → Requirement:** a change starts from a requirement in `compass/spec.json` with Given/When/Then acceptance criteria, and a GitHub issue (label `requirement`, written in English, using the *New requirement* template). Bugs come in as issues labelled `bug` (UI-test failures are opened automatically by `e2e/report-bugs.mjs`).
 2. **Requirement → Test:** add at least one test case that references the requirement id.
 2b. **Plan (REQ-039, REQ-053):** before changing code, write `compass/plans/<REQ-ids>-<short-name>.md` from [`compass/plans/README.md`](compass/plans/README.md) (Files, Steps, Risks, Proof) and commit it first; the PR body's `## Plan` links it and keeps the four short lines the CI check reads. `compass/merge-pr.mjs` refuses a code PR without a complete plan file. Update the plan if the approach changes.

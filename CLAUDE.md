@@ -7,6 +7,7 @@ independent review per **REVIEW.md**. Key files: `compass/spec.json`, `compass/h
 - `npm test` — unit tests · `npm run test:e2e` — Playwright UI tests (locally: `PW_CHROME=/usr/bin/google-chrome npx playwright test`)
 - `node compass/check-spec.mjs` — traceability, ADRs, stale handover · `node compass/build-views.mjs` — regenerate the compass/*.md views
 - `node compass/check-guardrails.mjs origin/main` — the CI guardrails check, run locally before pushing
+- `node compass/plan-file.mjs origin/main` — the plan file of a code change (`compass/plans/`, REQ-053)
 
 ## Lessons learned (REQ-045)
 When the same mistake (or review finding) happens twice, add one line here in the PR that fixes it — this is the single place for lessons. Keep this file under one page.

@@ -1,6 +1,6 @@
 // Compass traceability check — run in CI. Exits 1 if the spec is inconsistent.
 import { readFileSync, existsSync } from 'node:fs';
-import { handoverProblems, decisionProblems, intentProblems } from './build-views.mjs';
+import { handoverProblems, decisionProblems, intentProblems, needProblems } from './build-views.mjs';
 const spec = JSON.parse(readFileSync(new URL('./spec.json', import.meta.url), 'utf8'));
 const errors = [];
 const reqIds = new Set(spec.requirements.map((r) => r.id));
@@ -14,6 +14,9 @@ for (const t of spec.tests) {
 }
 // REQ-038: requirements point to an Approved intent file (required from REQ-051 onward)
 for (const p of intentProblems(spec, (f) => (existsSync(new URL(`../${f}`, import.meta.url)) ? readFileSync(new URL(`../${f}`, import.meta.url), 'utf8') : null))) errors.push(`intent: ${p}`);
+const readRepo = (f) => (existsSync(new URL(`../${f}`, import.meta.url)) ? readFileSync(new URL(`../${f}`, import.meta.url), 'utf8') : null);
+// REQ-054: new intents keep the Product Owner's business need next to the revised business intent
+for (const p of needProblems(spec, readRepo)) errors.push(`intent: ${p}`);
 // REQ-046: every ADR has id, date, title, status, context, decision, consequences and valid requirement links
 for (const p of decisionProblems(spec)) errors.push(`decisions: ${p}`);
 // REQ-047: handover.md must match the spec (run `node compass/build-views.mjs` to regenerate)

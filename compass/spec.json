@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "stack": "Static web app (HTML/JS ES modules), node:test, GitHub Pages",
+  "stack": "React 18 + Vite, Firebase (Auth, Firestore) on the Spark plan, node:test unit tests, Playwright UI tests, GitHub Pages",
+  "designTool": "https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ",
   "features": [
     {
       "id": "F-001",
@@ -57,9 +58,1168 @@
       "createdAt": "2026-11-26T16:38:36.540Z"
     }
   ],
+  "decisions": [
+    {
+      "id": "ADR-001",
+      "date": "2026-11-25",
+      "title": "Static site on GitHub Pages with Firebase on the free Spark plan",
+      "status": "Accepted",
+      "context": "Bee There must run at no monthly cost while the user base is small. Decided before Compass was adopted; recorded in the November 2026 back-fill.",
+      "decision": "Host the React/Vite build on GitHub Pages (beetheremap.com) and use Firebase Auth + Firestore on the Spark plan. No server code or Cloud Functions.",
+      "consequences": "Features needing a server (push notifications, scheduled jobs) need another free option (e.g. Cloudflare Workers, still open). Spark quotas limit growth.",
+      "reqIds": []
+    },
+    {
+      "id": "ADR-002",
+      "date": "2026-11-19",
+      "title": "New user-facing features ship behind default-off feature flags",
+      "status": "Accepted",
+      "context": "New features should be tried by the owner before everyone sees them, and released features should be explained on the About page.",
+      "decision": "Every new user-facing feature gets a flag in src/data/flags.js with defaultOn: false and a one-line value text. The super admin always sees it; the Product Owner enables it in Admin → Tính năng.",
+      "consequences": "Merged code can be live but hidden; the Product Owner must switch flags on after review.",
+      "reqIds": [
+        "REQ-142"
+      ]
+    },
+    {
+      "id": "ADR-003",
+      "date": "2026-11-23",
+      "title": "GitHub issues are the tracker for requirements and bugs",
+      "status": "Accepted",
+      "context": "The Product Owner wants every request and bug traceable on GitHub; the repo is personal, so Issue Types are not available.",
+      "decision": "Log each new requirement as an English issue (label requirement, on-hold for deferred) before work starts; bugs use bug (+ e2e for automated). PRs say Closes #N and the issue gets a comment with branch, PR and merge commit.",
+      "consequences": "Every change is traceable from issue to commit; work starts slightly later because the issue comes first.",
+      "reqIds": [
+        "REQ-027"
+      ]
+    },
+    {
+      "id": "ADR-004",
+      "date": "2026-11-23",
+      "title": "Failing UI tests become bug issues; bugs are fixed when the Product Owner sends the id",
+      "status": "Accepted",
+      "context": "Playwright runs on every change and nightly; the Product Owner wants to choose which bugs to fix.",
+      "decision": "e2e/report-bugs.mjs opens or comments an [E2E] issue for each failing test on main/nightly and closes it when it passes again. Agents investigate but fix a bug only when the Product Owner sends its id.",
+      "consequences": "Bugs may stay open until prioritised; root causes are written on the issue meanwhile.",
+      "reqIds": [
+        "REQ-027"
+      ]
+    },
+    {
+      "id": "ADR-005",
+      "date": "2026-11-23",
+      "title": "Merge spec.json by requirement id when the Compass portal overwrites it",
+      "status": "Accepted",
+      "context": "A Compass portal commit replaced spec.json and dropped requirements written in the repo.",
+      "decision": "Merge both versions by requirement/test id (keep both, renumber clashes) instead of taking one side.",
+      "consequences": "Portal requirements were renumbered (REQ-001/002 → REQ-024/025).",
+      "reqIds": []
+    },
+    {
+      "id": "ADR-006",
+      "date": "2026-11-23",
+      "title": "Auto-merge pull requests when checks pass, report afterwards",
+      "status": "Accepted",
+      "context": "The Product Owner prefers results over approval requests for routine work.",
+      "decision": "Squash-merge a PR as soon as CI is green and report afterwards. Since 2026-11-25 the independent review must also say APPROVE (ADR-010), and items in REVIEW.md 'What a person still reviews' wait for her.",
+      "consequences": "Fast delivery; quality relies on CI, tests and the independent review.",
+      "reqIds": [
+        "REQ-037"
+      ]
+    },
+    {
+      "id": "ADR-007",
+      "date": "2026-11-23",
+      "title": "Deploy only after green CI, smoke-test the live site and roll back automatically; no branch protection",
+      "status": "Accepted",
+      "context": "Deploys ran in parallel with CI; the Compass portal pushes directly to main.",
+      "decision": "Compass Deploy runs after Compass CI succeeds on main, smoke-tests beetheremap.com and redeploys the last good version on failure. Branch protection is not enabled because it would block the portal.",
+      "consequences": "Broken code can still reach main (not production); CI on main is the gate for deploys.",
+      "reqIds": [
+        "REQ-034"
+      ]
+    },
+    {
+      "id": "ADR-008",
+      "date": "2026-11-23",
+      "title": "Library audit blocks only critical findings for now",
+      "status": "Proposed",
+      "context": "npm audit reports high findings in firebase (@grpc/grpc-js, Node-only) and dev-only Vite 5 issues; blocking on high would stop every deploy.",
+      "decision": "CI blocks critical findings in shipped libraries and reports the rest in the run summary until the Product Owner decides on #56 (REQ-049).",
+      "consequences": "High findings remain until #56 is decided.",
+      "reqIds": [
+        "REQ-034"
+      ]
+    },
+    {
+      "id": "ADR-009",
+      "date": "2026-11-23",
+      "title": "Excel export without new dependencies, itinerary and costs in one sheet",
+      "status": "Accepted",
+      "context": "The Product Owner wants a spreadsheet of the itinerary and costs that opens with visible amounts.",
+      "decision": "Use the existing write-excel-file library; one 'Lịch trình & chi phí' sheet grouped by day with unlinked costs first, plus Chia tiền, Tỉ giá and Master data sheets; formulas carry cached values.",
+      "consequences": "No new dependency; the XML helpers in src/lib/xlsxValidation.js must be maintained.",
+      "reqIds": [
+        "REQ-026",
+        "REQ-029",
+        "REQ-030",
+        "REQ-032"
+      ]
+    },
+    {
+      "id": "ADR-010",
+      "date": "2026-11-25",
+      "title": "Independent review of every PR by a fresh Claude subagent; important findings block the merge",
+      "status": "Accepted",
+      "context": "The same agent wrote and merged its own code (AI-native SDLC gap).",
+      "decision": "A fresh review agent reviews each PR per REVIEW.md inside the working session (the option the Product Owner chose on 2026-11-25: no API key or extra cost, unlike a GitHub Action). CHANGES NEEDED blocks the merge; after a second fix with findings left, ask the Product Owner.",
+      "consequences": "Merges take longer; review is enforced by process, not by CI.",
+      "reqIds": [
+        "REQ-037"
+      ]
+    },
+    {
+      "id": "ADR-011",
+      "date": "2026-11-25",
+      "title": "Guardrails are enforced by an edit hook and a CI check with a human-approved label",
+      "status": "Accepted",
+      "context": "compass/guardrails.json was only text the agent had to remember.",
+      "decision": "A Claude Code PreToolUse hook blocks protected/forbidden paths and secrets; the CI Guardrails check fails PRs that break the rules unless the human-approved label is added after the Product Owner approves in chat.",
+      "consequences": "Protected-path PRs need a label; protecting the enforcement files themselves is open (#75).",
+      "reqIds": [
+        "REQ-036"
+      ]
+    },
+    {
+      "id": "ADR-012",
+      "date": "2026-11-25",
+      "title": "English for everything written in the repo and for replies to the Product Owner",
+      "status": "Accepted",
+      "context": "The Product Owner asked for English code comments and issues (2026-11-23) and English replies (2026-11-25).",
+      "decision": "Code comments, commits, PRs, issues, spec and replies are in English; the UI stays bilingual VI/EN.",
+      "consequences": "—",
+      "reqIds": []
+    },
+    {
+      "id": "ADR-013",
+      "date": "2026-11-24",
+      "title": "Trip archiving is on hold",
+      "status": "Accepted",
+      "context": "Archiving trips older than a retention period (REQ-028) was requested, then put on hold by the Product Owner to think further.",
+      "decision": "Do not build REQ-028 until the Product Owner resumes it (#39).",
+      "consequences": "Old trips stay in Firestore and count towards Spark quotas.",
+      "reqIds": [
+        "REQ-028"
+      ]
+    },
+    {
+      "id": "ADR-014",
+      "date": "2026-11-25",
+      "title": "Guardrail enforcement files are protected paths",
+      "status": "Accepted",
+      "context": "The files that run the guardrails (check-guardrails.mjs, guardrails-lib.mjs, the edit hook and .claude/settings.json) were not protected, so a PR could weaken the checks without the Product Owner noticing (review of PR #74).",
+      "decision": "The Product Owner asked to fix #75: these files (and .claude/settings.local.json) are listed under protectedPaths in compass/guardrails.json, so changing them needs her approval and the human-approved label. She also approved changing compass-ci.yml so CI runs main's copy of the check and its rules, not the PR's copy (independent review of PR #85).",
+      "consequences": "Future fixes to the plan check or the edit hook wait for her decision, and a new rule only applies to PRs after it is merged. The edit hook only covers Edit/Write tools, not shell commands, and a PR can still change the workflow itself, so her review of protected-path PRs is the last gate.",
+      "reqIds": [
+        "REQ-050"
+      ]
+    },
+    {
+      "id": "ADR-015",
+      "date": "2026-11-26",
+      "title": "Need → intent → requirements → design → plan → code",
+      "status": "Accepted",
+      "context": "The Product Owner asked to bring the AI-native SDLC into the Compass portal, to move intent and review into compass/, to add an approved design step after requirements (one design tool per project, e.g. Figma) and to keep a plan.md for every change.",
+      "decision": "Every new change goes business need → approved business intent → approved requirements → approved design → plan file → code. Intents and REVIEW.md live in compass/; designs in compass/design/; plans in compass/plans/. check-spec enforces the intent need section and the design gate from REQ-052; merge-pr enforces the plan file.",
+      "consequences": "The CI guardrails check still reads the PR body Plan: moving it to plan files changes protected paths (check-guardrails.mjs, guardrails-lib.mjs) and needs the Product Owner's explicit approval and the human-approved label. Changes without UI state \"design\": \"none: <reason>\".",
+      "reqIds": [
+        "REQ-052",
+        "REQ-053",
+        "REQ-054",
+        "REQ-055"
+      ]
+    },
+    {
+      "id": "ADR-016",
+      "date": "2026-11-26",
+      "title": "Every UI design is drawn in Figma and approved from the Figma frame",
+      "status": "Accepted",
+      "context": "Reviewing the REQ-056 design (text only), the Product Owner asked for a corresponding Figma design and for this to be part of every requirement that changes the UI.",
+      "decision": "From REQ-056 on, a requirement with UI has a design file that links at least one frame in the Bee There Figma file (designTool in spec.json); check-spec fails without it once the requirement is In build or Done. Requirements without UI keep \"design\": \"none: <reason>\".",
+      "consequences": "Sessions need the Figma connector to design; without it the requirement stays Approved, not In build. Designs live on the Figma page \"📐 Feature designs\".",
+      "reqIds": [
+        "REQ-057"
+      ]
+    },
+    {
+      "id": "ADR-017",
+      "date": "2026-11-26",
+      "title": "Checklist in the Excel export ships with the tripExcel flag",
+      "status": "Accepted",
+      "context": "The Product Owner asked to export the trip checklist into the same Excel file as a separate sheet; asked whether it needs its own feature flag.",
+      "decision": "No separate feature flag: the Checklist sheet is part of the trip Excel export and is released with the existing tripExcel flag. Only shared checklists and the exporting user's own personal checklists are exported.",
+      "consequences": "Everyone who already has tripExcel gets the Checklist sheet right after the merge.",
+      "reqIds": [
+        "REQ-056"
+      ]
+    },
+    {
+      "id": "ADR-018",
+      "date": "2026-11-26",
+      "title": "Automatic deploys publish only the newest commit of main",
+      "status": "Accepted",
+      "context": "On 2026-11-26 the Compass CI runs of two merges finished in reverse order; the deploy of the older commit 8654aa5 ran last and replaced the REQ-056 release on beetheremap.com.",
+      "decision": "Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.",
+      "consequences": "If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.",
+      "reqIds": [
+        "REQ-058"
+      ]
+    },
+    {
+      "id": "ADR-019",
+      "date": "2026-11-26",
+      "title": "Weekly security scan with npm audit and CodeQL, dismissal by a reason comment",
+      "status": "Accepted",
+      "context": "Only npm audit ran in CI, and only on pushes (#56); nothing scanned our own code or looked for new advisories between releases (#68).",
+      "decision": "A new workflow compass-security.yml runs every Monday 08:00 Vietnam time (and on demand): CodeQL (security-extended, free for public repos) and npm audit. compass/security-scan.mjs opens one bug + security + severity:<level> issue per finding and closes it when the finding is gone. A finding is dismissed by closing its issue as \"not planned\" with a comment that starts with \"Dismissed:\"; without it the scan reopens the issue. The Product Owner approved the new protected workflow and both choices in chat.",
+      "consequences": "The first run opens issues for the known #56 findings, which can be dismissed with a reason or fixed. If GitHub code scanning default setup is turned on, the CodeQL upload fails and only the library scan reports until it is turned off.",
+      "reqIds": [
+        "REQ-044"
+      ]
+    },
+    {
+      "id": "ADR-020",
+      "date": "2026-11-26",
+      "title": "Agent evals start with a free replay of past mistakes",
+      "status": "Accepted",
+      "context": "Issue #65 asked for 20–50 past tasks re-run automatically when the agent configuration changes. Re-running them with Claude needs an Anthropic API key as a GitHub secret and a CI workflow change, and costs roughly $15–60 per run (estimate).",
+      "decision": "The Product Owner chose the free version first (2026-11-26): past mistakes and review findings are replayed against the real Compass checks (edit hook, CI guardrails, plan, test-first, merge-pr, spec checks) inside npm test. No API key, no paid service, no workflow change.",
+      "consequences": "The suite proves the rules and checks still catch past mistakes; it does not measure how well Claude itself follows them. A paid version that re-runs real tasks with Claude needs a new decision (API key, cost, workflow change).",
+      "reqIds": [
+        "REQ-041"
+      ]
+    }
+  ],
   "requirements": [
     {
+      "id": "REQ-001",
+      "title": "View-only trip members and copying a trip",
+      "description": "Trip owners can make an invited member view-only. View-only members see the plan, costs and shared checklists but cannot change them, and can copy the trip to their own account to plan it themselves.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "tripViewers",
+      "ac": [
+        "Given I own a trip with an accepted member\nWhen I open Members & invites and set that member to View only\nThen the member is stored in trips.viewerIds and shows as 'View only' in the member list",
+        "Given I am a view-only member of a trip\nWhen I open the trip\nThen I see a view-only banner, and controls to add, edit, reorder, tick or delete plan items, costs and shared checklist items are hidden or disabled",
+        "Given I am a view-only member\nWhen I try to write plan items, costs, shared checklists or trip details (UI or API)\nThen Firestore security rules reject the write",
+        "Given I am a view-only member\nWhen I tap 'Copy this trip' and confirm\nThen a new trip owned by me is created with the plan, checklists and estimated costs I chose, and I can edit it",
+        "Given I am the trip owner\nWhen anyone tries to make me view-only\nThen I keep full edit rights"
+      ]
+    },
+    {
       "id": "REQ-002",
+      "title": "Estimated vs actual cost comparison",
+      "description": "Show estimated and actual costs side by side in one view so members can see the difference per item and spot costs that were not in the original estimate.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costCompare",
+      "ac": [
+        "Given a trip has estimated costs and actual costs recorded from them\nWhen I open the Costs tab\nThen a 'Estimated vs actual' card lists each estimate with its estimated amount, actual amount, and the difference marked over / under / on budget, with bars to compare",
+        "Given an estimate has no actual cost linked yet\nWhen I view the comparison\nThen it shows 'Not spent yet' and is counted in the 'not spent yet' note, not as a saving",
+        "Given some actual costs are not linked to any estimate (or their estimate was deleted)\nWhen I view the comparison\nThen they are listed under 'Not in the estimate' with their total, sorted by date",
+        "Given the comparison is shown\nWhen I look at the footer\nThen I see total estimated, total actual including extras, and the overall difference"
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "title": "Reorder costs by drag and drop",
+      "description": "Members who can edit a trip can change the order of estimated and actual costs by dragging, and the order is saved for the whole group.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costReorder",
+      "ac": [
+        "Given I can edit the trip\nWhen I hold the ⠿ handle of a cost and drag it up or down (mouse or touch), or press ↑ / ↓ on the handle\nThen the cost moves to the new position and the new order is saved for everyone",
+        "Given costs have never been reordered\nWhen I open the Costs tab\nThen estimates keep the order they were added and actual costs are sorted by date",
+        "Given I am a view-only member\nWhen I open the Costs tab\nThen no drag handles are shown"
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "title": "Combined cost table: estimate, actual and difference in one table",
+      "description": "Replace the separate Estimated and Actual tables with one table where each cost item shows its estimate, actual spend and difference on the same row. Users can add a cost with the estimate, the actual, or both at once, and record the actual later. Unplanned actual costs appear in the same table, marked. Field sets for estimate and actual stay the same.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 (refines REQ-002)",
+      "featureFlag": "costTable",
+      "ac": [
+        "Given I can edit a trip\nWhen I tap 'Add a cost' and fill the estimate and/or the 'Already paid' part\nThen one estimate and/or one actual cost is saved; if both, the actual is linked to the estimate",
+        "Given a cost item has an estimate only\nWhen I tap 🧾 on its row and save the actual amount\nThen the actual is linked to that item and the row shows estimate, actual and difference",
+        "Given an item has one or more actual payments\nWhen I view the table\nThen the row shows the total actual, the difference (over in red, under in green) and each payment underneath with date, who paid and who shares it",
+        "Given an actual cost is not linked to any estimate\nWhen I view the table\nThen it appears as its own row tagged 'Unplanned' with no estimate and a + difference",
+        "Given the table has rows\nWhen I look at the last row\nThen I see total estimate, total actual and total difference, plus notes for unplanned and not-yet-spent amounts",
+        "Given I am a view-only member\nWhen I view the table\nThen I see all values but no add, edit, delete or drag controls"
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "title": "Highlight the selected place on the map",
+      "description": "When a place is selected (place panel open), its pin stands out so users can tell which of dozens of pins they are looking at.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "selectedPin",
+      "ac": [
+        "Given the map shows many pins\nWhen I open a place (from the map, search, a list or a trip plan)\nThen its pin is larger, has a honey ring and a gently pulsing glow, and shows the place name in a label",
+        "Given the selected place is a famous place inside a cluster\nWhen I open it\nThen its highlighted pin is shown on its own and not hidden in the cluster",
+        "Given a place is selected\nWhen I close the place panel or open another place\nThen the highlight moves to the new place or disappears",
+        "Given my device asks for reduced motion\nWhen a place is selected\nThen the glow does not animate"
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "title": "Estimated costs for picked people",
+      "description": "Besides 'Group' and 'Per person', an estimated cost can apply to picked people only (e.g. a side tour two of four members join). The amount is either a total split between them or per picked person.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costPickPeople",
+      "ac": [
+        "Given I add or edit an estimated cost\nWhen I choose 'Pick people', select members and choose 'Total' or 'Per person'\nThen the estimate is saved with those members (splitAmong) and the hint shows the per-person share or the total for them",
+        "Given 'Pick people' is chosen\nWhen no member is selected\nThen I cannot save and see 'Pick at least one person'",
+        "Given an estimate applies to picked people\nWhen I view the cost tables and the PDF\nThen its group total counts only the picked people, the label lists their names, and 'Estimated / person' shows the group average",
+        "Given an estimate applies to picked people\nWhen I record its actual cost (🧾 or 'Already paid')\nThen the actual form is pre-filled to split between the same people"
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "title": "Reliable cost ordering and an easier way to sort",
+      "description": "Fix drag-and-drop ordering of costs (rows jumped back or stopped following the pointer) and add easier options: ↑/↓ buttons on each row and a Sort menu (group order, date paid, amount, most over budget, name) that can be saved as the group order.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "costReorder, costSort",
+      "ac": [
+        "Given I can edit a trip and the table is in group order\nWhen I drag a row by ⠿ (mouse or touch) or tap ↑ / ↓\nThen the row moves, stays in its new place without jumping back, and the order is saved for the group in one write",
+        "Given the cost table has several rows\nWhen I choose Sort by date, amount, most over budget or name\nThen the table re-sorts on my device only, drag handles and ↑ ↓ are hidden, and a hint explains it",
+        "Given I sorted the table by something other than group order\nWhen I tap 'Save as group order'\nThen that order becomes the group order for everyone and the menu returns to 'Group order'",
+        "Given I am a view-only member\nWhen I open the table\nThen I can change my view sort but cannot reorder or save the group order"
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "title": "Costs PDF matches the web table and current order",
+      "description": "The costs PDF uses one table like the web (item, estimate, actual, difference, payments under each item, unplanned rows marked) and follows the exact order currently shown on screen, using the latest data.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I am on the Costs tab\nWhen I tap Export PDF or Share PDF\nThen the PDF shows a single table with Item, Estimate, Actual and Difference, each item's payments listed under it, unplanned costs marked, and a totals row",
+        "Given I reordered or sorted the table\nWhen I export the PDF\nThen rows appear in the same order as on screen",
+        "Given a cost was just added or edited\nWhen I export the PDF\nThen the PDF includes the latest values",
+        "Given a cost title contains arrows such as 'SGN → SIN'\nWhen I export the costs PDF (or the plan PDF)\nThen the arrows appear in the PDF instead of disappearing"
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "title": "Correct cost summary",
+      "description": "The summary cards no longer subtract unspent estimates from the difference. Cards: estimated for the group (with per-person average), actually spent (incl. unplanned), difference on spent items, and estimated but not spent yet.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given some estimates have no actual cost yet\nWhen I view the summary\nThen 'Difference (spent items)' compares actual spend with the estimates of the items already paid plus unplanned costs, and the unspent estimates are shown separately as 'Estimated, not spent yet'",
+        "Given the PDF is exported\nWhen I read its summary and totals row\nThen they use the same numbers as the web"
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "title": "View-only trip link for non-members",
+      "description": "The trip owner can turn on a view-only link so anyone with it (signed in or not) can view the plan and shared checklists, and costs if the owner allows, without joining the trip.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "featureFlag": "tripPublicView",
+      "ac": [
+        "Given I own a trip\nWhen I open Members & invites → Code / link and turn on 'Anyone with the link can view'\nThen the trip gets publicView and I can copy the view-only link",
+        "Given the link is on\nWhen someone who is not a member (or not signed in) opens it\nThen they see the trip header, Plan and shared Checklists (Costs only if 'Also show costs' is on) with a 'shared trip' banner, and no edit, member, invite, map, recap or Journey controls",
+        "Given I view a shared trip by link\nWhen I tap 'Copy this trip'\nThen I am asked to sign in if needed and then get my own editable copy",
+        "Given the owner turns the link off\nWhen someone opens the link\nThen they can no longer see the trip",
+        "Given the link is on\nWhen anyone tries to list trips, read the journey/photos, personal checklists, or write anything\nThen Firestore rules deny it"
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "title": "Faster page loading",
+      "description": "Pages load too slowly on phones. Load the map only when the Map page is opened, load the English dictionary only for English users, stop loading the profile page at start-up, defer detailed country borders, render long photo grids progressively, and render map pins in the background.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22 after the performance test",
+      "ac": [
+        "Given I open Trips, Guides, Explore, Memories or About\nWhen the page loads\nThen the map code (Leaflet, MapLibre, country borders) is not downloaded",
+        "Given my language is Vietnamese\nWhen the site loads\nThen the English dictionary is not downloaded; switching to English downloads it first and then switches",
+        "Given Explore or Memories has many photos\nWhen I open it\nThen about 24 cards render first and more render as I scroll",
+        "Given the mobile Lighthouse test (4G) is run on Trips, Guides, Explore and About\nWhen compared with the baseline\nThen Largest Contentful Paint and Total Blocking Time are lower than before (baseline: LCP 6.5–7.1 s, TBT 0.6–1.2 s)"
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "title": "Journey hides places removed from the trip plan",
+      "description": "Places deleted from the trip plan kept appearing in the Journey tab, the stop count and the trip recap (and looked like they came back). The Journey now hides places whose plan items were all removed; adding the place again shows it again. No check-in data is deleted.",
+      "priority": "Must",
+      "status": "In build",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a place was checked in for the trip and later deleted from the Plan\nWhen I open the trip\nThen it no longer appears in Journey, the stop count or the trip recap",
+        "Given I add that place to the plan again\nWhen I open Journey\nThen it appears again",
+        "Given I duplicate the trip\nWhen the copy is created\nThen places deleted from the original plan are not copied"
+      ]
+    },
+    {
+      "id": "REQ-013",
+      "title": "About page: group related features, important first",
+      "description": "In 'And there's more', features are grouped (Travel together, Costs & splitting, Guides & packing, Map & discovery, Handy extras) with the most important first in each group, instead of newest first.",
+      "priority": "Could",
+      "status": "In build",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I open the About page\nWhen I scroll to 'And there's more'\nThen features appear under group headings, related features side by side, the most important first",
+        "Given a new feature is not yet assigned to a group\nWhen it is released\nThen it still appears, in the last group"
+      ]
+    },
+    {
+      "id": "REQ-014",
+      "title": "Trip header shows length and the right place count",
+      "description": "Link viewers saw '0 stops' because they cannot read the Journey. The header now shows the trip length (days/nights) for everyone, the number of planned places for link viewers, and the Journey stop count for members.",
+      "priority": "Should",
+      "status": "In build",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a trip has start and end dates\nWhen anyone opens it\nThen the header shows e.g. '🌙 5 days 4 nights'",
+        "Given I view a trip by its view-only link\nWhen I look at the header\nThen I see '📍 N places' from the plan instead of '0 stops'",
+        "Given I am a member\nWhen I look at the header\nThen I still see the Journey stop count"
+      ]
+    },
+    {
+      "id": "REQ-015",
+      "title": "Faster first paint: non-blocking CSS and CSS per page",
+      "description": "Pages still felt slow. (C) The main stylesheet no longer blocks the first paint: the boot screen (inline CSS) shows at once while the CSS loads in parallel, and the app renders once it is ready. (D) Styles used by only one area (admin, about, guides, gear, tips, legal, profile, trips, share studio, feedback, map) move into their own CSS files that load with that area's code, so the shared stylesheet is much smaller.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22 ('hãy làm luôn C và D')",
+      "ac": [
+        "Given I open any page\nWhen the HTML arrives\nThen the boot screen paints without waiting for the main CSS file",
+        "Given the main CSS has not finished loading\nWhen the app is about to render\nThen it waits for the CSS (max 4s) so I never see an unstyled page",
+        "Given I open a page such as Guides or About\nWhen it loads\nThen only the shared CSS plus that page's CSS are downloaded, and the page looks the same as before"
+      ]
+    },
+    {
+      "id": "REQ-017",
+      "title": "Journey shows the itinerary date for visited places",
+      "description": "Places ticked as visited from the plan showed the day they were ticked (e.g. 22/11) instead of the day in the itinerary. The Journey now shows, for each stop: the memory's date for check-ins with photos; the plan date for places that are in the plan; otherwise the saved date. It is ordered by that date, newest first. Works for existing data without any migration.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a place in the plan for 18/11 was ticked visited on 22/11\nWhen I open the Journey\nThen it shows 18/11",
+        "Given a check-in memory dated 17/11\nWhen I open the Journey\nThen it shows 17/11",
+        "Given stops with different dates\nWhen I open the Journey\nThen they are ordered by the shown date, newest first"
+      ]
+    },
+    {
+      "id": "REQ-018",
+      "title": "Admin can fix the location of famous places with a Google Maps link",
+      "description": "In Admin → Places, the Google Maps link box and latitude/longitude were only shown for places the team added. Famous places (curated list / Wikidata) could not be moved when their pin was wrong. The editor now shows the link box and coordinates for every place; moved coordinates are saved in the place override and the map uses them.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I edit a famous place such as Ha Long Bay\nWhen I paste a Google Maps link and press Find\nThen the latitude and longitude fill in",
+        "Given I save with new coordinates\nWhen anyone opens the map\nThen the pin shows at the new place",
+        "Given I reset the place's edits\nWhen the map reloads\nThen the original location is used again"
+      ]
+    },
+    {
+      "id": "REQ-019",
+      "title": "Edit the text of a checklist item",
+      "description": "Members can change the wording of a checklist item when plans change instead of deleting and re-adding it. Tap ✏️ (or double-click the text), Enter or click away to save, Esc to cancel. Ticks, who-ticked and the item's scope are kept. View-only members cannot edit shared lists. Behind the flag checkEdit.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Requested by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given a checklist item 'Mua eSIM'\nWhen I tap ✏️, type 'Mua eSIM Singapore' and press Enter\nThen the item shows the new text for everyone and stays ticked if it was ticked",
+        "Given I am editing an item\nWhen I press Esc or clear the text\nThen nothing changes",
+        "Given I am a view-only member\nWhen I open a shared checklist\nThen I do not see ✏️"
+      ]
+    },
+    {
+      "id": "REQ-020",
+      "title": "Journey shows the check-in date the user entered",
+      "description": "Check-ins with photos showed the upload day (e.g. 18/11) instead of the check-in date the user entered, because trip stops were saved without a date and were not updated when a check-in was edited. Now: stops save the check-in date; editing a check-in's date, caption or trip replaces my stop in the Journey; and the Journey uses the date of my own check-ins directly, so existing stops show the right date at once.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given I checked in at Chinatown with date 10/11 but uploaded on 18/11\nWhen I open the trip's Journey\nThen it shows 10/11",
+        "Given I change a check-in's date to 11/11\nWhen anyone in the trip opens the Journey\nThen it shows 11/11",
+        "Given I move a check-in to another trip\nWhen I open both Journeys\nThen it appears only in the new trip"
+      ]
+    },
+    {
+      "id": "REQ-021",
+      "title": "Admin-corrected coordinates apply everywhere",
+      "description": "After REQ-018 an admin could fix a place's coordinates, but only the famous-places list used them. Saved places (visited / wishlist), check-ins, the open place, trip stops and plan items, map fly-to and Directions still used the old coordinates. Now all of them use the corrected coordinates.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given an admin moved Ha Long Bay with a Google Maps link\nWhen I open Ha Long Bay from the map, my visited places, a check-in or a trip plan\nThen the pin and the map zoom use the new location",
+        "Given the same place\nWhen I tap Directions\nThen Google / Apple Maps open with the new coordinates",
+        "Given the admin resets the place\nWhen the map refreshes\nThen the original location is used again"
+      ]
+    },
+    {
+      "id": "REQ-022",
+      "title": "Directions open the Google Maps link the admin attached",
+      "description": "When Google Maps receives bare coordinates it labels the destination with the nearest named point (e.g. 'Ramayana Cave' for Batu Caves). When an admin fixes a place with a Google Maps link (Find place), the link is saved with the place; Directions → Google Maps then opens that exact place page (name, photos, Directions button). Clearing the link box removes it. Only https Google Maps links are accepted.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Approved by the Product Owner (Christine) in chat on 2026-11-22",
+      "ac": [
+        "Given an admin pasted the Google Maps link of Batu Caves, pressed Find place and saved\nWhen a user taps Directions → Google Maps on Batu Caves (from the map, a saved place or a trip)\nThen Google Maps opens the Batu Caves page",
+        "Given the admin clears the link box and saves\nWhen a user taps Directions\nThen Google Maps opens with the coordinates as before",
+        "Given a link that is not an https Google Maps link\nWhen it is saved\nThen it is ignored"
+      ]
+    },
+    {
+      "id": "REQ-101",
+      "title": "Sign in with Google",
+      "description": "[Baseline · Account & platform] Users sign in with their Google account; without Firebase config the app runs in demo mode with data in the browser.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I am signed out\nWhen I tap Sign in with Google and accept\nThen I am signed in and my name and avatar show in the header",
+        "Given the app has no Firebase config\nWhen I open it\nThen it runs in demo mode with a simulated login"
+      ]
+    },
+    {
+      "id": "REQ-102",
+      "title": "Consent, privacy policy and terms",
+      "description": "[Baseline · Account & platform] New users must accept the Terms of Use and Privacy Policy before using an account; both pages are always reachable.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I sign in for the first time\nWhen the consent screen shows\nThen I cannot continue until I tick the agreement",
+        "Given I am on any page\nWhen I open Privacy Policy or Terms\nThen the legal page opens with tabs to switch"
+      ]
+    },
+    {
+      "id": "REQ-103",
+      "title": "Download my data and delete my account",
+      "description": "[Baseline · Account & platform] Users can download their data and permanently delete their account from the profile ⋯ menu.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I am signed in\nWhen I choose Download my data\nThen I get a file with my places, check-ins and trips",
+        "Given I choose Delete account and confirm\nWhen the deletion finishes\nThen my account and content are removed and I am signed out"
+      ]
+    },
+    {
+      "id": "REQ-104",
+      "title": "Profile, display name, @username and avatar",
+      "description": "[Baseline · Account & platform] Each user has a public profile with a display name, a unique @username and an avatar (uploaded photos are cropped round).",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I edit my profile\nWhen I pick a username someone else has\nThen I am told it is taken",
+        "Given I upload an avatar\nWhen I save\nThen it shows as a circle everywhere"
+      ]
+    },
+    {
+      "id": "REQ-105",
+      "title": "Vietnamese and English interface",
+      "description": "[Baseline · Account & platform] Vietnamese is the default; the flag button switches to English and the choice is remembered.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the app for the first time\nWhen nothing is chosen\nThen the interface is in Vietnamese",
+        "Given I tap the flag and pick English\nWhen I reload\nThen the interface stays in English"
+      ]
+    },
+    {
+      "id": "REQ-106",
+      "title": "Responsive layout for desktop, tablet and phone",
+      "description": "[Baseline · Account & platform] Side panel on desktop; draggable bottom sheet and bottom navigation on tablet and phone; no iOS input zoom; pull to refresh on phones. Feature flag: pullToRefresh.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I use a phone\nWhen I open the map\nThen the panel is a bottom sheet I can drag",
+        "Given I pull down at the top of a page on a phone\nWhen I release\nThen the page refreshes"
+      ]
+    },
+    {
+      "id": "REQ-107",
+      "title": "Installable app with fast reopening",
+      "description": "[Baseline · Account & platform] A web app manifest makes the site installable; a service worker caches the app so it reopens almost instantly and shows an 'update available' bar for new versions.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I have visited before\nWhen I reopen the site\nThen it loads from cache almost at once",
+        "Given a new version is deployed\nWhen I have the old one open\nThen I see an 'update available' bar"
+      ]
+    },
+    {
+      "id": "REQ-108",
+      "title": "Links keep the current page",
+      "description": "[Baseline · Account & platform] Each view has its own URL (#/map, #/trips/…, #/guide/SG…) so reload, back and shared links open the same page.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I am on a trip's Costs tab\nWhen I reload\nThen the same trip and tab open"
+      ]
+    },
+    {
+      "id": "REQ-109",
+      "title": "Search engine and link-preview friendly",
+      "description": "[Baseline · Account & platform] Descriptive title and meta description, Open Graph / Twitter cards, JSON-LD, robots.txt, sitemap.xml and crawlable static text.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given someone shares beetheremap.com in a chat app\nWhen the preview loads\nThen it shows the Bee There title, description and image"
+      ]
+    },
+    {
+      "id": "REQ-110",
+      "title": "Custom domain over HTTPS",
+      "description": "[Baseline · Account & platform] The site is served at https://beetheremap.com through GitHub Pages.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open beetheremap.com\nWhen the page loads\nThen it is served over HTTPS without warnings"
+      ]
+    },
+    {
+      "id": "REQ-111",
+      "title": "World map of visited countries",
+      "description": "[Baseline · Map & places] Visited countries are filled honey yellow with a 👣 pin per visited place and 💛 for wishlist places; nearby famous places cluster.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I have visited places in 3 countries\nWhen I open the map\nThen those 3 countries are filled and each place has a pin"
+      ]
+    },
+    {
+      "id": "REQ-112",
+      "title": "Country view with famous places",
+      "description": "[Baseline · Map & places] Clicking a country zooms in and lists its famous places (hand-picked plus up to ~100 from Wikidata, ranked by Wikipedia coverage, cached 7 days), filterable by city or region. Feature flag: wikidata.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I click Malaysia\nWhen the country opens\nThen I see its famous places on the map and in the panel",
+        "Given I pick a city filter\nWhen the list updates\nThen only places in that city show"
+      ]
+    },
+    {
+      "id": "REQ-113",
+      "title": "Add places by search, map tap or Google Maps link",
+      "description": "[Baseline · Map & places] Find any country, city or place (OpenStreetMap), tap the map to pin a spot (must be inside a country, user can name it), or paste a Google Maps link (short links supported).",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I paste a Google Maps link\nWhen I confirm\nThen a pin is created at that place",
+        "Given I tap the sea\nWhen I try to pin it\nThen I am told to pick a place inside a country"
+      ]
+    },
+    {
+      "id": "REQ-114",
+      "title": "Visited and wishlist lists",
+      "description": "[Baseline · Map & places] Mark places visited (with date and optional occasion) or wishlist; lists grouped by country then city; places can be removed.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I mark a place visited with date 10/11\nWhen I open Visited\nThen it shows under its country and city with that date",
+        "Given I remove a wishlist place\nWhen the list refreshes\nThen it is gone"
+      ]
+    },
+    {
+      "id": "REQ-115",
+      "title": "Directions to a place",
+      "description": "[Baseline · Map & places] Directions open Google Maps (desktop opens it directly) or Apple Maps (choice on phones) with the exact coordinates.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open a place\nWhen I tap Directions on a phone\nThen I can choose Apple Maps or Google Maps"
+      ]
+    },
+    {
+      "id": "REQ-116",
+      "title": "Home panel: overview, popular places, quick links",
+      "description": "[Baseline · Map & places] The map panel has Overview / Visited / Wishlist / Famous tabs, stats, most checked-in places and quick links. Feature flag: popularPlaces.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the home map\nWhen the panel loads\nThen I see my stats and the most checked-in places"
+      ]
+    },
+    {
+      "id": "REQ-117",
+      "title": "Show a trip on the map",
+      "description": "[Baseline · Map & places] A trip can be shown on the map with its stops and numbered plan route; the map fits the trip.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I tap 'View on map' on a trip\nWhen the map opens\nThen only that trip's stops and numbered route show"
+      ]
+    },
+    {
+      "id": "REQ-118",
+      "title": "Photo check-ins",
+      "description": "[Baseline · Check-ins & memories] Check in at any place with photos, caption, date, occasion and private/public visibility; several check-ins per place; photos compressed in the browser in 3 sizes and loaded according to network speed.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I check in with 3 photos and set Public\nWhen I save\nThen the check-in appears in Memories and on Explore",
+        "Given I am on a slow network\nWhen I open a photo\nThen the medium-size version loads"
+      ]
+    },
+    {
+      "id": "REQ-119",
+      "title": "Edit and delete check-ins",
+      "description": "[Baseline · Check-ins & memories] Edit caption, date, occasion, trip and photos; deleting a check-in updates the visited list and trip stops.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I delete my only check-in at a place\nWhen the deletion finishes\nThen the trip's Journey no longer shows it"
+      ]
+    },
+    {
+      "id": "REQ-120",
+      "title": "Memories page",
+      "description": "[Baseline · Check-ins & memories] My check-ins sorted by check-in date, newest first, with 'On this day'.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open Memories\nWhen the page loads\nThen my check-ins are sorted newest first"
+      ]
+    },
+    {
+      "id": "REQ-121",
+      "title": "Share studio",
+      "description": "[Baseline · Check-ins & memories] Share 1–4 photos of a check-in as an image or video: Polaroid, Postcard, Film strip, Bento; Story 9:16, 4:5 or 1:1; preview before saving. Feature flag: share.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I pick 2 photos, Polaroid and Story\nWhen I export\nThen I get a 9:16 image I can save or share"
+      ]
+    },
+    {
+      "id": "REQ-122",
+      "title": "Year and trip recap",
+      "description": "[Baseline · Check-ins & memories] Recap images and videos for a year or a trip with selectable layouts and photos. Feature flag: recap.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the year recap\nWhen I choose a layout\nThen I can preview and save the image or video"
+      ]
+    },
+    {
+      "id": "REQ-123",
+      "title": "Explore public check-ins",
+      "description": "[Baseline · Social] Everyone's public check-ins by country or city, with likes. Feature flag: explore.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open Explore and filter Singapore\nWhen the page loads\nThen I see public check-ins from Singapore"
+      ]
+    },
+    {
+      "id": "REQ-124",
+      "title": "Follow, friends feed and likes",
+      "description": "[Baseline · Social] Follow people, see a friends feed and like public check-ins. Feature flag: follow.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I follow Thư\nWhen Thư posts a public check-in\nThen it shows in my friends feed"
+      ]
+    },
+    {
+      "id": "REQ-125",
+      "title": "In-app notifications",
+      "description": "[Baseline · Social] Notifications for trip invites, follows and announcements from the team, with unread count.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given someone invites me to a trip\nWhen I open notifications\nThen I see the invite with Join and Decline"
+      ]
+    },
+    {
+      "id": "REQ-126",
+      "title": "Create and manage shared trips",
+      "description": "[Baseline · Trips] Create a trip with name, icon, dates and destinations; members edit details; only the owner deletes; trips sorted by start date and filterable by creator. Feature flag: trips.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I create a trip with dates 10–14/11\nWhen I open Trips\nThen it is listed by start date",
+        "Given I am a member but not the owner\nWhen I open the trip menu\nThen I cannot delete it"
+      ]
+    },
+    {
+      "id": "REQ-127",
+      "title": "Invite members",
+      "description": "[Baseline · Trips] Invite by link, code or @username; invitees must accept; trips are visible to members only. Feature flag: tripInvites.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I invite @thu\nWhen Thư accepts\nThen Thư becomes a member and sees the trip",
+        "Given someone is not a member\nWhen they open the trip link\nThen they cannot see its content"
+      ]
+    },
+    {
+      "id": "REQ-128",
+      "title": "Day-by-day plan",
+      "description": "[Baseline · Trips] Plan places by day and time, reorder, mark done or skipped, change date/time from the map route panel; destinations suggest places.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I add 3 places on 11/11 at different times\nWhen I open the Plan\nThen they are sorted by time within the day",
+        "Given I mark a place done\nWhen the plan refreshes\nThen it shows as done and the place is marked visited"
+      ]
+    },
+    {
+      "id": "REQ-129",
+      "title": "Journey",
+      "description": "[Baseline · Trips] The Journey lists the places the group has been and check-ins linked to the trip.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I check in at a place and link the trip\nWhen the trip's Journey refreshes\nThen the check-in is listed with its photos"
+      ]
+    },
+    {
+      "id": "REQ-130",
+      "title": "Costs and settle-up",
+      "description": "[Baseline · Trips] Estimated and actual costs, multi-currency with live rates, paid-by and split among the group or picked people, and who owes whom. Feature flag: tripCosts.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I paid 100 SGD for 2 people\nWhen I open Costs\nThen each owes half converted with the trip rate and settle-up shows who pays whom"
+      ]
+    },
+    {
+      "id": "REQ-131",
+      "title": "Checklists",
+      "description": "[Baseline · Trips] Shared and personal checklists; items can be for the group, for each person, or 'only me'; drag to reorder. Feature flag: tripChecklist.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an item is 'each person'\nWhen I tick it\nThen only my tick is recorded and the count shows ticks per member",
+        "Given an \"each person\" item ticked by someone who has since left the trip\nWhen I open the checklist\nThen that tick is not counted or named (bug #108)"
+      ]
+    },
+    {
+      "id": "REQ-132",
+      "title": "Plan PDF export",
+      "description": "[Baseline · Trips] Export or share the itinerary as a compact PDF with the Bee There header. Feature flag: tripPdf.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I tap Export PDF on a plan\nWhen the file is ready\nThen the PDF lists the days, times and places"
+      ]
+    },
+    {
+      "id": "REQ-133",
+      "title": "Duplicate a trip",
+      "description": "[Baseline · Trips] Copy an existing trip as a new trip. Feature flag: tripDuplicate.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I duplicate a trip\nWhen I open the copy\nThen it has the same plan and checklists but only me as member"
+      ]
+    },
+    {
+      "id": "REQ-134",
+      "title": "Country guides",
+      "description": "[Baseline · Guides, tips & gear] Guides for 12 Asian countries: where to go, money, power plugs, visas with official entry-form links, emergency numbers with tap-to-call. Feature flag: guide.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open the Singapore guide\nWhen the page loads\nThen I see sections incl. the SG Arrival Card link and tap-to-call emergency numbers"
+      ]
+    },
+    {
+      "id": "REQ-135",
+      "title": "Phrases with listen button",
+      "description": "[Baseline · Guides, tips & gear] Phrases with native script and a 🔊 button; falls back to Google Translate when the device has no voice.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given my device has no voice for Thai\nWhen I tap 🔊\nThen Google Translate opens with the phrase"
+      ]
+    },
+    {
+      "id": "REQ-136",
+      "title": "Add guide places to a trip",
+      "description": "[Baseline · Guides, tips & gear] Tap a place in 'Where to go' to add it to a trip plan. Feature flag: guideToTrip.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I tap Add to trip on a guide place\nWhen I pick my trip\nThen the place is added to the plan"
+      ]
+    },
+    {
+      "id": "REQ-137",
+      "title": "Local food by city",
+      "description": "[Baseline · Guides, tips & gear] Must-try food filterable by city or region, with photos. Feature flag: guideFoodCities.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I filter Penang\nWhen the food list updates\nThen only Penang dishes show"
+      ]
+    },
+    {
+      "id": "REQ-138",
+      "title": "Sample trip cost calculator",
+      "description": "[Baseline · Guides, tips & gear] Days, people and budget level give estimated costs in VND and local currency; can be applied to a trip. Feature flag: guideCosts.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I choose 4 days, 2 people, mid budget\nWhen I tap Apply to trip\nThen the estimates are added to the trip's costs"
+      ]
+    },
+    {
+      "id": "REQ-139",
+      "title": "Useful Google Maps links in guides",
+      "description": "[Baseline · Guides, tips & gear] Staff-managed useful places (money exchange, embassies…) in each guide. Feature flag: guideLinks.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given staff add a link\nWhen I open the guide\nThen the link shows and opens Google Maps"
+      ]
+    },
+    {
+      "id": "REQ-140",
+      "title": "Country travel tips",
+      "description": "[Baseline · Guides, tips & gear] Community tips per country with Helpful / Misleading votes and Q&A; ranking configurable by admins. Feature flag: tips.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I vote Helpful on a tip\nWhen the list refreshes\nThen its score goes up"
+      ]
+    },
+    {
+      "id": "REQ-141",
+      "title": "Travel gear page",
+      "description": "[Baseline · Guides, tips & gear] Gear ideas by trip type and purpose with clearly disclosed affiliate links; reachable from the top nav, Guides, a trip's Checklist tab and home quick links. Feature flag: gear.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open Gear and pick 'Beach'\nWhen the list updates\nThen I see beach gear with shop links marked as affiliate"
+      ]
+    },
+    {
+      "id": "REQ-142",
+      "title": "About page with auto-updating features",
+      "description": "[Baseline · Help & onboarding] About page with real screenshots; released features with a value text are listed automatically.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an admin releases a feature with a value text\nWhen I open About\nThen the feature is listed"
+      ]
+    },
+    {
+      "id": "REQ-143",
+      "title": "Quick tour",
+      "description": "[Baseline · Help & onboarding] Onboarding tour that opens automatically after a new account's first sign-in (only on the map) and can be reopened. Feature flag: quickTour.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I sign in for the first time\nWhen the map loads\nThen the quick tour opens",
+        "Given I finished the tour\nWhen I sign in again\nThen it does not open by itself"
+      ]
+    },
+    {
+      "id": "REQ-144",
+      "title": "Feedback and bug reports",
+      "description": "[Baseline · Help & onboarding] Feedback tab with an element picker and screenshot; admins triage in the Feedback inbox. Feature flag: feedback.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I pick an element and send a bug report\nWhen an admin opens Feedback\nThen the report shows with my screenshot"
+      ]
+    },
+    {
+      "id": "REQ-145",
+      "title": "FAQ, What's new and Support the creator",
+      "description": "[Baseline · Help & onboarding] FAQ, release notes and a support page with the owner's VietQR code.",
+      "priority": "Could",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I open What's new\nWhen the page loads\nThen I see the latest release notes"
+      ]
+    },
+    {
+      "id": "REQ-146",
+      "title": "Site announcements",
+      "description": "[Baseline · Help & onboarding] Scheduled banners; once a user closes a banner it does not show again.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I close an announcement\nWhen I reload\nThen it does not show again"
+      ]
+    },
+    {
+      "id": "REQ-147",
+      "title": "Roles and permissions",
+      "description": "[Baseline · Admin] Admin, Editor, Moderator, Marketing presets plus custom roles; modules show by permission; Admin always has every permission; enforced by Firestore rules.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given a user has the Editor role\nWhen they open Admin\nThen they only see modules their role allows"
+      ]
+    },
+    {
+      "id": "REQ-148",
+      "title": "Feature flags",
+      "description": "[Baseline · Admin] New features ship off by default (owner sees them); admins release them to beta users or everyone in Admin → Features.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given a flag is off\nWhen a normal user opens the app\nThen the feature is hidden",
+        "Given the admin releases it to everyone\nWhen the user reloads\nThen the feature shows"
+      ]
+    },
+    {
+      "id": "REQ-149",
+      "title": "Insights and audit log",
+      "description": "[Baseline · Admin] Usage stats and charts; every admin action is written to the audit log.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an admin hides a memory\nWhen I open Logs\nThen the action is listed with who and when"
+      ]
+    },
+    {
+      "id": "REQ-150",
+      "title": "Content moderation and reports",
+      "description": "[Baseline · Admin] Users report check-ins; moderators review full-size photos and hide or delete content.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given a check-in is reported\nWhen a moderator hides it\nThen it disappears from Explore"
+      ]
+    },
+    {
+      "id": "REQ-151",
+      "title": "Places management",
+      "description": "[Baseline · Admin] Override names, descriptions, images and hide wrong famous places; add custom places.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an admin hides a wrong place\nWhen users open that country\nThen the place is not shown"
+      ]
+    },
+    {
+      "id": "REQ-152",
+      "title": "Guides, tips, trips, gear and ads management",
+      "description": "[Baseline · Admin] Admins edit guide content and links, tips settings, trips, the gear catalog and sample ad slots.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given an editor changes a guide section\nWhen users open the guide\nThen they see the new text"
+      ]
+    },
+    {
+      "id": "REQ-153",
+      "title": "Send notifications",
+      "description": "[Baseline · Admin] Send to everyone, a role or chosen users; history incl. revoked; received/read report exportable to Excel.",
+      "priority": "Should",
+      "status": "Done",
+      "source": "Baseline reconstructed on 2026-11-23 from the live app, README, feature flags and git history (built before Compass was installed)",
+      "ac": [
+        "Given I send a notification to the Editor role\nWhen I open the report\nThen I see who received and read it and can export it to Excel"
+      ]
+    },
+    {
+      "id": "REQ-023",
+      "title": "Quick tour points at visible buttons on phones",
+      "description": "On phones some tour steps highlighted the wrong area or hid the button behind the tour card (e.g. 'Save memories' pointed at the map because the Add memory button was scrolled out of the bottom sheet; the Feedback tab was covered by the card). The tour now scrolls the target into view inside its panel, only highlights the visible part, and places the card in the larger free space above or below the target, shrinking it (and hiding the illustration) so it never covers the target. Fixes REQ-143.",
+      "priority": "Must",
+      "status": "Done",
+      "source": "Reported by the Product Owner (Christine) in chat on 2026-11-23 with iPhone screenshots",
+      "ac": [
+        "Given I am on a phone at step 5 'Save memories'\nWhen the step opens\nThen the Add memory button is scrolled into view, highlighted and not covered by the card",
+        "Given I am at step 8 'Send feedback'\nWhen the step opens\nThen the Feedback tab is highlighted and the card sits above or below it",
+        "Given the step highlights the whole map\nWhen it opens\nThen the card stays at the bottom as before"
+      ]
+    },
+    {
+      "id": "REQ-024",
+      "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist",
+      "priority": "Must",
+      "status": "In build",
+      "story": "As an user, I want to increase the number of user by adding some suggestion from 'Guides' into trip's checklist, so that I can get it done without back-and-forth messages.",
+      "ac": [
+        "Given I am an user\nWhen I increase the number of user by adding some suggestion from 'Guides' into trip's checklist with valid details and confirm\nThen the result is saved and I see a confirmation",
+        "Given a required field is empty or invalid\nWhen I confirm\nThen I see an error next to that field and nothing is saved"
+      ],
+      "featureId": "F-001"
+    },
+    {
+      "id": "REQ-025",
       "title": "Accessibility and performance baseline",
       "priority": "Should",
       "status": "Approved",
@@ -69,13 +1229,1021 @@
         "Given a 4G connection\nWhen I open the home page\nThen it becomes interactive within 2.5 seconds (Lighthouse)"
       ],
       "featureId": "F-001"
+    },
+    {
+      "id": "REQ-026",
+      "title": "Export the trip itinerary and costs to Excel",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As a trip member, I want to export the itinerary and costs to Excel so that I can review, share and adjust the budget offline in the same layout as our planning spreadsheets.",
+      "ac": [
+        "Given a trip with a plan and costs\nWhen I tap Export Excel on the Plan or Costs tab\nThen an .xlsx file downloads with Itinerary & costs, Settle up (groups), Rates and Master data sheets (layout changed by REQ-029)",
+        "Given an actual cost linked to a plan item\nWhen I open the Itinerary sheet\nThen the item's Actual cell sums it with a formula that refers to the Costs sheet",
+        "Given I change a rate in the Rates sheet\nWhen Excel recalculates\nThen converted amounts, itinerary totals and balances update",
+        "Given a trip with one member\nWhen I export\nThen there is no Settle up sheet and no per-member columns"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (GitHub issue #34); templates: solo and group trip spreadsheets"
+    },
+    {
+      "id": "REQ-027",
+      "title": "Failing UI tests are logged as GitHub bug issues",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the Product Owner, I want every UI test that fails on main or in the nightly run to become a GitHub bug issue so that I can pick a bug by its number and ask for a fix.",
+      "ac": [
+        "Given a UI test fails on main or in the nightly run\nWhen the CI job finishes\nThen a GitHub issue labelled bug and e2e is opened with the requirement, error, run link and how to reproduce",
+        "Given that issue is still open and the test fails again\nWhen the next run finishes\nThen a comment is added instead of a duplicate issue",
+        "Given the test passes again\nWhen the run finishes\nThen the issue is closed with a comment",
+        "Given a pull request run fails\nWhen the CI job finishes\nThen no issue is opened (the pull request shows the failure)"
+      ],
+      "source": "Requested by the Product Owner in chat on 2026-11-23 (10:08)"
+    },
+    {
+      "id": "REQ-028",
+      "title": "Archive trips older than the retention period (Excel-only access)",
+      "priority": "Could",
+      "status": "Draft",
+      "story": "As the Product Owner, I want trips older than a retention period (default 2 years, editable by admins) to be archived and only viewable through an Excel export so that storage stays small.",
+      "ac": [
+        "Given a trip ended more than the retention period ago\nWhen a member opens it\nThen it is archived and only its Excel export is available",
+        "Given I am an admin\nWhen I change the retention period in Admin\nThen the new period is used for archiving"
+      ],
+      "source": "Requested by the Product Owner in chat on 2026-11-23 (01:14); on hold — the Product Owner is deciding what 'archive' means, which date counts and what the Excel file contains"
+    },
+    {
+      "id": "REQ-029",
+      "title": "Excel export: itinerary and costs in one sheet, amounts visible on open, no Places sheet",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As a trip member, I want the itinerary and its costs on the same sheet, with amounts visible as soon as the file opens, so that I can read each stop together with what it cost.",
+      "ac": [
+        "Given I export a trip to Excel\nWhen I open the file\nThen the first sheet lists each day, each plan item and, right under it, the estimates and actuals linked to it, with item, day and trip totals",
+        "Given costs not linked to a plan item or repayments\nWhen I open the file\nThen they appear in an Other costs section and a Repayments section; repayments are not counted as trip spending",
+        "Given I export a trip\nWhen I look at the sheet tabs\nThen there is no Places sheet and no separate Costs sheet; Settle up (groups), Rates and Master data stay",
+        "Given I open the file in a viewer that does not recalculate (Excel Protected View, previews)\nWhen the sheet appears\nThen all amounts and totals are already visible"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #43); fixes bug #42; changes REQ-026"
+    },
+    {
+      "id": "REQ-030",
+      "title": "Excel export: costs grouped by day, pre-trip costs first, estimate and actual side by side",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As a trip member, I want the exported costs grouped by day, with costs not linked to any plan item at the top, and each estimate next to its actual cost, so that I can see what to pay before the trip and add up every column easily.",
+      "ac": [
+        "Given costs not linked to any plan item\nWhen I export the trip to Excel\nThen they are listed in a section at the top of the sheet, before the days",
+        "Given costs linked to plan items\nWhen I export\nThen they appear under their plan item inside that item's day, with item, day and trip totals",
+        "Given an estimate and its actual cost\nWhen I export\nThen they share one row with columns: estimated cost, estimated currency, actual cost, actual currency, final amount in the trip currency, difference",
+        "Given every cost of the trip is in the trip currency\nWhen I export\nThen the two currency columns are not shown"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #45); changes REQ-026 / REQ-029"
+    },
+    {
+      "id": "REQ-032",
+      "title": "Excel export: Google Maps column shows the URL",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As a trip member, I want the Google Maps column of the Excel export to contain the full Google Maps URL so that I can copy it, see where it points and open it from any app.",
+      "ac": [
+        "Given a plan item with a location or an admin-attached Google Maps link\nWhen I export the trip to Excel\nThen its Google Maps cell shows the full URL as a clickable link",
+        "Given I open the file in a viewer that does not recalculate\nWhen I look at the Google Maps column\nThen the URL text is visible"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #48)"
+    },
+    {
+      "id": "REQ-031",
+      "title": "Choose a cost type when entering a cost",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As a trip member, I want to pick a cost type when I add or edit a cost so that costs are categorised and can later be filtered and totalled by type.",
+      "ac": [
+        "Given I add an estimated or actual cost\nWhen I open the cost form\nThen I can choose a cost type from a list (optional)",
+        "Given I saved a cost with a type\nWhen I look at the cost list\nThen the cost shows its type icon and name",
+        "Given I edit the cost\nWhen I change or clear the type and save\nThen the new type is shown",
+        "Given a cost has a type\nWhen I export the trip to Excel\nThen the Cost type column shows that type"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #47); supports F-002"
+    },
+    {
+      "id": "REQ-033",
+      "title": "Set a due day for checklist items, picked from the trip days",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As a trip member, I want to mark the day a checklist item must be done, choosing from the days of the trip, so that I know what to prepare on each day.",
+      "ac": [
+        "Given a trip from 10/11 to 14/11\nWhen I set the due day of a checklist item\nThen the options are Before the trip, Day 1 · 10/11 … Day 5 · 14/11 and Other date…",
+        "Given I mark item A for Day 3\nWhen I look at the checklist\nThen item A shows Day 3 · 12/11",
+        "Given a checklist item is due today or overdue and not ticked\nWhen I open the checklist\nThen its due day is highlighted",
+        "Given I clear the due day\nWhen I save\nThen the item has no due day",
+        "Given a trip without dates\nWhen I set a due day\nThen I can pick any date"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #49)"
+    },
+    {
+      "id": "REQ-034",
+      "title": "Safer release pipeline: deploy only after green CI, smoke test with rollback, library security audit",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want only tested code to reach beetheremap.com, and a broken release to be undone automatically, so that users never get a broken site.",
+      "ac": [
+        "Given a commit is pushed to main\nWhen Compass CI fails\nThen the site is not deployed",
+        "Given Compass CI is green for a commit on main\nWhen the deploy runs\nThen exactly that commit is built and deployed",
+        "Given a deploy finished\nWhen the live site does not serve the new build with the Bee There title within 10 minutes\nThen the last good version is redeployed and a bug issue is opened",
+        "Given CI runs\nWhen a shipped library has a critical vulnerability\nThen CI fails; the full audit report is shown in the run summary",
+        "Given I need to roll back by hand\nWhen I run Compass Deploy with a commit SHA\nThen that commit is deployed"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-23 (issue #50)"
+    },
+    {
+      "id": "REQ-035",
+      "title": "Keep the agent working knowledge in the repository",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want the working knowledge for AI agents stored in the repository, so that every new Claude session follows it without me uploading it each time.",
+      "ac": [
+        "Given a new Claude session starts in this repository\nWhen it reads CLAUDE.md\nThen compass/agent-knowledge.md is loaded automatically",
+        "Given compass/agent-knowledge.md\nWhen the unit tests run\nThen it contains the sections on working style, delivery contract, protected paths and open items, and no secrets or e-mail addresses",
+        "Given the Compass portal regenerates compass/handover.md\nWhen that happens\nThen the agent knowledge is not overwritten"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #58)"
+    },
+    {
+      "id": "REQ-037",
+      "title": "Independent AI review of every pull request (REVIEW.md)",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As the product owner, I want every PR to be reviewed by a separate Claude review pass that did not write the code, so that bugs and spec mismatches are caught before auto-merge.",
+      "ac": [
+        "Given a REVIEW.md that defines the review passes (bugs, security, match with the requirement and plan)\nWhen a PR is opened\nThen a fresh review agent comments its findings on the PR",
+        "Given the review has a finding marked important\nWhen CI is otherwise green\nThen the PR is not auto-merged until the finding is fixed and re-reviewed, or the Product Owner accepts it",
+        "Given the author agent\nWhen the PR is reviewed\nThen the author cannot approve its own PR"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #61): review by a subagent in the session; important findings block the merge.",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
+    },
+    {
+      "id": "REQ-036",
+      "title": "Enforce guardrails.json automatically (hooks + CI check)",
+      "priority": "Must",
+      "status": "Done",
+      "story": "As the product owner, I want the rules in compass/guardrails.json (protected paths, forbidden paths, secret patterns, max 12 files per change) to be checked by a machine instead of relying on the agent remembering them, so that a rule cannot be broken by mistake.",
+      "ac": [
+        "Given an agent session in this repo\nWhen it tries to edit a protected path (e.g. .github/workflows/, CNAME)\nThen a Claude Code hook blocks the edit and says how to get approval",
+        "Given a pull request\nWhen it changes more than 12 files, touches a forbidden path or contains a secret pattern\nThen CI fails with a clear message",
+        "Given a protected path change, a deleted file or a dependency change approved by the Product Owner\nWhen the PR carries the human-approved label\nThen the CI check passes"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #60); workflow change approved in chat.",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
+    },
+    {
+      "id": "REQ-047",
+      "title": "Keep compass/handover.md up to date automatically",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want handover.md regenerated from spec.json and checked on every change, so that it never shows a stale status.",
+      "ac": [
+        "Given spec.json changes\nWhen node compass/build-views.mjs runs\nThen requirements.md, tests.md and handover.md are regenerated from it",
+        "Given handover.md lists different open requirements or counts than spec.json\nWhen CI runs the spec check\nThen CI fails and says how to regenerate it"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #71).",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
+    },
+    {
+      "id": "REQ-046",
+      "title": "Record decisions as ADRs in compass/decisions.md",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want important decisions recorded as ADRs, so that anyone can see why things are the way they are.",
+      "ac": [
+        "Given a decision is made in chat\nWhen the work is merged\nThen an ADR-xxx entry is added to compass/spec.json with context, decision and consequences, and decisions.md is regenerated",
+        "Given existing decisions from November 2026\nWhen this requirement is done\nThen they are back-filled as ADRs",
+        "Given an ADR without context, decision or consequences, with a duplicate id or an unknown requirement\nWhen CI runs the spec check\nThen it fails"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #70).",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
+    },
+    {
+      "id": "REQ-045",
+      "title": "CLAUDE.md as the project lessons-learned memory",
+      "priority": "Should",
+      "status": "Done",
+      "story": "As the product owner, I want CLAUDE.md to keep commands, conventions and recurring mistakes in under a page, so that new sessions do not repeat known mistakes.",
+      "ac": [
+        "Given the agent makes the same mistake twice\nWhen it is corrected\nThen the correction is added to CLAUDE.md in the same PR",
+        "Given CLAUDE.md\nWhen it is reviewed\nThen it stays under one page and still loads the agent working knowledge"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #69).",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md"
+    },
+    {
+      "id": "REQ-038",
+      "title": "Capture intent in intent.md before writing requirements",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want each new request saved as a short intent file (what, why, constraints, success measure) that I approve, so that the reason behind a requirement is kept with the code, not lost in chat.",
+      "ac": [
+        "Given a new request in chat\nWhen the agent starts\nThen it writes compass/intent/<date>-<topic>.md and asks the Product Owner to approve it before adding requirements",
+        "Given an approved intent\nWhen requirements are created\nThen each requirement links back to its intent file and the intent lists them",
+        "Given a new requirement (REQ-051 or later) without an approved intent\nWhen CI runs the spec check\nThen it fails"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #62)."
+    },
+    {
+      "id": "REQ-039",
+      "title": "Write a plan before coding each requirement",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want the agent to write a plan (files, order of work, risks, how it will prove it works) before changing code, so that I can see and redirect the approach early.",
+      "ac": [
+        "Given an approved requirement\nWhen work starts\nThen the PR has a Plan section listing files, steps, risks and proof, and CI fails a PR that changes code without it",
+        "Given the plan changes during the work\nWhen the PR is merged\nThen the updated plan is committed with the code as the squash-commit message"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #63)."
+    },
+    {
+      "id": "REQ-040",
+      "title": "Turn project policies into repo skills",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want recurring rules (feature flags, VI/EN strings, GitHub issue/PR linking, Excel export rules) packaged as skills in .claude/skills/, so that every session applies them the same way.",
+      "ac": [
+        "Given a skill for a policy\nWhen a session does work that matches it\nThen the skill is loaded and followed",
+        "Given a policy that must always hold\nWhen it is written as a skill\nThen it also has a hook or CI check behind it"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-25 (issue #64)."
+    },
+    {
+      "id": "REQ-050",
+      "title": "Protect the guardrail enforcement files themselves",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want the files that enforce the guardrails to be protected paths too, so that a PR cannot quietly weaken the checks.",
+      "ac": [
+        "Given compass/guardrails.json lists compass/check-guardrails.mjs, compass/guardrails-lib.mjs, compass/hooks/, .claude/settings.json and .claude/settings.local.json under protectedPaths\nWhen a PR changes one of them without the human-approved label\nThen the Guardrails check fails",
+        "Given a PR that weakens compass/guardrails-lib.mjs or check-guardrails.mjs, or removes its own entries from protectedPaths\nWhen CI runs the Guardrails check\nThen the check and the rules from main (not the PR's copy) judge the change, so it still fails without the human-approved label"
+      ],
+      "source": "Found by the independent review of PR #74 (REQ-036); requested by the Product Owner on 2026-11-25 (issue #75)."
+    },
+    {
+      "id": "REQ-051",
+      "title": "Harden merge-pr and the plan check",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want the merge script and the plan check to close the gaps found in the independent reviews of PR #80 and PR #83, so that the delivery rules cannot be bypassed by accident.",
+      "ac": [
+        "Given a code PR whose Plan was removed or emptied after CI passed\nWhen compass/merge-pr.mjs runs\nThen it refuses to merge",
+        "Given the Product Owner accepted an important finding in chat\nWhen the author wants to merge\nThen REVIEW.md and agent-knowledge describe the documented route (a PR comment quoting her decision, then a fresh review listing the finding as accepted)",
+        "Given a Plan line whose value is only a placeholder (-, TBD, TODO, n/a)\nWhen the guardrails check runs\nThen it is treated as missing",
+        "Given a feature flag that is not in the legacy list\nWhen the unit tests run\nThen it must be default-off with a VI/EN value text, whatever its since date"
+      ],
+      "source": "Follow-ups from the APPROVE reviews of PR #80 and PR #83; requested by the Product Owner on 2026-11-25 (issue #81)."
+    },
+    {
+      "id": "REQ-043",
+      "title": "Failing test committed before the fix for every bug",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "story": "As the product owner, I want bug fixes to start with a separate commit that adds a failing test, and the fix commit not to change that test, so that the fix provably addresses the reported bug.",
+      "ac": [
+        "Given a bug issue\nWhen the fix PR is opened (with the bug label)\nThen CI checks that its first commit only adds a test, that the unit test fails at that commit, and that later commits do not edit it",
+        "Given a later commit edits that test\nWhen CI runs\nThen it fails unless the Product Owner approves (human-approved label)",
+        "Given a PR that closes a bug issue but has no bug label\nWhen compass/merge-pr.mjs runs\nThen it refuses to merge",
+        "Given the test from the first commit hangs or cannot start\nWhen the test-first check runs it\nThen the check fails (a run stopped by the time limit does not count as a failing test)"
+      ],
+      "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: feedback loop for self-verification); taken off hold by the Product Owner on 2026-11-25 (\"fix #67\", issue #67)."
+    },
+    {
+      "id": "REQ-041",
+      "title": "Evals for the agent setup",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want a suite of 20–50 past mistakes and review findings replayed automatically against the agent rules, hooks and checks, so that I know the agent setup did not get weaker after a rule change.",
+      "ac": [
+        "Given an eval suite of past mistakes and review findings (compass/evals/cases.json)\nWhen a pull request changes anything (including AGENTS.md, CLAUDE.md, skills or hooks) or the nightly CI run starts\nThen the suite runs in npm test and reports the pass rate in the test output and the CI run summary",
+        "Given a change that makes a past mistake pass again (the pass rate drops below 100 %)\nWhen CI runs\nThen the test job fails, so compass/merge-pr.mjs does not merge it",
+        "Given a pull request that removes an eval case or changes its expected outcome\nWhen CI runs\nThen it fails unless the case is marked retired with the Product Owner's approval, which compass/REVIEW.md routes to her",
+        "Given the free version chosen by the Product Owner\nWhen the suite runs\nThen it needs no API key, no paid service and no workflow change"
+      ],
+      "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: continuous evals in CI), issue #65; taken off hold by the Product Owner on 2026-11-26 (\"fix #65\") with the free version (no API key)."
+    },
+    {
+      "id": "REQ-052",
+      "title": "Keep intents and the review policy inside compass/",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want the intent files and the review policy to live in the compass/ folder with the rest of the delivery files, so that the process is in one place and matches the Compass portal.",
+      "ac": [
+        "Given the repository\nWhen I open compass/\nThen I find intent/ (template and intents) and REVIEW.md there, and no intent/ folder or REVIEW.md at the root",
+        "Given a requirement with an intent\nWhen CI runs the spec check\nThen the intent path must look like compass/intent/<file>.md"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
+    },
+    {
+      "id": "REQ-053",
+      "title": "A plan file for every change that touches code",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want each change that touches code to carry a written plan file (files, steps, risks, proof) committed before the code, so that the plan stays in the repo next to the code it explains.",
+      "ac": [
+        "Given a PR that changes code without a compass/plans/*.md file\nWhen compass/merge-pr.mjs runs\nThen it refuses to merge",
+        "Given a plan file whose Files, Steps, Risks or Proof section is empty or only a placeholder\nWhen the plan check runs\nThen it names the missing sections",
+        "Given a PR that changes no code\nWhen the plan check runs\nThen no plan file is needed"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
+    },
+    {
+      "id": "REQ-054",
+      "title": "Revise the business need into a business intent",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.",
+      "ac": [
+        "Given an intent for REQ-052 or later\nWhen CI runs the spec check\nThen it fails if the intent has no \"## Business need\" section",
+        "Given the intent template\nWhen an agent writes a new intent\nThen \"## What we want\" asks for who, what changes, baseline → target and by when"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
+    },
+    {
+      "id": "REQ-055",
+      "title": "An approved design before any code",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want the design of approved requirements drafted and approved by me before coding starts, so that code is built to a screen we agreed on.",
+      "ac": [
+        "Given a requirement from REQ-052 on past Draft without \"design\"\nWhen CI runs the spec check\nThen it fails and asks for a design file or \"none: <reason>\"",
+        "Given a requirement In build or Done whose design file is not Approved\nWhen CI runs the spec check\nThen it fails",
+        "Given a design file that does not mention the requirement\nWhen CI runs the spec check\nThen it fails"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
+    },
+    {
+      "id": "REQ-057",
+      "title": "A Figma frame in every UI design, approved before code",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-figma-for-ui-designs.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want every requirement that changes the UI to come with a Figma design that I approve before coding, so that I judge the real look in our design system instead of a text description.",
+      "ac": [
+        "Given a requirement from REQ-056 on, In build or Done, whose design is a file\nWhen the design file links no frame of the project Figma file (designTool?node-id=…)\nThen node compass/check-spec.mjs fails and asks for the Figma frame",
+        "Given a requirement with \"design\": \"none: <reason>\" (no UI)\nWhen CI runs the spec check\nThen no Figma link is required",
+        "Given requirements before REQ-056 and the REQ-101…153 baseline\nWhen CI runs the spec check\nThen they are exempt",
+        "Given an agent starts a design\nWhen it reads the design template and its working knowledge\nThen it draws the frames in the Bee There Figma file (designTool in spec.json) and links them before asking for approval"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (issue #100)"
+    },
+    {
+      "id": "REQ-056",
+      "title": "Export the trip checklist to the same Excel file as a separate sheet",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-checklist-in-excel.md",
+      "design": "compass/design/2026-11-26-checklist-in-excel.md",
+      "story": "As a trip member, I want the trip checklist in the Excel export as its own sheet so that I can see, print and share the to-dos together with the itinerary and costs.",
+      "ac": [
+        "Given a trip with checklist items\nWhen I tap Export Excel on the Plan or Costs tab\nThen the downloaded file has a Checklist sheet with one row per item: list, when (before the trip / before returning), item, for whom, done, ticked by and due day",
+        "Given another member has a personal checklist\nWhen I export the trip\nThen the Checklist sheet shows the shared checklists and my own personal checklists only",
+        "Given an \"everyone ticks\" item ticked by 2 of 4 members\nWhen I export\nThen its Done cell shows 2/4 and Ticked by lists those 2 names",
+        "Given a trip without checklist items\nWhen I export\nThen the file has no Checklist sheet and the other sheets are unchanged",
+        "Given I export in English\nWhen I open the Checklist sheet\nThen its headers and values are in English",
+        "Given a trip with \"before the trip\" and \"before returning\" checklists\nWhen I export\nThen the Checklist sheet comes right after the itinerary sheet, \"before the trip\" lists first, items in the app's order, and its last row shows done items / all items",
+        "Given an item that is not done and is overdue or due today on the export day\nWhen I export\nThen its row is red (overdue) or yellow (due today), as in the app (an \"everyone ticks\" item until every current member ticked it)"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (issue #99)"
+    },
+    {
+      "id": "REQ-058",
+      "title": "Automatic deploys publish only the newest commit of main",
+      "priority": "Must",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-26-deploy-newest-only.md",
+      "design": "none: CI workflow, no UI",
+      "story": "As the product owner, I want the live site to always show the newest merged version, so that a feature that was merged and deployed is never replaced by an older version.",
+      "ac": [
+        "Given two commits pushed to main whose Compass CI runs finish in reverse order\nWhen the deploy for the older commit starts after the newer one\nThen it is skipped with a notice and nothing older is published",
+        "Given an automatic deploy whose commit is the current head of main\nWhen it runs\nThen it builds, deploys and smoke-tests that commit as before",
+        "Given a manual deploy or rollback with a commit SHA\nWhen it runs\nThen that commit is deployed even if it is not the head of main"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat after the REQ-056 release was overwritten by an older deploy (issue #106)"
+    },
+    {
+      "id": "REQ-044",
+      "title": "Weekly security scan of the code and libraries",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "design": "none: scheduled CI job, no UI",
+      "story": "As the product owner, I want a scheduled weekly security scan of the code and dependencies with findings logged as issues, so that vulnerabilities are found between releases.",
+      "ac": [
+        "Given the weekly schedule\nWhen the scan finds an issue\nThen a `bug` issue with severity is opened",
+        "Given a finding is dismissed\nWhen it is closed\nThen a reason is recorded",
+        "Given a finding that has an open issue\nWhen a later scan no longer finds it\nThen the issue is closed with a comment"
+      ],
+      "source": "Issue #68 (gap analysis vs the AI-native SDLC playbook, 2026-11-25); taken off hold by the Product Owner on 2026-11-26 (\"fix #68\"), who chose npm audit + CodeQL and dismissal by a reason comment"
     }
   ],
   "tests": [
     {
       "id": "TC-001",
+      "title": "Owner and editors can edit; viewers cannot",
       "reqIds": [
         "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-002",
+      "title": "Non-members and signed-out users cannot edit",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-003",
+      "title": "Switching a member between view-only and edit never affects the owner",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "automated",
+      "file": "tests/tripAccess.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-004",
+      "title": "Viewer UI: banner shown, edit controls hidden, Copy this trip creates an editable copy",
+      "reqIds": [
+        "REQ-001"
+      ],
+      "type": "manual",
+      "steps": [
+        "Owner sets member B to View only",
+        "Sign in as B and open the trip",
+        "Check Plan, Costs, Checklist tabs have no add/edit/delete controls",
+        "Tap Copy this trip, confirm, and edit the new trip"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-005",
+      "title": "Each estimate shows planned, actual, difference and status",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-006",
+      "title": "Unlinked actuals are listed as unplanned; totals include them",
+      "reqIds": [
+        "REQ-002"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-007",
+      "title": "sortByOrder: ordered items first, others keep fallback order",
+      "reqIds": [
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-008",
+      "title": "Dragging writes only items whose position changed",
+      "reqIds": [
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-009",
+      "title": "UI: comparison card renders, drag reorders and persists, no handles for viewers",
+      "reqIds": [
+        "REQ-002",
+        "REQ-003"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flags costCompare and costReorder",
+        "Open a trip with estimates and actuals",
+        "Check the comparison card shows over/under/pending and the unplanned list",
+        "Drag an actual cost above another; reload; order is kept",
+        "Open as a view-only member: no ⠿ handles"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-010",
+      "title": "Unified table rows: items with linked actuals, extras inline, totals",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-011",
+      "title": "Unified table follows drag order across items and extras",
+      "reqIds": [
+        "REQ-004",
+        "REQ-003"
+      ],
+      "type": "automated",
+      "file": "tests/costCompare.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-012",
+      "title": "UI: add cost with estimate+actual, estimate only then 🧾 actual, actual only (unplanned)",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag costTable",
+        "Add a cost with both parts: one row shows estimate, actual, difference",
+        "Add estimate only, then tap 🧾 and save actual: row updates",
+        "Add actual only: row tagged Unplanned",
+        "View as view-only member: no controls"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-013",
+      "title": "Selected place is drawn once, outside normal pins and clusters",
+      "reqIds": [
+        "REQ-005"
+      ],
+      "type": "automated",
+      "file": "tests/mapSelect.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-014",
+      "title": "UI: open a place among many pins — highlighted pin and name label; closing removes it",
+      "reqIds": [
+        "REQ-005"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag selectedPin",
+        "Open a country with many famous places",
+        "Tap a place: highlighted pin with label appears",
+        "Open another place: highlight moves",
+        "Close the panel: highlight disappears"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-015",
+      "title": "Group total and per-person share for group / per person / picked people",
+      "reqIds": [
+        "REQ-006"
+      ],
+      "type": "automated",
+      "file": "tests/estimatePeople.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-016",
+      "title": "UI: pick people in the estimate form, label shows names, actual pre-filled with same people",
+      "reqIds": [
+        "REQ-006"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag costPickPeople",
+        "Add an estimate with Pick people (2 members, per person)",
+        "Row shows 'per person · A, B' and total = amount × 2",
+        "Tap 🧾: actual form splits between A and B"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-017",
+      "title": "View sorts: manual, date, amount, difference, name",
+      "reqIds": [
+        "REQ-008"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-018",
+      "title": "Sorting never loses or duplicates rows",
+      "reqIds": [
+        "REQ-008"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-019",
+      "title": "PDF rows follow the on-screen order",
+      "reqIds": [
+        "REQ-009"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-020",
+      "title": "Summary difference compares only spent items plus unplanned",
+      "reqIds": [
+        "REQ-010"
+      ],
+      "type": "automated",
+      "file": "tests/costSort.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-021",
+      "title": "UI: drag, ↑ ↓, sort menu, save as group order, PDF single table in on-screen order",
+      "reqIds": [
+        "REQ-008",
+        "REQ-009",
+        "REQ-010"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable costTable, costReorder, costSort",
+        "Drag a row and tap ↑ ↓: order sticks after reload",
+        "Sort by amount, export PDF: same order, single table",
+        "Save as group order: other members see it"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-022",
+      "title": "View access: members or public link; link viewers never edit",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "automated",
+      "file": "tests/publicTrip.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-023",
+      "title": "Tabs visible to link viewers",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "automated",
+      "file": "tests/publicTrip.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-024",
+      "title": "UI: turn link on, open signed-out, copy trip after sign-in, turn link off",
+      "reqIds": [
+        "REQ-007"
+      ],
+      "type": "manual",
+      "steps": [
+        "Enable flag tripPublicView",
+        "Owner turns on the view-only link and copies it",
+        "Open the link in a private window: Plan + Checklist visible, banner shown, no edit controls",
+        "Turn on 'Also show costs': Costs tab appears",
+        "Copy this trip: sign in, then an editable copy is created",
+        "Turn the link off: the link no longer opens the trip"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-025",
+      "title": "PDF keeps arrow characters (→ ← ↔ ⇒) in titles",
+      "reqIds": [
+        "REQ-009"
+      ],
+      "type": "manual",
+      "steps": [
+        "Name a cost 'Vé máy bay SGN → SIN'",
+        "Export the costs PDF",
+        "The arrow is visible in the row title"
+      ],
+      "status": "Passing (demo)"
+    },
+    {
+      "id": "TC-026",
+      "title": "English dictionary loads on its own and covers the Vietnamese keys",
+      "reqIds": [
+        "REQ-011"
+      ],
+      "type": "automated",
+      "file": "tests/pageSpeed.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-027",
+      "title": "Lighthouse mobile before/after on Map, Explore, Guides, Trips, About",
+      "reqIds": [
+        "REQ-011"
+      ],
+      "type": "manual",
+      "steps": [
+        "npm run build && npx vite preview",
+        "Run Lighthouse (mobile, performance) on each page",
+        "Compare with baseline in REQ-011"
+      ],
+      "status": "Passing: Explore 44→80, Guides 51→81, Trips 52→75, About 43→75; Map FCP 3.9→3.1 s, LCP 6.5→5.2 s"
+    },
+    {
+      "id": "TC-028",
+      "title": "Stops of places removed from the plan are hidden; re-added places show",
+      "reqIds": [
+        "REQ-012"
+      ],
+      "type": "automated",
+      "file": "tests/journey.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-029",
+      "title": "UI: delete a checked-in place from the plan → Journey count drops",
+      "reqIds": [
+        "REQ-012"
+      ],
+      "type": "manual",
+      "steps": [
+        "Open a trip with check-ins",
+        "Delete one checked-in place from the Plan",
+        "Journey (n) decreases and the place is gone from Journey"
+      ],
+      "status": "Passing (demo: 6 → 5)"
+    },
+    {
+      "id": "TC-030",
+      "title": "Features grouped, important first, none lost or duplicated",
+      "reqIds": [
+        "REQ-013"
+      ],
+      "type": "automated",
+      "file": "tests/aboutGroups.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-031",
+      "title": "Trip length and planned-place count",
+      "reqIds": [
+        "REQ-014"
+      ],
+      "type": "automated",
+      "file": "tests/tripFacts.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-032",
+      "title": "Main CSS is non-blocking; page CSS is split out",
+      "reqIds": [
+        "REQ-015"
+      ],
+      "type": "automated",
+      "file": "tests/pageCss.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-033",
+      "title": "Cost table action buttons do not overlap the difference column",
+      "reqIds": [
+        "REQ-004"
+      ],
+      "type": "automated",
+      "file": "tests/costTableLayout.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-034",
+      "title": "Journey dates follow the itinerary",
+      "reqIds": [
+        "REQ-017"
+      ],
+      "type": "automated",
+      "file": "tests/journeyDates.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-035",
+      "title": "Google Maps link and coordinates for every place in Admin",
+      "reqIds": [
+        "REQ-018"
+      ],
+      "type": "automated",
+      "file": "tests/adminPlaceCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-036",
+      "title": "Rename a checklist item keeping its state",
+      "reqIds": [
+        "REQ-019"
+      ],
+      "type": "automated",
+      "file": "tests/checklistEdit.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-037",
+      "title": "Journey uses the entered check-in date",
+      "reqIds": [
+        "REQ-020"
+      ],
+      "type": "automated",
+      "file": "tests/journeyDates.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-038",
+      "title": "Admin coordinate overrides apply to saved places and check-ins",
+      "reqIds": [
+        "REQ-021"
+      ],
+      "type": "automated",
+      "file": "tests/placeCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-039",
+      "title": "Admin Google Maps link is used for directions",
+      "reqIds": [
+        "REQ-022"
+      ],
+      "type": "automated",
+      "file": "tests/placeCoords.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-101",
+      "title": "Automated UI tests: Account & platform",
+      "reqIds": [
+        "REQ-101",
+        "REQ-102",
+        "REQ-103",
+        "REQ-104",
+        "REQ-105",
+        "REQ-106",
+        "REQ-107",
+        "REQ-108",
+        "REQ-109",
+        "REQ-110"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/account.spec.mjs"
+    },
+    {
+      "id": "TC-102",
+      "title": "Automated UI tests: Map & places",
+      "reqIds": [
+        "REQ-111",
+        "REQ-112",
+        "REQ-113",
+        "REQ-114",
+        "REQ-115",
+        "REQ-116",
+        "REQ-117"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/map.spec.mjs"
+    },
+    {
+      "id": "TC-103",
+      "title": "Automated UI tests: Check-ins & memories",
+      "reqIds": [
+        "REQ-118",
+        "REQ-119",
+        "REQ-120",
+        "REQ-121",
+        "REQ-122"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkins.spec.mjs"
+    },
+    {
+      "id": "TC-104",
+      "title": "Automated UI tests: Social",
+      "reqIds": [
+        "REQ-123",
+        "REQ-124",
+        "REQ-125"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/social.spec.mjs"
+    },
+    {
+      "id": "TC-105",
+      "title": "Automated UI tests: Trips",
+      "reqIds": [
+        "REQ-126",
+        "REQ-127",
+        "REQ-128",
+        "REQ-129",
+        "REQ-130",
+        "REQ-131",
+        "REQ-132",
+        "REQ-133"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/trips.spec.mjs"
+    },
+    {
+      "id": "TC-106",
+      "title": "Automated UI tests: Guides, tips & gear",
+      "reqIds": [
+        "REQ-134",
+        "REQ-135",
+        "REQ-136",
+        "REQ-137",
+        "REQ-138",
+        "REQ-139",
+        "REQ-140",
+        "REQ-141"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/guides.spec.mjs"
+    },
+    {
+      "id": "TC-107",
+      "title": "Automated UI tests: Help & onboarding",
+      "reqIds": [
+        "REQ-142",
+        "REQ-143",
+        "REQ-144",
+        "REQ-145",
+        "REQ-146"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/help.spec.mjs"
+    },
+    {
+      "id": "TC-108",
+      "title": "Automated UI tests: Admin",
+      "reqIds": [
+        "REQ-147",
+        "REQ-148",
+        "REQ-149",
+        "REQ-150",
+        "REQ-151",
+        "REQ-152",
+        "REQ-153"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/admin.spec.mjs"
+    },
+    {
+      "id": "TC-040",
+      "title": "Tour card never covers the highlighted target on phones",
+      "reqIds": [
+        "REQ-023"
+      ],
+      "type": "automated",
+      "file": "tests/tourLayout.test.mjs",
+      "status": "Passing"
+    },
+    {
+      "id": "TC-041",
+      "reqIds": [
+        "REQ-024"
       ],
       "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — happy path",
       "gherkin": "Given I am an user\nWhen I increase the number of user by adding some suggestion from 'Guides' into trip's checklist with valid details and confirm\nThen the result is saved and I see a confirmation",
@@ -83,9 +2251,9 @@
       "status": "Not run"
     },
     {
-      "id": "TC-002",
+      "id": "TC-042",
       "reqIds": [
-        "REQ-001"
+        "REQ-024"
       ],
       "title": "Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — invalid input",
       "gherkin": "Given a required field is empty or invalid\nWhen I confirm\nThen I see an error next to that field and nothing is saved",
@@ -93,9 +2261,9 @@
       "status": "Not run"
     },
     {
-      "id": "TC-003",
+      "id": "TC-043",
       "reqIds": [
-        "REQ-002"
+        "REQ-025"
       ],
       "title": "Accessibility and performance baseline — happy path",
       "gherkin": "Given any page\nWhen I navigate with the keyboard only\nThen every action is reachable and has a visible focus state",
@@ -103,15 +2271,377 @@
       "status": "Not run"
     },
     {
-      "id": "TC-004",
+      "id": "TC-044",
       "reqIds": [
-        "REQ-002"
+        "REQ-025"
       ],
       "title": "Accessibility and performance baseline — invalid input",
       "gherkin": "Given invalid input for Accessibility and performance baseline\nWhen I submit\nThen I see an error and nothing is saved",
       "type": "Manual",
       "status": "Not run"
+    },
+    {
+      "id": "TC-045",
+      "title": "Excel workbook: sheets, formulas linking costs to the itinerary, rates, drop-downs",
+      "reqIds": [
+        "REQ-026"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-046",
+      "title": "UI: Export Excel on the Plan and Costs tabs, hidden while the flag is off",
+      "reqIds": [
+        "REQ-026",
+        "REQ-029",
+        "REQ-030"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/excel.spec.mjs"
+    },
+    {
+      "id": "TC-047",
+      "title": "Bug reporter: a deliberately failing test produces one issue (dry run); reruns comment; passes close",
+      "reqIds": [
+        "REQ-027"
+      ],
+      "type": "manual",
+      "status": "Passing (dry run, 2026-11-23)",
+      "file": "e2e/report-bugs.mjs"
+    },
+    {
+      "id": "TC-048",
+      "title": "Excel: one itinerary & costs sheet, item totals, cached formula values, sheet list",
+      "reqIds": [
+        "REQ-029"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-049",
+      "title": "Excel: pre-trip costs first, day blocks, estimate/actual columns, currency columns only for multi-currency trips, totals",
+      "reqIds": [
+        "REQ-030"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-050",
+      "title": "Excel: Google Maps cell holds the full URL (also the admin link)",
+      "reqIds": [
+        "REQ-032"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-051",
+      "title": "Cost types list and Excel cost type column",
+      "reqIds": [
+        "REQ-031"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/costTypes.test.mjs"
+    },
+    {
+      "id": "TC-052",
+      "title": "UI: save a cost with a type; picker hidden while the flag is off",
+      "reqIds": [
+        "REQ-031"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/costType.spec.mjs"
+    },
+    {
+      "id": "TC-053",
+      "title": "Checklist due day: trip day list, set/clear, due-today and overdue status",
+      "reqIds": [
+        "REQ-033"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/checklistEdit.test.mjs"
+    },
+    {
+      "id": "TC-054",
+      "title": "UI: mark an item for Day 3, highlighted on that day, kept after reload, cleared",
+      "reqIds": [
+        "REQ-033"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkDue.spec.mjs"
+    },
+    {
+      "id": "TC-055",
+      "title": "Workflows: deploy gated on green CI, smoke test + rollback, npm audit",
+      "reqIds": [
+        "REQ-034"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/cicd.test.mjs"
+    },
+    {
+      "id": "TC-056",
+      "title": "Bug #54: skipping the quick tour right after it opens keeps it closed",
+      "reqIds": [
+        "REQ-143"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/help.spec.mjs"
+    },
+    {
+      "id": "TC-057",
+      "title": "Agent knowledge file exists, is imported by CLAUDE.md and holds no secrets",
+      "reqIds": [
+        "REQ-035"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/agentKnowledge.test.mjs"
+    },
+    {
+      "id": "TC-058",
+      "title": "REVIEW.md: passes, severities, merge rule; linked from AGENTS.md, PR template and agent knowledge",
+      "reqIds": [
+        "REQ-037"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/reviewPolicy.test.mjs"
+    },
+    {
+      "id": "TC-059",
+      "title": "Guardrails: protected/forbidden paths, 12-file limit, deletions, dependency changes, secrets; edit hook decisions",
+      "reqIds": [
+        "REQ-036"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/guardrails.test.mjs"
+    },
+    {
+      "id": "TC-060",
+      "title": "Handover: open requirements, counts and feature stage; stale handover detected; committed file is current",
+      "reqIds": [
+        "REQ-047"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/handover.test.mjs"
+    },
+    {
+      "id": "TC-061",
+      "title": "ADRs: November decisions back-filled, validation of fields/ids/links, decisions.md generated",
+      "reqIds": [
+        "REQ-046"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/decisions.test.mjs"
+    },
+    {
+      "id": "TC-062",
+      "title": "CLAUDE.md: under one page, commands, lessons-learned section and rule, knowledge import",
+      "reqIds": [
+        "REQ-045"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/claudeMd.test.mjs"
+    },
+    {
+      "id": "TC-063",
+      "title": "Intent: template, back-filled intent, requirement links validated (missing, unapproved, unlisted, required from REQ-051)",
+      "reqIds": [
+        "REQ-038"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/intent.test.mjs"
+    },
+    {
+      "id": "TC-064",
+      "title": "Plan: required for code PRs, template, merge-pr refuses without green CI/APPROVE and keeps the plan in the commit",
+      "reqIds": [
+        "REQ-039"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/plan.test.mjs"
+    },
+    {
+      "id": "TC-065",
+      "title": "Skills: four policy skills with valid frontmatter, use-when descriptions and an existing enforcing check",
+      "reqIds": [
+        "REQ-040"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/skills.test.mjs"
+    },
+    {
+      "id": "TC-066",
+      "title": "Policy checks behind the skills: VI/EN keys and placeholders match; flags have VI/EN texts and new flags are default-off with a value",
+      "reqIds": [
+        "REQ-040",
+        "REQ-051"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/skills.test.mjs"
+    },
+    {
+      "id": "TC-068",
+      "title": "Enforcement files are protected: CI check fails without human-approved, the edit hook blocks them until approved, and CI runs main's copy of the check so a weakened check in the PR does not pass",
+      "reqIds": [
+        "REQ-050"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/guardrails.test.mjs"
+    },
+    {
+      "id": "TC-069",
+      "title": "Test-first check: the first commit only adds a test that fails before the fix, later commits do not edit it unless human-approved, merge-pr needs the bug label for bug issues; a test that times out does not count as failing",
+      "reqIds": [
+        "REQ-043"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/testFirst.test.mjs"
+    },
+    {
+      "id": "TC-067",
+      "title": "Hardening: merge-pr re-checks the plan, placeholder plan values count as missing, accepted-finding route documented, new-flag rule for every non-legacy flag",
+      "reqIds": [
+        "REQ-051"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/plan.test.mjs"
+    },
+    {
+      "id": "TC-109",
+      "title": "Intent and review files are under compass/; old root paths are gone",
+      "reqIds": [
+        "REQ-052"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/intent.test.mjs, tests/reviewPolicy.test.mjs"
+    },
+    {
+      "id": "TC-110",
+      "title": "Plan file required for code changes; empty sections and placeholders rejected",
+      "reqIds": [
+        "REQ-053"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/plan.test.mjs"
+    },
+    {
+      "id": "TC-111",
+      "title": "New intents keep the business need",
+      "reqIds": [
+        "REQ-054"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/intent.test.mjs"
+    },
+    {
+      "id": "TC-112",
+      "title": "Design gate: missing design, unapproved design for In build, design not mentioning the requirement",
+      "reqIds": [
+        "REQ-055"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/design.test.mjs"
+    },
+    {
+      "id": "TC-113",
+      "title": "Design check: UI designs from REQ-056 on need a Figma frame link; template, skill and agent knowledge say so",
+      "reqIds": [
+        "REQ-057"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/design.test.mjs"
+    },
+    {
+      "id": "TC-114",
+      "title": "Excel Checklist sheet: position, rows and order, per-person progress, privacy filter, colours, total, EN labels, no sheet when empty",
+      "reqIds": [
+        "REQ-056"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/tripExcel.test.mjs"
+    },
+    {
+      "id": "TC-115",
+      "title": "Deploy workflow: automatic runs skip a commit that is not the head of main (build, deploy, smoke test); manual runs never skip",
+      "reqIds": [
+        "REQ-058"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/cicd.test.mjs"
+    },
+    {
+      "id": "TC-116",
+      "title": "UI: an \"everyone ticks\" item counts only current trip members (bug #108)",
+      "reqIds": [
+        "REQ-131"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkTicks.spec.mjs"
+    },
+    {
+      "id": "TC-117",
+      "title": "Security scan: npm audit and CodeQL findings become bug issues with severity; gone findings close their issue; a failed source closes nothing",
+      "reqIds": [
+        "REQ-044"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/security-scan.test.mjs"
+    },
+    {
+      "id": "TC-118",
+      "title": "Security scan: a closed finding stays closed only with a \"Dismissed:\" reason (else reopened); weekly + manual schedule with least-privilege permissions",
+      "reqIds": [
+        "REQ-044"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/security-scan.test.mjs"
+    },
+    {
+      "id": "TC-120",
+      "title": "Agent setup evals: all active cases pass with the pass rate reported, 20–50 well-formed cases, a weakened guardrail drops the pass rate, cases on main cannot be removed or weakened without a retired note",
+      "reqIds": [
+        "REQ-041"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/agentEvals.test.mjs"
     }
-  ],
-  "decisions": []
+  ]
 }

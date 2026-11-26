@@ -166,6 +166,6 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Context.** The Product Owner asked to bring the AI-native SDLC into the Compass portal, to move intent and review into compass/, to add an approved design step after requirements (one design tool per project, e.g. Figma) and to keep a plan.md for every change.
 
-**Decision.** Proposed: every new change goes business need → approved business intent → approved requirements → approved design → plan file → code. Intents and REVIEW.md live in compass/; designs in compass/design/; plans in compass/plans/. check-spec enforces the intent need section and the design gate from REQ-052; merge-pr enforces the plan file.
+**Decision.** Every new change goes business need → approved business intent → approved requirements → approved design → plan file → code. Intents and REVIEW.md live in compass/; designs in compass/design/; plans in compass/plans/. check-spec enforces the intent need section and the design gate from REQ-052; merge-pr enforces the plan file.
 
 **Consequences.** The CI guardrails check still reads the PR body Plan: moving it to plan files changes protected paths (check-guardrails.mjs, guardrails-lib.mjs) and needs the Product Owner's explicit approval and the human-approved label. Changes without UI state "design": "none: <reason>".

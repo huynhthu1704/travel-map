@@ -508,6 +508,8 @@ As the product owner, I want the intent files and the review policy to live in t
 
 Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
 
+Design: none: process change, no UI
+
 - Given the repository · When I open compass/ · Then I find intent/ (template and intents) and REVIEW.md there, and no intent/ folder or REVIEW.md at the root
 - Given a requirement with an intent · When CI runs the spec check · Then the intent path must look like compass/intent/<file>.md
 
@@ -516,6 +518,8 @@ Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-
 As the product owner, I want each change that touches code to carry a written plan file (files, steps, risks, proof) committed before the code, so that the plan stays in the repo next to the code it explains.
 
 Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+
+Design: none: process change, no UI
 
 - Given a PR that changes code without a compass/plans/*.md file · When compass/merge-pr.mjs runs · Then it refuses to merge
 - Given a plan file whose Files, Steps, Risks or Proof section is empty or only a placeholder · When the plan check runs · Then it names the missing sections
@@ -527,6 +531,8 @@ As the product owner, I want my request kept in my own words as the business nee
 
 Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
 
+Design: none: process change, no UI
+
 - Given an intent for REQ-052 or later · When CI runs the spec check · Then it fails if the intent has no "## Business need" section
 - Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who, what changes, baseline → target and by when
 
@@ -535,6 +541,8 @@ Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-
 As the product owner, I want the design of approved requirements drafted and approved by me before coding starts, so that code is built to a screen we agreed on.
 
 Intent: [intent/2026-11-26-design-and-plan-before-code.md](../intent/2026-11-26-design-and-plan-before-code.md)
+
+Design: none: process change, no UI
 
 - Given a requirement from REQ-052 on past Draft without "design" · When CI runs the spec check · Then it fails and asks for a design file or "none: <reason>"
 - Given a requirement In build or Done whose design file is not Approved · When CI runs the spec check · Then it fails

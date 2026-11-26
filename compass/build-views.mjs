@@ -89,6 +89,7 @@ export function renderRequirements(spec) {
     L.push(`## ${r.id} — ${r.title}`, '');
     if (r.story) L.push(r.story, '');
     if (r.intent) L.push(`Intent: [${r.intent}](../${r.intent})`, '');
+    if (r.design) L.push(/^none:/i.test(r.design) ? `Design: ${r.design}` : `Design: [${r.design}](../${r.design})`, '');
     if (r.description) L.push(r.description, '');
     for (const a of r.ac) L.push('- ' + a.replaceAll('\n', ' · '));
     L.push('');
@@ -139,6 +140,34 @@ export function intentProblems(spec, readIntent) {
     if (text == null) problems.push(`${r.id} points to missing ${r.intent}`);
     else if (!/^Status:\s*Approved\b/m.test(text)) problems.push(`${r.id} points to ${r.intent}, which is not Approved yet`);
     else if (!(text.split(/^## Requirements\s*$/m)[1] || '').split(/^## /m)[0].includes(r.id)) problems.push(`${r.intent} does not list ${r.id} under Requirements`);
+  }
+  return problems;
+}
+
+// REQ-055: from this requirement number on (below the REQ-101 baseline) a design is required before code
+export const DESIGN_REQUIRED_FROM = 52;
+/**
+ * Problems with requirement → design links. A requirement has "design": "compass/design/<file>.md" or
+ * "design": "none: <reason>" (no UI). In build / Done needs an Approved design file that lists the requirement.
+ */
+export function designProblems(spec, readDesign) {
+  const problems = [];
+  for (const r of spec.requirements) {
+    const n = num(r.id);
+    if (!r.design) {
+      if (n >= DESIGN_REQUIRED_FROM && !isBaseline(n) && r.status !== 'Draft') problems.push(`${r.id} has no design (add "design": "compass/design/<file>.md", or "none: <reason>" when it has no UI)`);
+      continue;
+    }
+    if (/^none:\s*\S/i.test(r.design)) continue;
+    if (!/^compass\/design\/[\w.-]+\.md$/.test(r.design)) {
+      problems.push(`${r.id} design should look like compass/design/<file>.md or "none: <reason>"`);
+      continue;
+    }
+    const text = readDesign(r.design);
+    if (text == null) problems.push(`${r.id} points to missing ${r.design}`);
+    // whole id only: REQ-100 must not match inside REQ-1000
+    else if (!new RegExp(`\\b${r.id}(?!\\d)`).test(text)) problems.push(`${r.design} does not mention ${r.id}`);
+    else if ((r.status === 'In build' || r.status === 'Done') && !/^Status:\s*Approved\b/m.test(text)) problems.push(`${r.id} is ${r.status} but ${r.design} is not Approved — no code before the design is approved`);
   }
   return problems;
 }

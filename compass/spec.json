@@ -2413,7 +2413,7 @@
         "REQ-055"
       ],
       "type": "automated",
-      "status": "Not run",
+      "status": "Passing",
       "file": "tests/design.test.mjs"
     }
   ]

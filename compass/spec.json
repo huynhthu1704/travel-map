@@ -215,7 +215,7 @@
       "title": "Need → intent → requirements → design → plan → code",
       "status": "Accepted",
       "context": "The Product Owner asked to bring the AI-native SDLC into the Compass portal, to move intent and review into compass/, to add an approved design step after requirements (one design tool per project, e.g. Figma) and to keep a plan.md for every change.",
-      "decision": "Proposed: every new change goes business need → approved business intent → approved requirements → approved design → plan file → code. Intents and REVIEW.md live in compass/; designs in compass/design/; plans in compass/plans/. check-spec enforces the intent need section and the design gate from REQ-052; merge-pr enforces the plan file.",
+      "decision": "Every new change goes business need → approved business intent → approved requirements → approved design → plan file → code. Intents and REVIEW.md live in compass/; designs in compass/design/; plans in compass/plans/. check-spec enforces the intent need section and the design gate from REQ-052; merge-pr enforces the plan file.",
       "consequences": "The CI guardrails check still reads the PR body Plan: moving it to plan files changes protected paths (check-guardrails.mjs, guardrails-lib.mjs) and needs the Product Owner's explicit approval and the human-approved label. Changes without UI state \"design\": \"none: <reason>\".",
       "reqIds": [
         "REQ-052",
@@ -1454,7 +1454,7 @@
         "Given the repository\nWhen I open compass/\nThen I find intent/ (template and intents) and REVIEW.md there, and no intent/ folder or REVIEW.md at the root",
         "Given a requirement with an intent\nWhen CI runs the spec check\nThen the intent path must look like compass/intent/<file>.md"
       ],
-      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC). Draft until she approves the intent."
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
     },
     {
       "id": "REQ-053",
@@ -1469,7 +1469,7 @@
         "Given a plan file whose Files, Steps, Risks or Proof section is empty or only a placeholder\nWhen the plan check runs\nThen it names the missing sections",
         "Given a PR that changes no code\nWhen the plan check runs\nThen no plan file is needed"
       ],
-      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC). Draft until she approves the intent."
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
     },
     {
       "id": "REQ-054",
@@ -1483,7 +1483,7 @@
         "Given an intent for REQ-052 or later\nWhen CI runs the spec check\nThen it fails if the intent has no \"## Business need\" section",
         "Given the intent template\nWhen an agent writes a new intent\nThen \"## What we want\" asks for who, what changes, baseline → target and by when"
       ],
-      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC). Draft until she approves the intent."
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
     },
     {
       "id": "REQ-055",
@@ -1498,7 +1498,7 @@
         "Given a requirement In build or Done whose design file is not Approved\nWhen CI runs the spec check\nThen it fails",
         "Given a design file that does not mention the requirement\nWhen CI runs the spec check\nThen it fails"
       ],
-      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC). Draft until she approves the intent."
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
     }
   ],
   "tests": [

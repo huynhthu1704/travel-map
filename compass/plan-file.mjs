@@ -3,7 +3,6 @@
 //   node compass/plan-file.mjs [baseRef]        (default origin/main)
 // (The CI guardrails check keeps checking the PR body "## Plan" until the Product Owner approves changing it.)
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CODE_PATH } from './guardrails-lib.mjs';
 
@@ -42,12 +41,14 @@ export function planTextsFromPatches(files) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const git = (...a) => execFileSync('git', ['-c', 'core.quotePath=false', ...a], { encoding: 'utf8' });
+  // Run from the repository root (paths in the diff are root-relative) and judge the committed plan (HEAD), not the working tree
+  const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+  const git = (...a) => execFileSync('git', ['-c', 'core.quotePath=false', ...a], { encoding: 'utf8', cwd: root, maxBuffer: 64 * 1024 * 1024 });
   const base = git('merge-base', process.argv[2] || 'origin/main', 'HEAD').trim();
   const parts = git('diff', '--name-status', '--no-renames', '-z', base, 'HEAD').split('\0').filter(Boolean);
   const files = [];
   for (let i = 0; i + 1 < parts.length; i += 2) files.push({ status: parts[i][0], path: parts[i + 1] });
-  const texts = Object.fromEntries(files.filter((f) => f.status !== 'D' && isPlanFile(f.path) && existsSync(f.path)).map((f) => [f.path, readFileSync(f.path, 'utf8')]));
+  const texts = Object.fromEntries(files.filter((f) => f.status !== 'D' && isPlanFile(f.path)).map((f) => [f.path, git('show', `HEAD:${f.path}`)]));
   const problems = planFileProblems(files, texts);
   if (problems.length) {
     console.error(`Plan check failed:\n- ${problems.join('\n- ')}`);

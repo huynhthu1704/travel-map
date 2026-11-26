@@ -57,7 +57,18 @@ test('TC-111: intents of new requirements keep the business need', () => {
   assert.match(needProblems(spec, (f) => files[f] ?? null)[0], /x\.md has no "## Business need"/);
   files['compass/intent/x.md'] += '\n## Business need\nwords';
   assert.deepEqual(needProblems(spec, (f) => files[f] ?? null), []);
-  assert.match(readRepo('compass/intent/README.md'), /## Business need/);
+  // The same intent file is reported once, however many requirements point to it
+  spec.requirements.push({ id: 'REQ-060', intent: 'compass/intent/y.md' }, { id: 'REQ-061', intent: 'compass/intent/y.md' });
+  files['compass/intent/y.md'] = 'Status: Approved';
+  assert.deepEqual(needProblems(spec, (f) => files[f] ?? null).length, 1);
+  // The REQ-101…153 baseline is exempt
+  assert.deepEqual(needProblems({ requirements: [{ id: 'REQ-120', intent: 'compass/intent/y.md' }] }, (f) => files[f] ?? null), []);
+  // The template keeps her words and asks for a measurable business intent (AC 2)
+  const readme = readRepo('compass/intent/README.md');
+  assert.match(readme, /## Business need/);
+  // only the template's placeholder line under "## What we want", up to the next heading
+  const want = (readme.split(/^## What we want\s*$/m).at(-1) || '').split(/^## /m)[0];
+  for (const part of ['who', 'what changes', 'baseline → target', 'by when']) assert.ok(want.includes(part), `"## What we want" asks for ${part}`);
 });
 
 

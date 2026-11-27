@@ -22,6 +22,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 | ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 | ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
+| ADR-019 | 2026-11-27 | The deploy rollback pages through all recent deploy runs | Accepted | REQ-034 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -202,3 +203,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** Compass Deploy (workflow_run) compares its commit with the current head of main and skips build, deploy and smoke test when they differ; the newer commit's own deploy publishes it. Manual deploys and rollbacks are unchanged. The Product Owner approved changing the protected workflow in chat.
 
 **Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.
+
+## ADR-019 — The deploy rollback pages through all recent deploy runs
+
+**Status:** Accepted · **Date:** 2026-11-27 · **Requirements:** REQ-034
+
+**Context.** Since REQ-058, skipped automatic deploys end as successful runs. The rollback only looked at the 20 newest successful Compass Deploy runs, so after many quick merges it could find no good version and only opened a bug (issue #110).
+
+**Decision.** The rollback reads successful Compass Deploy runs 100 per page, up to 10 pages, newest first, and redeploys the first commit (other than the failed one) whose smoke test passed. The Product Owner approved changing the protected workflow in chat on 2026-11-27.
+
+**Consequences.** A rollback can make more GitHub API calls (one per skipped run it passes) but stays within the workflow token limit; if no good run is found in 1,000 runs it still opens a bug and a manual redeploy is needed.

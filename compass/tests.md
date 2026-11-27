@@ -88,3 +88,4 @@ _Generated from `spec.json`. Unit tests: `npm test` (tests/). UI tests: `npm run
 | TC-113 | Design check: UI designs from REQ-056 on need a Figma frame link; template, skill and agent knowledge say so | REQ-057 | automated | Passing | tests/design.test.mjs |
 | TC-114 | Excel Checklist sheet: position, rows and order, per-person progress, privacy filter, colours, total, EN labels, no sheet when empty | REQ-056 | automated | Passing | tests/tripExcel.test.mjs |
 | TC-115 | Deploy workflow: automatic runs skip a commit that is not the head of main (build, deploy, smoke test); manual runs never skip | REQ-058 | automated | Passing | tests/cicd.test.mjs |
+| TC-116 | Bug #110: the deploy rollback redeploys the last version whose smoke test passed, even after more than 20 skipped deploys; never the failed commit; manual runs do not roll back | REQ-034 | automated | Passing | tests/deployRollback.test.mjs |

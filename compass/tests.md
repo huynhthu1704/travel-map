@@ -4,6 +4,13 @@
 | Requirement | Test cases |
 |---|---|
 | REQ-002 Accessibility and performance baseline | TC-003 (Not run), TC-004 (Not run) |
+| REQ-003 Add a Guide suggestion to a trip checklist in one step | ⚠ not covered |
+| REQ-004 Choose which trip receives the suggestion | ⚠ not covered |
+| REQ-005 Block duplicate Guide suggestions on one checklist | ⚠ not covered |
+| REQ-006 Confirmation and clear error when adding a suggestion | ⚠ not covered |
+| REQ-007 Admin sees how many Guide suggestions are added to checklists | ⚠ not covered |
+| REQ-008 Admin count by Guide without personal data | ⚠ not covered |
+| REQ-009 Make 'Add to checklist' visible on every Guide suggestion | ⚠ not covered |
 
 ## TC-001 · Increase the number of user by adding some suggestion from 'Guides' into trip's checklist — happy path
 Covers: REQ-001 · Type: Automated · Status: Not run

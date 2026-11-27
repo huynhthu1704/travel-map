@@ -78,6 +78,96 @@
         "Given a 4G connection\nWhen I open the home page\nThen it becomes interactive within 2.5 seconds (Lighthouse)"
       ],
       "featureId": "F-001"
+    },
+    {
+      "id": "REQ-003",
+      "featureId": "F-001",
+      "title": "Add a Guide suggestion to a trip checklist in one step",
+      "story": "As a traveller who owns a trip, I want to add a suggestion I read in a Guide to my trip's checklist with one action, so that I don't retype it by hand.",
+      "ac": [
+        "Given I view a Guide suggestion and have a trip selected · When I activate 'Add to checklist' once · Then a new unticked checklist item with the suggestion's text appears on that trip's checklist without a page reload",
+        "Given the suggestion text is longer than the checklist item limit of 120 characters (CHECK_ITEM_MAX in src/lib/checklist.js) · When I add it · Then the item is saved truncated to 120 characters and the add succeeds",
+        "Given I add a suggestion · When trip members open the shared checklist · Then they see the new item with the same tick behaviour as any other item"
+      ],
+      "priority": "Must",
+      "status": "Draft"
+    },
+    {
+      "id": "REQ-004",
+      "featureId": "F-001",
+      "title": "Choose which trip receives the suggestion",
+      "story": "As a traveller with several trips, I want to pick the trip a suggestion goes to, so that it lands on the right checklist.",
+      "ac": [
+        "Given I own two or more trips · When I activate 'Add to checklist' on a suggestion · Then I am asked to choose a trip before anything is saved, and the item is added only to the chosen trip",
+        "Given I have no trip yet · When I activate 'Add to checklist' · Then I see a message that I need a trip first with an action to create one, and no item is saved",
+        "Given I am only a member (not owner) of a trip and the app does not let me edit that trip's checklist · When the trip list is shown · Then that trip is not offered as a target"
+      ],
+      "priority": "Should",
+      "status": "Draft"
+    },
+    {
+      "id": "REQ-005",
+      "featureId": "F-001",
+      "title": "Block duplicate Guide suggestions on one checklist",
+      "story": "As a traveller, I want the app to stop me adding the same Guide suggestion twice to one trip, so that my checklist has no repeated items.",
+      "ac": [
+        "Given a trip's checklist already contains an item added from suggestion X · When I add suggestion X to the same trip again · Then no second item is created and I see a message that it is already on the checklist",
+        "Given suggestion X is already on trip A's checklist · When I add suggestion X to trip B · Then the item is added to trip B",
+        "Given I renamed the item that came from suggestion X · When I add suggestion X to the same trip again · Then it is still treated as a duplicate"
+      ],
+      "priority": "Must",
+      "status": "Draft"
+    },
+    {
+      "id": "REQ-006",
+      "featureId": "F-001",
+      "title": "Confirmation and clear error when adding a suggestion",
+      "story": "As a traveller, I want to be told whether my suggestion was added or why it failed, so that I know the state of my checklist.",
+      "ac": [
+        "Given the add succeeds · When the item is saved · Then I see a confirmation naming the trip within the same screen and the suggestion's action changes to an 'Added' state",
+        "Given the add cannot be saved (for example the device is offline or the save is rejected) · When I activate 'Add to checklist' · Then I see an error message that states the item was not added and what I can do next, and no item appears on the checklist",
+        "Given an error occurred · When I activate 'Add to checklist' again after the cause is fixed · Then the item is added once"
+      ],
+      "priority": "Should",
+      "status": "Draft"
+    },
+    {
+      "id": "REQ-007",
+      "featureId": "F-001",
+      "title": "Admin sees how many Guide suggestions are added to checklists",
+      "story": "As an Admin, I want to see how many Guide suggestions travellers add to checklists, so that the team can tell whether Guides help people plan and keep using the app.",
+      "ac": [
+        "Given travellers have added Guide suggestions · When an Admin opens Insights · Then the total number of suggestions added is shown for a selectable period (last 7 days, last 30 days, all time)",
+        "Given a suggestion add is blocked as a duplicate or fails with an error · When the count is calculated · Then that attempt is not counted",
+        "Given a user without Insights permission · When they open the admin area · Then they cannot see the count"
+      ],
+      "priority": "Must",
+      "status": "Draft"
+    },
+    {
+      "id": "REQ-008",
+      "featureId": "F-001",
+      "title": "Admin count by Guide without personal data",
+      "story": "As an Admin, I want the count broken down by Guide while hiding who added what, so that we learn which Guides work without exposing individual travellers.",
+      "ac": [
+        "Given suggestions were added from several Guides · When an Admin views the count · Then each Guide is listed with its number of adds",
+        "Given the stored count data · When it is inspected or exported · Then it contains no user id, name, email or trip id, only Guide, date and count",
+        "Given a Guide has no adds in the period · When the Admin views the list · Then that Guide is shown with a count of 0"
+      ],
+      "priority": "Should",
+      "status": "Draft"
+    },
+    {
+      "id": "REQ-009",
+      "featureId": "F-001",
+      "title": "Make 'Add to checklist' visible on every Guide suggestion",
+      "story": "As a traveller reading a Guide, I want to see the 'Add to checklist' action next to each suggestion, so that I find it without searching.",
+      "ac": [
+        "Given I open a Guide that has suggestions · When the page loads · Then each suggestion shows an 'Add to checklist' action without opening any menu",
+        "Given I use only a keyboard or a screen reader · When I move through a suggestion · Then the action can be reached and activated by keyboard and has an accessible name that includes the suggestion text (REQ-025 baseline)"
+      ],
+      "priority": "Could",
+      "status": "Draft"
     }
   ],
   "tests": [

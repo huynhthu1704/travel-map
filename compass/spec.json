@@ -1605,7 +1605,7 @@
       "id": "REQ-059",
       "title": "Turn push notifications on or off",
       "priority": "Should",
-      "status": "Draft",
+      "status": "Approved",
       "intent": "compass/intent/2026-11-26-push-notifications.md",
       "story": "As a signed-in user, I want to turn push notifications on or off for this device, so that I get my Bee There notifications even when the app is closed, and only if I want them.",
       "ac": [
@@ -1614,13 +1614,14 @@
         "Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications\nWhen I open Notifications\nThen I see a short VI/EN explanation of how to enable it instead of the switch",
         "Given the pushNotif flag is off for me\nWhen I open Notifications\nThen I see no push option"
       ],
-      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #112"
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #112",
+      "design": "compass/design/2026-11-26-push-notifications.md"
     },
     {
       "id": "REQ-060",
       "title": "Every in-app notification is also sent as a push message",
       "priority": "Should",
-      "status": "Draft",
+      "status": "Approved",
       "intent": "compass/intent/2026-11-26-push-notifications.md",
       "story": "As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.",
       "ac": [
@@ -1630,7 +1631,8 @@
         "Given a device that unregistered or whose push subscription expired\nWhen a push is sent\nThen it is skipped and its registration is removed",
         "Given the Cloudflare Worker is down\nWhen a notification is created\nThen the in-app notification is still saved and shown as today"
       ],
-      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #113"
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #113",
+      "design": "compass/design/2026-11-26-push-notifications.md"
     }
   ],
   "tests": [

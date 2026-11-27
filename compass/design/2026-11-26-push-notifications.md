@@ -2,7 +2,7 @@
 
 Status: Approved (by Christine, 2026-11-27)
 Requirements: REQ-062, REQ-063
-Design tool: Figma — Bee There file, page "📐 Feature designs" (https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75)
+Design tool: Figma — Bee There file, page "📐 Feature designs", section "REQ-062 / REQ-063 · Push notifications" (English) (https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=36-77)
 
 ## Approach
 No new page and no change to the Notifications panel (🔔), which stays as it is. The push setting lives in the user's
@@ -20,7 +20,7 @@ The push message is drawn by the phone or browser and shows **exactly the same t
 ## Screens
 ### SCR-1 · Profile ⋯ menu — REQ-062
 - My own Profile → ⋯ → new item "🔔 Cài đặt thông báo / Notification settings" → opens SCR-2.
-- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-1)
+- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=36-77 (SCR-1)
 
 ### SCR-2a · Notification settings, push off (default) — REQ-062
 - Row "📲 Thông báo đẩy / Push notifications" + Switch Off; line "Nhận thông báo kể cả khi đã đóng ứng dụng. / Get
@@ -28,11 +28,11 @@ The push message is drawn by the phone or browser and shows **exactly the same t
 - Tap the switch → the browser asks for permission → allowed: device registered, Switch On (SCR-2b); refused: SCR-2c.
   While waiting the switch is disabled. Error: toast "Không bật được thông báo đẩy, thử lại sau / Couldn't turn on push
   notifications, try again later", Switch stays Off.
-- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-2a)
+- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=36-77 (SCR-2a)
 
 ### SCR-2b · Push on — REQ-062
 - Same row, Switch On. Tap → device unregistered, back to SCR-2a. Push is per device.
-- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-2b)
+- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=36-77 (SCR-2b)
 
 ### SCR-2c · Push can't be turned on here — REQ-062
 - Same row and title, Switch disabled (greyed), the line below says why, in one sentence:
@@ -40,7 +40,7 @@ The push message is drawn by the phone or browser and shows **exactly the same t
   Safari → Share → Add to Home Screen, then open Bee There from the Home Screen."; notifications blocked → "Cho phép
   Thông báo ở biểu tượng ổ khoá cạnh địa chỉ trang. / Allow Notifications from the lock icon next to the address.";
   other browsers → "Trình duyệt này chưa hỗ trợ thông báo đẩy. / This browser does not support push notifications."
-- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-2c)
+- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=36-77 (SCR-2c)
 
 ### SCR-3 · The push message on a phone — REQ-063
 - Bee There icon + the in-app notification text, unchanged (e.g. "Lan đã mời bạn tham gia chuyến đi "Kyoto mùa thu""
@@ -48,7 +48,7 @@ The push message is drawn by the phone or browser and shows **exactly the same t
 - Sent for every notification the app already creates: trip invite, invite accepted / declined, follow, like,
   comment, hidden memory, admin message (to everyone, a role or chosen users).
 - Tap → opens Bee There with the Notifications panel open.
-- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-3)
+- Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=36-77 (SCR-3)
 
 ## Notes
 - Accessibility: the switch is a real `role="switch"` with `aria-checked`, labelled by the row title.

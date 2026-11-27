@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
-import { AccountModal } from './Account';
+import { AccountModal, showNotifSettings } from './Account';
 import AdSlot from '../components/AdSlot';
 import { Avatar, Empty, Loader, AppLink } from '../components/ui';
 import { hrefProfile } from '../lib/route';
@@ -310,6 +310,11 @@ export default function ProfilePage() {
                           <button role="menuitem" onClick={() => (setMoreOpen(false), setAccSection('privacy'))}>
                             🛡️ {t('acc.privacy')}
                           </button>
+                          {showNotifSettings(can) && (
+                            <button role="menuitem" onClick={() => (setMoreOpen(false), setAccSection('notif'))}>
+                              🔔 {t('acc.notif')}
+                            </button>
+                          )}
                           <button role="menuitem" onClick={() => (setMoreOpen(false), setAccSection('export'))}>
                             📦 {t('acc.export')}
                           </button>

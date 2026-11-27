@@ -8,8 +8,9 @@ Design: none: process text and a spec check, no UI · Issue #142 · Decision: AD
   message per intent, together with a missing `## Business need`)
 - `tests/intent.test.mjs` — TC-070 for AC 4; the AC 1–3 test also checks what each row of the README table says
   (review nit on #143)
-- `compass/evals/cases.json` — new case EV-039 (an intent without Done when is blocked); the three spec fixtures that
-  stand for a valid intent get a `## Done when` so they keep testing what they were written for
+- `compass/evals/cases.json` — new case EV-039 (an intent without Done when is blocked); the control case EV-038 (a
+  valid intent without Done when passes) no longer holds under REQ-059, so it is retired with the Product Owner's
+  approval and replaced by EV-040 (the same control with a `## Done when`). No case input is edited (TC-120).
 - `compass/intent/README.md` — the check line names the REQ-059 rule
 - `compass/agent-knowledge.md` — section 4 describes Done when and "never invent a baseline or target"
 - `compass/spec.json` (REQ-059 Done, TC-070 title, ADR-021 consequences) and the generated views
@@ -22,8 +23,8 @@ Design: none: process text and a spec check, no UI · Issue #142 · Decision: AD
 ## Risks
 - Older intents have no Done when: the rule starts at REQ-059 and skips the REQ-101…153 baseline, so nothing on main
   fails (`check-spec` passes on this branch).
-- Eval fixtures changed: only `## Done when` is added to fixtures of valid intents; no case is deleted or retired, and
-  their expected results are unchanged.
+- Retiring EV-038 needs the Product Owner's approval (compass/evals/cases.json `about`); EV-035 and EV-036 still
+  block for their own reason, so they stay unchanged.
 
 ## Proof
 - `npm test` (TC-070, TC-111, TC-120 evals incl. EV-039), `node compass/check-spec.mjs`,

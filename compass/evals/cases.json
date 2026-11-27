@@ -306,7 +306,7 @@
       "title": "A requirement whose intent is not approved yet fails the spec check",
       "source": "REQ-038",
       "check": "spec",
-      "input": { "requirement": { "id": "REQ-990", "status": "Approved", "design": "none: process", "intent": "compass/intent/x.md" }, "files": { "compass/intent/x.md": "# Intent\n\nStatus: Draft\n\n## Business need\nx\n\n## Done when\nx\n\n## Requirements\n- REQ-990\n" } },
+      "input": { "requirement": { "id": "REQ-990", "status": "Approved", "design": "none: process", "intent": "compass/intent/x.md" }, "files": { "compass/intent/x.md": "# Intent\n\nStatus: Draft\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
       "expect": "blocked",
       "why": "not Approved yet"
     },
@@ -315,7 +315,7 @@
       "title": "A UI requirement in build without an approved Figma frame fails the spec check",
       "source": "REQ-055, REQ-057 (Figma for every UI change)",
       "check": "spec",
-      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "compass/design/x.md" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Done when\nx\n\n## Requirements\n- REQ-990\n", "compass/design/x.md": "# Design\n\nStatus: Approved (by Christine)\n\nREQ-990 — screen sketch only\n" } },
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "compass/design/x.md" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n", "compass/design/x.md": "# Design\n\nStatus: Approved (by Christine)\n\nREQ-990 — screen sketch only\n" } },
       "expect": "blocked",
       "why": "links no Figma frame"
     },
@@ -332,7 +332,7 @@
       "title": "Control: a process requirement with an approved intent passes the spec check",
       "source": "REQ-038, REQ-054, REQ-055",
       "check": "spec",
-      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Done when\nx\n\n## Requirements\n- REQ-990\n" } },
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
       "expect": "allowed"
     },
     {
@@ -343,6 +343,14 @@
       "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## What we want\nx, from 0% to 20% within 90 days\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
       "expect": "blocked",
       "why": "## Done when"
+    },
+    {
+      "id": "EV-040",
+      "title": "Control: a process requirement with an approved intent (business need and Done when) passes the spec check",
+      "source": "REQ-038, REQ-054, REQ-055, REQ-059 (replaces EV-038)",
+      "check": "spec",
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Done when\nx\n\n## Requirements\n- REQ-990\n" } },
+      "expect": "allowed"
     }
   ]
 }

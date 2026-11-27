@@ -35,8 +35,14 @@ verify the VAPID signature). 3. Worker handler + tests with a fake KV, fake Fire
 ## Risks
 - Abuse (pushing to strangers): only a notification that already exists in Firestore and that the caller may read
   as sender or staff can be pushed; each one only once; text comes from the stored notification, not the caller.
-- Cost: free Workers plan (100,000 requests/day) and KV (1,000 writes/day); one KV write per subscribe and per
-  notification. Broadcasts list KV keys once per send.
+- Pushing to everyone or to a role is allowed only for team messages (`feature`/`system`, which firestore.rules let
+  only staff with the notify permission create); a normal user's notification addressed to `role:…` is refused
+  (review of #151). `createdAt` must be within the last 10 minutes and not more than 5 minutes in the future.
+- Free plan limits: 100,000 requests/day, KV 1,000 writes/day, and per call 50 outgoing requests and 10 ms CPU.
+  So one `/notify` call sends to at most 10 devices (`BATCH`) and returns a `cursor`; the app calls again until
+  there is no cursor (part 3). Each batch is marked sent once (KV `sent:<id>:<cursor>`, 1 day) — one KV write per
+  batch. Title/text are shortened to stay under the 4 KB push limit. The recipient's role is saved at subscribe
+  time; the app re-subscribes on each start (part 2) so it stays current.
 - Nothing changes for users in this PR (not deployed, app does not call it yet). No `firestore.rules` change.
 
 ## Proof

@@ -256,4 +256,4 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Decision.** The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.
 
-**Consequences.** A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+).
+**Consequences.** A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+). Free-plan limits per call (50 outgoing requests, 10 ms CPU) mean broadcasts are sent in batches of about 10 devices, one Worker call per batch; only team messages (feature/system) may go to everyone or to a role.

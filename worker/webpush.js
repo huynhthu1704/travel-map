@@ -67,13 +67,23 @@ export async function vapidAuth(endpoint, { publicKey, privateKey, subject }, no
   return `vapid t=${header}.${claims}.${b64url.encode(sig)}, k=${publicKey}`;
 }
 
+// One VAPID header per push-service origin is enough for a whole batch (it is valid for 12 hours)
+const vapidCache = new WeakMap();
+async function vapidFor(endpoint, vapid) {
+  if (!vapidCache.has(vapid)) vapidCache.set(vapid, new Map());
+  const byOrigin = vapidCache.get(vapid);
+  const origin = new URL(endpoint).origin;
+  if (!byOrigin.has(origin)) byOrigin.set(origin, await vapidAuth(endpoint, vapid));
+  return byOrigin.get(origin);
+}
+
 /** Send one push message; resolves to the push service's HTTP status (201 = accepted, 404/410 = gone). */
 export async function sendPush(subscription, message, vapid, fetchFn = fetch) {
   const body = await encrypt(JSON.stringify(message), subscription.keys);
   const res = await fetchFn(subscription.endpoint, {
     method: 'POST',
     headers: {
-      Authorization: await vapidAuth(subscription.endpoint, vapid),
+      Authorization: await vapidFor(subscription.endpoint, vapid),
       'Content-Encoding': 'aes128gcm',
       'Content-Type': 'application/octet-stream',
       TTL: '86400',

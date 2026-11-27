@@ -85,7 +85,7 @@ test('VAPID header: ES256 JWT for the push service origin, signed by our key', a
 const PROJECT = 'travel-map-e9657';
 const NOW = 1_800_000_000_000;
 
-async function world() {
+async function world({ batch } = {}) {
   resetJwksCache();
   const rsa = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
   const pubJwk = { ...(await crypto.subtle.exportKey('jwk', rsa.publicKey)), kid: 'k1' };
@@ -97,6 +97,7 @@ async function world() {
     return `${h}.${c}.${b64url.encode(sig)}`;
   };
   const users = { admin: { role: 'admin' }, ed: { role: 'editor' } };
+  let jwks = [pubJwk];
   const notes = {};
   const pushed = []; // { endpoint, body }
   const gone = new Set();
@@ -109,7 +110,7 @@ async function world() {
   };
   const fsVal = (v) => (typeof v === 'number' ? { integerValue: String(v) } : { stringValue: String(v) });
   const fetchFn = async (url, init = {}) => {
-    if (url.startsWith('https://www.googleapis.com/')) return new Response(JSON.stringify({ keys: [pubJwk] }));
+    if (url.startsWith('https://www.googleapis.com/')) return new Response(JSON.stringify({ keys: jwks }));
     if (url.startsWith('https://firestore.googleapis.com/')) {
       const auth = (init.headers?.Authorization || '').slice(7);
       const caller = JSON.parse(new TextDecoder().decode(b64url.decode(auth.split('.')[1]))).sub;
@@ -125,7 +126,7 @@ async function world() {
     return new Response('', { status: gone.has(url) ? 410 : 201 });
   };
   const vapid = await makeVapid();
-  const env = { SUBS, PROJECT_ID: PROJECT, SITE_ORIGINS: 'https://beetheremap.com', VAPID_PUBLIC_KEY: vapid.publicKey, VAPID_PRIVATE_KEY: vapid.privateKey, VAPID_SUBJECT: vapid.subject };
+  const env = { SUBS, PROJECT_ID: PROJECT, SITE_ORIGINS: 'https://beetheremap.com', VAPID_PUBLIC_KEY: vapid.publicKey, VAPID_PRIVATE_KEY: vapid.privateKey, VAPID_SUBJECT: vapid.subject, BATCH: batch };
   const call = async (path, body, { uid = 'lan', tok, origin = 'https://beetheremap.com' } = {}) => {
     const req = new Request(`https://push.example${path}`, {
       method: 'POST',
@@ -141,7 +142,7 @@ async function world() {
     assert.equal((await call('/subscribe', { subscription, lang }, { uid })).status, 200);
     return { ...r, endpoint: subscription.endpoint };
   };
-  return { call, device, token, notes, pushed, gone, kv };
+  return { call, device, token, notes, pushed, gone, kv, rotate: (keys) => (jwks = keys) };
 }
 
 test('only the site origin and a valid Firebase sign-in are accepted', async () => {
@@ -210,4 +211,51 @@ test('team messages go to everyone or to one role; expired devices are removed',
   w.notes.r1 = { to: 'role:editor', from: 'admin', type: 'feature', title: 'New', body: '', createdAt: NOW - 1000 };
   assert.equal((await w.call('/notify', { id: 'r1' }, { uid: 'admin' })).data.sent, 1);
   assert.deepEqual(w.pushed.map((p) => p.endpoint), [b.endpoint]);
+});
+
+test('people cannot push to everyone or to a role; only team messages can', async () => {
+  const w = await world();
+  await w.device('minh', 'vi', 'minh-phone');
+  // e.g. a follow notification addressed to role:user (firestore.rules let a normal user create it)
+  w.notes.f1 = { to: 'role:user', from: 'lan', type: 'follow', fromName: 'Spam', createdAt: NOW - 1000 };
+  assert.equal((await w.call('/notify', { id: 'f1' })).status, 403);
+  w.notes.f2 = { ...w.notes.f1, to: 'all' };
+  assert.equal((await w.call('/notify', { id: 'f2' })).status, 403);
+  w.notes.f3 = { to: 'minh', from: 'lan', type: 'like', fromName: 'Lan', title: 'x', createdAt: NOW + 6 * 60 * 1000 };
+  assert.equal((await w.call('/notify', { id: 'f3' })).status, 409, 'createdAt in the future');
+  assert.equal(w.pushed.length, 0);
+});
+
+test('a broadcast is sent in small batches with a cursor (free-plan limits), each batch once', async () => {
+  const w = await world({ batch: 2 });
+  const devs = [];
+  for (const u of ['u1', 'u2', 'u3', 'u4', 'u5']) devs.push(await w.device(u, 'vi', u));
+  w.notes.b1 = { to: 'all', from: 'admin', type: 'feature', title: 'Long '.repeat(300), body: 'x'.repeat(5000), createdAt: NOW - 1000 };
+  let cursor = null;
+  let calls = 0;
+  let total = 0;
+  do {
+    const r = await w.call('/notify', { id: 'b1', cursor }, { uid: 'admin' });
+    assert.equal(r.status, 200);
+    total += r.data.sent;
+    cursor = r.data.cursor;
+    calls++;
+  } while (cursor);
+  assert.deepEqual([total, calls], [5, 3]);
+  assert.equal(new Set(w.pushed.map((p) => p.endpoint)).size, 5);
+  const msg = await devs[0].decrypt(w.pushed.find((p) => p.endpoint === devs[0].endpoint).body);
+  assert.ok(msg.title.length <= 200 && msg.body.length <= 600, 'long text is shortened');
+  assert.equal((await w.call('/notify', { id: 'b1', cursor: 'u2' }, { uid: 'admin' })).data.sent, 0, 'a batch is not sent twice');
+});
+
+test('after Google rotates its sign-in keys, new tokens are accepted at once', async () => {
+  const w = await world();
+  assert.equal((await w.call('/unsubscribe', { endpoint: 'x' })).status, 200); // caches key k1
+  const rsa = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
+  w.rotate([{ ...(await crypto.subtle.exportKey('jwk', rsa.publicKey)), kid: 'k2' }]);
+  const enc = (o) => b64url.encode(new TextEncoder().encode(JSON.stringify(o)));
+  const h = enc({ alg: 'RS256', kid: 'k2' });
+  const c = enc({ aud: PROJECT, iss: `https://securetoken.google.com/${PROJECT}`, sub: 'lan', iat: NOW / 1000 - 10, exp: NOW / 1000 + 3600 });
+  const sig = b64url.encode(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', rsa.privateKey, new TextEncoder().encode(`${h}.${c}`)));
+  assert.equal((await w.call('/unsubscribe', { endpoint: 'x' }, { tok: `${h}.${c}.${sig}` })).status, 200);
 });

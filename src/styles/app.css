@@ -3882,6 +3882,60 @@ a.app-link.place-card__title:hover {
 .login__consent a {
   font-weight: 700;
 }
+/* REQ-062: Notification settings — push row with an on/off switch */
+.push-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--honey-100);
+}
+.push-row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.push-row small {
+  color: var(--ink-700);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.toggle-switch {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 26px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink-300);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.toggle-switch span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 0.15s;
+}
+.toggle-switch.is-on {
+  background: var(--honey-500);
+}
+.toggle-switch.is-on span {
+  transform: translateX(18px);
+}
+.toggle-switch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.toggle-switch:focus-visible {
+  outline: 2px solid var(--honey-600);
+  outline-offset: 2px;
+}
 .acc-toggle span {
   display: flex;
   flex-direction: column;

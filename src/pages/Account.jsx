@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { Empty, Modal } from '../components/ui';
 import { exportMyData, downloadJson, deleteMyAccount, tripsImpact } from '../lib/account';
 import { firebaseEnabled } from '../lib/firebase';
+import { pushConfigured, pushSupport, currentPushSub, enablePush, disablePush } from '../lib/push';
 
 const STEP_KEYS = ['reauth', 'trips', 'memories', 'social', 'profile', 'account'];
 
@@ -49,6 +50,66 @@ export function PrivacySection({ bare = false }) {
           <small>{t('priv.hideDatesHint')}</small>
         </span>
       </label>
+    </section>
+  );
+}
+
+/** REQ-062: Notification settings — push notifications on this device (flag pushNotif) */
+export const showNotifSettings = (can) => can('pushNotif') && pushConfigured();
+
+export function NotificationSection({ bare = false }) {
+  const { notify, t } = useAccount();
+  const { lang } = useI18n();
+  const [support, setSupport] = useState(() => pushSupport());
+  const [on, setOn] = useState(null); // null = checking
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    currentPushSub()
+      .then((s) => live && setOn(!!s))
+      .catch(() => live && setOn(false));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const toggle = async () => {
+    setBusy(true);
+    try {
+      if (on) {
+        await disablePush();
+        setOn(false);
+        notify(t('push.off'));
+      } else if ((await enablePush(lang)) === 'on') {
+        setOn(true);
+        notify(t('push.on'));
+      } else setSupport('blocked');
+    } catch {
+      notify(t('push.failed'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const hint = { ok: 'push.hint', ios: 'push.ios', blocked: 'push.blocked' }[support] || 'push.unsupported';
+  return (
+    <section className={bare ? 'stack-sm' : 'card stack-sm'}>
+      {!bare && <h3 className="h3">🔔 {t('acc.notif')}</h3>}
+      <div className="push-row">
+        <div className="push-row__head">
+          <b id="push-label">📲 {t('push.title')}</b>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!!on}
+            aria-labelledby="push-label"
+            className={`toggle-switch${on ? ' is-on' : ''}`}
+            disabled={support !== 'ok' || busy || on === null}
+            onClick={toggle}
+          >
+            <span />
+          </button>
+        </div>
+        <small>{t(hint)}</small>
+      </div>
     </section>
   );
 }
@@ -164,10 +225,11 @@ export function DeleteSection({ bare = false, onCancel }) {
 /** Hộp thoại mở từ nút ⋯ trên trang hồ sơ của chính mình */
 export function AccountModal({ section, onClose }) {
   const { t } = useI18n();
-  const title = { privacy: `🛡️ ${t('acc.privacy')}`, export: `📦 ${t('acc.export')}`, delete: `🗑️ ${t('acc.delete')}` }[section];
+  const title = { privacy: `🛡️ ${t('acc.privacy')}`, notif: `🔔 ${t('acc.notif')}`, export: `📦 ${t('acc.export')}`, delete: `🗑️ ${t('acc.delete')}` }[section];
   return (
     <Modal title={title} onClose={onClose} className="modal--sm">
       {section === 'privacy' && <PrivacySection bare />}
+      {section === 'notif' && <NotificationSection bare />}
       {section === 'export' && <ExportSection bare />}
       {section === 'delete' && <DeleteSection bare onCancel={onClose} />}
     </Modal>
@@ -176,7 +238,7 @@ export function AccountModal({ section, onClose }) {
 
 /** #/account — cả 3 phần trên 1 trang (dùng cho link trong Chính sách quyền riêng tư) */
 export default function AccountPage() {
-  const { user, requireLogin } = useApp();
+  const { user, requireLogin, can } = useApp();
   const { t } = useI18n();
   if (!user)
     return (
@@ -199,6 +261,7 @@ export default function AccountPage() {
         <p className="muted">{t('acc.sub')}</p>
       </header>
       <PrivacySection />
+      {showNotifSettings(can) && <NotificationSection />}
       <ExportSection />
       <DeleteSection />
       <p className="small muted account__legal">

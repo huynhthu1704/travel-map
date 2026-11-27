@@ -11,6 +11,41 @@ const RUNTIME_MAX = 600;
 let puts = 0;
 
 self.addEventListener('install', () => self.skipWaiting());
+
+// REQ-062/063: push messages from the Bee There push Worker — same text as the in-app notification.
+// Tapping one opens Bee There on the Notifications panel.
+self.addEventListener('push', (e) => {
+  let m = {};
+  try {
+    m = e.data ? e.data.json() : {};
+  } catch {
+    m = { title: e.data ? e.data.text() : '' };
+  }
+  const scope = self.registration.scope;
+  e.waitUntil(
+    self.registration.showNotification(m.title || 'Bee There', {
+      body: m.body || '',
+      tag: m.tag,
+      icon: new URL('icon-192.png', scope).href,
+      badge: new URL('favicon-32.png', scope).href,
+      data: { url: new URL(m.url || '#notifications', scope).href },
+    }),
+  );
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url || self.registration.scope;
+  e.waitUntil(
+    (async () => {
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const win = wins.find((w) => w.url.startsWith(self.registration.scope));
+      if (win) {
+        await win.focus();
+        win.postMessage({ type: 'open-notifications' });
+      } else await self.clients.openWindow(url);
+    })(),
+  );
+});
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     (async () => {

@@ -17,7 +17,8 @@ Delivery in three PRs so each stays under 12 files:
   Identity: the Firebase ID token in `Authorization: Bearer`; the Worker calls the Firestore REST API with that
   token, so Firestore checks the token and the existing `firestore.rules` decide what the caller may read.
   `/notify {id}` reads `notifications/{id}` as the caller (exists, caller is its sender or staff, created < 10 min
-  ago), finds recipients (`to` = a uid, `all`, or `role:x`), sends once per notification (KV `sent:<id>`, 1 day).
+  ago), finds recipients (`to` = a uid, or `all` / `role:x` for team messages only), sends each batch once (KV
+  `sent:<id>:<cursor>`, 1 day); a later batch needs a cursor the Worker issued (KV `cur:<id>:<cursor>`).
   Subscriptions live in Cloudflare KV `sub:<uid>` → `{ lang, role, subs[] }` (max 10 devices).
   Expired subscriptions (push service answers 404/410) are removed.
 - `worker/webpush.js` — standard Web Push with WebCrypto only (no new dependency): VAPID JWT (ES256, RFC 8292)
@@ -40,8 +41,11 @@ verify the VAPID signature). 3. Worker handler + tests with a fake KV, fake Fire
   (review of #151). `createdAt` must be within the last 10 minutes and not more than 5 minutes in the future.
 - Free plan limits: 100,000 requests/day, KV 1,000 writes/day, and per call 50 outgoing requests and 10 ms CPU.
   So one `/notify` call sends to at most 10 devices (`BATCH`) and returns a `cursor`; the app calls again until
-  there is no cursor (part 3). Each batch is marked sent once (KV `sent:<id>:<cursor>`, 1 day) — one KV write per
-  batch. Title/text are shortened to stay under the 4 KB push limit. The recipient's role is saved at subscribe
+  there is no cursor (part 3). Each batch is marked sent once (KV `sent:<id>:<cursor>`, 1 day) and only cursors
+  the Worker issued are accepted (made-up cursors cannot re-send); a repeated call returns the next cursor, so a lost
+  reply does not stop a broadcast. Two KV writes per batch. KV is eventually consistent, so two calls within a
+  second could both send (accepted: worst case one duplicate push). Broadcasts re-list subscriptions per batch —
+  fine for a few hundred subscribers; revisit (e.g. a Durable Object queue) if it grows past that. Title/text are shortened to stay under the 4 KB push limit. The recipient's role is saved at subscribe
   time; the app re-subscribes on each start (part 2) so it stays current.
 - Nothing changes for users in this PR (not deployed, app does not call it yet). No `firestore.rules` change.
 

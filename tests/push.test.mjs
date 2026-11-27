@@ -245,7 +245,14 @@ test('a broadcast is sent in small batches with a cursor (free-plan limits), eac
   assert.equal(new Set(w.pushed.map((p) => p.endpoint)).size, 5);
   const msg = await devs[0].decrypt(w.pushed.find((p) => p.endpoint === devs[0].endpoint).body);
   assert.ok(msg.title.length <= 200 && msg.body.length <= 600, 'long text is shortened');
-  assert.equal((await w.call('/notify', { id: 'b1', cursor: 'u2' }, { uid: 'admin' })).data.sent, 0, 'a batch is not sent twice');
+  const again = await w.call('/notify', { id: 'b1', cursor: 'u2' }, { uid: 'admin' });
+  assert.deepEqual([again.data.sent, again.data.cursor], [0, 'u4'], 'a batch is not sent twice; the reply still gives the next cursor');
+  const first = await w.call('/notify', { id: 'b1' }, { uid: 'admin' });
+  assert.deepEqual([first.data.sent, first.data.cursor], [0, 'u2'], 'a lost first reply can be retried');
+  for (const cursor of ['0', 'a', 'u1', 'u3']) {
+    assert.equal((await w.call('/notify', { id: 'b1', cursor }, { uid: 'admin' })).status, 403, `made-up cursor ${cursor}`);
+  }
+  assert.equal(w.pushed.length, 5, 'nothing was sent again');
 });
 
 test('after Google rotates its sign-in keys, new tokens are accepted at once', async () => {

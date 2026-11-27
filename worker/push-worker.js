@@ -149,8 +149,11 @@ export async function handle(request, env, deps = { fetch, now: Date.now }) {
     const id = String(body.id || '');
     if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return json({ error: 'id' }, 400, cors);
     const after = body.cursor == null ? '' : String(body.cursor);
-    const mark = `sent:${id}:${after}`; // each batch is sent once
-    if (await env.SUBS.get(mark)) return json({ ok: true, sent: 0, duplicate: true }, 200, cors);
+    // Each batch is sent once; a batch after the first only with a cursor this Worker issued (KV cur:<id>:<cursor>)
+    const mark = `sent:${id}:${after}`;
+    const done = await env.SUBS.get(mark);
+    if (done) return json({ ok: true, sent: 0, duplicate: true, cursor: JSON.parse(done).next ?? null }, 200, cors);
+    if (after && !(await env.SUBS.get(`cur:${id}:${after}`))) return json({ error: 'cursor' }, 403, cors);
     const n = await readDoc(env, deps, token, `notifications/${id}`);
     if (!n || typeof n.to !== 'string') return json({ error: 'not found' }, 404, cors);
     // Only its sender (or the team) may push a notification, and only while it is new
@@ -158,8 +161,9 @@ export async function handle(request, env, deps = { fetch, now: Date.now }) {
     if (!(n.createdAt > deps.now() - MAX_AGE_MS && n.createdAt <= deps.now() + CLOCK_SKEW_MS)) return json({ error: 'too old' }, 409, cors);
     const broadcast = n.to === 'all' || n.to.startsWith('role:');
     if (broadcast && !TEAM_TYPES.includes(n.type)) return json({ error: 'forbidden' }, 403, cors);
-    await env.SUBS.put(mark, '1', { expirationTtl: 86400 });
     const { list, next } = await recipients(env, n.to, after, Number(env.BATCH) || DEFAULT_BATCH);
+    await env.SUBS.put(mark, JSON.stringify({ next }), { expirationTtl: 86400 });
+    if (next) await env.SUBS.put(`cur:${id}:${next}`, '1', { expirationTtl: 86400 });
     const vapid = { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: env.VAPID_SUBJECT };
     let sent = 0;
     for (const [rid, rec] of list) {

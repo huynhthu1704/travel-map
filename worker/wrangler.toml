@@ -1,0 +1,20 @@
+# REQ-062/REQ-063 · ADR-023: Bee There push sender on the free Cloudflare Workers plan.
+# Deploy (from the repo root, after `npx wrangler login`):
+#   npx wrangler kv namespace create SUBS        → put the printed id below
+#   npx wrangler secret put VAPID_PRIVATE_KEY --config worker/wrangler.toml
+#   npx wrangler deploy --config worker/wrangler.toml
+# The VAPID private key is a Cloudflare secret only — never commit it. Everything below is public.
+name = "beethere-push"
+main = "push-worker.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+PROJECT_ID = "travel-map-e9657"
+SITE_ORIGINS = "https://beetheremap.com,https://www.beetheremap.com"
+VAPID_SUBJECT = "https://beetheremap.com"
+# Public half of the VAPID key pair (also used by the app to subscribe); set when the keys are created.
+VAPID_PUBLIC_KEY = ""
+
+[[kv_namespaces]]
+binding = "SUBS"
+id = "" # created at setup: npx wrangler kv namespace create SUBS

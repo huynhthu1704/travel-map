@@ -61,7 +61,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-059 | Every intent has a "Done when"; targets only for bets | — | Must | Done | TC-070 |
 | REQ-061 | Figma components on the Components page, one section per feature | — | Should | Done | TC-121 |
 | REQ-062 | Turn push notifications on or off | — | Should | Approved | TC-122 |
-| REQ-063 | Every in-app notification is also sent as a push message | — | Should | Approved | TC-123 |
+| REQ-063 | Every in-app notification is also sent as a push message | — | Should | In build | TC-123 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |

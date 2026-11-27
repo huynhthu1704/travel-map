@@ -558,14 +558,14 @@ Design: none: process change, no UI
 
 ## REQ-054 — Revise the business need into a business intent
 
-As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
+As the product owner, I want my request kept in my own words as the business need and revised into a business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
 
 Intent: [compass/intent/2026-11-26-design-and-plan-before-code.md](../compass/intent/2026-11-26-design-and-plan-before-code.md)
 
 Design: none: process change, no UI
 
 - Given an intent for REQ-052 or later · When CI runs the spec check · Then it fails if the intent has no "## Business need" section
-- Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who, what changes, baseline → target and by when
+- Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who and what changes, not the solution (baseline → target only for a bet: amended by REQ-059 / ADR-021 on 2026-11-27)
 
 ## REQ-055 — An approved design before any code
 

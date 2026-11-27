@@ -306,7 +306,7 @@
       "status": "Accepted",
       "context": "REQ-054 asked every business intent for one measurable outcome (baseline → target, by when). The Compass Ideation agent followed it literally and invented numbers (e.g. \"0% → 20% within 90 days\" for F-001) with no data behind them; the Product Owner found them hard to judge.",
       "decision": "The Product Owner decided on 2026-11-27: every intent has a \"Done when\" in plain words. A small feature may add one optional signal to watch without a target; a process change has \"Done when\" only; only a change she names a bet gets a metric with its current value, and its target is set after a few weeks of real data. Applies to travel-map and to the Compass portal.",
-      "consequences": "check-spec requires \"## Done when\" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.",
+      "consequences": "The intent template, AGENTS.md and the deliver-change skill ask for \"## Done when\"; REQ-054's template criterion is amended. A follow-up PR makes check-spec require \"## Done when\" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.",
       "reqIds": [
         "REQ-059",
         "REQ-054"
@@ -1583,10 +1583,10 @@
       "status": "Done",
       "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
       "design": "none: process change, no UI",
-      "story": "As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.",
+      "story": "As the product owner, I want my request kept in my own words as the business need and revised into a business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.",
       "ac": [
         "Given an intent for REQ-052 or later\nWhen CI runs the spec check\nThen it fails if the intent has no \"## Business need\" section",
-        "Given the intent template\nWhen an agent writes a new intent\nThen \"## What we want\" asks for who, what changes, baseline → target and by when"
+        "Given the intent template\nWhen an agent writes a new intent\nThen \"## What we want\" asks for who and what changes, not the solution (baseline → target only for a bet: amended by REQ-059 / ADR-021 on 2026-11-27)"
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
     },

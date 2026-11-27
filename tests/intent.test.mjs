@@ -78,7 +78,7 @@ test('TC-070: the template, AGENTS.md and the deliver-change skill ask for "Done
   const template = readme.split('## Template').at(-1);
   assert.match(template, /^## Done when$/m);
   assert.doesNotMatch(template, /baseline → target/, 'the template does not ask every intent for a target');
-  for (const kind of ['Small feature', 'Process or internal change', 'bet']) assert.ok(readme.includes(kind), `README names ${kind}`);
+  for (const kind of [/Small feature/, /Process or internal change/, /\bA bet\b/]) assert.match(readme, kind, `README names ${kind}`);
   for (const f of ['AGENTS.md', '.claude/skills/deliver-change/SKILL.md']) {
     const t = readRepo(f);
     assert.match(t, /## Done when/, `${f} asks for Done when`);

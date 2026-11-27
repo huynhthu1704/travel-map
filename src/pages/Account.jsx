@@ -79,10 +79,11 @@ export function NotificationSection({ bare = false }) {
         await disablePush();
         setOn(false);
         notify(t('push.off'));
-      } else if ((await enablePush(lang)) === 'on') {
-        setOn(true);
-        notify(t('push.on'));
-      } else setSupport('blocked');
+      } else {
+        const r = await enablePush(lang);
+        if (r === 'on') (setOn(true), notify(t('push.on')));
+        else if (r === 'blocked') setSupport('blocked'); // 'dismissed': prompt closed, stays Off and usable
+      }
     } catch {
       notify(t('push.failed'), 'error');
     } finally {
@@ -101,6 +102,7 @@ export function NotificationSection({ bare = false }) {
             role="switch"
             aria-checked={!!on}
             aria-labelledby="push-label"
+            aria-describedby="push-hint"
             className={`toggle-switch${on ? ' is-on' : ''}`}
             disabled={support !== 'ok' || busy || on === null}
             onClick={toggle}
@@ -108,7 +110,7 @@ export function NotificationSection({ bare = false }) {
             <span />
           </button>
         </div>
-        <small>{t(hint)}</small>
+        <small id="push-hint">{t(hint)}</small>
       </div>
     </section>
   );

@@ -23,6 +23,7 @@ import { firebaseEnabled, auth, db, googleProvider } from './firebase';
 import { compressImage, compressToDataURL, blobToDataURL } from './image';
 import { translate } from '../i18n';
 import { recordDownload } from './network';
+import { pushNotify } from './push';
 import { FAMOUS_BY_ID } from '../data/places';
 
 const thumbCache = new Map(); // id kỉ niệm → ảnh thu nhỏ đã tải
@@ -389,7 +390,9 @@ const firebaseBackend = {
     await addDoc(collection(db, 'notifications'), {
       to: person.uid, type: 'invite', from: owner.uid, fromName: owner.name || '', fromPhoto: owner.photo || '',
       title: trip.name || '', tripId: trip.id, read: false, createdAt: now(),
-    }).catch(() => {});
+    })
+      .then((r) => pushNotify(r.id)) // REQ-063
+      .catch(() => {});
     return data;
   },
   watchTripInvites(trip, ownerUid, cb) {
@@ -427,7 +430,9 @@ const firebaseBackend = {
     await addDoc(collection(db, 'notifications'), {
       to: inv.from, type: accept ? 'inviteAccepted' : 'inviteDeclined', from: user.uid, fromName: user.name || '', fromPhoto: user.photo || '',
       title: inv.tripName || '', tripId: inv.tripId, read: false, createdAt: now(),
-    }).catch(() => {});
+    })
+      .then((r) => pushNotify(r.id)) // REQ-063
+      .catch(() => {});
   },
   async removeMember(trip, uid) {
     await updateDoc(doc(db, 'trips', trip.id), { memberIds: arrayRemove(uid), [`members.${uid}`]: deleteField() });

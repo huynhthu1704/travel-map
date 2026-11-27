@@ -266,3 +266,11 @@ test('after Google rotates its sign-in keys, new tokens are accepted at once', a
   const sig = b64url.encode(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', rsa.privateKey, new TextEncoder().encode(`${h}.${c}`)));
   assert.equal((await w.call('/unsubscribe', { endpoint: 'x' }, { tok: `${h}.${c}.${sig}` })).status, 200);
 });
+
+test('a notification for someone without push costs no KV write', async () => {
+  const w = await world();
+  w.notes.n9 = { to: 'nobody', from: 'lan', type: 'follow', fromName: 'Lan', createdAt: NOW - 1000 };
+  const before = w.kv.size;
+  const r = await w.call('/notify', { id: 'n9' });
+  assert.deepEqual([r.status, r.data.sent, r.data.cursor, w.kv.size], [200, 0, null, before]);
+});

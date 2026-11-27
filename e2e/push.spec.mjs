@@ -33,13 +33,15 @@ async function fakePush(page, { permission = 'default', answer = 'granted', supp
   );
 }
 
-/** Record the calls to the push Worker */
-async function workerCalls(page) {
+/** Record the calls to the push Worker; `reply(call)` → { status, json } (default 200 {ok:true}) */
+async function workerCalls(page, reply = () => ({})) {
   const calls = [];
   await page.route('https://push.test/**', async (route) => {
     const req = route.request();
-    calls.push({ path: new URL(req.url()).pathname, body: req.postDataJSON(), auth: req.headers().authorization });
-    await route.fulfill({ contentType: 'application/json', body: '{"ok":true}', headers: { 'Access-Control-Allow-Origin': '*' } });
+    const call = { path: new URL(req.url()).pathname, body: req.postDataJSON(), auth: req.headers().authorization };
+    calls.push(call);
+    const { status = 200, json = { ok: true } } = reply(call, calls);
+    await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(json), headers: { 'Access-Control-Allow-Origin': '*' } });
   });
   return calls;
 }
@@ -99,4 +101,44 @@ test('REQ-062: with the pushNotif flag off there is no Notification settings', a
   await page.goto('#/account');
   await expect(page.getByRole('heading', { name: /Quyền riêng tư/ })).toBeVisible();
   await expect(page.getByRole('switch')).toHaveCount(0);
+});
+
+test('REQ-062: closing the browser prompt without answering keeps the switch usable', async ({ page }) => {
+  await fakePush(page, { answer: 'default' });
+  await openApp(page, '#/account', { flags: { pushNotif: true } });
+  const sw = page.getByRole('switch', { name: /Thông báo đẩy/ });
+  await sw.click();
+  await expect(sw).toHaveAttribute('aria-checked', 'false');
+  await expect(sw).toBeEnabled();
+  await expect(page.locator('.push-row')).toContainText('Nhận thông báo kể cả khi đã đóng ứng dụng.');
+});
+
+// TC-123 (app side) — REQ-063
+test('REQ-063: a new notification (follow) asks the Worker to push it, following its cursor', async ({ page }) => {
+  await fakePush(page);
+  await openApp(page, '#/u/demo-2', { flags: { follow: true } });
+  const calls = await workerCalls(page, (c, all) => (c.path === '/notify' && all.filter((x) => x.path === '/notify').length === 1 ? { json: { ok: true, sent: 10, cursor: 'u9' } } : {}));
+  await page.getByRole('button', { name: /^(＋ )?Theo dõi/ }).first().click();
+  await expect(page.getByRole('button', { name: /Đang theo dõi/ }).first()).toBeVisible();
+  await expect.poll(() => calls.filter((c) => c.path === '/notify').length).toBe(2);
+  const [first, second] = calls.filter((c) => c.path === '/notify');
+  expect(first.body).toEqual({ id: expect.any(String), cursor: null });
+  expect(second.body).toEqual({ id: first.body.id, cursor: 'u9' });
+  expect(first.auth).toBe('Bearer demo');
+});
+
+test('REQ-063: when the Worker is down, following still works (the in-app notification is saved)', async ({ page }) => {
+  await fakePush(page);
+  await openApp(page, '#/u/demo-2', { flags: { follow: true } });
+  const calls = await workerCalls(page, () => ({ status: 500, json: { error: 'down' } }));
+  await page.getByRole('button', { name: /^(＋ )?Theo dõi/ }).first().click();
+  await expect(page.getByRole('button', { name: /Đang theo dõi/ }).first()).toBeVisible();
+  await expect.poll(() => calls.length).toBe(1);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('travel-map-social-demo-v1')).notes || []);
+  expect(saved.some((n) => n.to === 'demo-2' && n.type === 'follow' && n.id === calls[0].body.id)).toBe(true);
+});
+
+test('REQ-063: opening Bee There from a push shows the Notifications panel', async ({ page }) => {
+  await openApp(page, '#notifications');
+  await expect(page.getByRole('dialog', { name: 'Thông báo' })).toBeVisible();
 });

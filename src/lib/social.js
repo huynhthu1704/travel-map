@@ -13,6 +13,7 @@ import {
   collection, doc, setDoc, getDoc, getDocs, runTransaction, deleteDoc, addDoc, updateDoc, onSnapshot, query, where, limit, getCountFromServer, arrayUnion, arrayRemove, writeBatch, deleteField,
 } from 'firebase/firestore';
 import { firebaseEnabled, db } from './firebase';
+import { pushNotify } from './push';
 import { normalize } from './geo';
 
 /** Các trường giúp tìm người dùng theo tên (không phân biệt dấu, tìm theo đầu từ) */
@@ -360,3 +361,10 @@ const local = {
 };
 
 export const socialApi = firebaseEnabled ? fb : local;
+// REQ-063: every notification saved through socialApi.notify (likes, follows, comments, team messages) is also pushed
+const saveNotification = socialApi.notify;
+socialApi.notify = async function notify(n) {
+  const ref = await saveNotification.call(this, n);
+  pushNotify(ref?.id);
+  return ref;
+};

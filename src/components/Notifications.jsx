@@ -3,6 +3,10 @@ import { useApp } from '../AppContext';
 import { useI18n } from '../i18n';
 import { Avatar, Empty, Loader } from './ui';
 import { socialApi } from '../lib/social';
+import { refreshPush } from '../lib/push';
+
+// REQ-063: opened from a push message (service worker opens #notifications) → show the panel once signed in
+const OPENED_FROM_PUSH = typeof location !== 'undefined' && /^#\/?notifications\b/.test(location.hash);
 // REQ-011: chỉ tải phần hồ sơ khi mở tab Bạn bè (không kéo cả trang Hồ sơ vào lúc mở web)
 const FeedList = lazy(() => import('../pages/Profile').then((m) => ({ default: m.FeedList })));
 
@@ -18,11 +22,24 @@ const ago = (ms, lang) => {
 
 /** Chuông thông báo trên thanh trên cùng: thông báo cá nhân + thông báo chung + bảng tin bạn bè */
 export default function Notifications() {
-  const { user, notes, unread, friendIds } = useApp();
-  const { t } = useI18n();
-  const [open, setOpen] = useState(false);
+  const { user, notes, unread, friendIds, can } = useApp();
+  const { t, lang } = useI18n();
+  const [open, setOpen] = useState(OPENED_FROM_PUSH);
   const [tab, setTab] = useState('notes');
   const ref = useRef(null);
+  // REQ-063: a push was tapped while the app was already open
+  useEffect(() => {
+    const sw = typeof navigator !== 'undefined' ? navigator.serviceWorker : null;
+    if (!sw?.addEventListener) return undefined;
+    const onMsg = (e) => e.data?.type === 'open-notifications' && (setTab('notes'), setOpen(true));
+    sw.addEventListener('message', onMsg);
+    return () => sw.removeEventListener?.('message', onMsg);
+  }, []);
+  // REQ-062: keep this device's push registration current (language, role) once signed in
+  const pushOn = !!user && can('pushNotif');
+  useEffect(() => {
+    if (pushOn) refreshPush(lang);
+  }, [pushOn, user?.uid, lang]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return undefined;
     const close = (e) => !ref.current?.contains(e.target) && setOpen(false);

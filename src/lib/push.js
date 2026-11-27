@@ -44,13 +44,19 @@ export async function currentPushSub() {
   return (await (await registration()).pushManager.getSubscription()) || null;
 }
 
-/** Turn push on for this device → 'on' | 'blocked' (the user refused in the browser prompt) */
+/** Turn push on for this device → 'on' | 'blocked' (refused in the browser prompt) | 'dismissed' (prompt closed) */
 export async function enablePush(lang) {
   const perm = await Notification.requestPermission();
-  if (perm !== 'granted') return 'blocked';
+  if (perm === 'denied') return 'blocked';
+  if (perm !== 'granted') return 'dismissed';
   const reg = await registration();
   const sub = (await reg.pushManager.getSubscription()) || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(config().key) }));
-  await callPushWorker('/subscribe', { subscription: sub.toJSON(), lang });
+  try {
+    await callPushWorker('/subscribe', { subscription: sub.toJSON(), lang });
+  } catch (e) {
+    await sub.unsubscribe().catch(() => {}); // not registered on the Worker → do not show On after a reload
+    throw e;
+  }
   return 'on';
 }
 
@@ -60,6 +66,22 @@ export async function disablePush() {
   if (!sub) return;
   await callPushWorker('/unsubscribe', { endpoint: sub.endpoint }).catch(() => {});
   await sub.unsubscribe();
+}
+
+/**
+ * REQ-063: ask the Worker to push a notification that was just saved (fire and forget; a broadcast is sent in
+ * batches, so follow the Worker's cursor). Never throws: the in-app notification is already saved.
+ */
+export function pushNotify(id) {
+  if (!id || !pushConfigured()) return;
+  (async () => {
+    let cursor = null;
+    for (let i = 0; i < 500; i++) {
+      const r = await callPushWorker('/notify', { id, cursor });
+      cursor = r?.cursor || null;
+      if (!cursor) break;
+    }
+  })().catch(() => {});
 }
 
 /** Keep language and role current on the Worker while push is on (called when the app starts). */

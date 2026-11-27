@@ -14,6 +14,7 @@ import {
   getCountFromServer, orderBy,
 } from 'firebase/firestore';
 import { firebaseEnabled, db } from './firebase';
+import { pushNotify } from './push';
 
 /** Quản trị viên gốc (luôn có quyền admin, kể cả khi chưa có hồ sơ) — khớp với firestore.rules.
  *  Dùng mã người dùng (uid) thay vì email để email chủ trang không nằm trong mã nguồn công khai. */
@@ -205,7 +206,7 @@ const fb = {
   async hideMemory(id, by, note = '', owner = null, placeName = '') {
     await updateDoc(doc(db, 'memories', id), { visibility: 'private', moderated: true, moderatedBy: by, moderatedAt: now(), moderationNote: note });
     // Báo cho chủ check-in biết bài đã bị ẩn và vì sao
-    if (owner) await addDoc(collection(db, 'notifications'), { to: owner, type: 'hidden', from: by, memoryId: id, title: placeName || '', body: note || '', read: false, createdAt: now() });
+    if (owner) pushNotify((await addDoc(collection(db, 'notifications'), { to: owner, type: 'hidden', from: by, memoryId: id, title: placeName || '', body: note || '', read: false, createdAt: now() })).id);
   },
   unhideMemory: (id) => updateDoc(doc(db, 'memories', id), { visibility: 'public', moderated: false, moderationNote: '' }),
   async deleteMemoryAdmin(m) {

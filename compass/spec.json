@@ -90,7 +90,7 @@
         "Given I add a suggestion · When trip members open the shared checklist · Then they see the new item with the same tick behaviour as any other item"
       ],
       "priority": "Must",
-      "status": "Draft"
+      "status": "Approved"
     },
     {
       "id": "REQ-004",
@@ -103,7 +103,7 @@
         "Given I am only a member (not owner) of a trip and the app does not let me edit that trip's checklist · When the trip list is shown · Then that trip is not offered as a target"
       ],
       "priority": "Should",
-      "status": "Draft"
+      "status": "Approved"
     },
     {
       "id": "REQ-005",
@@ -116,7 +116,7 @@
         "Given I renamed the item that came from suggestion X · When I add suggestion X to the same trip again · Then it is still treated as a duplicate"
       ],
       "priority": "Must",
-      "status": "Draft"
+      "status": "Approved"
     },
     {
       "id": "REQ-006",
@@ -129,7 +129,7 @@
         "Given an error occurred · When I activate 'Add to checklist' again after the cause is fixed · Then the item is added once"
       ],
       "priority": "Should",
-      "status": "Draft"
+      "status": "Approved"
     },
     {
       "id": "REQ-007",
@@ -142,7 +142,7 @@
         "Given a user without Insights permission · When they open the admin area · Then they cannot see the count"
       ],
       "priority": "Must",
-      "status": "Draft"
+      "status": "Approved"
     },
     {
       "id": "REQ-008",
@@ -155,7 +155,7 @@
         "Given a Guide has no adds in the period · When the Admin views the list · Then that Guide is shown with a count of 0"
       ],
       "priority": "Should",
-      "status": "Draft"
+      "status": "Approved"
     },
     {
       "id": "REQ-009",
@@ -167,7 +167,7 @@
         "Given I use only a keyboard or a screen reader · When I move through a suggestion · Then the action can be reached and activated by keyboard and has an accessible name that includes the suggestion text (REQ-025 baseline)"
       ],
       "priority": "Could",
-      "status": "Draft"
+      "status": "Approved"
     }
   ],
   "tests": [

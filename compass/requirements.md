@@ -3,13 +3,13 @@
 | ID | Feature | Title | Priority | Status | Tests |
 |---|---|---|---|---|---|
 | REQ-002 | F-001 | Accessibility and performance baseline | Should | Approved | TC-003, TC-004 |
-| REQ-003 | F-001 | Add a Guide suggestion to a trip checklist in one step | Must | Draft | ⚠ none |
-| REQ-004 | F-001 | Choose which trip receives the suggestion | Should | Draft | ⚠ none |
-| REQ-005 | F-001 | Block duplicate Guide suggestions on one checklist | Must | Draft | ⚠ none |
-| REQ-006 | F-001 | Confirmation and clear error when adding a suggestion | Should | Draft | ⚠ none |
-| REQ-007 | F-001 | Admin sees how many Guide suggestions are added to checklists | Must | Draft | ⚠ none |
-| REQ-008 | F-001 | Admin count by Guide without personal data | Should | Draft | ⚠ none |
-| REQ-009 | F-001 | Make 'Add to checklist' visible on every Guide suggestion | Could | Draft | ⚠ none |
+| REQ-003 | F-001 | Add a Guide suggestion to a trip checklist in one step | Must | Approved | ⚠ none |
+| REQ-004 | F-001 | Choose which trip receives the suggestion | Should | Approved | ⚠ none |
+| REQ-005 | F-001 | Block duplicate Guide suggestions on one checklist | Must | Approved | ⚠ none |
+| REQ-006 | F-001 | Confirmation and clear error when adding a suggestion | Should | Approved | ⚠ none |
+| REQ-007 | F-001 | Admin sees how many Guide suggestions are added to checklists | Must | Approved | ⚠ none |
+| REQ-008 | F-001 | Admin count by Guide without personal data | Should | Approved | ⚠ none |
+| REQ-009 | F-001 | Make 'Add to checklist' visible on every Guide suggestion | Could | Approved | ⚠ none |
 
 ## REQ-002 · Accessibility and performance baseline
 As an user, I want every page to work with keyboard and screen readers and load quickly, so that everyone can use the product.
@@ -35,7 +35,7 @@ Then it becomes interactive within 2.5 seconds (Lighthouse)
 ## REQ-003 · Add a Guide suggestion to a trip checklist in one step
 As a traveller who owns a trip, I want to add a suggestion I read in a Guide to my trip's checklist with one action, so that I don't retype it by hand.
 
-**Priority:** Must · **Status:** Draft
+**Priority:** Must · **Status:** Approved
 
 **Acceptance criteria**
 
@@ -57,7 +57,7 @@ Given I add a suggestion · When trip members open the shared checklist · Then 
 ## REQ-004 · Choose which trip receives the suggestion
 As a traveller with several trips, I want to pick the trip a suggestion goes to, so that it lands on the right checklist.
 
-**Priority:** Should · **Status:** Draft
+**Priority:** Should · **Status:** Approved
 
 **Acceptance criteria**
 
@@ -79,7 +79,7 @@ Given I am only a member (not owner) of a trip and the app does not let me edit 
 ## REQ-005 · Block duplicate Guide suggestions on one checklist
 As a traveller, I want the app to stop me adding the same Guide suggestion twice to one trip, so that my checklist has no repeated items.
 
-**Priority:** Must · **Status:** Draft
+**Priority:** Must · **Status:** Approved
 
 **Acceptance criteria**
 
@@ -101,7 +101,7 @@ Given I renamed the item that came from suggestion X · When I add suggestion X 
 ## REQ-006 · Confirmation and clear error when adding a suggestion
 As a traveller, I want to be told whether my suggestion was added or why it failed, so that I know the state of my checklist.
 
-**Priority:** Should · **Status:** Draft
+**Priority:** Should · **Status:** Approved
 
 **Acceptance criteria**
 
@@ -123,7 +123,7 @@ Given an error occurred · When I activate 'Add to checklist' again after the ca
 ## REQ-007 · Admin sees how many Guide suggestions are added to checklists
 As an Admin, I want to see how many Guide suggestions travellers add to checklists, so that the team can tell whether Guides help people plan and keep using the app.
 
-**Priority:** Must · **Status:** Draft
+**Priority:** Must · **Status:** Approved
 
 **Acceptance criteria**
 
@@ -145,7 +145,7 @@ Given a user without Insights permission · When they open the admin area · The
 ## REQ-008 · Admin count by Guide without personal data
 As an Admin, I want the count broken down by Guide while hiding who added what, so that we learn which Guides work without exposing individual travellers.
 
-**Priority:** Should · **Status:** Draft
+**Priority:** Should · **Status:** Approved
 
 **Acceptance criteria**
 
@@ -167,7 +167,7 @@ Given a Guide has no adds in the period · When the Admin views the list · Then
 ## REQ-009 · Make 'Add to checklist' visible on every Guide suggestion
 As a traveller reading a Guide, I want to see the 'Add to checklist' action next to each suggestion, so that I find it without searching.
 
-**Priority:** Could · **Status:** Draft
+**Priority:** Could · **Status:** Approved
 
 **Acceptance criteria**
 

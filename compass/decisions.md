@@ -25,6 +25,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-019 | 2026-11-26 | Weekly security scan with npm audit and CodeQL, dismissal by a reason comment | Accepted | REQ-044 |
 | ADR-020 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
 | ADR-021 | 2026-11-27 | Intents say "Done when"; a baseline and target only for bets | Accepted | REQ-059, REQ-054 |
+| ADR-022 | 2026-11-27 | Figma file layout: one Components page, one section per feature | Accepted | REQ-061 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -235,3 +236,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** The Product Owner decided on 2026-11-27: every intent has a "Done when" in plain words. A small feature may add one optional signal to watch without a target; a process change has "Done when" only; only a change she names a bet gets a metric with its current value, and its target is set after a few weeks of real data. Applies to travel-map and to the Compass portal.
 
 **Consequences.** The intent template, AGENTS.md, the deliver-change skill and agent-knowledge ask for "## Done when"; REQ-054's template criterion is amended. check-spec requires "## Done when" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.
+
+## ADR-022 — Figma file layout: one Components page, one section per feature
+
+**Status:** Accepted · **Date:** 2026-11-27 · **Requirements:** REQ-061
+
+**Context.** Components were spread over the feature and brand pages of the Bee There Figma file, and feature screens lay loose on "📐 Feature designs", which made reviews hard to follow.
+
+**Decision.** The Product Owner decided on 2026-11-27: every Figma component lives on the "🧩 Components" page, and each feature gets one Figma section on "📐 Feature designs" holding all its screens, for this and every future feature.
+
+**Consequences.** Existing components were moved and existing feature screens grouped (node ids unchanged, so frame links still work). The design template, the deliver-change skill and agent-knowledge state the rule; CI cannot read Figma, so it is not checked automatically.

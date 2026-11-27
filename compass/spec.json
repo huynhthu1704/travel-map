@@ -311,6 +311,18 @@
         "REQ-059",
         "REQ-054"
       ]
+    },
+    {
+      "id": "ADR-022",
+      "date": "2026-11-27",
+      "title": "Figma file layout: one Components page, one section per feature",
+      "status": "Accepted",
+      "context": "Components were spread over the feature and brand pages of the Bee There Figma file, and feature screens lay loose on \"📐 Feature designs\", which made reviews hard to follow.",
+      "decision": "The Product Owner decided on 2026-11-27: every Figma component lives on the \"🧩 Components\" page, and each feature gets one Figma section on \"📐 Feature designs\" holding all its screens, for this and every future feature.",
+      "consequences": "Existing components were moved and existing feature screens grouped (node ids unchanged, so frame links still work). The design template, the deliver-change skill and agent-knowledge state the rule; CI cannot read Figma, so it is not checked automatically.",
+      "reqIds": [
+        "REQ-061"
+      ]
     }
   ],
   "requirements": [
@@ -1672,6 +1684,21 @@
       "source": "Requested by the Product Owner on 2026-11-27 in chat after the Compass Ideation agent proposed an invented outcome metric (issue #142)"
     },
     {
+      "id": "REQ-061",
+      "title": "Figma components on the Components page, one section per feature",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-27-figma-components-and-sections.md",
+      "design": "none: process rule for the Figma file, no app UI",
+      "story": "As the product owner, I want every Figma component on the \"🧩 Components\" page and each feature's screens grouped in one Figma section, so that I review a feature at a glance and find reusable pieces in one place.",
+      "ac": [
+        "Given the Bee There Figma file\nWhen an agent creates or finds a component (component or component set)\nThen it lives on the \"🧩 Components\" page, never on a feature or brand page",
+        "Given a new feature with UI\nWhen an agent draws its screens on \"📐 Feature designs\"\nThen all its screens sit inside one Figma section named \"<REQ ids> · <topic>\", and the design file links that section",
+        "Given a new session starts a design\nWhen it reads the design template, the deliver-change skill and its working knowledge\nThen they state both rules"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-27 in chat (issue #145)"
+    },
+    {
       "id": "REQ-044",
       "title": "Weekly security scan of the code and libraries",
       "priority": "Could",
@@ -2681,6 +2708,16 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/agentEvals.test.mjs"
+    },
+    {
+      "id": "TC-121",
+      "title": "Design template, skill and agent knowledge put components on the Components page and each feature in one Figma section",
+      "reqIds": [
+        "REQ-061"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/design.test.mjs"
     }
   ]
 }

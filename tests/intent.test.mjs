@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { intentProblems, needProblems } from '../compass/build-views.mjs';
+import { intentProblems, needProblems, DONE_WHEN_REQUIRED_FROM } from '../compass/build-views.mjs';
 
 const root = new URL('../', import.meta.url);
 const spec = JSON.parse(readFileSync(new URL('compass/spec.json', root), 'utf8'));
@@ -79,12 +79,34 @@ test('TC-070: the template, AGENTS.md and the deliver-change skill ask for "Done
   assert.match(template, /^## Done when$/m);
   assert.doesNotMatch(template, /baseline → target/, 'the template does not ask every intent for a target');
   for (const kind of [/Small feature/, /Process or internal change/, /\bA bet\b/]) assert.match(readme, kind, `README names ${kind}`);
+  // …and what each row says, so a reworded row cannot silently drop the rule
+  for (const rule of [/Small feature[^\n]*no target/, /Process or internal change[^\n]*`## Done when` only/, /A bet[^\n]*current value[^\n]*after a few weeks of real data/]) assert.match(readme, rule);
   for (const f of ['AGENTS.md', '.claude/skills/deliver-change/SKILL.md']) {
     const t = readRepo(f);
     assert.match(t, /## Done when/, `${f} asks for Done when`);
     assert.match(t, /REQ-059/, f);
     assert.doesNotMatch(t, /measurable business intent/, `${f} no longer asks for a measurable intent`);
   }
+});
+
+// TC-070 (AC 4) — check-spec requires "## Done when" in intents of REQ-059 on
+test('TC-070: intents of REQ-059 on need "## Done when" (check-spec)', () => {
+  assert.equal(DONE_WHEN_REQUIRED_FROM, 59);
+  const need = '## Business need\nwords\n';
+  const files = { 'compass/intent/a.md': need, 'compass/intent/b.md': need, 'compass/intent/c.md': `${need}## Done when\nit works\n`, 'compass/intent/d.md': 'Status: Approved' };
+  const p = (reqs) => needProblems({ requirements: reqs }, (f) => files[f] ?? null);
+  assert.deepEqual(p([{ id: 'REQ-058', intent: 'compass/intent/a.md' }]), [], 'older intents are not required to have one');
+  assert.match(p([{ id: 'REQ-059', intent: 'compass/intent/b.md' }])[0], /b\.md has no "## Done when" section/);
+  assert.deepEqual(p([{ id: 'REQ-060', intent: 'compass/intent/c.md' }]), []);
+  assert.deepEqual(p([{ id: 'REQ-120', intent: 'compass/intent/b.md' }]), [], 'the REQ-101…153 baseline is exempt');
+  assert.match(p([{ id: 'REQ-061', intent: 'compass/intent/d.md' }]).join('\n'), /no "## Business need".*and no "## Done when"/, 'both missing → one message');
+  assert.equal(p([{ id: 'REQ-061', intent: 'compass/intent/d.md' }]).length, 1);
+  // An intent shared by an older and a newer requirement is judged by the newest, in any order (review on #144)
+  for (const order of [['REQ-055', 'REQ-060'], ['REQ-060', 'REQ-055']]) {
+    assert.match(p(order.map((id) => ({ id, intent: 'compass/intent/b.md' }))).join('\n'), /b\.md has no "## Done when"/, order.join(' then '));
+  }
+  // the approved intent of REQ-059 itself follows the rule
+  assert.match(readRepo('compass/intent/2026-11-27-done-when-before-targets.md'), /^## Done when$/m);
 });
 
 

@@ -58,7 +58,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Done | TC-114 |
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-058 | Automatic deploys publish only the newest commit of main | — | Must | Done | TC-115 |
-| REQ-059 | Every intent has a "Done when"; targets only for bets | — | Must | In build | TC-070 |
+| REQ-059 | Every intent has a "Done when"; targets only for bets | — | Must | Done | TC-070 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |

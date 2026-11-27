@@ -25,7 +25,8 @@ when the change is done. Never invent a baseline or a target; how much to measur
    `"intent": "compass/intent/<file>.md"` in `compass/spec.json`, and the intent lists its requirements.
 
 `node compass/check-spec.mjs` fails when a requirement points to a missing intent or to one that is not Approved,
-and when a requirement from **REQ-051** onward (below the REQ-101 baseline) has no intent.
+and when a requirement from **REQ-051** onward (below the REQ-101 baseline) has no intent; from **REQ-059** on, its
+intent must have a `## Done when` section.
 
 ## Template
 ```markdown

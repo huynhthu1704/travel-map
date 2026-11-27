@@ -330,9 +330,27 @@
     {
       "id": "EV-038",
       "title": "Control: a process requirement with an approved intent passes the spec check",
+      "retired": "Approved by Christine (Product Owner) in chat on 2026-11-27: under REQ-059 a valid intent also needs ## Done when; replaced by EV-040",
       "source": "REQ-038, REQ-054, REQ-055",
       "check": "spec",
       "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
+      "expect": "allowed"
+    },
+    {
+      "id": "EV-039",
+      "title": "An intent of REQ-059 or later without \"## Done when\" fails the spec check",
+      "source": "REQ-059 (ADR-021: Done when, no invented baseline or target)",
+      "check": "spec",
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## What we want\nx\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
+      "expect": "blocked",
+      "why": "## Done when"
+    },
+    {
+      "id": "EV-040",
+      "title": "Control: a process requirement with an approved intent (business need and Done when) passes the spec check",
+      "source": "REQ-038, REQ-054, REQ-055, REQ-059 (replaces EV-038)",
+      "check": "spec",
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Done when\nx\n\n## Requirements\n- REQ-990\n" } },
       "expect": "allowed"
     }
   ]

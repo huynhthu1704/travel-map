@@ -234,4 +234,4 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Decision.** The Product Owner decided on 2026-11-27: every intent has a "Done when" in plain words. A small feature may add one optional signal to watch without a target; a process change has "Done when" only; only a change she names a bet gets a metric with its current value, and its target is set after a few weeks of real data. Applies to travel-map and to the Compass portal.
 
-**Consequences.** The intent template, AGENTS.md and the deliver-change skill ask for "## Done when"; REQ-054's template criterion is amended. A follow-up PR makes check-spec require "## Done when" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.
+**Consequences.** The intent template, AGENTS.md, the deliver-change skill and agent-knowledge ask for "## Done when"; REQ-054's template criterion is amended. check-spec requires "## Done when" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.

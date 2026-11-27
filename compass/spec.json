@@ -121,13 +121,38 @@
       "id": "F-002",
       "name": "allow user to filter trip cost by…",
       "idea": {
-        "intent": "allow user to filter trip cost by payment method (card, cash), cost shared a specific person, type of cost (accomdation, travel, foods & drinks, etc)",
-        "problem": "",
-        "users": [],
-        "outcomeMetric": "",
-        "scopeIn": [],
-        "scopeOut": [],
-        "risks": []
+        "intent": "Trip members can quickly narrow a trip's cost list to the costs they care about (how it was paid, who it was shared with, what kind of cost), so they can check and reconcile spending without scanning every line.",
+        "problem": "A trip's cost list shows every cost together. Members cannot easily see only the card or cash payments, only the costs shared with one person, or only one kind of cost such as accommodation, transport or food & drinks. This makes it hard to check spending, work out what a person owes, or review one category. The cost list already records who a cost is shared among (splitAmong) and a cost type (costType, 10 types such as Accommodation and Food & drinks) [S1]. Payment method (card or cash) is not found in the cost data I searched, so it may be a new detail to capture.",
+        "users": [
+          "Trip members who enter and review costs on a shared group trip",
+          "Trip owner who checks the group's spending and who owes what",
+          "Solo traveller reviewing their own trip costs by category or payment method"
+        ],
+        "outcomeMetric": "A user viewing a trip's costs can filter the list by payment method (card, cash), by a specific person the cost is shared with, and by cost type. The list then shows only the matching costs, and the user can clear the filter to see all costs again.",
+        "scopeIn": [
+          "Filter the trip cost list by payment method (card, cash)",
+          "Filter the trip cost list by a specific person the cost is shared with",
+          "Filter the trip cost list by cost type (accommodation, transport, food & drinks, and the other existing types)",
+          "Clear the filter to return to the full list",
+          "Show a clear message when no cost matches the filter",
+          "Record payment method on a cost, if it is not already captured, so it can be filtered"
+        ],
+        "scopeOut": [
+          "Changing how costs are split or how balances and settle-up are calculated",
+          "New cost types beyond the existing list",
+          "Payment methods other than card and cash",
+          "Changing Excel or PDF export contents",
+          "Saving filters across sessions or sharing them with other members"
+        ],
+        "risks": [
+          "Payment method may not exist on current costs. Existing costs will be shown as 'Not set' (Product Owner decision). The team needs to confirm that 'Not set' costs do not appear under the card or cash filter.",
+          "Open question: should several filters combine (for example card AND food & drinks)? The need does not say.",
+          "Open question: should the totals shown change with the filter, and could a filtered total be mistaken for the whole trip's total or for settle-up balances?",
+          "'Shared with a specific person' means a cost where the person is in the split. Costs shared by the whole group (empty split) must be treated consistently.",
+          "The need says 'travel' while the app's cost types use 'Transport' and 'Flights'. The labels need agreeing.",
+          "Cost entry and the filter must work for keyboard and screen-reader users (REQ-002 accessibility baseline)."
+        ],
+        "need": "Allow user to  filter trip cost by payment method (card, cash), cost shared a specific person, type of cost (accomdation, travel, foods & drinks, etc)"
       },
       "createdAt": "2026-11-23T03:16:00.940Z"
     },

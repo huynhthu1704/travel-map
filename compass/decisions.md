@@ -26,6 +26,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-020 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
 | ADR-021 | 2026-11-27 | Intents say "Done when"; a baseline and target only for bets | Accepted | REQ-059, REQ-054 |
 | ADR-022 | 2026-11-27 | Figma file layout: one Components page, one section per feature | Accepted | REQ-061 |
+| ADR-023 | 2026-11-27 | The deploy rollback pages through recent deploy runs | Accepted | REQ-034 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -246,3 +247,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** The Product Owner decided on 2026-11-27: every Figma component lives on the "🧩 Components" page, and each feature gets one Figma section on "📐 Feature designs" holding all its screens, for this and every future feature.
 
 **Consequences.** Existing components were moved and existing feature screens grouped (node ids unchanged, so frame links still work). The design template, the deliver-change skill and agent-knowledge state the rule; CI cannot read Figma, so it is not checked automatically.
+
+## ADR-023 — The deploy rollback pages through recent deploy runs
+
+**Status:** Accepted · **Date:** 2026-11-27 · **Requirements:** REQ-034
+
+**Context.** Since REQ-058, skipped automatic deploys end as successful runs. The rollback only looked at the 20 newest successful Compass Deploy runs, so after many quick merges it could find no good version and only opened a bug (issue #110).
+
+**Decision.** The rollback reads successful Compass Deploy runs 100 per page, up to 5 pages, newest first, and redeploys the first commit (other than the failed one) whose smoke test passed. The Product Owner approved changing the protected workflow in chat on 2026-11-27.
+
+**Consequences.** A rollback can make more GitHub API calls (one per skipped run it passes); the 5-page cap keeps the worst case at about 505 calls, under the workflow token limit. If no good run is found in 500 runs it still opens a bug and a manual redeploy is needed.

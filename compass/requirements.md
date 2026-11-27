@@ -602,10 +602,10 @@ Intent: [compass/intent/2026-11-26-push-notifications.md](../compass/intent/2026
 
 Design: [compass/design/2026-11-26-push-notifications.md](../compass/design/2026-11-26-push-notifications.md)
 
-- Given the pushNotif flag is on for me and my browser supports push · When I open Notifications, tap "Turn on push notifications" and allow it in the browser prompt · Then this device is registered and the switch shows On
+- Given the pushNotif flag is on for me and my browser supports push · When I open Notification settings (Profile ⋯ menu or the Account & data page), turn on "Push notifications" and allow it in the browser prompt · Then this device is registered and the switch shows On
 - Given push is on for this device · When I turn the switch off · Then the device is unregistered and no more push messages arrive on it
-- Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications · When I open Notifications · Then I see a short VI/EN explanation of how to enable it instead of the switch
-- Given the pushNotif flag is off for me · When I open Notifications · Then I see no push option
+- Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications · When I open Notification settings · Then the switch is disabled and one short VI/EN line says how to enable it
+- Given the pushNotif flag is off for me · When I open my Profile menu or the Account & data page · Then I see no Notification settings, and the Notifications panel is unchanged
 
 ## REQ-060 — Every in-app notification is also sent as a push message
 
@@ -615,8 +615,8 @@ Intent: [compass/intent/2026-11-26-push-notifications.md](../compass/intent/2026
 
 Design: [compass/design/2026-11-26-push-notifications.md](../compass/design/2026-11-26-push-notifications.md)
 
-- Given I have push on · When someone creates a notification for me (trip invite, invite accepted/declined, follow, like, comment, hidden memory) · Then I get a push message within 1 minute with its title and text in my language
-- Given an admin sends a notification to everyone, a role or chosen users · When it is sent · Then each recipient with push on gets the push message
+- Given I have push on · When someone creates a notification for me (trip invite, invite accepted/declined, follow, like, comment, hidden memory) · Then I get a push message within 1 minute showing the same text as the notification in the app, in my language
+- Given an admin sends a notification to everyone, a role or chosen users · When it is sent · Then each recipient with push on gets a push message with the same title and text as in the app
 - Given I tap the push message · When the app opens · Then it shows the Notifications panel
 - Given a device that unregistered or whose push subscription expired · When a push is sent · Then it is skipped and its registration is removed
 - Given the Cloudflare Worker is down · When a notification is created · Then the in-app notification is still saved and shown as today

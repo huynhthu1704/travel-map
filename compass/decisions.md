@@ -26,6 +26,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-020 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
 | ADR-021 | 2026-11-27 | Intents say "Done when"; a baseline and target only for bets | Accepted | REQ-059, REQ-054 |
 | ADR-022 | 2026-11-27 | Figma file layout: one Components page, one section per feature | Accepted | REQ-061 |
+| ADR-023 | 2026-11-26 | Push notifications are sent by a free Cloudflare Worker | Accepted | REQ-062, REQ-063 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -246,3 +247,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** The Product Owner decided on 2026-11-27: every Figma component lives on the "🧩 Components" page, and each feature gets one Figma section on "📐 Feature designs" holding all its screens, for this and every future feature.
 
 **Consequences.** Existing components were moved and existing feature screens grouped (node ids unchanged, so frame links still work). The design template, the deliver-change skill and agent-knowledge state the rule; CI cannot read Figma, so it is not checked automatically.
+
+## ADR-023 — Push notifications are sent by a free Cloudflare Worker
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-062, REQ-063
+
+**Context.** Push messages need a server; Bee There runs on GitHub Pages and the free Firebase Spark plan without Cloud Functions (ADR-001 left this open).
+
+**Decision.** The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.
+
+**Consequences.** A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+).

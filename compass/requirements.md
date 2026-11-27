@@ -60,6 +60,8 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-058 | Automatic deploys publish only the newest commit of main | — | Must | Done | TC-115 |
 | REQ-059 | Every intent has a "Done when"; targets only for bets | — | Must | Done | TC-070 |
 | REQ-061 | Figma components on the Components page, one section per feature | — | Should | Done | TC-121 |
+| REQ-062 | Turn push notifications on or off | — | Should | Approved | TC-122 |
+| REQ-063 | Every in-app notification is also sent as a push message | — | Should | Approved | TC-123 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -645,6 +647,33 @@ Design: none: process rule for the Figma file, no app UI
 - Given the Bee There Figma file · When an agent creates or finds a component (component or component set) · Then it lives on the "🧩 Components" page, never on a feature or brand page
 - Given a new feature with UI · When an agent draws its screens on "📐 Feature designs" · Then all its screens sit inside one Figma section named "<REQ ids> · <topic>", and the design file links that section
 - Given a new session starts a design · When it reads the design template, the deliver-change skill and its working knowledge · Then they state both rules
+
+## REQ-062 — Turn push notifications on or off
+
+As a signed-in user, I want to turn push notifications on or off for this device, so that I get my Bee There notifications even when the app is closed, and only if I want them.
+
+Intent: [compass/intent/2026-11-26-push-notifications.md](../compass/intent/2026-11-26-push-notifications.md)
+
+Design: [compass/design/2026-11-26-push-notifications.md](../compass/design/2026-11-26-push-notifications.md)
+
+- Given the pushNotif flag is on for me and my browser supports push · When I open Notification settings (Profile ⋯ menu or the Account & data page), turn on "Push notifications" and allow it in the browser prompt · Then this device is registered and the switch shows On
+- Given push is on for this device · When I turn the switch off · Then the device is unregistered and no more push messages arrive on it
+- Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications · When I open Notification settings · Then the switch is disabled and one short VI/EN line says how to enable it
+- Given the pushNotif flag is off for me · When I open my Profile menu or the Account & data page · Then I see no Notification settings, and the Notifications panel is unchanged
+
+## REQ-063 — Every in-app notification is also sent as a push message
+
+As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.
+
+Intent: [compass/intent/2026-11-26-push-notifications.md](../compass/intent/2026-11-26-push-notifications.md)
+
+Design: [compass/design/2026-11-26-push-notifications.md](../compass/design/2026-11-26-push-notifications.md)
+
+- Given I have push on · When someone creates a notification for me (trip invite, invite accepted/declined, follow, like, comment, hidden memory) · Then I get a push message within 1 minute showing the same text as the notification in the app, in my language
+- Given an admin sends a notification to everyone, a role or chosen users · When it is sent · Then each recipient with push on gets a push message with the same title and text as in the app
+- Given I tap the push message · When the app opens · Then it shows the Notifications panel
+- Given a device that unregistered or whose push subscription expired · When a push is sent · Then it is skipped and its registration is removed
+- Given the Cloudflare Worker is down · When a notification is created · Then the in-app notification is still saved and shown as today
 
 ## REQ-101 — Sign in with Google
 

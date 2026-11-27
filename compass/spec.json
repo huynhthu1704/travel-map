@@ -323,6 +323,19 @@
       "reqIds": [
         "REQ-061"
       ]
+    },
+    {
+      "id": "ADR-023",
+      "date": "2026-11-26",
+      "title": "Push notifications are sent by a free Cloudflare Worker",
+      "status": "Accepted",
+      "context": "Push messages need a server; Bee There runs on GitHub Pages and the free Firebase Spark plan without Cloud Functions (ADR-001 left this open).",
+      "decision": "The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.",
+      "consequences": "A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+).",
+      "reqIds": [
+        "REQ-062",
+        "REQ-063"
+      ]
     }
   ],
   "requirements": [
@@ -1699,6 +1712,39 @@
       "source": "Requested by the Product Owner on 2026-11-27 in chat (issue #145)"
     },
     {
+      "id": "REQ-062",
+      "title": "Turn push notifications on or off",
+      "priority": "Should",
+      "status": "Approved",
+      "intent": "compass/intent/2026-11-26-push-notifications.md",
+      "story": "As a signed-in user, I want to turn push notifications on or off for this device, so that I get my Bee There notifications even when the app is closed, and only if I want them.",
+      "ac": [
+        "Given the pushNotif flag is on for me and my browser supports push\nWhen I open Notification settings (Profile ⋯ menu or the Account & data page), turn on \"Push notifications\" and allow it in the browser prompt\nThen this device is registered and the switch shows On",
+        "Given push is on for this device\nWhen I turn the switch off\nThen the device is unregistered and no more push messages arrive on it",
+        "Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications\nWhen I open Notification settings\nThen the switch is disabled and one short VI/EN line says how to enable it",
+        "Given the pushNotif flag is off for me\nWhen I open my Profile menu or the Account & data page\nThen I see no Notification settings, and the Notifications panel is unchanged"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #112",
+      "design": "compass/design/2026-11-26-push-notifications.md"
+    },
+    {
+      "id": "REQ-063",
+      "title": "Every in-app notification is also sent as a push message",
+      "priority": "Should",
+      "status": "Approved",
+      "intent": "compass/intent/2026-11-26-push-notifications.md",
+      "story": "As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.",
+      "ac": [
+        "Given I have push on\nWhen someone creates a notification for me (trip invite, invite accepted/declined, follow, like, comment, hidden memory)\nThen I get a push message within 1 minute showing the same text as the notification in the app, in my language",
+        "Given an admin sends a notification to everyone, a role or chosen users\nWhen it is sent\nThen each recipient with push on gets a push message with the same title and text as in the app",
+        "Given I tap the push message\nWhen the app opens\nThen it shows the Notifications panel",
+        "Given a device that unregistered or whose push subscription expired\nWhen a push is sent\nThen it is skipped and its registration is removed",
+        "Given the Cloudflare Worker is down\nWhen a notification is created\nThen the in-app notification is still saved and shown as today"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #113",
+      "design": "compass/design/2026-11-26-push-notifications.md"
+    },
+    {
       "id": "REQ-044",
       "title": "Weekly security scan of the code and libraries",
       "priority": "Could",
@@ -2718,6 +2764,26 @@
       "type": "automated",
       "status": "Passing",
       "file": "tests/design.test.mjs"
+    },
+    {
+      "id": "TC-122",
+      "title": "Push switch: on registers the device, off unregisters it, unsupported/blocked browsers see the how-to text, hidden when the pushNotif flag is off",
+      "reqIds": [
+        "REQ-062"
+      ],
+      "type": "automated",
+      "status": "Not run",
+      "file": "e2e/push.spec.mjs"
+    },
+    {
+      "id": "TC-123",
+      "title": "Push sender: each notification kind and admin broadcast becomes a push with the same text as in the app, in the recipient language; expired subscriptions are removed; a Worker failure never blocks the in-app notification",
+      "reqIds": [
+        "REQ-063"
+      ],
+      "type": "automated",
+      "status": "Not run",
+      "file": "tests/push.test.mjs"
     }
   ]
 }

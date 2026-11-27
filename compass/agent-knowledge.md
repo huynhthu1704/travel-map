@@ -67,10 +67,11 @@ Full decision log: `compass/decisions.md` (ADR-001…, generated from `spec.json
 ## 8. Open items
 - **#56 / REQ-049** (on hold) — high npm audit findings: firebase → @grpc/grpc-js (Node-only, low real risk), Vite 5 dev-server issues (fix = Vite 8 major upgrade). Waiting for Christine's choice.
 - **AI-native SDLC follow-ups** (on hold, intent `compass/intent/2026-11-25-ai-native-sdlc.md`): production monitoring #66, release tags #72. A paid version of the agent evals (Claude re-runs past tasks; needs an API key, ~$15–60 per run) is not decided (ADR-020). Done: agent evals free version #65 (REQ-041), weekly security scan #68 (REQ-044), failing-test-first #67 (REQ-043), merge-pr/plan hardening #81 (REQ-051), protect the enforcement files #75 (REQ-050).
+- **#112 / REQ-062, #113 / REQ-063** — push notifications via a free Cloudflare Worker (ADR-023); intent, requirements and design approved (2026-11-26/27, Figma section 36-77, in English: setting in Profile ⋯ → Notification settings and the Account page; push shows the in-app text). Next: code PRs, then Christine creates the free Cloudflare account. (First numbered REQ-059/060 on a branch; renumbered after main used REQ-059.)
 - **#39 / REQ-028** (on hold) — archive trips older than a retention period that admin can set; Christine is still thinking.
 - **#31 / REQ-024** — add suggestions from Guides into a trip's checklist (from the Compass portal, in build).
 - **#32 / REQ-025** — accessibility and performance baseline.
-- Not started / awaiting answer: REQ-016 (un-ticking "visited" should revert the map status); push notifications via Cloudflare Workers (option B); OSM-based check of place coordinates; backfilling GitHub issues for older REQs.
+- Not started / awaiting answer: REQ-016 (un-ticking "visited" should revert the map status); OSM-based check of place coordinates; backfilling GitHub issues for older REQs.
 - Christine still has to publish the Firestore rules for REQ-007 (view-only trip link) in the Firebase console.
 
 ## 9. Handy commands (GitHub via REST; GraphQL is not available)

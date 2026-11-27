@@ -331,7 +331,7 @@
       "status": "Accepted",
       "context": "Push messages need a server; Bee There runs on GitHub Pages and the free Firebase Spark plan without Cloud Functions (ADR-001 left this open).",
       "decision": "The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.",
-      "consequences": "A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+).",
+      "consequences": "A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+). Free-plan limits per call (50 outgoing requests, 10 ms CPU) mean broadcasts are sent in batches of about 10 devices, one Worker call per batch; only team messages (feature/system) may go to everyone or to a role.",
       "reqIds": [
         "REQ-062",
         "REQ-063"
@@ -1743,7 +1743,7 @@
       "id": "REQ-063",
       "title": "Every in-app notification is also sent as a push message",
       "priority": "Should",
-      "status": "Approved",
+      "status": "In build",
       "intent": "compass/intent/2026-11-26-push-notifications.md",
       "story": "As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.",
       "ac": [
@@ -2794,7 +2794,7 @@
         "REQ-063"
       ],
       "type": "automated",
-      "status": "Not run",
+      "status": "Passing (Worker part; app trigger in the next PR)",
       "file": "tests/push.test.mjs"
     },
     {

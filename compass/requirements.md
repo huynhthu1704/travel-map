@@ -92,7 +92,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-128 | Day-by-day plan | — | Must | Done | TC-105 |
 | REQ-129 | Journey | — | Must | Done | TC-105 |
 | REQ-130 | Costs and settle-up | — | Must | Done | TC-105 |
-| REQ-131 | Checklists | — | Must | Done | TC-105, TC-116, TC-122 |
+| REQ-131 | Checklists | — | Must | Done | TC-105, TC-116 |
 | REQ-132 | Plan PDF export | — | Should | Done | TC-105 |
 | REQ-133 | Duplicate a trip | — | Should | Done | TC-105 |
 | REQ-134 | Country guides | — | Must | Done | TC-106 |

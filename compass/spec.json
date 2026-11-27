@@ -2767,16 +2767,6 @@
     },
     {
       "id": "TC-122",
-      "title": "Notification settings (Profile ⋯ menu, Account page): switch on registers the device, off unregisters it, unsupported/blocked browsers see a disabled switch with a how-to line, hidden when the pushNotif flag is off",
-      "reqIds": [
-        "REQ-131"
-      ],
-      "type": "automated",
-      "status": "Passing",
-      "file": "e2e/checkTicks.spec.mjs"
-    },
-    {
-      "id": "TC-122",
       "title": "Push switch: on registers the device, off unregisters it, unsupported/blocked browsers see the how-to text, hidden when the pushNotif flag is off",
       "reqIds": [
         "REQ-062"

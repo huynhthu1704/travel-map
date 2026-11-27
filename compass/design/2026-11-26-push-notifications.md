@@ -15,7 +15,7 @@ styles (Heading/H3, Body/Strong, Caption) and spacing tokens. Phone (360 px) fir
 
 The push message is drawn by the phone or browser and shows **exactly the same text as the notification in the app**
 (same words, in the recipient's language) — no separate push title or extra text. A free Cloudflare Worker sends it
-(ADR-019).
+(ADR-023).
 
 ## Screens
 ### SCR-1 · Profile ⋯ menu — REQ-062

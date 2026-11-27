@@ -182,6 +182,8 @@ export function designProblems(spec, readDesign) {
 
 // REQ-054: intents of new requirements keep the Product Owner's business need next to the revised business intent
 export const NEED_REQUIRED_FROM = 52;
+// REQ-059: from here on an intent also says what will be true when the change is done
+export const DONE_WHEN_REQUIRED_FROM = 59;
 export function needProblems(spec, readIntent) {
   const problems = [];
   const seen = new Set();
@@ -190,7 +192,11 @@ export function needProblems(spec, readIntent) {
     if (!r.intent || n < NEED_REQUIRED_FROM || isBaseline(n) || seen.has(r.intent)) continue;
     seen.add(r.intent);
     const text = readIntent(r.intent);
-    if (text != null && !/^## Business need\s*$/m.test(text)) problems.push(`${r.intent} has no "## Business need" section (the Product Owner's words, revised into the business intent under "## What we want")`);
+    if (text == null) continue;
+    const missing = [];
+    if (!/^## Business need\s*$/m.test(text)) missing.push(`"## Business need" section (the Product Owner's words, revised into the business intent under "## What we want")`);
+    if (n >= DONE_WHEN_REQUIRED_FROM && !/^## Done when\s*$/m.test(text)) missing.push(`"## Done when" section (what will be true when the change is done, REQ-059)`);
+    if (missing.length) problems.push(`${r.intent} has no ${missing.join(' and no ')}`);
   }
   return problems;
 }

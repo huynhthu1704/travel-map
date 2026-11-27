@@ -56,3 +56,13 @@ test('TC-113: the template, the skill and the agent knowledge ask for Figma fram
   assert.match(read('.claude/skills/deliver-change/SKILL.md'), /REQ-057/);
   assert.match(JSON.parse(read('compass/spec.json')).designTool, /^https:\/\/www\.figma\.com\/design\/[0-9A-Za-z]{22,}$/);
 });
+
+// TC-121 — Figma file layout: components on one page, one section per feature (REQ-061)
+test('TC-121: the template, the skill and the agent knowledge put components on the Components page and each feature in one section', () => {
+  for (const f of ['compass/design/README.md', 'compass/agent-knowledge.md', '.claude/skills/deliver-change/SKILL.md']) {
+    const text = read(f);
+    assert.match(text, /REQ-061/, `${f} names REQ-061`);
+    assert.match(text, /🧩 Components/, `${f} names the Components page`);
+    assert.match(text, /one Figma section/, `${f} asks for one Figma section per feature`);
+  }
+});

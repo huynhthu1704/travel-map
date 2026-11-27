@@ -59,6 +59,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-058 | Automatic deploys publish only the newest commit of main | — | Must | Done | TC-115 |
 | REQ-059 | Every intent has a "Done when"; targets only for bets | — | Must | Done | TC-070 |
+| REQ-061 | Figma components on the Components page, one section per feature | — | Should | Done | TC-121 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -632,6 +633,18 @@ Design: none: process text and a spec check, no UI
 - Given a small feature or a process change · When the intent is drafted · Then it contains no baseline or target number; at most one optional signal to watch, without a target
 - Given the Product Owner names a change a bet · When the intent is drafted · Then it names one metric with its current value and the target is set after a few weeks of real data
 - Given a requirement from REQ-059 on · When check-spec runs · Then it fails if the requirement's intent has no "## Done when" section
+
+## REQ-061 — Figma components on the Components page, one section per feature
+
+As the product owner, I want every Figma component on the "🧩 Components" page and each feature's screens grouped in one Figma section, so that I review a feature at a glance and find reusable pieces in one place.
+
+Intent: [compass/intent/2026-11-27-figma-components-and-sections.md](../compass/intent/2026-11-27-figma-components-and-sections.md)
+
+Design: none: process rule for the Figma file, no app UI
+
+- Given the Bee There Figma file · When an agent creates or finds a component (component or component set) · Then it lives on the "🧩 Components" page, never on a feature or brand page
+- Given a new feature with UI · When an agent draws its screens on "📐 Feature designs" · Then all its screens sit inside one Figma section named "<REQ ids> · <topic>", and the design file links that section
+- Given a new session starts a design · When it reads the design template, the deliver-change skill and its working knowledge · Then they state both rules
 
 ## REQ-101 — Sign in with Google
 

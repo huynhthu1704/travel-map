@@ -21,6 +21,10 @@ that agents and reviewers can read it without opening the tool.
    when such a requirement is In build or Done without one, and frames of other Figma files do not count. A session
    without the Figma connector asks the Product Owner to connect it (claude.ai → Connectors); the requirement stays
    Approved, not In build, until the design is drawn and approved.
+   **Figma file layout (REQ-061):** every component (component or component set) lives on the page
+   "🧩 Components", never on a feature or brand page — move one there when you create or find it. On
+   "📐 Feature designs", put all screens of one feature in **one Figma section** named `<REQ ids> · <topic>` and link
+   that section (and its frames) in the design file.
 3. The Product Owner approves → `Status: Approved (by <name>, <date>)`. **Only then may code start**:
    `node compass/check-spec.mjs` fails when a requirement is In build or Done while its design is not Approved,
    and when a requirement from **REQ-052** on (below the REQ-101 baseline) has no `design` at all.
@@ -34,7 +38,7 @@ that agents and reviewers can read it without opening the tool.
 
 Status: Draft
 Requirements: REQ-xxx, REQ-yyy
-Design tool: <link to the file or page in Figma…>
+Design tool: <link to the feature's Figma section on "📐 Feature designs">
 
 ## Approach
 <layout, navigation, components and styles reused>

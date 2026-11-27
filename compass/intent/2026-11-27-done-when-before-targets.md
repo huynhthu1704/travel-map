@@ -1,6 +1,6 @@
 # Intent: "Done when" first — targets only for real bets
 
-Status: Draft
+Status: Approved (by Christine, 2026-11-27)
 Requested: 2026-11-27 by Christine, in chat (while reviewing the Compass Ideation agent's brief for F-001 "Increase the number of users")
 
 ## What we want
@@ -11,10 +11,15 @@ target, even when there is no data behind it (e.g. "0% → 20% within 90 days").
 intent or AI-drafted brief contains a made-up baseline or target; each has a "Done when", and at most one optional
 "signal to watch" without a target.
 
+## Done when
+The intent template and agent instructions in both repos ask for a "Done when" on every intent, and for a baseline
+and target only when the Product Owner names the change a bet; the Compass Ideation agent no longer writes invented
+numbers into a brief.
+
 ## Business need
 "Does every business intent need to come with an outcome metric? It's difficult to define an outcome metric from the
 beginning, and the outcome metrics currently suggested by AI don't make much sense to me." — then, on the proposal of a
-"Done when" + optional signal rule for both repos: "yes please".
+"Done when" + optional signal rule for both repos: "yes please"; intent approved in chat with "approve".
 
 ## Why
 The baseline and target numbers the agent suggests are invented (there is no usage data in Bee There for new flows,

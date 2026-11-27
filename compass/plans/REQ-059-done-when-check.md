@@ -22,7 +22,8 @@ Design: none: process text and a spec check, no UI · Issue #142 · Decision: AD
 
 ## Risks
 - Older intents have no Done when: the rule starts at REQ-059 and skips the REQ-101…153 baseline, so nothing on main
-  fails (`check-spec` passes on this branch).
+  fails (`check-spec` passes on this branch). An intent is judged by the newest requirement that uses it, so adding a
+  REQ-059+ requirement to an older intent means that intent needs a `## Done when` too.
 - Retiring EV-038 needs the Product Owner's approval (compass/evals/cases.json `about`); EV-035 and EV-036 still
   block for their own reason, so they stay unchanged.
 

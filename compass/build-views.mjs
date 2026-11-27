@@ -186,11 +186,15 @@ export const NEED_REQUIRED_FROM = 52;
 export const DONE_WHEN_REQUIRED_FROM = 59;
 export function needProblems(spec, readIntent) {
   const problems = [];
-  const seen = new Set();
+  // Each intent is judged by the newest requirement that uses it (order in spec.json must not matter)
+  const newest = new Map();
   for (const r of spec.requirements) {
     const n = num(r.id);
-    if (!r.intent || n < NEED_REQUIRED_FROM || isBaseline(n) || seen.has(r.intent)) continue;
-    seen.add(r.intent);
+    if (!r.intent || n < NEED_REQUIRED_FROM || isBaseline(n)) continue;
+    newest.set(r.intent, Math.max(n, newest.get(r.intent) ?? 0));
+  }
+  for (const [intent, n] of newest) {
+    const r = { intent };
     const text = readIntent(r.intent);
     if (text == null) continue;
     const missing = [];

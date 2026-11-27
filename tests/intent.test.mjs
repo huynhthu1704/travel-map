@@ -101,6 +101,10 @@ test('TC-070: intents of REQ-059 on need "## Done when" (check-spec)', () => {
   assert.deepEqual(p([{ id: 'REQ-120', intent: 'compass/intent/b.md' }]), [], 'the REQ-101…153 baseline is exempt');
   assert.match(p([{ id: 'REQ-061', intent: 'compass/intent/d.md' }]).join('\n'), /no "## Business need".*and no "## Done when"/, 'both missing → one message');
   assert.equal(p([{ id: 'REQ-061', intent: 'compass/intent/d.md' }]).length, 1);
+  // An intent shared by an older and a newer requirement is judged by the newest, in any order (review on #144)
+  for (const order of [['REQ-055', 'REQ-060'], ['REQ-060', 'REQ-055']]) {
+    assert.match(p(order.map((id) => ({ id, intent: 'compass/intent/b.md' }))).join('\n'), /b\.md has no "## Done when"/, order.join(' then '));
+  }
   // the approved intent of REQ-059 itself follows the rule
   assert.match(readRepo('compass/intent/2026-11-27-done-when-before-targets.md'), /^## Done when$/m);
 });

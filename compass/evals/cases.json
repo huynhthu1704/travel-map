@@ -341,7 +341,7 @@
       "title": "An intent of REQ-059 or later without \"## Done when\" fails the spec check",
       "source": "REQ-059 (ADR-021: Done when, no invented baseline or target)",
       "check": "spec",
-      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## What we want\nx, from 0% to 20% within 90 days\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
+      "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## What we want\nx\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },
       "expect": "blocked",
       "why": "## Done when"
     },

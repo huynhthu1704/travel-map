@@ -1731,7 +1731,7 @@
       "id": "REQ-063",
       "title": "Every in-app notification is also sent as a push message",
       "priority": "Should",
-      "status": "Approved",
+      "status": "In build",
       "intent": "compass/intent/2026-11-26-push-notifications.md",
       "story": "As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.",
       "ac": [
@@ -2782,7 +2782,7 @@
         "REQ-063"
       ],
       "type": "automated",
-      "status": "Not run",
+      "status": "Passing (Worker part; app trigger in the next PR)",
       "file": "tests/push.test.mjs"
     }
   ]

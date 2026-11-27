@@ -124,12 +124,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BAD: ${{ needs.build.outputs.sha }}
         run: |
-          # Last deploy whose smoke test passed, for a different commit = the version that was live before
+          # Last deploy whose smoke test passed, for a different commit = the version that was live before.
+          # Bug #110: skipped deploys (REQ-058) also end as successful runs, so page back through up to 500 runs
+          # (5 pages keep the worst case at ~505 API calls, under the token's 1,000 per hour).
           GOOD=""
-          for run in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/compass-deploy.yml/runs?status=success&per_page=20" --jq '.workflow_runs[].id'); do
-            ok=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs" --jq '[.jobs[] | select(.name=="smoke-test" and .conclusion=="success")] | length')
-            sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.display_title | sub("^Deploy ";"")')
-            if [ "$ok" = "1" ] && [ "$sha" != "$BAD" ]; then GOOD=$sha; break; fi
+          for page in $(seq 1 5); do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/compass-deploy.yml/runs?status=success&per_page=100&page=$page" \
+              --jq '.workflow_runs[] | "\(.id) \(.display_title | sub("^Deploy ";""))"')
+            [ -z "$runs" ] && break
+            while read -r run sha; do
+              [ "$sha" = "$BAD" ] && continue
+              ok=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/jobs" --jq '[.jobs[] | select(.name=="smoke-test" and .conclusion=="success")] | length')
+              if [ "$ok" = "1" ]; then GOOD=$sha; break 2; fi
+            done <<< "$runs"
           done
           # Only automatic deploys roll back by themselves; a failed manual deploy/rollback just opens the bug (no loops)
           if [ "${{ github.event_name }}" != "workflow_run" ]; then GOOD=""; NOTE_MANUAL=" (manual run: no automatic rollback)"; fi

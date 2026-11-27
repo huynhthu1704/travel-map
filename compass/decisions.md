@@ -27,6 +27,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-021 | 2026-11-27 | Intents say "Done when"; a baseline and target only for bets | Accepted | REQ-059, REQ-054 |
 | ADR-022 | 2026-11-27 | Figma file layout: one Components page, one section per feature | Accepted | REQ-061 |
 | ADR-023 | 2026-11-26 | Push notifications are sent by a free Cloudflare Worker | Accepted | REQ-062, REQ-063 |
+| ADR-024 | 2026-11-27 | The deploy rollback pages through recent deploy runs | Accepted | REQ-034 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -257,3 +258,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.
 
 **Consequences.** A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+). Free-plan limits per call (50 outgoing requests, 10 ms CPU) mean broadcasts are sent in batches of about 10 devices, one Worker call per batch; only team messages (feature/system) may go to everyone or to a role.
+
+## ADR-024 — The deploy rollback pages through recent deploy runs
+
+**Status:** Accepted · **Date:** 2026-11-27 · **Requirements:** REQ-034
+
+**Context.** Since REQ-058, skipped automatic deploys end as successful runs. The rollback only looked at the 20 newest successful Compass Deploy runs, so after many quick merges it could find no good version and only opened a bug (issue #110).
+
+**Decision.** The rollback reads successful Compass Deploy runs 100 per page, up to 5 pages, newest first, and redeploys the first commit (other than the failed one) whose smoke test passed. The Product Owner approved changing the protected workflow in chat on 2026-11-27.
+
+**Consequences.** A rollback can make more GitHub API calls (one per skipped run it passes); the 5-page cap keeps the worst case at about 505 calls, under the workflow token limit. If no good run is found in 500 runs it still opens a bug and a manual redeploy is needed.

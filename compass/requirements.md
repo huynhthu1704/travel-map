@@ -36,7 +36,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-031 | Choose a cost type when entering a cost | — | Should | Done | TC-051, TC-052 |
 | REQ-032 | Excel export: Google Maps column shows the URL | — | Should | Done | TC-050 |
 | REQ-033 | Set a due day for checklist items, picked from the trip days | — | Should | Done | TC-053, TC-054 |
-| REQ-034 | Safer release pipeline: deploy only after green CI, smoke test with rollback, library security audit | — | Should | Done | TC-055 |
+| REQ-034 | Safer release pipeline: deploy only after green CI, smoke test with rollback, library security audit | — | Should | Done | TC-055, TC-124 |
 | REQ-035 | Keep the agent working knowledge in the repository | — | Should | Done | TC-057 |
 | REQ-036 | Enforce guardrails.json automatically (hooks + CI check) | — | Must | Done | TC-059 |
 | REQ-037 | Independent AI review of every pull request (REVIEW.md) | — | Must | Done | TC-058 |

@@ -330,6 +330,7 @@
     {
       "id": "EV-038",
       "title": "Control: a process requirement with an approved intent passes the spec check",
+      "retired": "Approved by Christine (Product Owner) in chat on 2026-11-27: under REQ-059 a valid intent also needs ## Done when; replaced by EV-040",
       "source": "REQ-038, REQ-054, REQ-055",
       "check": "spec",
       "input": { "requirement": { "id": "REQ-990", "status": "In build", "intent": "compass/intent/x.md", "design": "none: process change, no UI" }, "files": { "compass/intent/x.md": "Status: Approved (by Christine)\n\n## Business need\nx\n\n## Requirements\n- REQ-990\n" } },

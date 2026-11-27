@@ -1,6 +1,6 @@
-# Design: Push notifications (switch in Notifications + the push message)
+# Design: Push notifications (Notification settings + the push message)
 
-Status: Draft
+Status: Approved (by Christine, 2026-11-27)
 Requirements: REQ-059, REQ-060
 Design tool: Figma — Bee There file, page "📐 Feature designs" (https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75)
 

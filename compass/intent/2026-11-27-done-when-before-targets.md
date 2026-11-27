@@ -45,4 +45,5 @@ invented baseline or target; the Product Owner can approve it without having to 
 - Building usage tracking or analytics.
 
 ## Requirements
-<filled after approval>
+- REQ-059 — Every intent has a "Done when"; targets only for bets (#142)
+- Compass portal: REQ-020, REQ-021 in huynhthu1704/compass

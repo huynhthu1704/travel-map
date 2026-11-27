@@ -58,6 +58,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Done | TC-114 |
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-058 | Automatic deploys publish only the newest commit of main | — | Must | Done | TC-115 |
+| REQ-059 | Every intent has a "Done when"; targets only for bets | — | Must | In build | TC-070 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -557,14 +558,14 @@ Design: none: process change, no UI
 
 ## REQ-054 — Revise the business need into a business intent
 
-As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
+As the product owner, I want my request kept in my own words as the business need and revised into a business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
 
 Intent: [compass/intent/2026-11-26-design-and-plan-before-code.md](../compass/intent/2026-11-26-design-and-plan-before-code.md)
 
 Design: none: process change, no UI
 
 - Given an intent for REQ-052 or later · When CI runs the spec check · Then it fails if the intent has no "## Business need" section
-- Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who, what changes, baseline → target and by when
+- Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who and what changes, not the solution (baseline → target only for a bet: amended by REQ-059 / ADR-021 on 2026-11-27)
 
 ## REQ-055 — An approved design before any code
 
@@ -618,6 +619,19 @@ Design: none: CI workflow, no UI
 - Given two commits pushed to main whose Compass CI runs finish in reverse order · When the deploy for the older commit starts after the newer one · Then it is skipped with a notice and nothing older is published
 - Given an automatic deploy whose commit is the current head of main · When it runs · Then it builds, deploys and smoke-tests that commit as before
 - Given a manual deploy or rollback with a commit SHA · When it runs · Then that commit is deployed even if it is not the head of main
+
+## REQ-059 — Every intent has a "Done when"; targets only for bets
+
+As the product owner, I want each intent to say what will be true when it is done, and to carry a target only when I call the change a bet, so that I never have to approve made-up numbers.
+
+Intent: [compass/intent/2026-11-27-done-when-before-targets.md](../compass/intent/2026-11-27-done-when-before-targets.md)
+
+Design: none: process text and a spec check, no UI
+
+- Given the intent template · When an agent writes a new intent · Then it has a "## Done when" section saying in plain words what will be true afterwards
+- Given a small feature or a process change · When the intent is drafted · Then it contains no baseline or target number; at most one optional signal to watch, without a target
+- Given the Product Owner names a change a bet · When the intent is drafted · Then it names one metric with its current value and the target is set after a few weeks of real data
+- Given a requirement from REQ-059 on · When check-spec runs · Then it fails if the requirement's intent has no "## Done when" section
 
 ## REQ-101 — Sign in with Google
 

@@ -10,7 +10,7 @@ const readRepo = (f) => (existsSync(new URL(f, root)) ? readFileSync(new URL(f, 
 
 test('TC-063: the intent template and the back-filled intent exist; linked requirements are valid', () => {
   const readme = readRepo('compass/intent/README.md');
-  for (const h of ['## What we want', '## Why', '## Constraints', '## Success measure', 'Status: Draft']) assert.ok(readme.includes(h), h);
+  for (const h of ['## What we want', '## Why', '## Constraints', '## Done when', 'Status: Draft']) assert.ok(readme.includes(h), h); // "## Success measure" became "## Done when" (REQ-059)
   assert.deepEqual(intentProblems(spec, readRepo), []);
   assert.equal(spec.requirements.find((r) => r.id === 'REQ-037').intent, 'compass/intent/2026-11-25-ai-native-sdlc.md');
   const agents = readRepo('AGENTS.md');
@@ -63,12 +63,28 @@ test('TC-111: intents of new requirements keep the business need', () => {
   assert.deepEqual(needProblems(spec, (f) => files[f] ?? null).length, 1);
   // The REQ-101…153 baseline is exempt
   assert.deepEqual(needProblems({ requirements: [{ id: 'REQ-120', intent: 'compass/intent/y.md' }] }, (f) => files[f] ?? null), []);
-  // The template keeps her words and asks for a measurable business intent (AC 2)
+  // The template keeps her words and asks for the business intent (AC 2; "baseline → target" dropped by REQ-059)
   const readme = readRepo('compass/intent/README.md');
   assert.match(readme, /## Business need/);
   // only the template's placeholder line under "## What we want", up to the next heading
   const want = (readme.split(/^## What we want\s*$/m).at(-1) || '').split(/^## /m)[0];
-  for (const part of ['who', 'what changes', 'baseline → target', 'by when']) assert.ok(want.includes(part), `"## What we want" asks for ${part}`);
+  for (const part of ['who', 'what changes']) assert.ok(want.includes(part), `"## What we want" asks for ${part}`);
+});
+
+// TC-070 — every intent has a "Done when"; targets only for bets (REQ-059)
+test('TC-070: the template, AGENTS.md and the deliver-change skill ask for "Done when", not a baseline → target', () => {
+  // The template, AGENTS.md and the deliver-change skill describe the same rule
+  const readme = readRepo('compass/intent/README.md');
+  const template = readme.split('## Template').at(-1);
+  assert.match(template, /^## Done when$/m);
+  assert.doesNotMatch(template, /baseline → target/, 'the template does not ask every intent for a target');
+  for (const kind of [/Small feature/, /Process or internal change/, /\bA bet\b/]) assert.match(readme, kind, `README names ${kind}`);
+  for (const f of ['AGENTS.md', '.claude/skills/deliver-change/SKILL.md']) {
+    const t = readRepo(f);
+    assert.match(t, /## Done when/, `${f} asks for Done when`);
+    assert.match(t, /REQ-059/, f);
+    assert.doesNotMatch(t, /measurable business intent/, `${f} no longer asks for a measurable intent`);
+  }
 });
 
 

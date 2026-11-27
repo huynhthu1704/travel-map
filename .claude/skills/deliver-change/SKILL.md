@@ -8,7 +8,7 @@ description: Use for any change to the Bee There repo (feature, bug fix, process
 Source of truth: `AGENTS.md`, `compass/REVIEW.md`, `compass/agent-knowledge.md`. This is the short checklist.
 
 0. Only implement requirements whose status is **Approved** or **In build** (AGENTS.md).
-1. **Business need → intent** (new requests, REQ-054): write `compass/intent/YYYY-MM-DD-topic.md` from `compass/intent/README.md` — her words under `## Business need`, the measurable business intent under `## What we want`; Christine approves in chat → `Status: Approved (by Christine, <date>)`. Bugs skip this: she sends the bug id.
+1. **Business need → intent** (new requests, REQ-054): write `compass/intent/YYYY-MM-DD-topic.md` from `compass/intent/README.md` — her words under `## Business need`, the business intent under `## What we want`, `## Done when` (no invented baseline or target; a metric only for a bet she names, REQ-059); Christine approves in chat → `Status: Approved (by Christine, <date>)`. Bugs skip this: she sends the bug id.
 2. **Issue first:** English issue, label `requirement` (or `bug`), story + Given/When/Then. Deferred → also `on-hold`.
 3. **Spec:** add REQ (with `"intent"` from REQ-051) and ≥ 1 TC to `compass/spec.json`; if a decision was made in chat, add an ADR; run `node compass/build-views.mjs`.
 4. **Branch** from fresh `main`: `compass/REQ-xxx-short-name`; ≤ 12 files; never force push.

@@ -24,6 +24,7 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
 | ADR-019 | 2026-11-26 | Weekly security scan with npm audit and CodeQL, dismissal by a reason comment | Accepted | REQ-044 |
 | ADR-020 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
+| ADR-021 | 2026-11-27 | Intents say "Done when"; a baseline and target only for bets | Accepted | REQ-059, REQ-054 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -224,3 +225,13 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 **Decision.** The Product Owner chose the free version first (2026-11-26): past mistakes and review findings are replayed against the real Compass checks (edit hook, CI guardrails, plan, test-first, merge-pr, spec checks) inside npm test. No API key, no paid service, no workflow change.
 
 **Consequences.** The suite proves the rules and checks still catch past mistakes; it does not measure how well Claude itself follows them. A paid version that re-runs real tasks with Claude needs a new decision (API key, cost, workflow change).
+
+## ADR-021 — Intents say "Done when"; a baseline and target only for bets
+
+**Status:** Accepted · **Date:** 2026-11-27 · **Requirements:** REQ-059, REQ-054
+
+**Context.** REQ-054 asked every business intent for one measurable outcome (baseline → target, by when). The Compass Ideation agent followed it literally and invented numbers (e.g. "0% → 20% within 90 days" for F-001) with no data behind them; the Product Owner found them hard to judge.
+
+**Decision.** The Product Owner decided on 2026-11-27: every intent has a "Done when" in plain words. A small feature may add one optional signal to watch without a target; a process change has "Done when" only; only a change she names a bet gets a metric with its current value, and its target is set after a few weeks of real data. Applies to travel-map and to the Compass portal.
+
+**Consequences.** The intent template, AGENTS.md and the deliver-change skill ask for "## Done when"; REQ-054's template criterion is amended. A follow-up PR makes check-spec require "## Done when" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.

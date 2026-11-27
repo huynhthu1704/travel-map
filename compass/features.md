@@ -4,7 +4,7 @@ Each feature is one business intent moving through Idea → Requirements → Tes
 
 | Feature | Stage | Design | Requirements | Tests |
 |---|---|---|---|---|
-| [F-001 Increase the number of user by adding…](features/F-001.md) | Design | [—](design/F-001.md) | 8 | 2 |
+| [F-001 Increase the number of user by adding…](features/F-001.md) | Design | [Draft](design/F-001.md) | 8 | 2 |
 | [F-002 allow user to filter trip cost by…](features/F-002.md) | Idea | [—](design/F-002.md) | 0 | 0 |
 | [F-003 Allow the trip owner add placeholder team…](features/F-003.md) | Idea | [—](design/F-003.md) | 0 | 0 |
 

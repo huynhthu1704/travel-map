@@ -336,6 +336,18 @@
         "REQ-062",
         "REQ-063"
       ]
+    },
+    {
+      "id": "ADR-024",
+      "date": "2026-11-27",
+      "title": "The deploy rollback pages through recent deploy runs",
+      "status": "Accepted",
+      "context": "Since REQ-058, skipped automatic deploys end as successful runs. The rollback only looked at the 20 newest successful Compass Deploy runs, so after many quick merges it could find no good version and only opened a bug (issue #110).",
+      "decision": "The rollback reads successful Compass Deploy runs 100 per page, up to 5 pages, newest first, and redeploys the first commit (other than the failed one) whose smoke test passed. The Product Owner approved changing the protected workflow in chat on 2026-11-27.",
+      "consequences": "A rollback can make more GitHub API calls (one per skipped run it passes); the 5-page cap keeps the worst case at about 505 calls, under the workflow token limit. If no good run is found in 500 runs it still opens a bug and a manual redeploy is needed.",
+      "reqIds": [
+        "REQ-034"
+      ]
     }
   ],
   "requirements": [
@@ -2784,6 +2796,16 @@
       "type": "automated",
       "status": "Not run",
       "file": "tests/push.test.mjs"
+    },
+    {
+      "id": "TC-124",
+      "title": "Bug #110: the deploy rollback redeploys the last version whose smoke test passed, even after more than 20 skipped deploys (paging past the first 100); never the failed commit; manual runs do not roll back",
+      "reqIds": [
+        "REQ-034"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/deployRollback.test.mjs"
     }
   ]
 }

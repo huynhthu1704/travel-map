@@ -162,6 +162,8 @@ export async function handle(request, env, deps = { fetch, now: Date.now }) {
     const broadcast = n.to === 'all' || n.to.startsWith('role:');
     if (broadcast && !TEAM_TYPES.includes(n.type)) return json({ error: 'forbidden' }, 403, cors);
     const { list, next } = await recipients(env, n.to, after, Number(env.BATCH) || DEFAULT_BATCH);
+    // Nobody to push to (e.g. the recipient never turned push on): answer without a KV write (1,000 writes/day free)
+    if (!list.length && !next) return json({ ok: true, sent: 0, cursor: null }, 200, cors);
     await env.SUBS.put(mark, JSON.stringify({ next }), { expirationTtl: 86400 });
     if (next) await env.SUBS.put(`cur:${id}:${next}`, '1', { expirationTtl: 86400 });
     const vapid = { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: env.VAPID_SUBJECT };

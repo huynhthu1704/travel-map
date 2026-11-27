@@ -16,6 +16,7 @@ When the same mistake (or review finding) happens twice, add one line here in th
 - **Never commit build output** (`dist/`, `dist-e2e/`, `playwright-report/`, `test-results/`); check `git status` before committing.
 - **The Compass portal overwrites `compass/spec.json` on main:** merge by requirement/test id, never take one side; then run `build-views`.
 - **Branch every PR from fresh `main`.** Chained branches conflict after squash-merges (spec.json, tests.md, app.css).
+- **Branch names follow the repo pattern from the first push** (`compass/REQ-xxx-short-name`), never the session's suggested `claude/…` name.
 - **Scripted text edits must assert the anchor exists** (a silent `str.replace` miss once dropped the `checkDue` flag).
 - **`gh api … -F body=@file`** (capital F) sends the file content; `-f body=@file` sends the literal text.
 - **E2E:** a second `openApp` in the same test does not reseed data (split the test); native dialogs are auto-accepted; `openApp` blocks all external calls — call `mockNominatim` after `openApp` when a test needs place search.

@@ -1,7 +1,7 @@
 # Design: Push notifications (Notification settings + the push message)
 
 Status: Approved (by Christine, 2026-11-27)
-Requirements: REQ-059, REQ-060
+Requirements: REQ-062, REQ-063
 Design tool: Figma — Bee There file, page "📐 Feature designs" (https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75)
 
 ## Approach
@@ -18,11 +18,11 @@ The push message is drawn by the phone or browser and shows **exactly the same t
 (ADR-019).
 
 ## Screens
-### SCR-1 · Profile ⋯ menu — REQ-059
+### SCR-1 · Profile ⋯ menu — REQ-062
 - My own Profile → ⋯ → new item "🔔 Cài đặt thông báo / Notification settings" → opens SCR-2.
 - Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-1)
 
-### SCR-2a · Notification settings, push off (default) — REQ-059
+### SCR-2a · Notification settings, push off (default) — REQ-062
 - Row "📲 Thông báo đẩy / Push notifications" + Switch Off; line "Nhận thông báo kể cả khi đã đóng ứng dụng. / Get
   notifications even when the app is closed."
 - Tap the switch → the browser asks for permission → allowed: device registered, Switch On (SCR-2b); refused: SCR-2c.
@@ -30,11 +30,11 @@ The push message is drawn by the phone or browser and shows **exactly the same t
   notifications, try again later", Switch stays Off.
 - Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-2a)
 
-### SCR-2b · Push on — REQ-059
+### SCR-2b · Push on — REQ-062
 - Same row, Switch On. Tap → device unregistered, back to SCR-2a. Push is per device.
 - Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-2b)
 
-### SCR-2c · Push can't be turned on here — REQ-059
+### SCR-2c · Push can't be turned on here — REQ-062
 - Same row and title, Switch disabled (greyed), the line below says why, in one sentence:
   iPhone not on the Home Screen → "Safari → Chia sẻ → Thêm vào MH chính, rồi mở Bee There từ màn hình chính. /
   Safari → Share → Add to Home Screen, then open Bee There from the Home Screen."; notifications blocked → "Cho phép
@@ -42,7 +42,7 @@ The push message is drawn by the phone or browser and shows **exactly the same t
   other browsers → "Trình duyệt này chưa hỗ trợ thông báo đẩy. / This browser does not support push notifications."
 - Frame: https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ?node-id=27-75 (SCR-2c)
 
-### SCR-3 · The push message on a phone — REQ-060
+### SCR-3 · The push message on a phone — REQ-063
 - Bee There icon + the in-app notification text, unchanged (e.g. "Lan đã mời bạn tham gia chuyến đi "Kyoto mùa thu""
   / "Lan invited you to the trip "Kyoto mùa thu""; an admin message shows its title and text as in the app).
 - Sent for every notification the app already creates: trip invite, invite accepted / declined, follow, like,

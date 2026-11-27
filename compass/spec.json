@@ -42,6 +42,20 @@
         "risks": []
       },
       "createdAt": "2026-11-23T03:16:00.940Z"
+    },
+    {
+      "id": "F-003",
+      "name": "Allow the trip owner add placeholder team…",
+      "idea": {
+        "intent": "Allow the trip owner add placeholder team member. Once the team member registers account, the trip owner can link the placeholder member with the registered member",
+        "problem": "",
+        "users": [],
+        "outcomeMetric": "",
+        "scopeIn": [],
+        "scopeOut": [],
+        "risks": []
+      },
+      "createdAt": "2026-11-26T16:38:36.540Z"
     }
   ],
   "decisions": [
@@ -264,14 +278,63 @@
     {
       "id": "ADR-019",
       "date": "2026-11-26",
+      "title": "Weekly security scan with npm audit and CodeQL, dismissal by a reason comment",
+      "status": "Accepted",
+      "context": "Only npm audit ran in CI, and only on pushes (#56); nothing scanned our own code or looked for new advisories between releases (#68).",
+      "decision": "A new workflow compass-security.yml runs every Monday 08:00 Vietnam time (and on demand): CodeQL (security-extended, free for public repos) and npm audit. compass/security-scan.mjs opens one bug + security + severity:<level> issue per finding and closes it when the finding is gone. A finding is dismissed by closing its issue as \"not planned\" with a comment that starts with \"Dismissed:\"; without it the scan reopens the issue. The Product Owner approved the new protected workflow and both choices in chat.",
+      "consequences": "The first run opens issues for the known #56 findings, which can be dismissed with a reason or fixed. If GitHub code scanning default setup is turned on, the CodeQL upload fails and only the library scan reports until it is turned off.",
+      "reqIds": [
+        "REQ-044"
+      ]
+    },
+    {
+      "id": "ADR-020",
+      "date": "2026-11-26",
+      "title": "Agent evals start with a free replay of past mistakes",
+      "status": "Accepted",
+      "context": "Issue #65 asked for 20–50 past tasks re-run automatically when the agent configuration changes. Re-running them with Claude needs an Anthropic API key as a GitHub secret and a CI workflow change, and costs roughly $15–60 per run (estimate).",
+      "decision": "The Product Owner chose the free version first (2026-11-26): past mistakes and review findings are replayed against the real Compass checks (edit hook, CI guardrails, plan, test-first, merge-pr, spec checks) inside npm test. No API key, no paid service, no workflow change.",
+      "consequences": "The suite proves the rules and checks still catch past mistakes; it does not measure how well Claude itself follows them. A paid version that re-runs real tasks with Claude needs a new decision (API key, cost, workflow change).",
+      "reqIds": [
+        "REQ-041"
+      ]
+    },
+    {
+      "id": "ADR-021",
+      "date": "2026-11-27",
+      "title": "Intents say \"Done when\"; a baseline and target only for bets",
+      "status": "Accepted",
+      "context": "REQ-054 asked every business intent for one measurable outcome (baseline → target, by when). The Compass Ideation agent followed it literally and invented numbers (e.g. \"0% → 20% within 90 days\" for F-001) with no data behind them; the Product Owner found them hard to judge.",
+      "decision": "The Product Owner decided on 2026-11-27: every intent has a \"Done when\" in plain words. A small feature may add one optional signal to watch without a target; a process change has \"Done when\" only; only a change she names a bet gets a metric with its current value, and its target is set after a few weeks of real data. Applies to travel-map and to the Compass portal.",
+      "consequences": "The intent template, AGENTS.md, the deliver-change skill and agent-knowledge ask for \"## Done when\"; REQ-054's template criterion is amended. check-spec requires \"## Done when\" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.",
+      "reqIds": [
+        "REQ-059",
+        "REQ-054"
+      ]
+    },
+    {
+      "id": "ADR-022",
+      "date": "2026-11-27",
+      "title": "Figma file layout: one Components page, one section per feature",
+      "status": "Accepted",
+      "context": "Components were spread over the feature and brand pages of the Bee There Figma file, and feature screens lay loose on \"📐 Feature designs\", which made reviews hard to follow.",
+      "decision": "The Product Owner decided on 2026-11-27: every Figma component lives on the \"🧩 Components\" page, and each feature gets one Figma section on \"📐 Feature designs\" holding all its screens, for this and every future feature.",
+      "consequences": "Existing components were moved and existing feature screens grouped (node ids unchanged, so frame links still work). The design template, the deliver-change skill and agent-knowledge state the rule; CI cannot read Figma, so it is not checked automatically.",
+      "reqIds": [
+        "REQ-061"
+      ]
+    },
+    {
+      "id": "ADR-023",
+      "date": "2026-11-26",
       "title": "Push notifications are sent by a free Cloudflare Worker",
       "status": "Accepted",
       "context": "Push messages need a server; Bee There runs on GitHub Pages and the free Firebase Spark plan without Cloud Functions (ADR-001 left this open).",
       "decision": "The Product Owner chose option B in chat: a Cloudflare Worker on the free plan sends standard Web Push messages for the same triggers as the existing in-app notifications. Firebase stays on Spark. The Product Owner owns the Cloudflare account; secret keys live only in Cloudflare.",
       "consequences": "A second free service to look after (account, limits of 100,000 requests a day). iPhone users get push only after adding the site to the Home Screen (iOS 16.4+).",
       "reqIds": [
-        "REQ-059",
-        "REQ-060"
+        "REQ-062",
+        "REQ-063"
       ]
     }
   ],
@@ -1494,6 +1557,22 @@
       "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: feedback loop for self-verification); taken off hold by the Product Owner on 2026-11-25 (\"fix #67\", issue #67)."
     },
     {
+      "id": "REQ-041",
+      "title": "Evals for the agent setup",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "design": "none: process change, no UI",
+      "story": "As the product owner, I want a suite of 20–50 past mistakes and review findings replayed automatically against the agent rules, hooks and checks, so that I know the agent setup did not get weaker after a rule change.",
+      "ac": [
+        "Given an eval suite of past mistakes and review findings (compass/evals/cases.json)\nWhen a pull request changes anything (including AGENTS.md, CLAUDE.md, skills or hooks) or the nightly CI run starts\nThen the suite runs in npm test and reports the pass rate in the test output and the CI run summary",
+        "Given a change that makes a past mistake pass again (the pass rate drops below 100 %)\nWhen CI runs\nThen the test job fails, so compass/merge-pr.mjs does not merge it",
+        "Given a pull request that removes an eval case or changes its expected outcome\nWhen CI runs\nThen it fails unless the case is marked retired with the Product Owner's approval, which compass/REVIEW.md routes to her",
+        "Given the free version chosen by the Product Owner\nWhen the suite runs\nThen it needs no API key, no paid service and no workflow change"
+      ],
+      "source": "Gap analysis vs the Claude Academy AI-native SDLC playbook (play: continuous evals in CI), issue #65; taken off hold by the Product Owner on 2026-11-26 (\"fix #65\") with the free version (no API key)."
+    },
+    {
       "id": "REQ-052",
       "title": "Keep intents and the review policy inside compass/",
       "priority": "Should",
@@ -1529,10 +1608,10 @@
       "status": "Done",
       "intent": "compass/intent/2026-11-26-design-and-plan-before-code.md",
       "design": "none: process change, no UI",
-      "story": "As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.",
+      "story": "As the product owner, I want my request kept in my own words as the business need and revised into a business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.",
       "ac": [
         "Given an intent for REQ-052 or later\nWhen CI runs the spec check\nThen it fails if the intent has no \"## Business need\" section",
-        "Given the intent template\nWhen an agent writes a new intent\nThen \"## What we want\" asks for who, what changes, baseline → target and by when"
+        "Given the intent template\nWhen an agent writes a new intent\nThen \"## What we want\" asks for who and what changes, not the solution (baseline → target only for a bet: amended by REQ-059 / ADR-021 on 2026-11-27)"
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat (Compass portal AI-native SDLC)."
     },
@@ -1603,6 +1682,37 @@
     },
     {
       "id": "REQ-059",
+      "title": "Every intent has a \"Done when\"; targets only for bets",
+      "priority": "Must",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-27-done-when-before-targets.md",
+      "design": "none: process text and a spec check, no UI",
+      "story": "As the product owner, I want each intent to say what will be true when it is done, and to carry a target only when I call the change a bet, so that I never have to approve made-up numbers.",
+      "ac": [
+        "Given the intent template\nWhen an agent writes a new intent\nThen it has a \"## Done when\" section saying in plain words what will be true afterwards",
+        "Given a small feature or a process change\nWhen the intent is drafted\nThen it contains no baseline or target number; at most one optional signal to watch, without a target",
+        "Given the Product Owner names a change a bet\nWhen the intent is drafted\nThen it names one metric with its current value and the target is set after a few weeks of real data",
+        "Given a requirement from REQ-059 on\nWhen check-spec runs\nThen it fails if the requirement's intent has no \"## Done when\" section"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-27 in chat after the Compass Ideation agent proposed an invented outcome metric (issue #142)"
+    },
+    {
+      "id": "REQ-061",
+      "title": "Figma components on the Components page, one section per feature",
+      "priority": "Should",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-27-figma-components-and-sections.md",
+      "design": "none: process rule for the Figma file, no app UI",
+      "story": "As the product owner, I want every Figma component on the \"🧩 Components\" page and each feature's screens grouped in one Figma section, so that I review a feature at a glance and find reusable pieces in one place.",
+      "ac": [
+        "Given the Bee There Figma file\nWhen an agent creates or finds a component (component or component set)\nThen it lives on the \"🧩 Components\" page, never on a feature or brand page",
+        "Given a new feature with UI\nWhen an agent draws its screens on \"📐 Feature designs\"\nThen all its screens sit inside one Figma section named \"<REQ ids> · <topic>\", and the design file links that section",
+        "Given a new session starts a design\nWhen it reads the design template, the deliver-change skill and its working knowledge\nThen they state both rules"
+      ],
+      "source": "Requested by the Product Owner on 2026-11-27 in chat (issue #145)"
+    },
+    {
+      "id": "REQ-062",
       "title": "Turn push notifications on or off",
       "priority": "Should",
       "status": "Approved",
@@ -1618,7 +1728,7 @@
       "design": "compass/design/2026-11-26-push-notifications.md"
     },
     {
-      "id": "REQ-060",
+      "id": "REQ-063",
       "title": "Every in-app notification is also sent as a push message",
       "priority": "Should",
       "status": "Approved",
@@ -1633,6 +1743,21 @@
       ],
       "source": "Requested by the Product Owner on 2026-11-26 in chat (push notifications, option B: Cloudflare Workers) — issue #113",
       "design": "compass/design/2026-11-26-push-notifications.md"
+    },
+    {
+      "id": "REQ-044",
+      "title": "Weekly security scan of the code and libraries",
+      "priority": "Could",
+      "status": "Done",
+      "intent": "compass/intent/2026-11-25-ai-native-sdlc.md",
+      "design": "none: scheduled CI job, no UI",
+      "story": "As the product owner, I want a scheduled weekly security scan of the code and dependencies with findings logged as issues, so that vulnerabilities are found between releases.",
+      "ac": [
+        "Given the weekly schedule\nWhen the scan finds an issue\nThen a `bug` issue with severity is opened",
+        "Given a finding is dismissed\nWhen it is closed\nThen a reason is recorded",
+        "Given a finding that has an open issue\nWhen a later scan no longer finds it\nThen the issue is closed with a comment"
+      ],
+      "source": "Issue #68 (gap analysis vs the AI-native SDLC playbook, 2026-11-25); taken off hold by the Product Owner on 2026-11-26 (\"fix #68\"), who chose npm audit + CodeQL and dismissal by a reason comment"
     }
   ],
   "tests": [
@@ -2501,6 +2626,16 @@
       "file": "tests/testFirst.test.mjs"
     },
     {
+      "id": "TC-070",
+      "title": "The intent template, AGENTS.md and the deliver-change skill ask for \"## Done when\" and no baseline → target for every intent (AC 1–3); check-spec requires \"## Done when\" in intents of REQ-059 on (AC 4)",
+      "reqIds": [
+        "REQ-059"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/intent.test.mjs"
+    },
+    {
       "id": "TC-067",
       "title": "Hardening: merge-pr re-checks the plan, placeholder plan values count as missing, accepted-finding route documented, new-flag rule for every non-legacy flag",
       "reqIds": [
@@ -2582,6 +2717,56 @@
     },
     {
       "id": "TC-116",
+      "title": "UI: an \"everyone ticks\" item counts only current trip members (bug #108)",
+      "reqIds": [
+        "REQ-131"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "e2e/checkTicks.spec.mjs"
+    },
+    {
+      "id": "TC-117",
+      "title": "Security scan: npm audit and CodeQL findings become bug issues with severity; gone findings close their issue; a failed source closes nothing",
+      "reqIds": [
+        "REQ-044"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/security-scan.test.mjs"
+    },
+    {
+      "id": "TC-118",
+      "title": "Security scan: a closed finding stays closed only with a \"Dismissed:\" reason (else reopened); weekly + manual schedule with least-privilege permissions",
+      "reqIds": [
+        "REQ-044"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/security-scan.test.mjs"
+    },
+    {
+      "id": "TC-120",
+      "title": "Agent setup evals: all active cases pass with the pass rate reported, 20–50 well-formed cases, a weakened guardrail drops the pass rate, cases on main cannot be removed or weakened without a retired note",
+      "reqIds": [
+        "REQ-041"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/agentEvals.test.mjs"
+    },
+    {
+      "id": "TC-121",
+      "title": "Design template, skill and agent knowledge put components on the Components page and each feature in one Figma section",
+      "reqIds": [
+        "REQ-061"
+      ],
+      "type": "automated",
+      "status": "Passing",
+      "file": "tests/design.test.mjs"
+    },
+    {
+      "id": "TC-122",
       "title": "Notification settings (Profile ⋯ menu, Account page): switch on registers the device, off unregisters it, unsupported/blocked browsers see a disabled switch with a how-to line, hidden when the pushNotif flag is off",
       "reqIds": [
         "REQ-131"
@@ -2591,20 +2776,20 @@
       "file": "e2e/checkTicks.spec.mjs"
     },
     {
-      "id": "TC-116",
+      "id": "TC-122",
       "title": "Push switch: on registers the device, off unregisters it, unsupported/blocked browsers see the how-to text, hidden when the pushNotif flag is off",
       "reqIds": [
-        "REQ-059"
+        "REQ-062"
       ],
       "type": "automated",
       "status": "Not run",
       "file": "e2e/push.spec.mjs"
     },
     {
-      "id": "TC-117",
+      "id": "TC-123",
       "title": "Push sender: each notification kind and admin broadcast becomes a push with the same text as in the app, in the recipient language; expired subscriptions are removed; a Worker failure never blocks the in-app notification",
       "reqIds": [
-        "REQ-060"
+        "REQ-063"
       ],
       "type": "automated",
       "status": "Not run",

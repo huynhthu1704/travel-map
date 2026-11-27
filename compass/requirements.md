@@ -43,7 +43,9 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-038 | Capture intent in intent.md before writing requirements | — | Should | Done | TC-063 |
 | REQ-039 | Write a plan before coding each requirement | — | Should | Done | TC-064 |
 | REQ-040 | Turn project policies into repo skills | — | Should | Done | TC-065, TC-066 |
+| REQ-041 | Evals for the agent setup | — | Could | Done | TC-120 |
 | REQ-043 | Failing test committed before the fix for every bug | — | Could | Done | TC-069 |
+| REQ-044 | Weekly security scan of the code and libraries | — | Could | Done | TC-117, TC-118 |
 | REQ-045 | CLAUDE.md as the project lessons-learned memory | — | Should | Done | TC-062 |
 | REQ-046 | Record decisions as ADRs in compass/decisions.md | — | Should | Done | TC-061 |
 | REQ-047 | Keep compass/handover.md up to date automatically | — | Should | Done | TC-060 |
@@ -56,8 +58,10 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-056 | Export the trip checklist to the same Excel file as a separate sheet | — | Should | Done | TC-114 |
 | REQ-057 | A Figma frame in every UI design, approved before code | — | Should | Done | TC-113 |
 | REQ-058 | Automatic deploys publish only the newest commit of main | — | Must | Done | TC-115 |
-| REQ-059 | Turn push notifications on or off | — | Should | Approved | TC-116 |
-| REQ-060 | Every in-app notification is also sent as a push message | — | Should | Approved | TC-117 |
+| REQ-059 | Every intent has a "Done when"; targets only for bets | — | Must | Done | TC-070 |
+| REQ-061 | Figma components on the Components page, one section per feature | — | Should | Done | TC-121 |
+| REQ-062 | Turn push notifications on or off | — | Should | Approved | TC-122 |
+| REQ-063 | Every in-app notification is also sent as a push message | — | Should | Approved | TC-123 |
 | REQ-101 | Sign in with Google | — | Must | Done | TC-101 |
 | REQ-102 | Consent, privacy policy and terms | — | Must | Done | TC-101 |
 | REQ-103 | Download my data and delete my account | — | Must | Done | TC-101 |
@@ -88,7 +92,7 @@ _Generated from `spec.json`. REQ-101 and up are the baseline (features built bef
 | REQ-128 | Day-by-day plan | — | Must | Done | TC-105 |
 | REQ-129 | Journey | — | Must | Done | TC-105 |
 | REQ-130 | Costs and settle-up | — | Must | Done | TC-105 |
-| REQ-131 | Checklists | — | Must | Done | TC-105, TC-116 |
+| REQ-131 | Checklists | — | Must | Done | TC-105, TC-116, TC-122 |
 | REQ-132 | Plan PDF export | — | Should | Done | TC-105 |
 | REQ-133 | Duplicate a trip | — | Should | Done | TC-105 |
 | REQ-134 | Country guides | — | Must | Done | TC-106 |
@@ -448,6 +452,19 @@ Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-
 - Given a skill for a policy · When a session does work that matches it · Then the skill is loaded and followed
 - Given a policy that must always hold · When it is written as a skill · Then it also has a hook or CI check behind it
 
+## REQ-041 — Evals for the agent setup
+
+As the product owner, I want a suite of 20–50 past mistakes and review findings replayed automatically against the agent rules, hooks and checks, so that I know the agent setup did not get weaker after a rule change.
+
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
+
+Design: none: process change, no UI
+
+- Given an eval suite of past mistakes and review findings (compass/evals/cases.json) · When a pull request changes anything (including AGENTS.md, CLAUDE.md, skills or hooks) or the nightly CI run starts · Then the suite runs in npm test and reports the pass rate in the test output and the CI run summary
+- Given a change that makes a past mistake pass again (the pass rate drops below 100 %) · When CI runs · Then the test job fails, so compass/merge-pr.mjs does not merge it
+- Given a pull request that removes an eval case or changes its expected outcome · When CI runs · Then it fails unless the case is marked retired with the Product Owner's approval, which compass/REVIEW.md routes to her
+- Given the free version chosen by the Product Owner · When the suite runs · Then it needs no API key, no paid service and no workflow change
+
 ## REQ-043 — Failing test committed before the fix for every bug
 
 As the product owner, I want bug fixes to start with a separate commit that adds a failing test, and the fix commit not to change that test, so that the fix provably addresses the reported bug.
@@ -458,6 +475,18 @@ Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-
 - Given a later commit edits that test · When CI runs · Then it fails unless the Product Owner approves (human-approved label)
 - Given a PR that closes a bug issue but has no bug label · When compass/merge-pr.mjs runs · Then it refuses to merge
 - Given the test from the first commit hangs or cannot start · When the test-first check runs it · Then the check fails (a run stopped by the time limit does not count as a failing test)
+
+## REQ-044 — Weekly security scan of the code and libraries
+
+As the product owner, I want a scheduled weekly security scan of the code and dependencies with findings logged as issues, so that vulnerabilities are found between releases.
+
+Intent: [compass/intent/2026-11-25-ai-native-sdlc.md](../compass/intent/2026-11-25-ai-native-sdlc.md)
+
+Design: none: scheduled CI job, no UI
+
+- Given the weekly schedule · When the scan finds an issue · Then a `bug` issue with severity is opened
+- Given a finding is dismissed · When it is closed · Then a reason is recorded
+- Given a finding that has an open issue · When a later scan no longer finds it · Then the issue is closed with a comment
 
 ## REQ-045 — CLAUDE.md as the project lessons-learned memory
 
@@ -532,14 +561,14 @@ Design: none: process change, no UI
 
 ## REQ-054 — Revise the business need into a business intent
 
-As the product owner, I want my request kept in my own words as the business need and revised into a measurable business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
+As the product owner, I want my request kept in my own words as the business need and revised into a business intent before requirements are written, so that requirements answer the outcome, not the first solution I mentioned.
 
 Intent: [compass/intent/2026-11-26-design-and-plan-before-code.md](../compass/intent/2026-11-26-design-and-plan-before-code.md)
 
 Design: none: process change, no UI
 
 - Given an intent for REQ-052 or later · When CI runs the spec check · Then it fails if the intent has no "## Business need" section
-- Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who, what changes, baseline → target and by when
+- Given the intent template · When an agent writes a new intent · Then "## What we want" asks for who and what changes, not the solution (baseline → target only for a bet: amended by REQ-059 / ADR-021 on 2026-11-27)
 
 ## REQ-055 — An approved design before any code
 
@@ -594,7 +623,32 @@ Design: none: CI workflow, no UI
 - Given an automatic deploy whose commit is the current head of main · When it runs · Then it builds, deploys and smoke-tests that commit as before
 - Given a manual deploy or rollback with a commit SHA · When it runs · Then that commit is deployed even if it is not the head of main
 
-## REQ-059 — Turn push notifications on or off
+## REQ-059 — Every intent has a "Done when"; targets only for bets
+
+As the product owner, I want each intent to say what will be true when it is done, and to carry a target only when I call the change a bet, so that I never have to approve made-up numbers.
+
+Intent: [compass/intent/2026-11-27-done-when-before-targets.md](../compass/intent/2026-11-27-done-when-before-targets.md)
+
+Design: none: process text and a spec check, no UI
+
+- Given the intent template · When an agent writes a new intent · Then it has a "## Done when" section saying in plain words what will be true afterwards
+- Given a small feature or a process change · When the intent is drafted · Then it contains no baseline or target number; at most one optional signal to watch, without a target
+- Given the Product Owner names a change a bet · When the intent is drafted · Then it names one metric with its current value and the target is set after a few weeks of real data
+- Given a requirement from REQ-059 on · When check-spec runs · Then it fails if the requirement's intent has no "## Done when" section
+
+## REQ-061 — Figma components on the Components page, one section per feature
+
+As the product owner, I want every Figma component on the "🧩 Components" page and each feature's screens grouped in one Figma section, so that I review a feature at a glance and find reusable pieces in one place.
+
+Intent: [compass/intent/2026-11-27-figma-components-and-sections.md](../compass/intent/2026-11-27-figma-components-and-sections.md)
+
+Design: none: process rule for the Figma file, no app UI
+
+- Given the Bee There Figma file · When an agent creates or finds a component (component or component set) · Then it lives on the "🧩 Components" page, never on a feature or brand page
+- Given a new feature with UI · When an agent draws its screens on "📐 Feature designs" · Then all its screens sit inside one Figma section named "<REQ ids> · <topic>", and the design file links that section
+- Given a new session starts a design · When it reads the design template, the deliver-change skill and its working knowledge · Then they state both rules
+
+## REQ-062 — Turn push notifications on or off
 
 As a signed-in user, I want to turn push notifications on or off for this device, so that I get my Bee There notifications even when the app is closed, and only if I want them.
 
@@ -607,7 +661,7 @@ Design: [compass/design/2026-11-26-push-notifications.md](../compass/design/2026
 - Given my browser does not support push (e.g. iPhone Safari not added to the Home Screen) or I blocked notifications · When I open Notification settings · Then the switch is disabled and one short VI/EN line says how to enable it
 - Given the pushNotif flag is off for me · When I open my Profile menu or the Account & data page · Then I see no Notification settings, and the Notifications panel is unchanged
 
-## REQ-060 — Every in-app notification is also sent as a push message
+## REQ-063 — Every in-app notification is also sent as a push message
 
 As a user who turned push notifications on, I want every notification the app already creates to reach my device as a push message, so that I see invites, answers, follows, likes, comments and team messages without opening the app.
 

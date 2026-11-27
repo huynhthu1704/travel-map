@@ -22,7 +22,11 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 | ADR-016 | 2026-11-26 | Every UI design is drawn in Figma and approved from the Figma frame | Accepted | REQ-057 |
 | ADR-017 | 2026-11-26 | Checklist in the Excel export ships with the tripExcel flag | Accepted | REQ-056 |
 | ADR-018 | 2026-11-26 | Automatic deploys publish only the newest commit of main | Accepted | REQ-058 |
-| ADR-019 | 2026-11-26 | Push notifications are sent by a free Cloudflare Worker | Accepted | REQ-059, REQ-060 |
+| ADR-019 | 2026-11-26 | Weekly security scan with npm audit and CodeQL, dismissal by a reason comment | Accepted | REQ-044 |
+| ADR-020 | 2026-11-26 | Agent evals start with a free replay of past mistakes | Accepted | REQ-041 |
+| ADR-021 | 2026-11-27 | Intents say "Done when"; a baseline and target only for bets | Accepted | REQ-059, REQ-054 |
+| ADR-022 | 2026-11-27 | Figma file layout: one Components page, one section per feature | Accepted | REQ-061 |
+| ADR-023 | 2026-11-26 | Push notifications are sent by a free Cloudflare Worker | Accepted | REQ-062, REQ-063 |
 
 ## ADR-001 — Static site on GitHub Pages with Firebase on the free Spark plan
 
@@ -204,9 +208,49 @@ _Generated from `spec.json` → `decisions`. Add an ADR in the same PR whenever 
 
 **Consequences.** If the newest commit's CI fails, no older commit is deployed automatically; the site keeps the last deployed version until a fix is merged or a manual deploy is run.
 
-## ADR-019 — Push notifications are sent by a free Cloudflare Worker
+## ADR-019 — Weekly security scan with npm audit and CodeQL, dismissal by a reason comment
 
-**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-059, REQ-060
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-044
+
+**Context.** Only npm audit ran in CI, and only on pushes (#56); nothing scanned our own code or looked for new advisories between releases (#68).
+
+**Decision.** A new workflow compass-security.yml runs every Monday 08:00 Vietnam time (and on demand): CodeQL (security-extended, free for public repos) and npm audit. compass/security-scan.mjs opens one bug + security + severity:<level> issue per finding and closes it when the finding is gone. A finding is dismissed by closing its issue as "not planned" with a comment that starts with "Dismissed:"; without it the scan reopens the issue. The Product Owner approved the new protected workflow and both choices in chat.
+
+**Consequences.** The first run opens issues for the known #56 findings, which can be dismissed with a reason or fixed. If GitHub code scanning default setup is turned on, the CodeQL upload fails and only the library scan reports until it is turned off.
+
+## ADR-020 — Agent evals start with a free replay of past mistakes
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-041
+
+**Context.** Issue #65 asked for 20–50 past tasks re-run automatically when the agent configuration changes. Re-running them with Claude needs an Anthropic API key as a GitHub secret and a CI workflow change, and costs roughly $15–60 per run (estimate).
+
+**Decision.** The Product Owner chose the free version first (2026-11-26): past mistakes and review findings are replayed against the real Compass checks (edit hook, CI guardrails, plan, test-first, merge-pr, spec checks) inside npm test. No API key, no paid service, no workflow change.
+
+**Consequences.** The suite proves the rules and checks still catch past mistakes; it does not measure how well Claude itself follows them. A paid version that re-runs real tasks with Claude needs a new decision (API key, cost, workflow change).
+
+## ADR-021 — Intents say "Done when"; a baseline and target only for bets
+
+**Status:** Accepted · **Date:** 2026-11-27 · **Requirements:** REQ-059, REQ-054
+
+**Context.** REQ-054 asked every business intent for one measurable outcome (baseline → target, by when). The Compass Ideation agent followed it literally and invented numbers (e.g. "0% → 20% within 90 days" for F-001) with no data behind them; the Product Owner found them hard to judge.
+
+**Decision.** The Product Owner decided on 2026-11-27: every intent has a "Done when" in plain words. A small feature may add one optional signal to watch without a target; a process change has "Done when" only; only a change she names a bet gets a metric with its current value, and its target is set after a few weeks of real data. Applies to travel-map and to the Compass portal.
+
+**Consequences.** The intent template, AGENTS.md, the deliver-change skill and agent-knowledge ask for "## Done when"; REQ-054's template criterion is amended. check-spec requires "## Done when" for intents of REQ-059 on; older intents stay as they are. Fewer numbers to approve; real targets come later from real data.
+
+## ADR-022 — Figma file layout: one Components page, one section per feature
+
+**Status:** Accepted · **Date:** 2026-11-27 · **Requirements:** REQ-061
+
+**Context.** Components were spread over the feature and brand pages of the Bee There Figma file, and feature screens lay loose on "📐 Feature designs", which made reviews hard to follow.
+
+**Decision.** The Product Owner decided on 2026-11-27: every Figma component lives on the "🧩 Components" page, and each feature gets one Figma section on "📐 Feature designs" holding all its screens, for this and every future feature.
+
+**Consequences.** Existing components were moved and existing feature screens grouped (node ids unchanged, so frame links still work). The design template, the deliver-change skill and agent-knowledge state the rule; CI cannot read Figma, so it is not checked automatically.
+
+## ADR-023 — Push notifications are sent by a free Cloudflare Worker
+
+**Status:** Accepted · **Date:** 2026-11-26 · **Requirements:** REQ-062, REQ-063
 
 **Context.** Push messages need a server; Bee There runs on GitHub Pages and the free Firebase Spark plan without Cloud Functions (ADR-001 left this open).
 

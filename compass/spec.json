@@ -37,84 +37,132 @@
       },
       "createdAt": "2026-11-23T03:11:00.928Z",
       "design": {
-        "status": "Draft",
-        "summary": "REQ-002 is a cross-cutting baseline, so it gets no new page. The design adds three things on top of the existing app. (1) A shared focus and keyboard layer on the existing shell, pages and `Modal`. (2) A fast-start Home page that reuses the lazy-loading approach already in REQ-011. (3) The F-001 'Add suggestion to checklist' dialog, built to the baseline so TC-003 and TC-004 can be checked on a real form. It reuses `Modal`, `Combobox`, the `.btn` and `.field` styles and the toast via `notify`. Page CSS stays split per page (`src/styles/pages/`) [S4 agent-knowledge]. Nothing new is added to the first load.",
-        "notes": "Accessibility:\n- Target is WCAG 2.1 AA: text contrast 4.5:1, focus ring and icon contrast 3:1, touch targets at least 44x44 px on phones.\n- Texts must exist in both VI and EN (`src/i18n.jsx`, `src/i18n-en.js`). Check that the aria-labels and error messages are translated, not hard-coded.\n- Automated check for TC-003: a keyboard-only Tab walk through each page, plus an axe scan. TC-004 is manual: submit the dialog with no trip chosen and confirm the error and that nothing is saved.\n\nResponsive (phone):\n- The dialog uses the existing Modal, with `modal--sm` on narrow screens. The controls stack full-width.\n- The bottom nav must not cover the focused field. Scroll the focused element into view.\n- The virtual keyboard must not hide the error or the Add button.\n- The skip link and focus ring must also work with an external keyboard on a tablet.\n\nOpen questions:\n1. Is the 2.5 s target for the home page only, or also for Guides? The requirement says home page only.\n2. Should the 'Add to checklist' button show only to signed-in users? Per the FAQ, creating trips needs a Google sign-in.\n3. The Combobox and Modal are read only in part (snippets). Confirm which focus-trap and focus-return behaviour already exists before changing them.\n4. The ideas notes say 'increase the number of user' is unclear (more app users or more trip members). The Product Owner should confirm. This does not change the REQ-002 screens.\n5. The dialog and the Guides button come from other F-001 requirements. They are shown here only to apply REQ-002 and need to be linked to those requirements' own screens.",
+        "status": "Approved",
+        "summary": "The design adds one new action to the Guides page, one dialog, and one panel in the existing Admin → Insights. It adds a baseline for every page and a fast Home page. It reuses what the repo already has: `Modal`, `Combobox`, `.btn` and `.field` styles, the `notify` toast, the `Loader` in `ui.jsx`, the `can('<key>')` feature flags in `src/data/flags.js`, and the `insights` permission in `src/lib/roles.js`. The new UI goes behind a flag with `defaultOn: false`, as the agent-knowledge notes require. The checklist item limit is `CHECK_ITEM_MAX` = 120 in `src/lib/checklist.js`. The 'Add to checklist' code loads with the Guides page, so the Home bundle does not grow. I did not read `Modals.jsx`, `Combobox.jsx`, the Guides UI or the Admin Insights UI. Their exact current behaviour (focus trap, focus return, Combobox ARIA, Insights layout) is still to be confirmed.",
+        "notes": "Accessibility (WCAG 2.1 AA):\n- Text contrast is 4.5:1. Focus ring and icon contrast is 3:1. Touch targets are at least 44x44 px on phones.\n- Errors use role=alert and are linked to their field with aria-describedby. Toasts use role=status.\n- Every new string exists in VI and EN (`src/i18n.jsx`, `src/i18n-en.js`), including aria-labels and error messages.\n- The Insights table uses real headers. The period control works with arrow keys.\n- Tests: TC-003 is a keyboard Tab walk plus an axe scan on each page, including Guides, the dialog and Insights. TC-004 is manual: open the dialog, submit with no trip chosen, and confirm the error and that nothing is saved.\n\nResponsive (phone):\n- The dialog uses `modal--sm` and the controls stack full-width.\n- The bottom nav must not cover the focused field. Scroll the focused element into view.\n- The virtual keyboard must not hide the error or the Add button.\n- The Insights table scrolls horizontally, or turns into a stacked list on narrow screens.\n- The skip link and focus ring must also work with an external keyboard on a tablet.\n\nOpen questions:\n1. Is the 2.5 s target for the Home page only, or also for Guides? REQ-002 says Home only.\n2. Should 'Add to checklist' show only to signed-in users? Creating trips needs a Google sign-in. A signed-out user is sent to sign-in.\n3. Which focus-trap and focus-return behaviour does `Modal` already have? It must be confirmed before changing it.\n4. Which Guide data has a stable id for each suggestion? REQ-005 needs a suggestion id stored on the item, so a renamed item is still a duplicate. This changes the checklist item shape.\n5. How are counts stored, and who can write them? The data must hold only Guide, date and count (REQ-008), so the Firestore rules need checking.\n6. The need says 'increase the number of user'. The Product Owner should say whether this means more app users or more trip members. The screens do not change either way.\n7. The Figma file was not opened in this run. These screens still need to be drawn in Figma.",
         "screens": [
           {
             "id": "SCR-1",
-            "name": "Keyboard and focus baseline (all pages)",
-            "purpose": "Every page in the app can be used with the keyboard alone. Every interactive element is reachable and shows a clear focus ring. Screen readers get landmarks and names.",
+            "name": "SCR-1 Keyboard and focus baseline (all pages)",
+            "purpose": "Every page can be used with the keyboard alone and with a screen reader. This includes the new Guides action, the dialog and the Insights panel.",
             "reqIds": [
               "REQ-002"
             ],
             "elements": [
-              "'Skip to main content' link, the first tab stop on every page, visible only on focus",
-              "Landmarks: header/nav, main, and the bottom nav on phones labelled with aria-label",
-              "One global :focus-visible style with a high-contrast ring (at least 3:1 against the background) on buttons, links, icon-buttons, inputs and the Combobox. No outline:none without a replacement",
-              "Icon-only controls (✕, ✏️, 🗑️, 📅) keep an aria-label. Fix any that lack one, e.g. the Combobox clear button has a hard-coded 'Clear'. Use t() instead",
-              "Logical tab order that follows reading order. Custom clickable divs become real <button>/<a> or get role, tabIndex and Enter/Space handlers",
-              "Existing Modal: keeps role=dialog, aria-modal and Escape to close. Add focus moved into the dialog on open, focus kept inside while open, and focus returned to the trigger on close. This was not visible in the code read",
-              "Status messages (toasts) use role=status / aria-live=polite. Errors use role=alert",
-              "Colour is never the only signal. The due-today (yellow) and overdue (red) checklist states also carry text or an icon"
+              "'Skip to main content' link: first tab stop, visible only on focus",
+              "Landmarks: header/nav, main, and the phone bottom nav with an aria-label",
+              "One global :focus-visible ring, at least 3:1 contrast, on buttons, links, icon-buttons, inputs and the Combobox. No outline:none without a replacement",
+              "Icon-only controls (✕ ✏️ 🗑️ 📅) have a translated aria-label. The Combobox clear button's hard-coded 'Clear' becomes t()",
+              "Custom clickable divs become real <button> or <a>, or get role, tabIndex and Enter/Space handlers",
+              "Existing Modal: role=dialog, aria-modal and Escape stay. Focus moves into the dialog on open, stays inside, and returns to the trigger on close",
+              "Toasts use role=status / aria-live=polite. Errors use role=alert",
+              "Due-today and overdue checklist states also show text or an icon, not colour only"
             ],
             "states": [
-              "Default: no visible ring on mouse clicks, ring on keyboard focus",
+              "Default: no ring on mouse click, ring on keyboard focus",
               "Focused: visible ring on every control",
               "Modal open: focus trapped, Escape closes, focus returns to the opener",
               "Error: message linked to its field with aria-describedby and announced",
-              "Reduced motion: transitions and animations are off when prefers-reduced-motion is set"
+              "Reduced motion: animations off under prefers-reduced-motion"
             ]
           },
           {
             "id": "SCR-2",
-            "name": "Home page fast start (4G)",
-            "purpose": "The home page becomes interactive within 2.5 s on a 4G connection (Lighthouse), with nothing heavy loaded before it is needed.",
+            "name": "SCR-2 Home page fast start (4G)",
+            "purpose": "The Home page is interactive within 2.5 s on 4G (Lighthouse). Nothing heavy loads before it is needed.",
             "reqIds": [
               "REQ-002"
             ],
             "elements": [
-              "Reuse the REQ-011 lazy loading: map libraries, country borders, the English dictionary and heavy studios are loaded only when needed",
-              "Non-blocking CSS, split per page, and a small critical shell that paints first",
-              "Images with width/height set and lazy loading below the fold, so layout does not shift",
-              "Skeleton or Loader (existing ui Loader) for content that arrives late, with aria-busy on the region",
-              "The 'Add to checklist' code from F-001 is lazy-loaded with the Guides page or dialog, not in the home bundle",
-              "The performance check is a Lighthouse mobile 4G run on the home page with Time to Interactive/TBT under budget"
+              "Reuse the existing lazy loading for map libraries, country borders, the dictionary and studios",
+              "Small critical shell that paints first. Page CSS split per page",
+              "Images with width/height set, lazy below the fold",
+              "Existing Loader or skeleton for late content, with aria-busy on the region",
+              "F-001 add-to-checklist code and the Insights panel load with the Guides page or Admin, not with Home",
+              "Check: Lighthouse mobile 4G run on Home"
             ],
             "states": [
               "Loading: shell and skeleton shown, controls already focusable",
               "Loaded: interactive within 2.5 s",
-              "Slow or offline network: content that did not load shows a short message with a Retry button, and the rest of the page still works",
-              "Error: a failed lazy chunk shows a retry message instead of a blank screen"
+              "Slow or offline: short message with a Retry button, and the rest of the page still works",
+              "Error: a failed lazy chunk shows a retry message, not a blank screen"
             ]
           },
           {
             "id": "SCR-3",
-            "name": "Add suggestion to checklist dialog (F-001, built to the baseline)",
-            "purpose": "A traveller picks a Guide suggestion and a trip, and adds it to that trip's checklist entirely by keyboard. It is the real form where TC-004 is checked: invalid input shows an error and saves nothing.",
+            "name": "SCR-3 Guide suggestion row with 'Add to checklist' action",
+            "purpose": "The traveller sees the 'Add to checklist' action next to each Guide suggestion without opening a menu. After a successful add, the action shows 'Added'.",
             "reqIds": [
+              "REQ-009",
+              "REQ-006",
               "REQ-002"
             ],
             "elements": [
-              "Opened from an 'Add to checklist' button on each Guide suggestion, a real <button> with an accessible name that includes the suggestion text",
-              "Existing Modal with title 'Add to checklist'",
-              "Read-only line showing the suggestion text",
-              "Trip selector: existing Combobox, with a visible <label>, role=combobox, and arrow/Enter/Escape keys",
-              "Primary button 'Add' and secondary 'Cancel', with the existing .btn styles. Enter submits",
-              "Inline error text under the trip field, red and with an icon, with role=alert and linked by aria-describedby",
-              "Toast on success through notify(), announced by a screen reader"
+              "Existing Guides page. A real <button class='btn'> sits on every suggestion row, labelled '+ Add to checklist'",
+              "Accessible name includes the suggestion text, e.g. aria-label from t('addToChecklistFor', {text}). It is reachable by Tab and works with Enter and Space",
+              "'Added' state: ✓ icon plus text, aria-disabled, and an sr-only note naming the trip. Colour is never the only signal",
+              "A hint on the first suggestion ('Add to your trip checklist') helps travellers find the action",
+              "Behind a feature flag with defaultOn false, wrapped in can('<key>')",
+              "VI and EN strings in src/i18n.jsx and src/i18n-en.js"
             ],
             "states": [
-              "Default: focus lands on the trip selector. If the user has only one trip it is preselected and focus goes to 'Add'",
-              "Empty: the user has no trips. The dialog explains this and offers 'Create a trip', and Add is not offered",
-              "Invalid input: no trip chosen. Show 'Choose a trip first', keep focus on the trip field, save nothing",
-              "Loading: while saving, the existing Loader replaces the buttons and the dialog stays open",
-              "Success: confirmation toast and the dialog closes. Focus returns to the 'Add to checklist' button",
-              "Error: saving failed or offline. Show 'Could not add this item. Try again' in the dialog, nothing is saved, and the user can retry",
-              "Duplicate: the item is already on that checklist. Show a message and do not add it twice"
+              "Default: button visible on every suggestion",
+              "Focused: visible focus ring",
+              "Added: button shows '✓ Added' and the trip name is announced via role=status",
+              "Signed out: button opens the sign-in prompt (see open questions)",
+              "Guide with no suggestions: no button shown"
+            ]
+          },
+          {
+            "id": "SCR-4",
+            "name": "SCR-4 Add suggestion to checklist dialog",
+            "purpose": "The traveller picks a trip and adds the suggestion in one step. Duplicates are blocked and errors are clear. Nothing is saved on an invalid or failed attempt.",
+            "reqIds": [
+              "REQ-003",
+              "REQ-004",
+              "REQ-005",
+              "REQ-006",
+              "REQ-002"
+            ],
+            "elements": [
+              "Existing Modal titled 'Add to checklist' (modal--sm on phones)",
+              "Read-only line with the suggestion text. Text over 120 characters (CHECK_ITEM_MAX) is shown truncated, with a note that it will be saved as 120 characters",
+              "Trip selector: existing Combobox with a visible <label>, listing only trips whose checklist the user can edit. Member-only trips are not offered",
+              "Primary 'Add' and secondary 'Cancel' using .btn. Enter submits",
+              "Inline error under the trip field with an icon, role=alert and aria-describedby",
+              "'Create a trip' action in the no-trip state",
+              "On success: a notify() toast naming the trip, and the new unticked item appears on that trip's checklist without a reload. Trip members see it with normal tick behaviour"
+            ],
+            "states": []
+          },
+          {
+            "id": "SCR-5",
+            "name": "SCR-5 Admin Insights: Guide suggestion adds",
+            "purpose": "The Admin sees how many Guide suggestions were added to checklists, per period and per Guide, with no personal data.",
+            "reqIds": [
+              "REQ-007",
+              "REQ-008",
+              "REQ-002"
+            ],
+            "elements": [
+              "New panel 'Guide suggestions added' in the existing Admin → Insights module (shown only with the 'insights' permission)",
+              "Period selector: segmented control or radio group for last 7 days, last 30 days and all time, with a visible label and arrow-key support",
+              "Total count in a large number card",
+              "Table of Guide name and number of adds, with proper <th> headers. Guides with 0 adds are listed with 0",
+              "Privacy note: 'Counts only. No user or trip is stored'. Any export has only Guide, date and count columns",
+              "Only successful adds are counted. Duplicate and failed attempts are not"
+            ],
+            "states": [
+              "Loading: Loader, aria-busy on the panel",
+              "Loaded: total and per-Guide table for the chosen period",
+              "Empty: total 0 and every Guide listed with 0, plus a hint that no adds have happened yet",
+              "Error: message with a Retry button",
+              "No permission: the panel and the count are not rendered and the user sees the existing no-access state"
             ]
           }
-        ]
+        ],
+        "approvedBy": "huynhthingocthu1704@gmail.com (super admin)",
+        "approvedAt": "2026-11-28T08:01:54.260Z"
       }
     },
     {
@@ -320,6 +368,6 @@
   "decisions": [],
   "designTool": {
     "kind": "figma",
-    "url": "https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ/Travel-Map?node-id=21-2&p=f&t=C8sQJoESqpCp2945-0"
+    "url": "https://www.figma.com/design/nOxnAVTrWPGf4cBcroW0kQ/Bee-There-Travel-Map?node-id=21-2&p=f&t=poxODUhsDTyUloTO-0"
   }
 }
